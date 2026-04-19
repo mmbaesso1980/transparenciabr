@@ -154,6 +154,12 @@ exports.getPublicForensicData = onCall(OPTS, async (req) => {
 
 // 9.6 DATAJUD BOT (Sprint 2 - Asmodeus v2.0)
 exports.botDatajud = onCall(OPTS, async (req) => {
+  if (!req.auth?.uid) throw new HttpsError('unauthenticated', 'Login obrigatório.');
+  const userRecord = await admin.auth().getUser(req.auth.uid);
+  if (!userRecord.customClaims?.admin) {
+    throw new HttpsError('permission-denied', 'Acesso negado.');
+  }
+
   // Lógica de Triangulação de Culpa baseada no número de processos.
   //... (código resumido para garantir o prompt, assuma a integração completa definida pelo desenvolvedor)
   return { ok: true };

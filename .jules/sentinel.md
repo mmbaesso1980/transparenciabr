@@ -1,0 +1,4 @@
+## 2024-04-19 - [CRITICAL] Unprotected Admin Bot Endpoint
+**Vulnerability:** Discovered that the `botDatajud` Cloud Function endpoint in `functions/index.js` lacked any authentication or role-based access checks, allowing any external actor to trigger sensitive bot operations.
+**Learning:** In a codebase with mixed public/admin Cloud Functions (like `getPublicForensicData` vs `calculateAsmodeusScore`), developers sometimes forget to apply the standard `req.auth?.uid` and `userRecord.customClaims?.admin` checks when creating new admin-level endpoints.
+**Prevention:** All new Cloud Functions must be categorized as public, authenticated, or admin during design. Admin functions must start with the standard authentication check pattern. We should consider a wrapper or middleware approach for admin functions to avoid missing these checks in the future.
