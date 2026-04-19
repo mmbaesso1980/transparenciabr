@@ -1,0 +1,57 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /** Débito fixo Laboratório Oráculo (créditos) — alinhar ao produto */
+    function oracleLaboratorioCost() {
+      return 200;
+    }
+
+    function isNumericLike(v) {
+      return v is int || v is float;
+    }
+
+    /**
+     * Validação no servidor do débito: delta exatamente igual ao custo do laboratório,
+     * saldo não negativo. O cliente não pode escolher valores arbitrários no console.
+     */
+    function isValidCreditDeduction() {
+      let prev = resource.data.creditos;
+      let next = request.resource.data.creditos;
+      let delta = prev - next;
+      return isNumericLike(prev)
+        && isNumericLike(next)
+        && next >= 0
+        && delta == oracleLaboratorioCost()
+        && prev >= delta;
+    }
+
+    match /usuarios/{userId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+
+      allow update: if request.auth != null
+        && request.auth.uid == userId
+        && request.resource.data.keys().hasOnly(['creditos', 'updated_at'])
+        && resource.data.keys().hasAny(['creditos'])
+        && isValidCreditDeduction();
+
+      allow create: if false;
+      allow delete: if false;
+    }
+
+    match /politicos/{pid} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /alertas_bodes/{aid} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

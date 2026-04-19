@@ -1,0 +1,89 @@
+@import url("https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Inter:ital,opsz,wght@0,14..32,300..700;1,14..32,400..700&display=swap");
+
+@import "tailwindcss";
+
+/* ═══ Design System — TransparênciaBR · tema escuro operacional ═══ */
+
+:root {
+  color-scheme: dark;
+
+  /* Superfícies */
+  --bg-void: #080b14;
+  --bg-deep: #0c101c;
+  --bg-elevated: #12182a;
+  --bg-surface: #182138;
+  --bg-muted: #1e2a45;
+
+  /* Texto */
+  --text-primary: #f0f4fc;
+  --text-secondary: #9aa4bd;
+  --text-muted: #5c6784;
+  --text-inverse: #080b14;
+
+  /* Bordas & sombras */
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-strong: rgba(255, 255, 255, 0.12);
+  --shadow-elevated: 0 24px 48px rgba(0, 0, 0, 0.45);
+
+  /* Destaques */
+  --accent-primary: #6ea8ff;
+  --accent-secondary: #a78bfa;
+  --accent-warning: #fbbf24;
+  --accent-danger: #fb7185;
+
+  /* Estados operacionais */
+  --afrodite-clean: #00f5d4;
+  --afrodite-clean-glow: rgba(0, 245, 212, 0.28);
+  --afrodite-clean-bg: rgba(0, 245, 212, 0.09);
+  --afrodite-clean-border: rgba(0, 245, 212, 0.35);
+
+  /* Anomalias / alertas críticos */
+  --dracula-red: #ff0054;
+  --dracula-red-glow: rgba(255, 0, 84, 0.38);
+  --dracula-red-bg: rgba(255, 0, 84, 0.09);
+  --dracula-red-border: rgba(255, 0, 84, 0.42);
+
+  /* Tipografia */
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Fira Code", ui-monospace, monospace;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  font-family: var(--font-sans);
+  font-optical-sizing: auto;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  background-color: var(--bg-void);
+  color: var(--text-primary);
+}
+
+code,
+kbd,
+samp,
+pre {
+  font-family: var(--font-mono);
+}
+
+/* Vidro fosco — painéis flutuantes */
+.glass {
+  backdrop-filter: blur(25px) saturate(180%);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+/* Painéis densidade alta — cockpit / SOC */
+.dashboard-panel.glass {
+  background: #0d1117;
+  border: 1px solid #30363d;
+  border-radius: 12px;
+}

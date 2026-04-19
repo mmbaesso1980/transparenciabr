@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "description": "Execute `python gen_registry.py` nesta pasta para gravar todas as URLs. Se `apis` estiver vazio, o crawler usa build_default_apis() em memória.",
+  "apis": []
+}
