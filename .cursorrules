@@ -1,0 +1,8 @@
+Região Exclusiva: Toda a infraestrutura do Google Cloud Platform (GCP) e Firebase (Cloud Functions, Firestore) deve ser provisionada obrigatoriamente na região us-central1.
+Integrações Externas: Prepare a arquitetura para futuras integrações de protocolo de contexto de modelo (MCP) para conectar o Portal da Transparência de forma direta.
+Design System: Utilize a arquitetura visual "Bento Box" (grids modulares com hierarquia rigorosa, contraste claro, fundo Off-white #FAFAFA e densidade controlada para escaneabilidade).
+
+Regras Analíticas (Motor Asmodeus):
+- Anomalias de Assiduidade (Alerta de Fantasma): Disparado quando a presença do político cai abaixo de 55%.
+- Produtividade Artificial (Anti-Carona): Para ser considerado autor primário, o projeto deve ter no máximo 3 autores e o deputado deve estar entre os dois primeiros listados.
+- Monitor de Teto de Gastos (Alerta Crítico): Disparado e marcado em vermelho quando o parlamentar atinge ou ultrapassa 95% do limite anual do seu estado, visando identificar padrões de gastos eleitorais acelerados.
