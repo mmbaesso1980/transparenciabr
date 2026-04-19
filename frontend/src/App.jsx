@@ -2,6 +2,15 @@ import React from 'react';
 import Galaxy3D from './components/Galaxy3D';
 
 function App() {
+  // ⚡ Bolt: Use lazy state initialization to prevent regenerating random numbers on every re-render.
+  // Impact: Fixes 'react-hooks/purity' ESLint error and eliminates unnecessary O(N) array mapping during updates.
+  const [financialStreams] = React.useState(() => {
+    return [1, 2, 3, 4, 5, 6].map(i => ({
+      id: i,
+      value: Math.random() * 500000
+    }));
+  });
+
   return (
     <div className="min-h-screen bg-[#FAFAFA] p-6 font-satoshi flex flex-col">
       <header className="flex justify-between items-center mb-6">
@@ -44,13 +53,13 @@ function App() {
              <span className="px-2 py-1 bg-blue-100 text-blue-700 text-[10px] font-bold rounded-full">LIVE FEED</span>
            </div>
            <div className="flex-1 overflow-y-auto pr-2 space-y-3">
-              {[1, 2, 3, 4, 5, 6].map(i => (
-                <div key={i} className="flex justify-between items-center border-b border-slate-100 pb-2 last:border-0">
+              {financialStreams.map(stream => (
+                <div key={stream.id} className="flex justify-between items-center border-b border-slate-100 pb-2 last:border-0">
                    <div>
-                     <p className="text-sm font-bold text-slate-700">Dep. Federal {i}</p>
+                     <p className="text-sm font-bold text-slate-700">Dep. Federal {stream.id}</p>
                      <p className="text-xs text-slate-400">Emenda Parlamentar</p>
                    </div>
-                   <p className="text-sm font-mono font-medium text-slate-800">R$ {(Math.random() * 500000).toLocaleString('pt-BR', { maximumFractionDigits: 0 })}</p>
+                   <p className="text-sm font-mono font-medium text-slate-800">R$ {stream.value.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}</p>
                 </div>
               ))}
            </div>

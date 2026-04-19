@@ -1,0 +1,3 @@
+## 2024-05-24 - React Strict Purity Error with Math.random()
+**Learning:** Using `Math.random()` directly inside a React component render block, or even inside `useMemo`, triggers ESLint purity errors (`react-hooks/purity`). The linter considers any function using `Math.random()` as impure because it produces unstable results across re-renders.
+**Action:** When generating random mock data, use lazy initialization with `useState` (e.g., `useState(() => generateRandomData())`) rather than `useMemo` or directly in render. This ensures the random generation only happens exactly once during the initial mount phase, strictly adhering to React's purity rules and avoiding unnecessary calculations.

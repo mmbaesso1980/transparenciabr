@@ -1,5 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import ForensicPanel from './ForensicPanel';
 
 export default function Galaxy3D() {
@@ -52,9 +51,11 @@ export default function Galaxy3D() {
     hydrateGraph();
   }, []);
 
-  const handleNodeClick = (node) => {
+  // ⚡ Bolt: Wrap callback in useCallback to prevent recreating function reference on every render.
+  // Impact: Prevents heavy ForceGraph3D WebGL component from re-rendering unnecessarily.
+  const handleNodeClick = useCallback((node) => {
     if (node && node.id) setSelectedNode(node);
-  };
+  }, []);
 
   return (
     <div className="w-full h-full bg-slate-900 relative overflow-hidden">
