@@ -90,6 +90,7 @@ function InstancedSpheres({
   onHoverInstance,
 }) {
   const temp = useMemo(() => new THREE.Object3D(), []);
+  const tempColor = useMemo(() => new THREE.Color(), []);
 
   useLayoutEffect(() => {
     const mesh = meshRef.current;
@@ -107,9 +108,8 @@ function InstancedSpheres({
       temp.updateMatrix();
       mesh.setMatrixAt(i, temp.matrix);
 
-      const color = new THREE.Color();
-      color.setStyle(getRiskColor(scores[i]));
-      mesh.setColorAt(i, color);
+      tempColor.setStyle(getRiskColor(scores[i]));
+      mesh.setColorAt(i, tempColor);
     }
 
     mesh.instanceMatrix.needsUpdate = true;
@@ -126,6 +126,7 @@ function InstancedSpheres({
     scores,
     baseScales,
     temp,
+    tempColor,
     hoveredInstanceId,
   ]);
 

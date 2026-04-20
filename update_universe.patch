@@ -1,0 +1,29 @@
+--- frontend/src/components/UniverseGraph.jsx
++++ frontend/src/components/UniverseGraph.jsx
+@@ -87,6 +87,7 @@
+   onHoverInstance,
+ }) {
+   const temp = useMemo(() => new THREE.Object3D(), []);
++  const tempColor = useMemo(() => new THREE.Color(), []);
+
+   useLayoutEffect(() => {
+     const mesh = meshRef.current;
+@@ -104,8 +105,7 @@
+       temp.updateMatrix();
+       mesh.setMatrixAt(i, temp.matrix);
+
+-      const color = new THREE.Color();
+-      color.setStyle(getRiskColor(scores[i]));
+-      mesh.setColorAt(i, color);
++      tempColor.setStyle(getRiskColor(scores[i]));
++      mesh.setColorAt(i, tempColor);
+     }
+
+     mesh.instanceMatrix.needsUpdate = true;
+@@ -118,6 +118,7 @@
+     scores,
+     baseScales,
+     temp,
++    tempColor,
+     hoveredInstanceId,
+   ]);
