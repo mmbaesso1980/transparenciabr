@@ -4,8 +4,6 @@ Verifica credenciais GCP / BigQuery antes do deploy.
 Se falhar, imprime o tipo de excepção e a mensagem bruta (sem mocks).
 """
 
-from __future__ import annotations
-
 import os
 import sys
 

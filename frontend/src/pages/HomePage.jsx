@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 
 import GlobalSearch from "../components/GlobalSearch.jsx";
 import UniverseGraph from "../components/UniverseGraph.jsx";
-import { fetchPoliticosCollection, getFirebaseApp } from "../lib/firebase.js";
+import { fetchPoliticosCollection, getFirebaseApp } from "../lib/firebase.ts";
 
 export default function HomePage() {
   const [politicos, setPoliticos] = useState(null);

@@ -5,8 +5,6 @@ Sincroniza alertas do BigQuery (Benford + Z-score + Gemini) → Firestore `alert
 Requer: vw_alertas_bodes_export criada no projeto.
 """
 
-from __future__ import annotations
-
 import hashlib
 import logging
 import os

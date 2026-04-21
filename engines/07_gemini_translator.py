@@ -10,8 +10,6 @@ chama ``gemini-2.5-flash`` com saída JSON e grava o resultado no documento.
 Contenção: lotes de 10, backoff exponencial, circuit breaker (ver ``lib/gemini_resilience``).
 """
 
-from __future__ import annotations
-
 import json
 import logging
 import os
@@ -163,6 +161,8 @@ def run_oraculo() -> Dict[str, int]:
             len(batches),
             len(batch),
         )
+        fs_batch = db.batch()
+        ops_no_lote = 0
         for doc_id, alerta in batch:
             try:
                 out = generate_oraculo_json(client, alerta, breaker=breaker)
@@ -172,7 +172,8 @@ def run_oraculo() -> Dict[str, int]:
                 continue
 
             ref = db.collection(COLLECTION_ALERTAS).document(doc_id)
-            ref.set(
+            fs_batch.set(
+                ref,
                 {
                     "explicacao_oraculo": out,
                     "oraculo_meta": {
@@ -182,7 +183,16 @@ def run_oraculo() -> Dict[str, int]:
                 },
                 merge=True,
             )
+            ops_no_lote += 1
             processed += 1
+
+            if ops_no_lote >= 400:
+                fs_batch.commit()
+                fs_batch = db.batch()
+                ops_no_lote = 0
+
+        if ops_no_lote > 0:
+            fs_batch.commit()
 
         if batch_idx < len(batches) - 1:
             time.sleep(BATCH_COOLDOWN_SEC)

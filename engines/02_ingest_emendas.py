@@ -6,8 +6,6 @@ Este módulo define apenas a estrutura base (contratos vazios / stubs documentad
 A implementação das chamadas HTTP e da carga no BigQuery será evoluída nas próximas iterações.
 """
 
-from __future__ import annotations
-
 import logging
 import sys
 from abc import ABC, abstractmethod

@@ -8,8 +8,6 @@ SDK: google-genai — ``genai.Client(api_key=...)`` /
 Mock embutido para homologação imediata com GEMINI_API_KEY.
 """
 
-from __future__ import annotations
-
 import json
 import logging
 import os

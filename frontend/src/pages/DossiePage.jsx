@@ -20,7 +20,7 @@ import {
   fetchAlertasForPolitico,
   fetchPoliticoById,
   getFirebaseApp,
-} from "../lib/firebase.js";
+} from "../lib/firebase.ts";
 
 const PREMIUM_ANALYSIS_CREDITS = Number(
   import.meta.env.VITE_PREMIUM_ANALYSIS_CREDITS ?? 200,

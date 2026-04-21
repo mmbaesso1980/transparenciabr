@@ -5,8 +5,6 @@ Objetivo: evitar estrangular cota (429), degradar graciosamente sob falhas repet
 e impedir loops caros quando a API está indisponível.
 """
 
-from __future__ import annotations
-
 import logging
 import random
 import time

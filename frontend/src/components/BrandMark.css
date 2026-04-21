@@ -1,0 +1,20 @@
+.brand-mark {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--accent-grad);
+  position: relative;
+  flex-shrink: 0;
+  box-shadow:
+    inset 0 0 14px rgba(255, 255, 255, 0.35),
+    0 8px 28px rgba(0, 0, 0, 0.45);
+}
+
+.brand-mark__inner {
+  position: absolute;
+  inset: 6px;
+  border-radius: 50%;
+  background: var(--bg-1);
+  filter: blur(6px);
+  opacity: 0.92;
+}

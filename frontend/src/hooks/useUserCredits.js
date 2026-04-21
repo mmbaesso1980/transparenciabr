@@ -1,7 +1,7 @@
 import { doc, onSnapshot } from "firebase/firestore";
 import { useEffect, useState } from "react";
 
-import { getFirestoreDb } from "../lib/firebase.js";
+import { getFirestoreDb } from "../lib/firebase.ts";
 
 /**
  * Saldo de créditos em tempo real (`usuarios/{docId}` ou variável de ambiente).

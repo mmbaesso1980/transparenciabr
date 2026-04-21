@@ -4,8 +4,6 @@ Inicialização Firebase Admin / Firestore — uso em scripts da Fase 2 (nuvem o
 Variáveis úteis: FIREBASE_PROJECT_ID, GOOGLE_APPLICATION_CREDENTIALS, FIRESTORE_EMULATOR_HOST.
 """
 
-from __future__ import annotations
-
 import logging
 import os
 from pathlib import Path

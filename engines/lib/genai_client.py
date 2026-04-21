@@ -1,7 +1,5 @@
 """Validação da API Key Gemini (homologação) — SDK google-genai."""
 
-from __future__ import annotations
-
 import os
 
 

@@ -2,8 +2,6 @@
 Cliente BigQuery — dataset `transparenciabr` e inserções em staging.
 """
 
-from __future__ import annotations
-
 import json
 import logging
 import os

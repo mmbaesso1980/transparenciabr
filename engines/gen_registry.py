@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 """Gera engines/registry_apis.json com 80+ entradas de catálogo."""
 
-from __future__ import annotations
-
 import json
 from pathlib import Path
 

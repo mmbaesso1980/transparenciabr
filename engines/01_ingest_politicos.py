@@ -5,19 +5,30 @@ Ingestão unificada — deputados (Câmara) e senadores (Senado).
 Persiste na coleção Firestore polimórfica `politicos` com upsert (merge).
 """
 
-from __future__ import annotations
-
+import hashlib
+import json
 import logging
 import os
 import sys
 import time
 import xml.etree.ElementTree as ET
+from lxml import etree as lxml_etree
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import firebase_admin
 import requests
 from firebase_admin import credentials, firestore
+from requests.exceptions import ConnectionError as RequestsConnectionError
+from pybreaker import CircuitBreaker
+from tenacity import (
+    before_sleep_log,
+    retry,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_exponential,
+    wait_random,
+)
 
 # Se estiver rodando contra o emulador local, aponta o SDK para mock_key.json
 # (evita DefaultCredentialsError ao carregar credenciais de serviço).
@@ -41,12 +52,24 @@ BACKOFF_SCHEDULE_SEC = (2.0, 4.0, 8.0)
 MAX_HTTP_ATTEMPTS = len(BACKOFF_SCHEDULE_SEC) + 1
 HTTP_RETRYABLE_STATUS = frozenset({500, 502, 503, 504})
 
+INGEST_CACHE_DIR = Path(os.environ.get("INGEST_CACHE_DIR", "/tmp/ingest_cache"))
+SENADO_CACHE_TTL_SEC = int(os.environ.get("SENADO_CACHE_TTL_SEC", str(6 * 3600)))
+
+SENADO_CB_FAIL_MAX = int(os.environ.get("SENADO_CB_FAIL_MAX", "5"))
+SENADO_CB_RESET_SEC = float(os.environ.get("SENADO_CB_RESET_SEC", "60"))
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s | %(levelname)s | %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 logger = logging.getLogger(__name__)
+
+_senado_breaker = CircuitBreaker(
+    fail_max=SENADO_CB_FAIL_MAX,
+    reset_timeout=SENADO_CB_RESET_SEC,
+    name="senado_lista_atual",
+)
 
 
 def init_firestore() -> firestore.Client:
@@ -177,10 +200,80 @@ def _senado_session() -> requests.Session:
     s.headers.update(
         {
             "User-Agent": "TransparenciaBR-engines/1.0 (ingest politicos)",
-            "Accept": "application/json",
+            "Accept": "application/xml, application/json;q=0.9, */*;q=0.8",
         }
     )
     return s
+
+
+def _cache_path_for_url(url: str) -> Path:
+    INGEST_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    h = hashlib.sha256(url.encode("utf-8")).hexdigest()
+    return INGEST_CACHE_DIR / f"senado_{h}.body"
+
+
+def _read_cache_if_fresh(path: Path, ttl_sec: int) -> Optional[bytes]:
+    try:
+        if not path.is_file():
+            return None
+        age = time.time() - path.stat().st_mtime
+        if age > ttl_sec:
+            return None
+        logger.info("Cache válido (%s, idade %.0fs).", path.name, age)
+        return path.read_bytes()
+    except OSError as exc:
+        logger.warning("Leitura de cache falhou (%s): %s", path, exc)
+        return None
+
+
+def _write_cache(path: Path, content: bytes) -> None:
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(content)
+    except OSError as exc:
+        logger.warning("Escrita de cache falhou (%s): %s", path, exc)
+
+
+@retry(
+    stop=stop_after_attempt(7),
+    wait=wait_exponential(multiplier=1, min=2, max=60) + wait_random(0, 3),
+    retry=retry_if_exception_type(
+        (
+            requests.HTTPError,
+            ET.ParseError,
+            RequestsConnectionError,
+            OSError,
+        )
+    ),
+    before_sleep=before_sleep_log(logger, logging.WARNING),
+    reraise=True,
+)
+def _senado_http_fetch_bytes(session: requests.Session, url: str) -> bytes:
+    logger.info("[Senado] GET (tenacity) %s", url)
+    resp = session.get(url, timeout=REQUEST_TIMEOUT_S)
+    resp.raise_for_status()
+    return resp.content
+
+
+def _senado_fetch_body() -> bytes:
+    cache_file = _cache_path_for_url(SENADO_LISTA_ATUAL_URL)
+    cached = _read_cache_if_fresh(cache_file, SENADO_CACHE_TTL_SEC)
+    if cached is not None:
+        return cached
+
+    session = _senado_session()
+
+    def _do() -> bytes:
+        return _senado_http_fetch_bytes(session, SENADO_LISTA_ATUAL_URL)
+
+    try:
+        body = _senado_breaker.call(_do)
+    except Exception:
+        logger.exception("Senado: circuit breaker ou fetch falhou.")
+        raise
+
+    _write_cache(cache_file, body)
+    return body
 
 
 def _normalize_str(value: Any) -> Optional[str]:
@@ -229,7 +322,7 @@ def map_senador_to_politico(ident: Dict[str, Optional[str]]) -> Dict[str, Any]:
 
 
 def fetch_deputados_camara_safe() -> List[Dict[str, Any]]:
-    """Lista deputados (100/página). Circuit breaker → []."""
+    """Lista deputados (100/página). Falha → []."""
     try:
         session = _camara_session()
         url: Optional[str] = CAMARA_DEPUTADOS_URL
@@ -296,6 +389,28 @@ def parse_senado_parlamentares_xml(content: bytes) -> List[Dict[str, Any]]:
     return out
 
 
+def parse_senado_parlamentares_xml_recover(content: bytes) -> List[Dict[str, Any]]:
+    parser = lxml_etree.XMLParser(recover=True)
+    root = lxml_etree.fromstring(content, parser)
+    out: List[Dict[str, Any]] = []
+    for parl in root.findall(".//Parlamentar"):
+        ident = parl.find("IdentificacaoParlamentar")
+        if ident is None:
+            continue
+        out.append(
+            {
+                "CodigoParlamentar": _xml_text(ident.find("CodigoParlamentar")),
+                "NomeParlamentar": _xml_text(ident.find("NomeParlamentar")),
+                "SiglaPartidoParlamentar": _xml_text(
+                    ident.find("SiglaPartidoParlamentar")
+                ),
+                "UfParlamentar": _xml_text(ident.find("UfParlamentar")),
+                "UrlFotoParlamentar": _xml_text(ident.find("UrlFotoParlamentar")),
+            }
+        )
+    return out
+
+
 def parse_senado_parlamentares_json(payload: Any) -> List[Dict[str, Any]]:
     if isinstance(payload, dict):
         for key in ("Parlamentares", "parlamentares", "dados"):
@@ -312,39 +427,38 @@ def parse_senado_parlamentares_json(payload: Any) -> List[Dict[str, Any]]:
     return []
 
 
+def _decode_senado_rows(content: bytes) -> List[Dict[str, Any]]:
+    if content[:1] in (b"{", b"["):
+        try:
+            payload = json.loads(content.decode("utf-8-sig"))
+            rows = parse_senado_parlamentares_json(payload)
+            if rows:
+                logger.info("Senado: JSON (%d parlamentares).", len(rows))
+                return rows
+        except (ValueError, UnicodeDecodeError):
+            pass
+
+    try:
+        rows = parse_senado_parlamentares_xml(content)
+        if rows:
+            logger.info("Senado: XML estrito (%d parlamentares).", len(rows))
+            return rows
+    except ET.ParseError as exc:
+        logger.warning("Senado: XML estrito falhou — recover lxml (%s).", exc)
+
+    try:
+        rows = parse_senado_parlamentares_xml_recover(content)
+        logger.info("Senado: XML recover lxml (%d parlamentares).", len(rows))
+        return rows
+    except Exception as exc:
+        logger.exception("Senado: falha também no parser recover (%s).", exc)
+        return []
+
+
 def fetch_senadores_lista_atual() -> List[Dict[str, Any]]:
     try:
-        session = _senado_session()
-        resp = http_get_with_exponential_backoff(
-            session,
-            SENADO_LISTA_ATUAL_URL,
-            contexto="Senado",
-        )
-        ctype = (resp.headers.get("Content-Type") or "").lower()
-
-        if "json" in ctype:
-            try:
-                payload = resp.json()
-            except ValueError:
-                payload = None
-                logger.warning(
-                    "Senado: Content-Type JSON mas corpo não decodificou — tentando XML."
-                )
-            if payload is not None:
-                rows = parse_senado_parlamentares_json(payload)
-                if rows:
-                    logger.info("Senado: JSON (%d parlamentares).", len(rows))
-                    return rows
-                logger.warning("Senado: JSON não reconhecido — tentando XML.")
-
-        try:
-            rows = parse_senado_parlamentares_xml(resp.content)
-        except ET.ParseError as exc:
-            logger.exception("Senado: XML inválido (%s).", exc)
-            return []
-
-        logger.info("Senado: XML (%d parlamentares).", len(rows))
-        return rows
+        content = _senado_fetch_body()
+        return _decode_senado_rows(content)
 
     except Exception as exc:
         logger.error(

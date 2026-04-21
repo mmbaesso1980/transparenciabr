@@ -1,4 +1,4 @@
-import { initializeApp, getApps } from "firebase/app";
+import { initializeApp, getApps, type FirebaseApp } from "firebase/app";
 import {
   collection,
   doc,
@@ -9,13 +9,25 @@ import {
   orderBy,
   query,
   where,
+  type Firestore,
 } from "firebase/firestore";
 
+export function isFirebaseConfigured(): boolean {
+  return Boolean(import.meta.env.VITE_FIREBASE_API_KEY);
+}
+
+function requireFirebaseEnv(): void {
+  if (!import.meta.env.VITE_FIREBASE_API_KEY) {
+    throw new Error(
+      "Firebase: defina VITE_FIREBASE_API_KEY (e demais VITE_FIREBASE_* no build).",
+    );
+  }
+}
+
 function buildConfig() {
-  const apiKey = import.meta.env.VITE_FIREBASE_API_KEY;
-  if (!apiKey) return null;
+  requireFirebaseEnv();
   return {
-    apiKey,
+    apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
     authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
     projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
     storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
@@ -24,21 +36,22 @@ function buildConfig() {
   };
 }
 
-let cachedApp;
-let cachedDb;
+let cachedApp: FirebaseApp | undefined;
+let cachedDb: Firestore | undefined;
 
-/** Uma única app Firebase (singleton). Retorna null se env incompleto. */
-export function getFirebaseApp() {
+/** Uma única app Firebase (singleton). */
+export function getFirebaseApp(): FirebaseApp | null {
+  if (!isFirebaseConfigured()) return null;
   const cfg = buildConfig();
-  if (!cfg?.projectId) return null;
+  if (!cfg.projectId) return null;
   if (!cachedApp) {
-    cachedApp = getApps().length > 0 ? getApps()[0] : initializeApp(cfg);
+    cachedApp = getApps().length > 0 ? getApps()[0]! : initializeApp(cfg);
   }
   return cachedApp;
 }
 
-/** Instância Firestore (singleton). Retorna null se env ausente. */
-export function getFirestoreDb() {
+/** Instância Firestore (singleton). */
+export function getFirestoreDb(): Firestore | null {
   const app = getFirebaseApp();
   if (!app) return null;
   if (!cachedDb) {
@@ -47,24 +60,23 @@ export function getFirestoreDb() {
   return cachedDb;
 }
 
-/** Alias exportado como `db` para consumo direto (idem a getFirestoreDb). */
 export const db = getFirestoreDb;
 
 /**
- * Coleção `politicos` — uma leitura em lote (`getDocs` = 1 leitura por documento na facturação Firestore).
- * @returns {Promise<Array<{ id: string } & Record<string, unknown>>>}
+ * Coleção `politicos` — uma consulta em lote.
  */
-export async function fetchPoliticosCollection() {
+export async function fetchPoliticosCollection(): Promise<
+  Array<{ id: string } & Record<string, unknown>>
+> {
   const firestore = getFirestoreDb();
   if (!firestore) return [];
   const snap = await getDocs(collection(firestore, "politicos"));
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
 
-/**
- * Uma leitura — documento `politicos/{id}`.
- */
-export async function fetchPoliticoById(politicoId) {
+export async function fetchPoliticoById(
+  politicoId: string | undefined,
+): Promise<({ id: string } & Record<string, unknown>) | null> {
   const firestore = getFirestoreDb();
   if (!firestore || !politicoId) return null;
   const ref = doc(firestore, "politicos", politicoId);
@@ -73,15 +85,18 @@ export async function fetchPoliticoById(politicoId) {
   return { id: snap.id, ...snap.data() };
 }
 
-const politicoMatchesId = (row, politicoId) =>
+const politicoMatchesId = (
+  row: Record<string, unknown>,
+  politicoId: string,
+): boolean =>
   row?.politico_id === politicoId ||
   row?.politicoId === politicoId ||
   row?.ref_politico === politicoId;
 
-/**
- * Alertas da coleção `alertas_bodes` associados ao parlamentar.
- */
-export async function fetchAlertasForPolitico(politicoId, maxResults = 40) {
+export async function fetchAlertasForPolitico(
+  politicoId: string | undefined,
+  maxResults = 40,
+): Promise<Array<{ id: string } & Record<string, unknown>>> {
   const firestore = getFirestoreDb();
   if (!firestore || !politicoId) return [];
 

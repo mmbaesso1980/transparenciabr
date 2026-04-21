@@ -7,8 +7,6 @@ Variáveis: GCP_PROJECT, BQ_DATASET (default transparenciabr), REGISTRY_PATH,
 DRY_RUN=1 (sem HTTP nem BQ).
 """
 
-from __future__ import annotations
-
 import argparse
 import json
 import logging

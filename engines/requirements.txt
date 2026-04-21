@@ -3,3 +3,6 @@ firebase-admin
 requests
 pandas
 google-genai
+tenacity
+pybreaker
+lxml
