@@ -8,18 +8,13 @@ jobs:
   build_and_deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout do Código
+        uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
+      - name: Deploy Oficial no Firebase Hosting
+        uses: FirebaseExtended/action-hosting-deploy@v0
         with:
-          node-version: '18'
-
-      - name: Instalar Firebase Tools
-        run: npm install -g firebase-tools
-
-    - name: Deploy Frontend to Firebase Hosting
-        run: |
-          echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > service-account.json
-          export GOOGLE_APPLICATION_CREDENTIALS=$(pwd)/service-account.json
-          firebase deploy --only hosting --project transparenciabr
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          projectId: transparenciabr
+          channelId: live
