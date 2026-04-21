@@ -1,0 +1,24 @@
+name: Deploy TransparenciaBR
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build_and_deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Instalar Firebase Tools
+        run: npm install -g firebase-tools
+
+      - name: Deploy Frontend to Firebase Hosting
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+        run: firebase deploy --only hosting --project transparenciabr --token "$FIREBASE_TOKEN"

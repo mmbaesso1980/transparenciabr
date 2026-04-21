@@ -5,3 +5,4 @@ __pycache__/
 *.log
 .firebase/
 node_modules/
+.env

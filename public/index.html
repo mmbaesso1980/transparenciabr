@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transparência BR | Risco & Dados</title>
+    <style>
+        :root {
+            --bg-dark: #0f172a;
+            --text-main: #f8fafc;
+            --accent: #38bdf8;
+            --danger: #ef4444;
+        }
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .header { text-align: center; margin-bottom: 3rem; }
+        .logo-circle {
+            width: 80px; height: 80px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #fcd34d, #f472b6, #38bdf8, #4ade80);
+            margin: 0 auto 1rem;
+        }
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            width: 100%;
+            max-width: 1000px;
+        }
+        .card {
+            background: #1e293b;
+            padding: 2rem;
+            border-radius: 12px;
+            border: 1px solid #334155;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+        }
+        .number { font-size: 3rem; font-weight: bold; color: var(--accent); margin: 0; }
+        .status-badge { display: inline-block; padding: 4px 12px; background: rgba(74, 222, 128, 0.2); color: #4ade80; border-radius: 20px; font-size: 0.8rem; margin-top: 1rem;}
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div class="logo-circle"></div>
+        <h1>transparenciabr</h1>
+        <p>Monitorização de Risco Político & Financeiro</p>
+    </div>
+
+    <div class="dashboard">
+        <div class="card">
+            <h3>Base de Dados</h3>
+            <p class="number">513</p>
+            <p>Deputados Federais Monitorizados</p>
+            <div class="status-badge">● Sistema Operacional</div>
+        </div>
+        <div class="card">
+            <h3>Alertas da IA</h3>
+            <p class="number" style="color: var(--danger)">Zero</p>
+            <p>Anomalias Recentes Detetadas</p>
+            <p style="font-size: 0.8rem; color: #94a3b8; margin-top: 1rem;">O motor de IA (Bodes) entrará online na próxima janela de análise.</p>
+        </div>
+    </div>
+
+</body>
+</html>
