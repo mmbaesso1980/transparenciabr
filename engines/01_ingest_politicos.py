@@ -77,12 +77,6 @@ def init_firestore() -> firestore.Client:
     except Exception as exc:
         logger.exception("Falha ao inicializar Firebase Real: %s", exc)
         raise
-    cd ~/transparenciabr
-echo "venv/" >> .gitignore
-echo "__pycache__/" >> .gitignore
-git add .
-git commit -m "fix: motor de politicos corrigido e rodando 100%"
-git push origin main
 
 def http_get_with_exponential_backoff(
     session: requests.Session,
