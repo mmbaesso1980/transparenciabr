@@ -11,7 +11,6 @@ concurrency:
   group: master-${{ github.ref }}
   cancel-in-progress: true
 
-# GitHub Pages publish (substitui Firebase Hosting neste workflow)
 permissions:
   contents: read
 
@@ -19,6 +18,7 @@ jobs:
   ingest:
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -37,8 +37,8 @@ jobs:
           name: ingest-logs
           path: logs/
 
+  # Deploy independente do ingest: hotpage/publicação não fica bloqueada por credenciais GCP.
   build-deploy:
-    needs: ingest
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -48,7 +48,7 @@ jobs:
       name: github-pages
       url: ${{ steps.pages_deploy.outputs.page_url }}
     concurrency:
-      group: pages-${{ github.workflow }}
+      group: github-pages-deploy
       cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
