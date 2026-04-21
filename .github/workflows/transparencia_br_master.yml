@@ -11,6 +11,10 @@ concurrency:
   group: master-${{ github.ref }}
   cancel-in-progress: true
 
+# GitHub Pages publish (substitui Firebase Hosting neste workflow)
+permissions:
+  contents: read
+
 jobs:
   ingest:
     runs-on: ubuntu-latest
@@ -36,6 +40,16 @@ jobs:
   build-deploy:
     needs: ingest
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.pages_deploy.outputs.page_url }}
+    concurrency:
+      group: pages-${{ github.workflow }}
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -51,10 +65,10 @@ jobs:
           VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
           VITE_FIREBASE_PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
           VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
-      - uses: FirebaseExtended/action-hosting-deploy@v0
+      - name: Upload static site (Vite dist)
+        uses: actions/upload-pages-artifact@v3
         with:
-          repoToken: ${{ secrets.GITHUB_TOKEN }}
-          firebaseServiceAccount: ${{ secrets.FIREBASE_SA_JSON }}
-          channelId: live
-          projectId: ${{ secrets.FIRESTORE_PROJECT }}
-          entryPoint: ./frontend
+          path: frontend/dist
+      - name: Deploy to GitHub Pages
+        id: pages_deploy
+        uses: actions/deploy-pages@v4
