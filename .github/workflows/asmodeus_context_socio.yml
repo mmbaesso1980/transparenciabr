@@ -1,0 +1,36 @@
+# Contexto socioeconómico (IBGE / BD+) — cadência BAIXA vs alertas forenses.
+# Objetivo: não acoplar writes estáticos ao pipeline diário de `05_sync_bodes.py`.
+#
+# Predefinição: semanal (domingo 05:30 UTC). Para mensal, substituir por:
+#   cron: "30 5 3 * *"  (dia 3 de cada mês)
+
+name: A.S.M.O.D.E.U.S. — Sync contexto socioeconómico
+
+on:
+  schedule:
+    - cron: "30 5 * * 0"
+  workflow_dispatch:
+
+jobs:
+  sync-context-socio:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r engines/requirements.txt
+
+      - uses: google-github-actions/auth@v2
+        id: auth
+        with:
+          credentials_json: ${{ secrets.GCP_CREDENTIALS }}
+
+      - name: BigQuery → Firestore (contexto_socioeconomico)
+        env:
+          GCP_PROJECT: transparenciabr
+          SYNC_CONTEXT_TOP_N: "10"
+        run: python engines/06_sync_context_socio.py

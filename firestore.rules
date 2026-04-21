@@ -1,0 +1,79 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /** Débito fixo Laboratório Oráculo (créditos) — alinhar ao produto */
+    function oracleLaboratorioCost() {
+      return 200;
+    }
+
+    function isNumericLike(v) {
+      return v is int || v is float;
+    }
+
+    /**
+     * Validação no servidor do débito: delta exatamente igual ao custo do laboratório,
+     * saldo não negativo. O cliente não pode escolher valores arbitrários no console.
+     */
+    function isValidCreditDeduction() {
+      let prev = resource.data.creditos;
+      let next = request.resource.data.creditos;
+      let delta = prev - next;
+      return isNumericLike(prev)
+        && isNumericLike(next)
+        && next >= 0
+        && delta == oracleLaboratorioCost()
+        && prev >= delta;
+    }
+
+    match /usuarios/{userId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+
+      /** Perfil inicial: apenas créditos + timestamp — sem privilege escalation. */
+      allow create: if request.auth != null
+        && request.auth.uid == userId
+        && request.resource.data.keys().hasOnly(['creditos', 'updated_at'])
+        && request.resource.data.creditos is int
+        && request.resource.data.creditos >= 0
+        && request.resource.data.creditos <= 500;
+
+      allow update: if request.auth != null
+        && request.auth.uid == userId
+        && request.resource.data.keys().hasOnly(['creditos', 'updated_at'])
+        && resource.data.keys().hasAny(['creditos'])
+        && isValidCreditDeduction();
+
+      allow delete: if false;
+    }
+
+    match /politicos/{pid} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /alertas_bodes/{aid} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    /** QG Advocacia / BI comercial — apenas o uid proprietário (admin), documentos privados */
+    match /radar_dossiers/{rid} {
+      allow read: if request.auth != null
+        && resource.data.uid_proprietario == request.auth.uid
+        && resource.data.is_private == true;
+      allow write: if false;
+    }
+
+    match /radar_comercial/{cid} {
+      allow read: if request.auth != null
+        && resource.data.uid_proprietario == request.auth.uid
+        && resource.data.is_private == true;
+      allow write: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

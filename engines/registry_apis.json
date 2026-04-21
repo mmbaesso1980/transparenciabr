@@ -1,0 +1,63 @@
+{
+  "version": 2,
+  "description": "Integrações prioritárias PNCP / OCDS / INLABS / TCU — consumidas por 10_universal_crawler.py (staging_api_raw). Metadados `bq_table` destinam pipelines BigQuery (`transparenciabr`).",
+  "apis": [
+    {
+      "id": "pncp_planos_contratacao_v1",
+      "categoria": "PNCP",
+      "nome": "PNCP — Planos de Contratações Anual",
+      "request_url": "https://pncp.gov.br/api/pncp/v1/planos-contratacao",
+      "type": "json_api",
+      "bq_table": "transparenciabr.stg_pncp_planos",
+      "staging_table": "staging_api_raw",
+      "enabled": true,
+      "timeout_sec": 90,
+      "method": "GET",
+      "circuit_failure_threshold": 5,
+      "circuit_recovery_sec": 120,
+      "max_attempts": 5
+    },
+    {
+      "id": "ocds_open_contracting_search",
+      "categoria": "OCDS",
+      "nome": "Open Contracting — portal de dados (landing / integração futura)",
+      "request_url": "https://data.open-contracting.org/en/search/",
+      "type": "json_api",
+      "staging_table": "staging_api_raw",
+      "enabled": true,
+      "timeout_sec": 60,
+      "method": "GET",
+      "circuit_failure_threshold": 3,
+      "circuit_recovery_sec": 180,
+      "max_attempts": 3
+    },
+    {
+      "id": "inlabs_dou_xml",
+      "categoria": "INLABS",
+      "nome": "Imprensa Nacional — DOU estruturado (XML/texto)",
+      "request_url": "https://inlabs.in.gov.br/",
+      "type": "xml_api",
+      "staging_table": "staging_api_raw",
+      "enabled": true,
+      "timeout_sec": 90,
+      "method": "GET",
+      "circuit_failure_threshold": 5,
+      "circuit_recovery_sec": 120,
+      "max_attempts": 5
+    },
+    {
+      "id": "tcu_cadirreg_publica",
+      "categoria": "TCU",
+      "nome": "TCU — CADIRREG API pública",
+      "request_url": "https://contas.tcu.gov.br/ords/api/publica/cadirreg",
+      "type": "json_api",
+      "staging_table": "staging_api_raw",
+      "enabled": true,
+      "timeout_sec": 90,
+      "method": "GET",
+      "circuit_failure_threshold": 5,
+      "circuit_recovery_sec": 120,
+      "max_attempts": 5
+    }
+  ]
+}

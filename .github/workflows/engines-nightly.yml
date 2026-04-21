@@ -1,0 +1,48 @@
+# Pipeline noturno — validação Python + (opcional) BigQuery dry-run com segredo GCP.
+# Agendamento: 03:00 UTC. Para sincronização real, configure o segredo GCP_CREDENTIALS
+# e utilize workflow_dispatch com job manual no repositório.
+
+name: Engines nightly
+
+on:
+  schedule:
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: pip install -r engines/requirements.txt
+      - name: Byte-compile engines
+        run: python -m compileall engines -q
+      - name: LGPD shield (modo lista / sem ficheiro)
+        run: python engines/22_lgpd_shield.py
+        continue-on-error: true
+
+  sync-dry-run:
+    needs: validate
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -r engines/requirements.txt
+      - uses: google-github-actions/auth@v2
+        id: auth
+        continue-on-error: true
+        with:
+          credentials_json: ${{ secrets.GCP_CREDENTIALS }}
+      - name: BigQuery → Firestore (dry-run)
+        if: steps.auth.outcome == 'success'
+        env:
+          GCP_PROJECT: transparenciabr
+          BQ_DATASET: transparenciabr
+        run: python engines/05_sync_bodes.py --dry-run
