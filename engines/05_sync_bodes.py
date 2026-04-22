@@ -164,8 +164,8 @@ def run_sync(*, dry_run: bool = False, alertas_flat: bool = True, flat_limit: in
         total = list(probe.result())[0].c
         logger.info("View vw_alertas_bodes_export: ~%s linhas (aprox.)", total)
     except Exception as e:
-        logger.error("Falha ao inspecionar view: %s", e)
-        sys.exit(1)
+        logger.warning("View vw_alertas_bodes_export não disponível ainda: %s — engine pulando.", e)
+        return
 
     if dry_run:
         logger.info(
