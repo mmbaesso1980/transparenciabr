@@ -1,0 +1,124 @@
+# Ingestão incremental — roda todas as engines em sequência.
+# Usa upsert (merge=True) em todas as engines → nunca apaga dados existentes.
+# Gatilhos: manual (workflow_dispatch) + cron diário às 06h BRT (09h UTC).
+
+name: 🔄 Ingest Incremental
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 9 * * *"
+
+jobs:
+  ingest:
+    name: Ingest completo (upsert seguro)
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      FIREBASE_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+      GOOGLE_APPLICATION_CREDENTIALS: service-account.json
+
+    steps:
+      - name: ⬇️ Checkout
+        uses: actions/checkout@v4
+
+      - name: 🐍 Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 📦 Instalar dependências
+        run: pip install -r engines/requirements.txt
+
+      - name: 🔑 Escrever service-account.json
+        run: printf '%s' '${{ secrets.GCP_SERVICE_ACCOUNT_JSON }}' > service-account.json
+
+      # ── INGEST BASE ────────────────────────────────────────────────────────
+      - name: "[01] Políticos (Câmara + Senado)"
+        run: python engines/01_ingest_politicos.py
+        continue-on-error: true
+
+      - name: "[02] Proposições legislativas"
+        run: python engines/02_ingest_proposicoes.py
+        continue-on-error: true
+
+      - name: "[03] Votações"
+        run: python engines/03_ingest_votacoes.py
+        continue-on-error: true
+
+      - name: "[04] Despesas"
+        run: python engines/04_ingest_despesas.py
+        continue-on-error: true
+
+      - name: "[05] Sync bodes"
+        run: python engines/05_sync_bodes.py
+        continue-on-error: true
+
+      - name: "[06] Alertas bodes"
+        run: python engines/06_alertas_bodes.py
+        continue-on-error: true
+
+      # ── ANÁLISE & SCORES ──────────────────────────────────────────────────
+      - name: "[10] Score geral"
+        run: python engines/10_score_geral.py
+        continue-on-error: true
+
+      - name: "[11] Ranking"
+        run: python engines/11_ranking.py
+        continue-on-error: true
+
+      - name: "[12] Neutralidade"
+        run: python engines/12_neutralidade.py
+        continue-on-error: true
+
+      - name: "[13] Consistência"
+        run: python engines/13_consistencia.py
+        continue-on-error: true
+
+      - name: "[14] Presença"
+        run: python engines/14_presenca.py
+        continue-on-error: true
+
+      - name: "[15] Engajamento"
+        run: python engines/15_engajamento.py
+        continue-on-error: true
+
+      - name: "[20] Relatório por político"
+        run: python engines/20_report_politico.py
+        continue-on-error: true
+
+      - name: "[21] Relatório geral"
+        run: python engines/21_report_geral.py
+        continue-on-error: true
+
+      - name: "[22] LGPD shield"
+        run: python engines/22_lgpd_shield.py
+        continue-on-error: true
+
+      - name: "[23] Clustering parlamentar"
+        run: python engines/23_clustering.py
+        continue-on-error: true
+
+      - name: "[24] Spectrum analyzer"
+        run: python engines/24_spectrum_analyzer.py
+        continue-on-error: true
+
+      - name: "[25] Voting cluster"
+        run: python engines/25_voting_cluster.py
+        continue-on-error: true
+
+      - name: "[26] Espectro score"
+        run: python engines/26_espectro_score.py
+        continue-on-error: true
+
+      - name: "[27] Neutrality report"
+        run: python engines/27_neutrality_report.py
+        continue-on-error: true
+
+      - name: "[30] Sync Firestore → BigQuery"
+        run: python engines/30_sync_firestore_bq.py
+        continue-on-error: true
+
+      - name: 🧹 Remover credencial
+        if: always()
+        run: rm -f service-account.json
