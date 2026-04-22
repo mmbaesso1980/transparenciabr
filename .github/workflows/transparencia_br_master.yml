@@ -17,8 +17,15 @@ permissions:
 jobs:
   ingest:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 90
     continue-on-error: true
+    env:
+      GOOGLE_CREDENTIALS_JSON: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+      CGU_API_TOKEN: ${{ secrets.CGU_API_TOKEN }}
+      RADAR_OWNER_UID: ${{ secrets.RADAR_OWNER_UID }}
+
     steps:
       - uses: actions/checkout@v4
 
@@ -26,8 +33,9 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
+          cache-dependency-path: engines/requirements.txt
 
-      - name: Instalar Dependências do Python
+      - name: Instalar Dependências
         run: |
           python -m pip install --upgrade pip
           pip install \
@@ -37,17 +45,141 @@ jobs:
             pandas==2.2.2 \
             google-genai==0.5.0 \
             google-generativeai==0.8.6 \
-            pydantic==2.9.2
+            pydantic==2.9.2 \
+            lxml==5.3.0
 
-      - name: Rodar Motor de Ingestão
-        env:
-          GOOGLE_CREDENTIALS_JSON: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+      - name: Preparar credenciais GCP
+        run: printf '%s' "$GOOGLE_CREDENTIALS_JSON" > /tmp/sa.json
+
+      - name: "Engine 01 — Ingest Políticos (Câmara)"
+        continue-on-error: true
         run: |
-          printf '%s' "$GOOGLE_CREDENTIALS_JSON" > service-account.json
-          export GOOGLE_APPLICATION_CREDENTIALS=$(pwd)/service-account.json
+          export GOOGLE_APPLICATION_CREDENTIALS=/tmp/sa.json
           python engines/01_ingest_politicos.py
+
+      - name: "Engine 14 — Ingest Senadores"
+        continue-on-error: true
+        run: |
+          export GOOGLE_APPLICATION_CREDENTIALS=/tmp/sa.json
+          python engines/14_ingest_senadores.py
+
+      - name: "Engine 02 — Ingest Emendas"
+        continue-on-error: true
+        run: |
+          export GOOGLE_APPLICATION_CREDENTIALS=/tmp/sa.json
+          python engines/02_ingest_emendas.py
+
+      - name: "Engine 07 — Ingest TCU CADIRREG"
+        continue-on-error: true
+        run: |
+          export GOOGLE_APPLICATION_CREDENTIALS=/tmp/sa.json
+          python engines/07_ingest_tcu_cadirreg.py
+
+      - name: "Engine 15 — Ingest PNCP Licitações"
+        continue-on-error: true
+        run: |
+          export GOOGLE_APPLICATION_CREDENTIALS=/tmp/sa.json
+          python engines/15_ingest_pncp.py
+
+      - name: "Engine 17 — Ingest SIOP Orçamento"
+        continue-on-error: true
+        run: |
+          export GOOGLE_APPLICATION_CREDENTIALS=/tmp/sa.json
+          python engines/17_ingest_siop_budget.py
+
+      - name: "Engine 18 — Ingest PNCP PCA"
+        continue-on-error: true
+        run: |
+          export GOOGLE_APPLICATION_CREDENTIALS=/tmp/sa.json
+          python engines/18_ingest_pncp_pca.py
+
+      - name: "Engine 05 — Sync Bodes (Alertas)"
+        continue-on-error: true
+        run: |
+          export GOOGLE_APPLICATION_CREDENTIALS=/tmp/sa.json
+          python engines/05_sync_bodes.py
+
+      - name: "Engine 06 — Sync Contexto Socioecônomico"
+        continue-on-error: true
+        run: |
+          export GOOGLE_APPLICATION_CREDENTIALS=/tmp/sa.json
+          python engines/06_sync_context_socio.py
+
+      - name: "Engine 10 — Universal Crawler"
+        continue-on-error: true
+        run: |
+          export GOOGLE_APPLICATION_CREDENTIALS=/tmp/sa.json
+          python engines/10_universal_crawler.py
+
+      - name: "Engine 11 — Ghost Hunter"
+        continue-on-error: true
+        run: |
+          export GOOGLE_APPLICATION_CREDENTIALS=/tmp/sa.json
+          python engines/11_ghost_hunter.py
+
+      - name: "Engine 12 — Family Ties"
+        continue-on-error: true
+        run: |
+          export GOOGLE_APPLICATION_CREDENTIALS=/tmp/sa.json
+          python engines/12_family_ties.py
+
+      - name: "Engine 16 — OSS Mapper"
+        continue-on-error: true
+        run: |
+          export GOOGLE_APPLICATION_CREDENTIALS=/tmp/sa.json
+          python engines/16_oss_mapper.py
+
+      - name: "Engine 18 — OSS Scanner"
+        continue-on-error: true
+        run: |
+          export GOOGLE_APPLICATION_CREDENTIALS=/tmp/sa.json
+          python engines/18_oss_scanner.py
+
+      - name: "Engine 17 — Commercial Radar"
+        continue-on-error: true
+        run: |
+          export GOOGLE_APPLICATION_CREDENTIALS=/tmp/sa.json
+          python engines/17_commercial_radar.py
+
+      - name: "Engine 23 — Neutrality Check"
+        continue-on-error: true
+        run: |
+          export GOOGLE_APPLICATION_CREDENTIALS=/tmp/sa.json
+          python engines/23_neutrality_check.py
+
+      - name: "Engine 24 — Spectrum Analyzer"
+        continue-on-error: true
+        run: |
+          export GOOGLE_APPLICATION_CREDENTIALS=/tmp/sa.json
+          python engines/24_spectrum_analyzer.py
+
+      - name: "Engine 25 — Alliance Scanner"
+        continue-on-error: true
+        run: |
+          export GOOGLE_APPLICATION_CREDENTIALS=/tmp/sa.json
+          python engines/25_alliance_scanner.py
+
+      - name: "Engine 07 — Gemini Translator"
+        continue-on-error: true
+        run: |
+          export GOOGLE_APPLICATION_CREDENTIALS=/tmp/sa.json
+          python engines/07_gemini_translator.py
+
+      - name: "Engine 08 — Web Call"
+        continue-on-error: true
+        run: |
+          export GOOGLE_APPLICATION_CREDENTIALS=/tmp/sa.json
+          python engines/08_web_call.py
+
+      - name: "Engine 09/22 — LGPD Shield"
+        continue-on-error: true
+        run: |
+          export GOOGLE_APPLICATION_CREDENTIALS=/tmp/sa.json
+          python engines/22_lgpd_shield.py
+
+      - name: Remover credenciais do disco
+        if: always()
+        run: rm -f /tmp/sa.json
 
       - uses: actions/upload-artifact@v4
         if: always()
@@ -57,6 +189,8 @@ jobs:
 
   build-deploy:
     runs-on: ubuntu-latest
+    needs: ingest
+    if: always()
     permissions:
       contents: read
       pages: write
