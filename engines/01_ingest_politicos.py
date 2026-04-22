@@ -20,7 +20,6 @@ import requests
 from firebase_admin import credentials, firestore
 
 # Se estiver rodando contra o emulador local, aponta o SDK para mock_key.json
-# (evita DefaultCredentialsError ao carregar credenciais de serviço).
 if os.environ.get("FIRESTORE_EMULATOR_HOST"):
     os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = str(
         Path(__file__).resolve().parent / "mock_key.json"
@@ -41,6 +40,9 @@ BACKOFF_SCHEDULE_SEC = (2.0, 4.0, 8.0)
 MAX_HTTP_ATTEMPTS = len(BACKOFF_SCHEDULE_SEC) + 1
 HTTP_RETRYABLE_STATUS = frozenset({500, 502, 503, 504})
 
+# BOM bytes que o Senado às vezes inclui no início da resposta XML
+_UTF8_BOM = b"\xef\xbb\xbf"
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s | %(levelname)s | %(message)s",
@@ -53,30 +55,24 @@ def init_firestore() -> firestore.Client:
     """Inicia o Firestore focando na nuvem real do Firebase."""
     try:
         if not firebase_admin._apps:
-            # Pega o ID do seu projeto. O Cloud Shell geralmente já tem isso no GCLOUD_PROJECT
             project_id = (
-                os.environ.get("FIREBASE_PROJECT_ID") 
-                or os.environ.get("GCLOUD_PROJECT") 
+                os.environ.get("FIREBASE_PROJECT_ID")
+                or os.environ.get("GCLOUD_PROJECT")
                 or "transparenciabr"
             )
-            
-            # Removemos qualquer menção ao 127.0.0.1 aqui.
-            # Se houver uma chave JSON no seu .env, ele usa. 
-            # Caso contrário, o Cloud Shell usa sua conta logada.
             cred_path = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
-            
             if cred_path and os.path.isfile(cred_path):
                 firebase_admin.initialize_app(
                     credentials.Certificate(cred_path),
-                    options={"projectId": project_id}
+                    options={"projectId": project_id},
                 )
             else:
                 firebase_admin.initialize_app(options={"projectId": project_id})
-                
         return firestore.client()
     except Exception as exc:
         logger.exception("Falha ao inicializar Firebase Real: %s", exc)
         raise
+
 
 def http_get_with_exponential_backoff(
     session: requests.Session,
@@ -158,7 +154,8 @@ def _senado_session() -> requests.Session:
     s.headers.update(
         {
             "User-Agent": "TransparenciaBR-engines/1.0 (ingest politicos)",
-            "Accept": "application/json",
+            # Solicita XML explicitamente para evitar ambiguidade de Content-Type
+            "Accept": "application/xml, text/xml, */*",
         }
     )
     return s
@@ -184,7 +181,6 @@ def map_deputado_to_politico(raw: Dict[str, Any]) -> Dict[str, Any]:
     doc_id = raw.get("id")
     if doc_id is None:
         raise ValueError("Registro sem campo 'id' da Câmara.")
-
     return {
         "id": int(doc_id),
         "nome": _normalize_str(raw.get("nome")),
@@ -258,8 +254,21 @@ def _xml_text(el: Optional[ET.Element]) -> Optional[str]:
     return t if t else None
 
 
+def _strip_bom(content: bytes) -> bytes:
+    """Remove UTF-8 BOM (EF BB BF) que o Senado às vezes envia antes do XML."""
+    return content.lstrip(_UTF8_BOM)
+
+
 def parse_senado_parlamentares_xml(content: bytes) -> List[Dict[str, Any]]:
-    root = ET.fromstring(content)
+    """Faz parse do XML do Senado, tolerando BOM e declarações de encoding."""
+    content = _strip_bom(content)
+    try:
+        root = ET.fromstring(content)
+    except ET.ParseError:
+        # Tenta decodificar e re-encodar para limpar caracteres inválidos
+        text = content.decode("utf-8", errors="replace")
+        root = ET.fromstring(text.encode("utf-8"))
+
     out: List[Dict[str, Any]] = []
     for parl in root.findall(".//Parlamentar"):
         ident = parl.find("IdentificacaoParlamentar")
@@ -309,30 +318,50 @@ def fetch_senadores_lista_atual() -> List[Dict[str, Any]]:
             contexto="Senado",
         )
         ctype = (resp.headers.get("Content-Type") or "").lower()
+        raw_content = resp.content
 
+        # ── Tenta JSON primeiro (quando o servidor retorna application/json) ──
         if "json" in ctype:
             try:
                 payload = resp.json()
-            except ValueError:
-                payload = None
-                logger.warning(
-                    "Senado: Content-Type JSON mas corpo não decodificou — tentando XML."
-                )
-            if payload is not None:
                 rows = parse_senado_parlamentares_json(payload)
                 if rows:
                     logger.info("Senado: JSON (%d parlamentares).", len(rows))
                     return rows
-                logger.warning("Senado: JSON não reconhecido — tentando XML.")
+                logger.warning(
+                    "Senado: Content-Type JSON mas estrutura não reconhecida — tentando XML."
+                )
+            except ValueError:
+                logger.warning(
+                    "Senado: Content-Type JSON mas corpo não decodificou — tentando XML."
+                )
 
+        # ── Tenta XML (principal ou fallback) ────────────────────────────────
+        # Remove BOM antes de parsear
         try:
-            rows = parse_senado_parlamentares_xml(resp.content)
-        except ET.ParseError as exc:
-            logger.exception("Senado: XML inválido (%s).", exc)
+            rows = parse_senado_parlamentares_xml(raw_content)
+            if rows:
+                logger.info("Senado: XML (%d parlamentares).", len(rows))
+                return rows
+            logger.warning("Senado: XML parseado mas sem <Parlamentar> encontrado.")
             return []
+        except ET.ParseError as exc:
+            logger.exception("Senado: XML inválido mesmo após remoção de BOM (%s).", exc)
 
-        logger.info("Senado: XML (%d parlamentares).", len(rows))
-        return rows
+        # ── Último recurso: tenta JSON mesmo com Content-Type de XML ─────────
+        try:
+            payload = resp.json()
+            rows = parse_senado_parlamentares_json(payload)
+            if rows:
+                logger.info(
+                    "Senado: JSON (fallback final) (%d parlamentares).", len(rows)
+                )
+                return rows
+        except ValueError:
+            pass
+
+        logger.error("Senado: não foi possível extrair parlamentares da resposta.")
+        return []
 
     except Exception as exc:
         logger.error(
