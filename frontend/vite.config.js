@@ -11,10 +11,19 @@ export default defineConfig({
     sourcemap: false,
     rollupOptions: {
       output: {
-        manualChunks: {
-          vendor: ["react", "react-dom"],
-          firebase: ["firebase/app", "firebase/auth", "firebase/firestore"],
-          three: ["three", "@react-three/fiber", "@react-three/drei"],
+        manualChunks(id) {
+          if (id.includes("node_modules/three") ||
+              id.includes("node_modules/@react-three")) {
+            return "three";
+          }
+          if (id.includes("node_modules/firebase")) {
+            return "firebase";
+          }
+          if (id.includes("node_modules/react") ||
+              id.includes("node_modules/react-dom") ||
+              id.includes("node_modules/react-router")) {
+            return "vendor";
+          }
         },
       },
     },
