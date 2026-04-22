@@ -30,11 +30,12 @@ jobs:
           python -m pip install --upgrade pip
           pip install google-cloud-bigquery==3.41.0 firebase-admin==7.4.0 requests==2.31.0 pandas==2.2.2 google-genai==0.5.0 google-generativeai==0.8.6 pydantic==2.9.2
 
-      - name: Orquestrador master
-        env:
-          GOOGLE_APPLICATION_CREDENTIALS_JSON: ${{ secrets.GCP_SA_JSON }}
-          FIRESTORE_PROJECT: ${{ secrets.FIRESTORE_PROJECT }}
-        run: python engines/01_ingest_politicos.py
+          - name: Rodar Motor de Ingestão
+        run: |
+          echo '${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}' > service-account.json
+          export GOOGLE_APPLICATION_CREDENTIALS=$(pwd)/service-account.json
+          python engines/01_ingest_politicos.py
+
       - uses: actions/upload-artifact@v4
         if: always()
         with:
