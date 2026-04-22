@@ -34,7 +34,7 @@ jobs:
         env:
           GOOGLE_APPLICATION_CREDENTIALS_JSON: ${{ secrets.GCP_SA_JSON }}
           FIRESTORE_PROJECT: ${{ secrets.FIRESTORE_PROJECT }}
-        run: python engines/00_master_orchestrator.py
+        run: python engines/01_ingest_politicos.py
       - uses: actions/upload-artifact@v4
         if: always()
         with:
