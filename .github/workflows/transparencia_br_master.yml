@@ -21,16 +21,25 @@ jobs:
     continue-on-error: true
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
           cache: pip
-      - name: Instalar Dependências do Python na Força Bruta
+
+      - name: Instalar Dependências do Python
         run: |
           python -m pip install --upgrade pip
-          pip install google-cloud-bigquery==3.41.0 firebase-admin==7.4.0 requests==2.31.0 pandas==2.2.2 google-genai==0.5.0 google-generativeai==0.8.6 pydantic==2.9.2
+          pip install \
+            google-cloud-bigquery==3.41.0 \
+            firebase-admin==7.4.0 \
+            requests==2.31.0 \
+            pandas==2.2.2 \
+            google-genai==0.5.0 \
+            google-generativeai==0.8.6 \
+            pydantic==2.9.2
 
-          - name: Rodar Motor de Ingestão
+      - name: Rodar Motor de Ingestão
         run: |
           echo '${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}' > service-account.json
           export GOOGLE_APPLICATION_CREDENTIALS=$(pwd)/service-account.json
@@ -57,23 +66,38 @@ jobs:
       cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
           cache: npm
           cache-dependency-path: frontend/package-lock.json
-      - run: npm ci
+
+      - name: Instalar dependências do frontend
+        run: npm ci
         working-directory: frontend
-      - run: npm run build
+
+      - name: Build do frontend
+        run: npm run build
         working-directory: frontend
         env:
           VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
+          VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
           VITE_FIREBASE_PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
+          VITE_FIREBASE_STORAGE_BUCKET: ${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}
+          VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}
           VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
+          VITE_MEASUREMENT_ID: ${{ secrets.VITE_MEASUREMENT_ID }}
+          VITE_INITIAL_USER_CREDITS: ${{ secrets.VITE_INITIAL_USER_CREDITS }}
+          VITE_RADAR_ADMIN_UID: ${{ secrets.VITE_RADAR_ADMIN_UID }}
+          VITE_BR_PM_TILES_URL: ${{ secrets.VITE_BR_PM_TILES_URL }}
+          VITE_PM_TILES_SOURCE_LAYER: municipios
+
       - name: Upload static site (Vite dist)
         uses: actions/upload-pages-artifact@v3
         with:
           path: frontend/dist
+
       - name: Deploy to GitHub Pages
         id: pages_deploy
         uses: actions/deploy-pages@v4
