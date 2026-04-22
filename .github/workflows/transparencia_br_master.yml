@@ -40,8 +40,12 @@ jobs:
             pydantic==2.9.2
 
       - name: Rodar Motor de Ingestão
+        env:
+          GOOGLE_CREDENTIALS_JSON: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
         run: |
-          echo '${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}' > service-account.json
+          printf '%s' "$GOOGLE_CREDENTIALS_JSON" > service-account.json
           export GOOGLE_APPLICATION_CREDENTIALS=$(pwd)/service-account.json
           python engines/01_ingest_politicos.py
 
