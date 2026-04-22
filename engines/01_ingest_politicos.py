@@ -277,19 +277,26 @@ def parse_senado_parlamentares_xml(content: bytes) -> List[Dict[str, Any]]:
     return out
 
 
+def _flatten_parlamentar_row(item: Dict[str, Any]) -> Dict[str, Any]:
+    ident = item.get("IdentificacaoParlamentar")
+    if isinstance(ident, dict):
+        return ident
+    return item
+
+
 def parse_senado_parlamentares_json(payload: Any) -> List[Dict[str, Any]]:
     if isinstance(payload, dict):
         for key in ("Parlamentares", "parlamentares", "dados"):
             blob = payload.get(key)
             if isinstance(blob, list):
-                return [x for x in blob if isinstance(x, dict)]
+                return [_flatten_parlamentar_row(x) for x in blob if isinstance(x, dict)]
         lp = payload.get("ListaParlamentarEmExercicio")
         if isinstance(lp, dict):
             par = lp.get("Parlamentares") or lp.get("parlamentares")
             if isinstance(par, list):
-                return [x for x in par if isinstance(x, dict)]
+                return [_flatten_parlamentar_row(x) for x in par if isinstance(x, dict)]
     if isinstance(payload, list):
-        return [x for x in payload if isinstance(x, dict)]
+        return [_flatten_parlamentar_row(x) for x in payload if isinstance(x, dict)]
     return []
 
 
