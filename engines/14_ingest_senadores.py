@@ -133,7 +133,8 @@ def _xml_text(el: Optional[ET.Element]) -> Optional[str]:
 
 
 def parse_senado_parlamentares_xml(content: bytes) -> List[Dict[str, Any]]:
-    root = ET.fromstring(content)
+    clean = content.lstrip(b'\xef\xbb\xbf').strip()
+    root = ET.fromstring(clean)
     out: List[Dict[str, Any]] = []
     for parl in root.findall(".//Parlamentar"):
         ident = parl.find("IdentificacaoParlamentar")
@@ -193,7 +194,7 @@ def fetch_senadores_lista_atual_json() -> List[Dict[str, Any]]:
             logger.info("Senado: fallback XML (%d parlamentares).", len(rows))
             return rows
         except ET.ParseError as exc:
-            logger.exception("Senado: XML inválido (%s).", exc)
+            logger.exception("Senado: XML inválido (%s). Primeiros 200 bytes: %r", exc, resp.content[:200])
             return []
 
     try:
