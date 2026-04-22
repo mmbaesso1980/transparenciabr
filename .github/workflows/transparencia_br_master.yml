@@ -51,7 +51,6 @@ jobs:
           name: ingest-logs
           path: logs/
 
-  # Deploy independente do ingest: hotpage/publicação não fica bloqueada por credenciais GCP.
   build-deploy:
     runs-on: ubuntu-latest
     permissions:
@@ -69,7 +68,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
