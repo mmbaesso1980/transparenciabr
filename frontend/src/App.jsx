@@ -17,6 +17,10 @@ const PerfilPage = lazy(() => import("./pages/PerfilPage.jsx"));
 const CreditosPage = lazy(() => import("./pages/CreditosPage.jsx"));
 const RadarPage = lazy(() => import("./pages/RadarPage.jsx"));
 
+// Em GitHub Pages o app é servido em /transparenciabr/
+// Em dev (Vite) roda na raiz /
+const basename = import.meta.env.BASE_URL;
+
 export default function App() {
   useEffect(() => {
     if (!getFirebaseApp()) return undefined;
@@ -25,7 +29,7 @@ export default function App() {
   }, []);
 
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={basename}>
       <CameraFocusProvider>
         <Suspense fallback={<RouteFallback />}>
           <Routes>
