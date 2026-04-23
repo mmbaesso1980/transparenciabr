@@ -1,0 +1,3 @@
+## 2024-04-22 - [GlobalSearch Accessibility]
+**Learning:** Found a pattern where decorative icons lacked `aria-hidden="true"`, and `<input type="search">` elements lacked `aria-label` when no explicit `<label>` was provided. Additionally, a dropdown `<ul>` implementing `role="listbox"` lacked the corresponding `role="option"` on its child `<li>` elements, which breaks ARIA expectations.
+**Action:** Always verify `role="listbox"` children explicitly declare `role="option"` to maintain valid ARIA hierarchy. Ensure decorative icons are hidden (`aria-hidden="true"`) and inputs without visible labels have an `aria-label`.
