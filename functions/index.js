@@ -125,11 +125,21 @@ exports.createCheckoutSession = functions
     const uid = context.auth.uid;
     const credits = parseInt(data.credits || data.creditos || "0", 10);
     const priceId = (data.priceId || data.price_id || "").trim();
-    const origin = (data.origin || "").replace(/\/$/, "") || "https://transparenciabr.web.app";
 
-    const successUrl =
-      data.successUrl || `${origin}/creditos?session_id={CHECKOUT_SESSION_ID}`;
-    const cancelUrl = data.cancelUrl || `${origin}/creditos?canceled=1`;
+    // 🛡️ Sentinel: Validate origin to prevent Open Redirect
+    let origin = (data.origin || "").replace(/\/$/, "");
+    const allowedOrigins = [
+      "https://transparenciabr.web.app",
+      "https://transparenciabr.firebaseapp.com"
+    ];
+    // Allow localhost for local development
+    if (!origin.startsWith("http://localhost:") && !allowedOrigins.includes(origin)) {
+      origin = "https://transparenciabr.web.app";
+    }
+
+    // 🛡️ Sentinel: Hardcode path to prevent redirection to arbitrary URLs
+    const successUrl = `${origin}/creditos?session_id={CHECKOUT_SESSION_ID}`;
+    const cancelUrl = `${origin}/creditos?canceled=1`;
 
     /** @type {import('stripe').Stripe.Checkout.SessionCreateParams} */
     const params = {
