@@ -21,7 +21,8 @@ _ENG = Path(__file__).resolve().parent
 if str(_ENG) not in sys.path:
     sys.path.insert(0, str(_ENG))
 
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 from firebase_admin import firestore
 
 from lib.firebase_app import init_firestore
@@ -76,17 +77,15 @@ def build_prompt(alerta: Dict[str, Any]) -> str:
 
 
 def gerar_explicacao(api_key: str, alerta: Dict[str, Any]) -> str:
-    genai.configure(api_key=api_key)
-    model = genai.GenerativeModel(
-        model_name=GEMINI_MODEL,
-        system_instruction=SYSTEM_ORACULO,
-    )
-    resp = model.generate_content(
-        build_prompt(alerta),
-        generation_config={
-            "temperature": 0.35,
-            "max_output_tokens": 512,
-        },
+    client = genai.Client(api_key=api_key)
+    resp = client.models.generate_content(
+        model=GEMINI_MODEL,
+        contents=build_prompt(alerta),
+        config=types.GenerateContentConfig(
+            system_instruction=SYSTEM_ORACULO,
+            temperature=0.35,
+            max_output_tokens=512,
+        ),
     )
     text = (resp.text or "").strip()
     if not text:

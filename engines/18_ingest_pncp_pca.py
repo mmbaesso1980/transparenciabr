@@ -51,7 +51,7 @@ USER_AGENT = "TransparenciaBR-engines/18_pca (PNCP consulta)"
 
 PNCP_PCA_URL_DEFAULT = os.environ.get(
     "PNCP_PCA_URL",
-    "https://pncp.gov.br/api/consulta/v1/planos-contratacao",
+    "https://pncp.gov.br/pncp-consulta/v1/planos-contratacao",
 )
 PNCP_ITENS_TEMPLATE_DEFAULT = os.environ.get(
     "PNCP_PCA_ITENS_URL",

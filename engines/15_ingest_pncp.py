@@ -424,18 +424,39 @@ def run(
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="PNCP → BigQuery contratos_pncp + alertas CADIRREG.")
-    parser.add_argument("--politico-id", required=True)
+    parser.add_argument(
+        "--politico-id",
+        default=None,
+        help="ID do político no Firestore. Se omitido, varre todos os políticos ativos.",
+    )
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--max-pages", type=int, default=int(os.environ.get("PNCP_MAX_PAGES", "50")))
     parser.add_argument("--dias", type=int, default=DIAS_RETRO)
     args = parser.parse_args()
+
+    if args.politico_id:
+        politico_ids = [args.politico_id]
+    else:
+        # Busca todos os políticos ativos no Firestore
+        db = firestore.Client()
+        docs = db.collection("politicos").where("ativo", "==", True).stream()
+        politico_ids = [doc.id for doc in docs]
+        if not politico_ids:
+            logger.warning("Nenhum político ativo encontrado no Firestore. Encerrando.")
+            return 0
+        logger.info("Modo CI: varrendo %d políticos ativos.", len(politico_ids))
+
     try:
-        return run(
-            politico_id=args.politico_id.strip(),
-            dry_run=args.dry_run,
-            max_pages=max(1, args.max_pages),
-            dias=max(7, args.dias),
-        )
+        for pid in politico_ids:
+            res = run(
+                politico_id=pid.strip(),
+                dry_run=args.dry_run,
+                max_pages=max(1, args.max_pages),
+                dias=max(7, args.dias),
+            )
+            if res != 0:
+                logger.error("Falha ao processar politico_id=%s. Código: %s", pid, res)
+        return 0
     except Exception as exc:
         logger.exception("Falha: %s", exc)
         return 1
