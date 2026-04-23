@@ -125,11 +125,23 @@ exports.createCheckoutSession = functions
     const uid = context.auth.uid;
     const credits = parseInt(data.credits || data.creditos || "0", 10);
     const priceId = (data.priceId || data.price_id || "").trim();
-    const origin = (data.origin || "").replace(/\/$/, "") || "https://transparenciabr.web.app";
 
-    const successUrl =
-      data.successUrl || `${origin}/creditos?session_id={CHECKOUT_SESSION_ID}`;
-    const cancelUrl = data.cancelUrl || `${origin}/creditos?canceled=1`;
+    // Security: Validate client-provided origin against an allowlist to prevent Open Redirect
+    const ALLOWED_ORIGINS = [
+      "https://transparenciabr.web.app",
+      "https://fiscallizapa.web.app",
+      "http://localhost:5173",
+      "http://localhost:3000"
+    ];
+    let origin = (data.origin || "").replace(/\/$/, "");
+    if (!ALLOWED_ORIGINS.includes(origin)) {
+      console.warn(`[SECURITY] Invalid origin attempt blocked: ${origin}`);
+      origin = "https://transparenciabr.web.app";
+    }
+
+    // Security: Do not blindly trust data.successUrl or data.cancelUrl
+    const successUrl = `${origin}/creditos?session_id={CHECKOUT_SESSION_ID}`;
+    const cancelUrl = `${origin}/creditos?canceled=1`;
 
     /** @type {import('stripe').Stripe.Checkout.SessionCreateParams} */
     const params = {
