@@ -344,7 +344,7 @@ def main() -> int:
         owner_uid = _owner_uid()
     except ValueError as e:
         logger.error("%s", e)
-        return 0
+        return 2
 
     fs = init_firestore()
 

@@ -331,7 +331,7 @@ def main() -> int:
             "Nenhuma linha válida (API indisponível ou formato inesperado). "
             "Use --from-ndjson com amostra ou --allow-empty para truncar.",
         )
-        return 0
+        return 2
 
     try:
         load_bigquery(normalized, dry_run=args.dry_run)

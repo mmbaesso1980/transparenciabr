@@ -178,7 +178,7 @@ def run(*, politico_id: str, dry_run: bool) -> int:
     snap = fs.collection(COLLECTION_POLITICOS).document(pid).get()
     if not snap.exists:
         logger.error("Politico %s não encontrado.", pid)
-        return 0
+        return 2
     pdata = snap.to_dict() or {}
 
     mun_rows = _rows_municipios(pdata)
