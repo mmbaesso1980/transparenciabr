@@ -1,0 +1,1 @@
+-- Missing structure placeholder for BigQuery KMEANS ML Query

@@ -1,4 +1,10 @@
 {
+  "vectorConfig": {
+    "collectionGroup": "votacoes",
+    "fieldPath": "vectorDescricao",
+    "dimension": 768,
+    "distanceMeasure": "COSINE"
+  },
   "indexes": [
     {
       "collectionGroup": "alertas_bodes",
