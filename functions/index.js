@@ -236,3 +236,16 @@ exports.onDiarioAtoCreated = functions
     console.log(`radar_dossiers/${docId} gerado a partir de diarios_atos/${atoId}`);
     return null;
   });
+
+// Scheduled jobs (Missão 34)
+const scheduled = require('./src/scheduledJobs');
+exports.ingestEmendasPix = scheduled.ingestEmendasPix;
+exports.ingestEmendasRp6 = scheduled.ingestEmendasRp6;
+exports.ingestCeapCamara = scheduled.ingestCeapCamara;
+exports.ingestVotacoesCamara = scheduled.ingestVotacoesCamara;
+exports.aggregateParlamentarCounters = scheduled.aggregateParlamentarCounters;
+exports.recalcAllScores = scheduled.recalcAllScores;
+exports.syncBodes = scheduled.syncBodes;
+exports.syncAgendaDia = scheduled.syncAgendaDia;
+exports.renovarCotasDiarias = scheduled.renovarCotasDiarias;
+exports.healthcheckSemanal = scheduled.healthcheckSemanal;
