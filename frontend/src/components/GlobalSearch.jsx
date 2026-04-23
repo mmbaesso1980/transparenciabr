@@ -120,6 +120,7 @@ export default function GlobalSearch({ className = "" }) {
           <Search
             className="pointer-events-none absolute left-3 size-4 text-[#8B949E]"
             strokeWidth={1.75}
+            aria-hidden="true"
           />
           <input
             type="search"
@@ -130,6 +131,7 @@ export default function GlobalSearch({ className = "" }) {
             }}
             onFocus={() => setOpen(true)}
             placeholder="Nome ou ID do político…"
+            aria-label="Nome ou ID do político para pesquisa"
             autoComplete="off"
             className="w-full min-w-0 rounded-lg border border-[#30363D] bg-[#0D1117] py-2 pl-10 pr-3 text-sm text-[#F0F4FC] placeholder:text-[#484F58] outline-none ring-[#58A6FF] focus:border-[#58A6FF]/50 focus:ring-2"
           />
@@ -146,12 +148,13 @@ export default function GlobalSearch({ className = "" }) {
         <ul
           className="absolute left-0 right-0 top-full z-50 mt-1 max-h-64 overflow-auto rounded-lg border border-[#30363D] bg-[#0D1117]/98 py-1 shadow-xl backdrop-blur-md"
           role="listbox"
+          aria-label="Resultados da pesquisa"
         >
           {matches.map((m) => (
-            <li key={m.id}>
+            <li key={m.id} role="option" aria-selected={false}>
               <button
                 type="button"
-                className="flex w-full flex-col gap-0.5 px-3 py-2 text-left text-sm text-[#F0F4FC] transition hover:bg-[#21262D]"
+                className="flex w-full flex-col gap-0.5 px-3 py-2 text-left text-sm text-[#F0F4FC] transition hover:bg-[#21262D] focus-visible:bg-[#21262D] focus-visible:outline-none"
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => goDossie(m.id)}
               >
