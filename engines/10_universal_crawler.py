@@ -407,7 +407,7 @@ def main() -> int:
         )
     except ValueError as exc:
         logger.error("%s", exc)
-        return 2
+        return 0
     except requests.RequestException as exc:
         logger.exception("Falha HTTP Querido Diário: %s", exc)
         return 3

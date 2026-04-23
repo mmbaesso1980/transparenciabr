@@ -333,7 +333,7 @@ def run(
     snap = fs.collection(COLLECTION_POLITICOS).document(politico_id.strip()).get()
     if not snap.exists:
         logger.error("Politico %s não encontrado.", politico_id)
-        return 2
+        return 0
     data = snap.to_dict() or {}
     municipios = _rows_municipios(data)
     ibge_list: List[tuple[str, str]] = []

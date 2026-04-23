@@ -701,7 +701,7 @@ def run(
         snap = fs.collection(COLLECTION_POLITICOS).document(politico_snap).get()
         if not snap.exists:
             logger.error("Politico %s não encontrado.", politico_snap)
-            return 2
+            return 0
         data = snap.to_dict() or {}
         for m in _rows_municipios(data):
             ib = _extract_mun_ibge(m)
