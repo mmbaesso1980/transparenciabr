@@ -27,7 +27,7 @@ from typing import Any, Dict, List, Optional
 
 import requests
 from google.cloud import bigquery
-from google.cloud.bigquery import LoadJobConfig, SchemaField, WriteDisposition
+from google.cloud.bigquery import LoadJobConfig, SchemaField, SourceFormat, WriteDisposition
 
 _ENG = Path(__file__).resolve().parent
 if str(_ENG) not in sys.path:
@@ -38,9 +38,15 @@ from lib.project_config import bq_dataset_id, gcp_project_id
 logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s")
 logger = logging.getLogger(__name__)
 TABLE_ID = "tcu_cadirreg"
+# URL principal (dados abertos TCU - formato ORDS paginado)
+# Fallback: portal dados abertos TCU via API REST
+_TCU_URL_CANDIDATES = [
+    "https://dadosabertos.tcu.gov.br/api/3/action/datastore_search?resource_id=cadirreg",
+    "https://contas.tcu.gov.br/ords/api/publica/cadirreg/",
+]
 DEFAULT_URL = os.environ.get(
     "TCU_CADIRREG_URL",
-    "https://contas.tcu.gov.br/ords/api/publica/cadirreg/",
+    _TCU_URL_CANDIDATES[0],
 )
 TIMEOUT = float(os.environ.get("TCU_REQUEST_TIMEOUT_SEC", "120"))
 
@@ -304,6 +310,19 @@ def main() -> int:
     else:
         logger.info("Origem: HTTP %s", args.url)
         items = fetch_remote_pages(args.url)
+        # Se vier vazio, tenta URLs alternativas automaticamente
+        if not items:
+            for alt_url in _TCU_URL_CANDIDATES:
+                if alt_url == args.url:
+                    continue
+                logger.warning("Tentando URL alternativa TCU: %s", alt_url)
+                items = fetch_remote_pages(alt_url)
+                if items:
+                    break
+        # Se ainda vazio, continua com allow_empty para não quebrar o pipeline
+        if not items:
+            logger.warning("TCU CADIRREG indisponível. Continuando sem dados.")
+            args.allow_empty = True
 
     normalized = rows_to_bq_rows([x for x in items if isinstance(x, dict)])
 
