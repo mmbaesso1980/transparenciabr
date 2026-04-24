@@ -1,0 +1,50 @@
+name: Deploy Firebase Functions
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "functions/**"
+      - ".github/workflows/deploy-functions.yml"
+  workflow_dispatch:
+
+jobs:
+  deploy_functions:
+    name: Deploy Functions
+    runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: functions/package-lock.json
+
+      - name: Install Dependencies
+        working-directory: functions
+        run: npm ci
+
+      - name: Deploy to Firebase Functions
+        env:
+          GCP_SERVICE_ACCOUNT_JSON: ${{ secrets.GCP_SERVICE_ACCOUNT_JSON }}
+        run: |
+          SA_FILE=$(mktemp)
+          trap 'rm -f "$SA_FILE"' EXIT
+          echo "$GCP_SERVICE_ACCOUNT_JSON" > "$SA_FILE"
+          chmod 600 "$SA_FILE"
+          export GOOGLE_APPLICATION_CREDENTIALS="$SA_FILE"
+          npx firebase-tools deploy --only functions --project transparenciabr --force
+
+      - name: Verify no credentials left behind
+        if: always()
+        run: |
+          if [ -n "$(find . -name '*.json' -path '*/sa*' 2>/dev/null)" ]; then
+            echo "\u274c Arquivo de credencial detectado ap\u00f3s step!"
+            exit 1
+          fi
