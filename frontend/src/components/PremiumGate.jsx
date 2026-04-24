@@ -1,4 +1,4 @@
-import { Lock } from "lucide-react";
+import { Loader2, Lock } from "lucide-react";
 import { useState } from "react";
 
 const CREDITS_DEFAULT = 200;
@@ -93,11 +93,16 @@ export default function PremiumGate({
           <button
             type="button"
             disabled={!canPay || busy}
-            className="mt-6 inline-flex items-center justify-center rounded-xl border border-[var(--accent-danger)]/45 bg-[var(--accent-danger)]/10 px-6 py-3 text-sm font-semibold text-[var(--text-primary)] shadow-[var(--shadow-elevated)] transition enabled:hover:border-[var(--accent-warning)] enabled:hover:bg-[var(--bg-surface)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-primary)] disabled:cursor-not-allowed disabled:opacity-45"
+            className="mt-6 inline-flex items-center justify-center gap-2 rounded-xl border border-[var(--accent-danger)]/45 bg-[var(--accent-danger)]/10 px-6 py-3 text-sm font-semibold text-[var(--text-primary)] shadow-[var(--shadow-elevated)] transition enabled:hover:border-[var(--accent-warning)] enabled:hover:bg-[var(--bg-surface)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-primary)] disabled:cursor-not-allowed disabled:opacity-45"
             onClick={() => void handlePay()}
           >
             {busy
-              ? "A processar…"
+              ? (
+                <>
+                  <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+                  A processar…
+                </>
+              )
               : missing > 0
                 ? "Saldo insuficiente"
                 : `Utilizar ${creditsRequired} créditos`}
