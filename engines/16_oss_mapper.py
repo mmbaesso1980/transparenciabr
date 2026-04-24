@@ -83,25 +83,20 @@ def _rows_municipios(data: Dict[str, Any]) -> List[Dict[str, Any]]:
     return out
 
 
-def _familiares_do_politico(data: Dict[str, Any]) -> List[Dict[str, Any]]:
-    raw = (
-        data.get("familiares_declarados")
-        or data.get("familiares_monitoramento")
-        or data.get("parentesco_declarado")
-        or []
-    )
-    if not isinstance(raw, list):
-        return []
+def _familiares_do_politico(pid: str, fs) -> List[Dict[str, Any]]:
     out: List[Dict[str, Any]] = []
-    for x in raw:
-        if isinstance(x, dict) and (x.get("nome_completo") or x.get("nome")):
-            nome = str(x.get("nome_completo") or x.get("nome") or "").strip()
-            out.append(
-                {
+    try:
+        docs = fs.collection("family_ties").where("politico_id", "==", pid).stream()
+        for doc in docs:
+            d = doc.to_dict()
+            nome = str(d.get("nome_socio") or d.get("nome_completo") or "").strip()
+            if nome:
+                out.append({
                     "nome_completo": nome,
-                    "parentesco": str(x.get("parentesco") or "—"),
-                }
-            )
+                    "parentesco": str(d.get("parentesco") or "Sócio detectado via CNPJ.ws"),
+                })
+    except Exception as exc:
+        pass
     return out
 
 
@@ -183,7 +178,7 @@ def run(*, politico_id: str, dry_run: bool) -> int:
 
     mun_rows = _rows_municipios(pdata)
     ibges = sorted({_extract_ibge_municipio(m) for m in mun_rows if _extract_ibge_municipio(m)})
-    familiares = _familiares_do_politico(pdata)
+    familiares = _familiares_do_politico(pid, fs)
 
     project = gcp_project_id()
     dataset = bq_dataset_id()
