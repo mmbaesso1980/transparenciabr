@@ -57,6 +57,7 @@ jobs:
           echo "GOOGLE_APPLICATION_CREDENTIALS=$SA_FILE" >> $GITHUB_ENV
           echo "_SA_FILE=$SA_FILE" >> $GITHUB_ENV
 
+      # ── Fase 1: Ingestão base ──────────────────────────────────────────────
       - name: "Engine 01 — Ingest Políticos (Câmara)"
         continue-on-error: true
         run: python engines/01_ingest_politicos.py
@@ -85,40 +86,49 @@ jobs:
         continue-on-error: true
         run: python engines/18_ingest_pncp_pca.py
 
-      - name: "Engine 05 — Sync Bodes (Alertas)"
-        continue-on-error: true
-        run: python engines/05_sync_bodes.py
-
+      # ── Fase 2: Enriquecimento ─────────────────────────────────────────────
       - name: "Engine 06 — Sync Contexto Socioeconômico"
         continue-on-error: true
         run: python engines/06_sync_context_socio.py
 
-      # Engine 10: --batch itera todos os políticos do Firestore
-      - name: "Engine 10 — Universal Crawler"
+      - name: "Engine 10 — Universal Crawler (batch)"
         continue-on-error: true
         run: python engines/10_universal_crawler.py --batch
 
-      # Engine 11 (Ghost Hunter) — 100% mock, desativado até portar para API real
+      # Engine 11 — 100% mock, desativado até portar para API real
       - name: "Engine 11 — Ghost Hunter [DESATIVADO — mock]"
         if: false
         run: python engines/11_ghost_hunter.py
 
-      # Engine 12 (Family Ties) — 100% mock, desativado até portar para API real
+      # Engine 12 — 100% mock, desativado até portar para API real
       - name: "Engine 12 — Family Ties [DESATIVADO — mock]"
         if: false
         run: python engines/12_family_ties.py
 
-      - name: "Engine 16 — OSS Mapper"
+      - name: "Engine 16 — OSS Mapper (batch)"
         continue-on-error: true
         run: python engines/16_oss_mapper.py --batch
+
+      - name: "Engine 17 — Commercial Radar"
+        continue-on-error: true
+        run: python engines/17_commercial_radar.py
 
       - name: "Engine 18 — OSS Scanner"
         continue-on-error: true
         run: python engines/18_oss_scanner.py
 
-      - name: "Engine 17 — Commercial Radar"
+      # ── Fase 3: Análise / IA ───────────────────────────────────────────────
+      - name: "Engine 07 — Gemini Translator"
         continue-on-error: true
-        run: python engines/17_commercial_radar.py
+        run: python engines/07_gemini_translator.py
+
+      - name: "Engine 08 — Web Call"
+        continue-on-error: true
+        run: python engines/08_web_call.py
+
+      - name: "Engine 22 — LGPD Shield"
+        continue-on-error: true
+        run: python engines/22_lgpd_shield.py
 
       - name: "Engine 23 — Neutrality Check"
         continue-on-error: true
@@ -132,17 +142,10 @@ jobs:
         continue-on-error: true
         run: python engines/25_alliance_scanner.py
 
-      - name: "Engine 07 — Gemini Translator"
+      # ── Fase 4: Sincronização final ────────────────────────────────────────
+      - name: "Engine 05 — Sync Bodes (Alertas)"
         continue-on-error: true
-        run: python engines/07_gemini_translator.py
-
-      - name: "Engine 08 — Web Call"
-        continue-on-error: true
-        run: python engines/08_web_call.py
-
-      - name: "Engine 09/22 — LGPD Shield"
-        continue-on-error: true
-        run: python engines/22_lgpd_shield.py
+        run: python engines/05_sync_bodes.py
 
       - name: Remover credenciais do disco
         if: always()
