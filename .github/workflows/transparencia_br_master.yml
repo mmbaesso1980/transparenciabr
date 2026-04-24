@@ -51,11 +51,11 @@ jobs:
 
       - name: Preparar credenciais GCP
         run: |
-          SA_FILE=$(mktemp)
-          trap 'rm -f "$SA_FILE"' EXIT
+          SA_FILE=$(mktemp /tmp/gcp_sa_XXXXXX.json)
           printf '%s' "$GOOGLE_CREDENTIALS_JSON" > "$SA_FILE"
           chmod 600 "$SA_FILE"
           echo "GOOGLE_APPLICATION_CREDENTIALS=$SA_FILE" >> $GITHUB_ENV
+          echo "_SA_FILE=$SA_FILE" >> $GITHUB_ENV
 
       - name: "Engine 01 — Ingest Políticos (Câmara)"
         continue-on-error: true
@@ -141,14 +141,9 @@ jobs:
         continue-on-error: true
         run: python engines/22_lgpd_shield.py
 
-      - name: Verify no credentials left behind
+      - name: Remover credenciais do disco
         if: always()
-        run: |
-          if find /tmp -name 'tmp.*' -newer /tmp 2>/dev/null | xargs grep -l 'private_key' 2>/dev/null | grep -q .; then
-            echo "❌ Possível credencial detectada em /tmp!"
-            exit 1
-          fi
-          echo "✅ Nenhuma credencial residual detectada."
+        run: rm -f "$_SA_FILE"
 
       - uses: actions/upload-artifact@v4
         if: always()
