@@ -20,7 +20,7 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from collections import defaultdict
-from typing import Any, Dict, List, Set
+from typing import Any, Dict, List, Optional, Set
 
 from google.cloud import bigquery
 from firebase_admin import firestore
@@ -59,7 +59,6 @@ def _alert_doc_id(pid: str, tipo: str, mensagem: str, criado_em_iso: str, fonte:
 
 def _extract_ibge_municipio(m: Dict[str, Any]) -> Optional[str]:
     import re
-
     for key in ("codigo_ibge_municipio", "id_municipio", "codigo_ibge", "ibge"):
         raw = m.get(key)
         if raw is None:
@@ -83,25 +82,21 @@ def _rows_municipios(data: Dict[str, Any]) -> List[Dict[str, Any]]:
     return out
 
 
-def _familiares_do_politico(data: Dict[str, Any]) -> List[Dict[str, Any]]:
-    raw = (
-        data.get("familiares_declarados")
-        or data.get("familiares_monitoramento")
-        or data.get("parentesco_declarado")
-        or []
-    )
-    if not isinstance(raw, list):
-        return []
+def _familiares_do_politico(pid: str, fs: Any) -> List[Dict[str, Any]]:
+    """Lê familiares da coleção family_ties (gerada pelo Engine 12)."""
     out: List[Dict[str, Any]] = []
-    for x in raw:
-        if isinstance(x, dict) and (x.get("nome_completo") or x.get("nome")):
-            nome = str(x.get("nome_completo") or x.get("nome") or "").strip()
-            out.append(
-                {
+    try:
+        docs = fs.collection("family_ties").where("politico_id", "==", pid).stream()
+        for doc in docs:
+            d = doc.to_dict()
+            nome = str(d.get("nome_socio") or d.get("nome_completo") or "").strip()
+            if nome:
+                out.append({
                     "nome_completo": nome,
-                    "parentesco": str(x.get("parentesco") or "—"),
-                }
-            )
+                    "parentesco": str(d.get("parentesco") or "Sócio detectado via CNPJ.ws"),
+                })
+    except Exception as exc:
+        logger.warning("Erro ao buscar family_ties para %s: %s", pid, exc)
     return out
 
 
@@ -111,7 +106,6 @@ def _query_cnes_oss(
 ) -> List[Dict[str, Any]]:
     if not ibges:
         return []
-    # Colunas canónicas Base dos Dados — CNES estabelecimento (ajustar se o dataset evoluir).
     sql = """
     SELECT DISTINCT
       LPAD(CAST(id_municipio AS STRING), 7, '0') AS ibge,
@@ -132,16 +126,14 @@ def _query_cnes_oss(
     rows = list(client.query(sql, job_config=job_config).result())
     out: List[Dict[str, Any]] = []
     for r in rows:
-        out.append(
-            {
-                "ibge": str(r.ibge or ""),
-                "cnpj_estabelecimento": str(r.cnpj_estabelecimento or ""),
-                "cnpj_mantenedora": str(r.cnpj_mantenedora or ""),
-                "nome_fantasia": str(r.nome_fantasia or ""),
-                "razao_social": str(r.razao_social or ""),
-                "detalhamento": str(r.detalhamento or ""),
-            }
-        )
+        out.append({
+            "ibge": str(r.ibge or ""),
+            "cnpj_estabelecimento": str(r.cnpj_estabelecimento or ""),
+            "cnpj_mantenedora": str(r.cnpj_mantenedora or ""),
+            "nome_fantasia": str(r.nome_fantasia or ""),
+            "razao_social": str(r.razao_social or ""),
+            "detalhamento": str(r.detalhamento or ""),
+        })
     return out
 
 
@@ -183,7 +175,7 @@ def run(*, politico_id: str, dry_run: bool) -> int:
 
     mun_rows = _rows_municipios(pdata)
     ibges = sorted({_extract_ibge_municipio(m) for m in mun_rows if _extract_ibge_municipio(m)})
-    familiares = _familiares_do_politico(pdata)
+    familiares = _familiares_do_politico(pid, fs)
 
     project = gcp_project_id()
     dataset = bq_dataset_id()
@@ -197,7 +189,6 @@ def run(*, politico_id: str, dry_run: bool) -> int:
             "Query CNES/Base dos Dados falhou (%s). Verifique billing e acesso ao dataset público.",
             exc,
         )
-        hospitais_raw = []
 
     contratos: List[Dict[str, Any]] = []
     try:
@@ -226,22 +217,15 @@ def run(*, politico_id: str, dry_run: bool) -> int:
         hit_pncp = mant in cnpj_contratos
         if hit_pncp:
             oss_alerta_pncp.append(mant)
-        hospitais_out.append(
-            {
-                **h,
-                "alerta_oss_em_contratos_pncp": hit_pncp,
-            }
-        )
+        hospitais_out.append({**h, "alerta_oss_em_contratos_pncp": hit_pncp})
 
     alertas_extra: List[Dict[str, Any]] = []
 
-    # Cruzamento corrupção saúde + fuzzy familiar × razão social de fornecedor PNCP
     for c in contratos:
         razao = str(c.get("nome_razao_social_contratado") or "").strip()
         if not razao or not familiares:
             continue
-        socios_proxy = [razao]
-        hit = melhor_par_familiar(familiares, socios_proxy)
+        hit = melhor_par_familiar(familiares, [razao])
         if hit is None:
             continue
         fam, _socio_guess, sim = hit
@@ -259,15 +243,13 @@ def run(*, politico_id: str, dry_run: bool) -> int:
             f"e razão social de fornecedor PNCP '{razao}' (contrato {c.get('numero_contrato')}). "
             f"Possível superfície de nepotismo/corrupção cruzada na saúde."
         )
-        alertas_extra.append(
-            {
-                "tipo_risco": "CORRUPCAO_CRUZADA_SAUDE",
-                "mensagem": mensagem,
-                "fonte": "16_oss_mapper",
-                "criado_em": criado,
-                "detalhe": {"similaridade": sim, "contrato": c, "familiar": fam},
-            }
-        )
+        alertas_extra.append({
+            "tipo_risco": "CORRUPCAO_CRUZADA_SAUDE",
+            "mensagem": mensagem,
+            "fonte": "16_oss_mapper",
+            "criado_em": criado,
+            "detalhe": {"similaridade": sim, "contrato": c, "familiar": fam},
+        })
 
     payload_malha: Dict[str, Any] = {
         "politico_id": pid,
@@ -284,19 +266,23 @@ def run(*, politico_id: str, dry_run: bool) -> int:
     }
 
     if dry_run:
-        logger.info("[dry-run] hospitais=%s contratos=%s alertas_extra=%s", len(hospitais_out), len(contratos), len(alertas_extra))
+        logger.info(
+            "[dry-run] hospitais=%s contratos=%s alertas_extra=%s",
+            len(hospitais_out), len(contratos), len(alertas_extra),
+        )
         return 0
 
     fs.collection(COLLECTION_MALHA).document(pid).set(payload_malha, merge=True)
-    fs.collection(COLLECTION_POLITICOS).document(pid).set({"malha_saude": payload_malha}, merge=True)
+    fs.collection(COLLECTION_POLITICOS).document(pid).set(
+        {"malha_saude": payload_malha}, merge=True
+    )
 
     for a in alertas_extra:
         tipo = str(a["tipo_risco"])
         msg = str(a["mensagem"])
         criado = a["criado_em"]
-        criado_iso = criado.isoformat()
         fonte = str(a["fonte"])
-        doc_id = _alert_doc_id(pid, tipo, msg, criado_iso, fonte)
+        doc_id = _alert_doc_id(pid, tipo, msg, criado.isoformat(), fonte)
         fs.collection(COLLECTION_ALERTAS).document(doc_id).set(
             {
                 "politico_id": pid,
@@ -315,9 +301,7 @@ def run(*, politico_id: str, dry_run: bool) -> int:
 
     logger.info(
         "Malha gravada em `%s/%s` + merge em politicos.malha_saude (%s hospitais).",
-        COLLECTION_MALHA,
-        pid,
-        len(hospitais_out),
+        COLLECTION_MALHA, pid, len(hospitais_out),
     )
     return 0
 
