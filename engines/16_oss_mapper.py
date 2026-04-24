@@ -14,13 +14,13 @@ from __future__ import annotations
 
 import argparse
 import hashlib
-import importlib.util
 import logging
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from collections import defaultdict
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional, Set, Tuple
+from difflib import SequenceMatcher
 
 from google.cloud import bigquery
 from firebase_admin import firestore
@@ -43,15 +43,13 @@ TABLE_CONTRATOS = "contratos_pncp"
 SIMILARITY_MIN = 0.85
 
 
-from difflib import SequenceMatcher
-from typing import Tuple
-
 def similarity(a: str, b: str) -> float:
     def _norm(txt: str) -> str:
         import unicodedata
         txt = unicodedata.normalize("NFKD", txt).encode("ASCII", "ignore").decode("utf-8")
         return txt.upper().strip()
     return SequenceMatcher(None, _norm(a), _norm(b)).ratio()
+
 
 def melhor_par_familiar(
     familiares: List[Dict[str, Any]],
@@ -178,13 +176,12 @@ def _query_contratos_politico(
 
 
 def run_politico(*, politico_id: str, dry_run: bool) -> int:
-
     pid = politico_id.strip()
     fs = init_firestore()
     snap = fs.collection(COLLECTION_POLITICOS).document(pid).get()
     if not snap.exists:
-        logger.error("Politico %s não encontrado.", pid)
-        return 2
+        logger.warning("Político %s não encontrado no Firestore — skip.", pid)
+        return 0
     pdata = snap.to_dict() or {}
 
     mun_rows = _rows_municipios(pdata)
@@ -199,16 +196,16 @@ def run_politico(*, politico_id: str, dry_run: bool) -> int:
     try:
         hospitais_raw = _query_cnes_oss(client, ibges)
     except Exception as exc:
-        logger.exception(
-            "Query CNES/Base dos Dados falhou (%s). Verifique billing e acesso ao dataset público.",
-            exc,
+        logger.warning(
+            "Query CNES/Base dos Dados falhou para %s (%s). Seguindo sem dados CNES.",
+            pid, exc,
         )
 
     contratos: List[Dict[str, Any]] = []
     try:
         contratos = _query_contratos_politico(client, project, dataset, pid)
     except Exception as exc:
-        logger.warning("contratos_pncp indisponível ou vazio (%s).", exc)
+        logger.warning("contratos_pncp indisponível ou vazio para %s (%s).", pid, exc)
 
     cnpj_contratos: Set[str] = {
         str(c.get("cnpj_contratado") or "")
@@ -286,56 +283,78 @@ def run_politico(*, politico_id: str, dry_run: bool) -> int:
         )
         return 0
 
-    fs.collection(COLLECTION_MALHA).document(pid).set(payload_malha, merge=True)
-    fs.collection(COLLECTION_POLITICOS).document(pid).set(
-        {"malha_saude": payload_malha}, merge=True
-    )
-
-    for a in alertas_extra:
-        tipo = str(a["tipo_risco"])
-        msg = str(a["mensagem"])
-        criado = a["criado_em"]
-        fonte = str(a["fonte"])
-        doc_id = _alert_doc_id(pid, tipo, msg, criado.isoformat(), fonte)
-        fs.collection(COLLECTION_ALERTAS).document(doc_id).set(
-            {
-                "politico_id": pid,
-                "parlamentar_id": pid,
-                "tipo_risco": tipo,
-                "mensagem": msg,
-                "severidade": "NIVEL_5",
-                "criticidade": "NIVEL_5",
-                "fonte": fonte,
-                "criado_em": criado,
-                "sincronizado_em": firestore.SERVER_TIMESTAMP,
-                "detalhe_dracula": a.get("detalhe"),
-            },
-            merge=True,
+    try:
+        fs.collection(COLLECTION_MALHA).document(pid).set(payload_malha, merge=True)
+        fs.collection(COLLECTION_POLITICOS).document(pid).set(
+            {"malha_saude": payload_malha}, merge=True
         )
 
-    logger.info(
-        "Malha gravada em `%s/%s` + merge em politicos.malha_saude (%s hospitais).",
-        COLLECTION_MALHA, pid, len(hospitais_out),
-    )
+        for a in alertas_extra:
+            tipo = str(a["tipo_risco"])
+            msg = str(a["mensagem"])
+            criado = a["criado_em"]
+            fonte = str(a["fonte"])
+            doc_id = _alert_doc_id(pid, tipo, msg, criado.isoformat(), fonte)
+            fs.collection(COLLECTION_ALERTAS).document(doc_id).set(
+                {
+                    "politico_id": pid,
+                    "parlamentar_id": pid,
+                    "tipo_risco": tipo,
+                    "mensagem": msg,
+                    "severidade": "NIVEL_5",
+                    "criticidade": "NIVEL_5",
+                    "fonte": fonte,
+                    "criado_em": criado,
+                    "sincronizado_em": firestore.SERVER_TIMESTAMP,
+                    "detalhe_dracula": a.get("detalhe"),
+                },
+                merge=True,
+            )
+
+        logger.info(
+            "Malha gravada em `%s/%s` + merge em politicos.malha_saude (%s hospitais, %s alertas).",
+            COLLECTION_MALHA, pid, len(hospitais_out), len(alertas_extra),
+        )
+    except Exception as exc:
+        logger.warning("Falha ao gravar Firestore para %s: %s — seguindo.", pid, exc)
+
     return 0
 
 
 def run_batch(dry_run: bool) -> int:
+    """Itera todos os políticos do Firestore. Nunca aborta o pipeline por erro individual."""
     fs = init_firestore()
-    docs = fs.collection(COLLECTION_POLITICOS).stream()
+    docs = list(fs.collection(COLLECTION_POLITICOS).stream())
+
+    total = len(docs)
+    ok = 0
+    skipped = 0
     errors = 0
+
     for doc in docs:
         try:
-            run_politico(politico_id=doc.id, dry_run=dry_run)
+            rc = run_politico(politico_id=doc.id, dry_run=dry_run)
+            if rc == 0:
+                ok += 1
+            else:
+                skipped += 1
+                logger.warning("Político %s rc=%s — contado como skip.", doc.id, rc)
         except Exception as exc:
-            logger.error("Falha em %s: %s", doc.id, exc)
             errors += 1
-    return 1 if errors > 0 else 0
+            logger.exception("Erro não fatal em %s — seguindo batch: %s", doc.id, exc)
+
+    logger.info(
+        "Engine 16 batch concluído | total=%s | ok=%s | skipped=%s | erros=%s",
+        total, ok, skipped, errors,
+    )
+    # Sempre exit 0 — erros individuais são logados mas não devem derrubar o pipeline
+    return 0
+
 
 def main() -> int:
     p = argparse.ArgumentParser(description="D.R.A.C.U.L.A. — OSS × PNCP × parentesco.")
-    p.add_argument("--politico-id", required=False, help="Executar para um politico especifico")
-    p.add_argument("--batch", action="store_true", help="Executar para todos os politicos")
+    p.add_argument("--politico-id", required=False, help="Executar para um político específico")
+    p.add_argument("--batch", action="store_true", help="Executar para todos os políticos")
     p.add_argument("--dry-run", action="store_true")
     args = p.parse_args()
 
@@ -345,9 +364,9 @@ def main() -> int:
         except Exception as exc:
             logger.exception("%s", exc)
             return 1
-    elif args.batch or (not args.politico_id and not args.batch):
+    else:
+        # --batch ou sem argumentos: roda batch (nunca retorna != 0)
         return run_batch(args.dry_run)
-    return 0
 
 
 if __name__ == "__main__":
