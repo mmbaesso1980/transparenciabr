@@ -50,194 +50,103 @@ jobs:
             lxml==5.3.0
 
       - name: Preparar credenciais GCP
-        run: printf '%s' "$GOOGLE_CREDENTIALS_JSON" > /tmp/sa.json
+        run: |
+          SA_FILE=$(mktemp /tmp/gcp_sa_XXXXXX.json)
+          printf '%s' "$GOOGLE_CREDENTIALS_JSON" > "$SA_FILE"
+          chmod 600 "$SA_FILE"
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$SA_FILE" >> $GITHUB_ENV
+          echo "_SA_FILE=$SA_FILE" >> $GITHUB_ENV
 
       - name: "Engine 01 — Ingest Políticos (Câmara)"
         continue-on-error: true
-        run: |
-          export GOOGLE_APPLICATION_CREDENTIALS=/tmp/sa.json
-          python engines/01_ingest_politicos.py
+        run: python engines/01_ingest_politicos.py
 
       - name: "Engine 14 — Ingest Senadores"
         continue-on-error: true
-        run: |
-          export GOOGLE_APPLICATION_CREDENTIALS=/tmp/sa.json
-          python engines/14_ingest_senadores.py
+        run: python engines/14_ingest_senadores.py
 
       - name: "Engine 02 — Ingest Emendas"
         continue-on-error: true
-        run: |
-          export GOOGLE_APPLICATION_CREDENTIALS=/tmp/sa.json
-          python engines/02_ingest_emendas.py
+        run: python engines/02_ingest_emendas.py
 
       - name: "Engine 07 — Ingest TCU CADIRREG"
         continue-on-error: true
-        run: |
-          export GOOGLE_APPLICATION_CREDENTIALS=/tmp/sa.json
-          python engines/07_ingest_tcu_cadirreg.py
+        run: python engines/07_ingest_tcu_cadirreg.py
 
       - name: "Engine 15 — Ingest PNCP Licitações"
         continue-on-error: true
-        run: |
-          export GOOGLE_APPLICATION_CREDENTIALS=/tmp/sa.json
-          python engines/15_ingest_pncp.py
+        run: python engines/15_ingest_pncp.py
 
       - name: "Engine 17 — Ingest SIOP Orçamento"
         continue-on-error: true
-        run: |
-          export GOOGLE_APPLICATION_CREDENTIALS=/tmp/sa.json
-          python engines/17_ingest_siop_budget.py
+        run: python engines/17_ingest_siop_budget.py
 
       - name: "Engine 18 — Ingest PNCP PCA"
         continue-on-error: true
-        run: |
-          export GOOGLE_APPLICATION_CREDENTIALS=/tmp/sa.json
-          python engines/18_ingest_pncp_pca.py
+        run: python engines/18_ingest_pncp_pca.py
 
       - name: "Engine 05 — Sync Bodes (Alertas)"
         continue-on-error: true
-        run: |
-          export GOOGLE_APPLICATION_CREDENTIALS=/tmp/sa.json
-          python engines/05_sync_bodes.py
+        run: python engines/05_sync_bodes.py
 
-      - name: "Engine 06 — Sync Contexto Socioecônomico"
+      - name: "Engine 06 — Sync Contexto Socioeconômico"
         continue-on-error: true
-        run: |
-          export GOOGLE_APPLICATION_CREDENTIALS=/tmp/sa.json
-          python engines/06_sync_context_socio.py
+        run: python engines/06_sync_context_socio.py
 
       - name: "Engine 10 — Universal Crawler"
         continue-on-error: true
-        run: |
-          export GOOGLE_APPLICATION_CREDENTIALS=/tmp/sa.json
-          python engines/10_universal_crawler.py
+        run: python engines/10_universal_crawler.py --batch
 
       - name: "Engine 11 — Ghost Hunter"
         continue-on-error: true
-        run: |
-          export GOOGLE_APPLICATION_CREDENTIALS=/tmp/sa.json
-          python engines/11_ghost_hunter.py
+        run: python engines/11_ghost_hunter.py
 
       - name: "Engine 12 — Family Ties"
         continue-on-error: true
-        run: |
-          export GOOGLE_APPLICATION_CREDENTIALS=/tmp/sa.json
-          python engines/12_family_ties.py
+        run: python engines/12_family_ties.py
 
       - name: "Engine 16 — OSS Mapper"
         continue-on-error: true
-        run: |
-          export GOOGLE_APPLICATION_CREDENTIALS=/tmp/sa.json
-          python engines/16_oss_mapper.py
+        run: python engines/16_oss_mapper.py
 
       - name: "Engine 18 — OSS Scanner"
         continue-on-error: true
-        run: |
-          export GOOGLE_APPLICATION_CREDENTIALS=/tmp/sa.json
-          python engines/18_oss_scanner.py
+        run: python engines/18_oss_scanner.py
 
       - name: "Engine 17 — Commercial Radar"
         continue-on-error: true
-        run: |
-          export GOOGLE_APPLICATION_CREDENTIALS=/tmp/sa.json
-          python engines/17_commercial_radar.py
+        run: python engines/17_commercial_radar.py
 
       - name: "Engine 23 — Neutrality Check"
         continue-on-error: true
-        run: |
-          export GOOGLE_APPLICATION_CREDENTIALS=/tmp/sa.json
-          python engines/23_neutrality_check.py
+        run: python engines/23_neutrality_check.py
 
       - name: "Engine 24 — Spectrum Analyzer"
         continue-on-error: true
-        run: |
-          export GOOGLE_APPLICATION_CREDENTIALS=/tmp/sa.json
-          python engines/24_spectrum_analyzer.py
+        run: python engines/24_spectrum_analyzer.py
 
       - name: "Engine 25 — Alliance Scanner"
         continue-on-error: true
-        run: |
-          export GOOGLE_APPLICATION_CREDENTIALS=/tmp/sa.json
-          python engines/25_alliance_scanner.py
+        run: python engines/25_alliance_scanner.py
 
       - name: "Engine 07 — Gemini Translator"
         continue-on-error: true
-        run: |
-          export GOOGLE_APPLICATION_CREDENTIALS=/tmp/sa.json
-          python engines/07_gemini_translator.py
+        run: python engines/07_gemini_translator.py
 
       - name: "Engine 08 — Web Call"
         continue-on-error: true
-        run: |
-          export GOOGLE_APPLICATION_CREDENTIALS=/tmp/sa.json
-          python engines/08_web_call.py
+        run: python engines/08_web_call.py
 
       - name: "Engine 09/22 — LGPD Shield"
         continue-on-error: true
-        run: |
-          export GOOGLE_APPLICATION_CREDENTIALS=/tmp/sa.json
-          python engines/22_lgpd_shield.py
+        run: python engines/22_lgpd_shield.py
 
       - name: Remover credenciais do disco
         if: always()
-        run: rm -f /tmp/sa.json
+        run: rm -f "$_SA_FILE"
 
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: ingest-logs
           path: logs/
-
-  build-deploy:
-    runs-on: ubuntu-latest
-    needs: ingest
-    if: always()
-    permissions:
-      contents: read
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.pages_deploy.outputs.page_url }}
-    concurrency:
-      group: github-pages-deploy
-      cancel-in-progress: false
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: Instalar dependências do frontend
-        run: npm ci
-        working-directory: frontend
-
-      - name: Build do frontend
-        run: npm run build
-        working-directory: frontend
-        env:
-          VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
-          VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
-          VITE_FIREBASE_PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
-          VITE_FIREBASE_STORAGE_BUCKET: ${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}
-          VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}
-          VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
-          VITE_MEASUREMENT_ID: ${{ secrets.VITE_MEASUREMENT_ID }}
-          VITE_INITIAL_USER_CREDITS: ${{ secrets.VITE_INITIAL_USER_CREDITS }}
-          VITE_RADAR_ADMIN_UID: ${{ secrets.VITE_RADAR_ADMIN_UID }}
-          VITE_BR_PM_TILES_URL: ${{ secrets.VITE_BR_PM_TILES_URL }}
-          VITE_PM_TILES_SOURCE_LAYER: municipios
-
-      - name: Upload static site (Vite dist)
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: frontend/dist
-
-      - name: Deploy to GitHub Pages
-        id: pages_deploy
-        uses: actions/deploy-pages@v4
