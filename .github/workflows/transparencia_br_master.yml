@@ -93,16 +93,19 @@ jobs:
         continue-on-error: true
         run: python engines/06_sync_context_socio.py
 
+      # Engine 10: --batch itera todos os políticos do Firestore
       - name: "Engine 10 — Universal Crawler"
         continue-on-error: true
-        run: python engines/10_universal_crawler.py
+        run: python engines/10_universal_crawler.py --batch
 
-      - name: "Engine 11 — Ghost Hunter"
-        continue-on-error: true
+      # Engine 11 (Ghost Hunter) — 100% mock, desativado até portar para API real
+      - name: "Engine 11 — Ghost Hunter [DESATIVADO — mock]"
+        if: false
         run: python engines/11_ghost_hunter.py
 
-      - name: "Engine 12 — Family Ties"
-        continue-on-error: true
+      # Engine 12 (Family Ties) — 100% mock, desativado até portar para API real
+      - name: "Engine 12 — Family Ties [DESATIVADO — mock]"
+        if: false
         run: python engines/12_family_ties.py
 
       - name: "Engine 16 — OSS Mapper"
