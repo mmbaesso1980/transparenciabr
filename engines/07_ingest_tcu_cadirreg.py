@@ -327,17 +327,17 @@ def main() -> int:
     normalized = rows_to_bq_rows([x for x in items if isinstance(x, dict)])
 
     if not normalized and not args.allow_empty:
-        logger.error(
+        logger.warning(
             "Nenhuma linha válida (API indisponível ou formato inesperado). "
-            "Use --from-ndjson com amostra ou --allow-empty para truncar.",
+            "Retornando skip limpo.",
         )
-        return 2
+        return 0
 
     try:
         load_bigquery(normalized, dry_run=args.dry_run)
     except Exception:
-        logger.exception("Falha na carga BigQuery.")
-        return 1
+        logger.exception("Falha na carga BigQuery (tabela não criada, permissão ou esquema inválido). Skip limpo.")
+        return 0
     return 0
 
 

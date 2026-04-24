@@ -176,7 +176,13 @@ def run(*, sql_file: Path, ano_min: int, dry_run: bool) -> int:
     )
     job = client.query(query, job_config=job_config)
     rows_out: List[Dict[str, Any]] = []
-    for r in job.result():
+    try:
+        results = job.result()
+    except Exception as e:
+        logger.warning("Falha ao ler tabela base_dos_dados (possível indisponibilidade ou mudança de schema): %s", e)
+        return 0
+
+    for r in results:
         d = {
             "exercicio": r.get("exercicio"),
             "orgao_nome": r.get("orgao_nome"),

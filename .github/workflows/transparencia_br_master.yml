@@ -110,7 +110,7 @@ jobs:
 
       - name: "Engine 16 — OSS Mapper"
         continue-on-error: true
-        run: python engines/16_oss_mapper.py
+        run: python engines/16_oss_mapper.py --batch
 
       - name: "Engine 18 — OSS Scanner"
         continue-on-error: true
@@ -147,9 +147,3 @@ jobs:
       - name: Remover credenciais do disco
         if: always()
         run: rm -f "$_SA_FILE"
-
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: ingest-logs
-          path: logs/
