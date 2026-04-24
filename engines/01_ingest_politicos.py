@@ -188,6 +188,8 @@ def map_deputado_to_politico(raw: Dict[str, Any]) -> Dict[str, Any]:
         "siglaUf": _normalize_str(raw.get("siglaUf")),
         "urlFoto": _normalize_str(raw.get("urlFoto")),
         "cargo": "Deputado Federal",
+        # Inicializado vazio para que engine 06 preencha e engine 10 não pule
+        "contexto_socioeconomico": {"municipios": []},
     }
 
 
@@ -202,6 +204,8 @@ def map_senador_to_politico(ident: Dict[str, Optional[str]]) -> Dict[str, Any]:
         "siglaUf": _normalize_str(ident.get("UfParlamentar")),
         "urlFoto": _normalize_str(ident.get("UrlFotoParlamentar")),
         "cargo": "Senador",
+        # Inicializado vazio para que engine 06 preencha e engine 10 não pule
+        "contexto_socioeconomico": {"municipios": []},
     }
 
 
@@ -337,7 +341,6 @@ def fetch_senadores_lista_atual() -> List[Dict[str, Any]]:
                 )
 
         # ── Tenta XML (principal ou fallback) ────────────────────────────────
-        # Remove BOM antes de parsear
         try:
             rows = parse_senado_parlamentares_xml(raw_content)
             if rows:
