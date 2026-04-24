@@ -29,6 +29,8 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Set, Tuple
 
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 from google.cloud import bigquery
 from google.cloud.bigquery import SchemaField, Table
 from firebase_admin import firestore
@@ -42,6 +44,21 @@ from lib.project_config import bq_dataset_id, gcp_project_id
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s")
 logger = logging.getLogger(__name__)
+
+
+def _create_session() -> requests.Session:
+    session = requests.Session()
+    retry = Retry(
+        total=5,
+        backoff_factor=1,
+        status_forcelist=[429, 500, 502, 503, 504],
+        allowed_methods=["GET"]
+    )
+    adapter = HTTPAdapter(max_retries=retry)
+    session.mount("http://", adapter)
+    session.mount("https://", adapter)
+    return session
+
 
 TABLE_PCA = "pncp_pca_itens"
 COLLECTION_ALERTAS = "alertas_bodes"
@@ -340,7 +357,7 @@ def _fetch_json(
     r = session.get(
         url,
         params=params or {},
-        timeout=180,
+        timeout=(10, 60),
         headers={"Accept": "application/json", "User-Agent": USER_AGENT},
     )
     if not r.ok:
@@ -691,7 +708,7 @@ def run(
     data_ini = ini.strftime("%Y%m%d")
     data_fim = fim.strftime("%Y%m%d")
 
-    session = requests.Session()
+    session = _create_session()
     fs = init_firestore()
 
     ibge_targets: List[Tuple[str, str]] = []
@@ -717,19 +734,31 @@ def run(
         )
 
     todas: List[Dict[str, Any]] = []
+    erros = 0
     for ibge, _nome in ibge_targets:
         time.sleep(PAGE_SLEEP_SEC)
-        chunk = fetch_pca_for_ibge(
-            session,
-            codigo_ibge=ibge,
-            data_ini=data_ini,
-            data_fim=data_fim,
-            max_pages=max_pages,
-            lista_url=lista_url,
-            itens_tpl=itens_tpl,
-        )
-        logger.info("PCA ibge=%s linhas=%s", ibge, len(chunk))
-        todas.extend(chunk)
+        try:
+            chunk = fetch_pca_for_ibge(
+                session,
+                codigo_ibge=ibge,
+                data_ini=data_ini,
+                data_fim=data_fim,
+                max_pages=max_pages,
+                lista_url=lista_url,
+                itens_tpl=itens_tpl,
+            )
+            logger.info("PCA ibge=%s linhas=%s", ibge, len(chunk))
+            todas.extend(chunk)
+        except requests.exceptions.RequestException as e:
+            logger.error("Erro ao processar PCA para IBGE %s: %s", ibge, e)
+            erros += 1
+            continue
+        except Exception as e:
+            logger.error("Erro inesperado PCA IBGE %s: %s", ibge, e)
+            erros += 1
+            continue
+
+    logger.info("Processamento finalizado com %s erros.", erros)
 
     logger.info("Total linhas PCA normalizadas: %s", len(todas))
 

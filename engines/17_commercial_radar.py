@@ -24,6 +24,8 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
 
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 from firebase_admin import firestore
 
 _ENG = Path(__file__).resolve().parent
@@ -34,6 +36,21 @@ from lib.firebase_app import init_firestore
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s")
 logger = logging.getLogger(__name__)
+
+
+def _create_session() -> requests.Session:
+    session = requests.Session()
+    retry = Retry(
+        total=5,
+        backoff_factor=1,
+        status_forcelist=[429, 500, 502, 503, 504],
+        allowed_methods=["GET"]
+    )
+    adapter = HTTPAdapter(max_retries=retry)
+    session.mount("http://", adapter)
+    session.mount("https://", adapter)
+    return session
+
 
 COLLECTION_DIARIOS = "diarios_atos"
 COLLECTION_RADAR = "radar_comercial"
@@ -62,10 +79,10 @@ def _norm(s: str) -> str:
     return "".join(c for c in t if unicodedata.category(c) != "Mn")
 
 
-def _owner_uid() -> str:
+def _owner_uid() -> Optional[str]:
     uid = (os.environ.get("RADAR_OWNER_UID") or "").strip()
     if not uid:
-        raise ValueError("Defina RADAR_OWNER_UID (mesmo UID do painel / Functions).")
+        return None
     return uid
 
 
@@ -261,7 +278,7 @@ def scan_diarios(fs: firestore.Client, owner_uid: str) -> int:
 def scan_pncp(fs: firestore.Client, ibges: Set[str], owner_uid: str) -> int:
     if not ibges:
         return 0
-    session = requests.Session()
+    session = _create_session()
     fim = datetime.now(timezone.utc).date()
     ini = fim - timedelta(days=365)
     data_ini = ini.strftime("%Y%m%d")
@@ -269,7 +286,14 @@ def scan_pncp(fs: firestore.Client, ibges: Set[str], owner_uid: str) -> int:
     n = 0
     for ibge in sorted(ibges):
         time.sleep(0.35)
-        chunk = _fetch_pca_pages(session, codigo_ibge=ibge, data_ini=data_ini, data_fim=data_fim, max_pages=25)
+        try:
+            chunk = _fetch_pca_pages(session, codigo_ibge=ibge, data_ini=data_ini, data_fim=data_fim, max_pages=25)
+        except requests.exceptions.RequestException as e:
+            logger.error("Erro rede PCA IBGE %s: %s", ibge, e)
+            continue
+        except Exception as e:
+            logger.error("Erro genérico PCA IBGE %s: %s", ibge, e)
+            continue
         flat = _flatten_pca_rows(chunk)
         for item in flat:
             desc = _pick_desc(item)
@@ -340,11 +364,10 @@ def main() -> int:
     parser.add_argument("--skip-pncp", action="store_true")
     args = parser.parse_args()
 
-    try:
-        owner_uid = _owner_uid()
-    except ValueError as e:
-        logger.error("%s", e)
-        return 2
+    owner_uid = _owner_uid()
+    if not owner_uid:
+        logger.warning("RADAR_OWNER_UID não definido. Skippando engine limpo.")
+        return 0
 
     fs = init_firestore()
 

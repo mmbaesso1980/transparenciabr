@@ -43,13 +43,30 @@ TABLE_CONTRATOS = "contratos_pncp"
 SIMILARITY_MIN = 0.85
 
 
-def _load_family_module():
-    path = Path(__file__).resolve().parent / "12_family_ties.py"
-    spec = importlib.util.spec_from_file_location("family_ties_internal", path)
-    mod = importlib.util.module_from_spec(spec)
-    assert spec.loader is not None
-    spec.loader.exec_module(mod)
-    return mod
+from difflib import SequenceMatcher
+from typing import Tuple
+
+def similarity(a: str, b: str) -> float:
+    def _norm(txt: str) -> str:
+        import unicodedata
+        txt = unicodedata.normalize("NFKD", txt).encode("ASCII", "ignore").decode("utf-8")
+        return txt.upper().strip()
+    return SequenceMatcher(None, _norm(a), _norm(b)).ratio()
+
+def melhor_par_familiar(
+    familiares: List[Dict[str, Any]],
+    socios: List[str],
+) -> Optional[Tuple[Dict[str, Any], str, float]]:
+    best = None
+    best_score = 0.0
+    for fam in familiares:
+        nome_fam = str(fam.get("nome_completo") or fam.get("nome") or "")
+        for soc in socios:
+            s = similarity(nome_fam, soc)
+            if s > best_score:
+                best_score = s
+                best = (fam, soc, s)
+    return best if best_score >= SIMILARITY_MIN else None
 
 
 def _alert_doc_id(pid: str, tipo: str, mensagem: str, criado_em_iso: str, fonte: str) -> str:
@@ -160,10 +177,7 @@ def _query_contratos_politico(
     return [dict(r.items()) for r in client.query(sql, job_config=cfg).result()]
 
 
-def run(*, politico_id: str, dry_run: bool) -> int:
-    ft = _load_family_module()
-    similarity = getattr(ft, "similarity")
-    melhor_par_familiar = getattr(ft, "melhor_par_familiar")
+def run_politico(*, politico_id: str, dry_run: bool) -> int:
 
     pid = politico_id.strip()
     fs = init_firestore()
@@ -306,16 +320,34 @@ def run(*, politico_id: str, dry_run: bool) -> int:
     return 0
 
 
+def run_batch(dry_run: bool) -> int:
+    fs = init_firestore()
+    docs = fs.collection(COLLECTION_POLITICOS).stream()
+    errors = 0
+    for doc in docs:
+        try:
+            run_politico(politico_id=doc.id, dry_run=dry_run)
+        except Exception as exc:
+            logger.error("Falha em %s: %s", doc.id, exc)
+            errors += 1
+    return 1 if errors > 0 else 0
+
 def main() -> int:
     p = argparse.ArgumentParser(description="D.R.A.C.U.L.A. — OSS × PNCP × parentesco.")
-    p.add_argument("--politico-id", required=True)
+    p.add_argument("--politico-id", required=False, help="Executar para um politico especifico")
+    p.add_argument("--batch", action="store_true", help="Executar para todos os politicos")
     p.add_argument("--dry-run", action="store_true")
     args = p.parse_args()
-    try:
-        return run(politico_id=args.politico_id.strip(), dry_run=args.dry_run)
-    except Exception as exc:
-        logger.exception("%s", exc)
-        return 1
+
+    if args.politico_id:
+        try:
+            return run_politico(politico_id=args.politico_id.strip(), dry_run=args.dry_run)
+        except Exception as exc:
+            logger.exception("%s", exc)
+            return 1
+    elif args.batch or (not args.politico_id and not args.batch):
+        return run_batch(args.dry_run)
+    return 0
 
 
 if __name__ == "__main__":
