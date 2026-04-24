@@ -29,6 +29,7 @@ export default function DashboardLayout() {
         <NavLink
           to="/dashboard"
           title="Overview — Centro de Operações"
+          aria-label="Ir para Overview — Centro de Operações"
           className={({ isActive }) =>
             [
               "flex size-10 items-center justify-center rounded-xl border transition-colors",
@@ -39,11 +40,12 @@ export default function DashboardLayout() {
           }
           end={false}
         >
-          <LayoutDashboard className="size-[1.35rem]" strokeWidth={1.75} />
+          <LayoutDashboard className="size-[1.35rem]" strokeWidth={1.75} aria-hidden="true" />
         </NavLink>
         <NavLink
           to="/creditos"
           title="Créditos — Stripe"
+          aria-label="Ir para Créditos"
           className={({ isActive }) =>
             [
               "flex size-10 items-center justify-center rounded-xl border transition-colors",
@@ -53,11 +55,12 @@ export default function DashboardLayout() {
             ].join(" ")
           }
         >
-          <Coins className="size-[1.35rem]" strokeWidth={1.75} />
+          <Coins className="size-[1.35rem]" strokeWidth={1.75} aria-hidden="true" />
         </NavLink>
         <NavLink
           to="/ranking"
           title="Entidades — ranking"
+          aria-label="Ir para Entidades e ranking"
           className={({ isActive }) =>
             [
               "flex size-10 items-center justify-center rounded-xl border transition-colors",
@@ -67,11 +70,12 @@ export default function DashboardLayout() {
             ].join(" ")
           }
         >
-          <Radar className="size-[1.35rem]" strokeWidth={1.75} />
+          <Radar className="size-[1.35rem]" strokeWidth={1.75} aria-hidden="true" />
         </NavLink>
         <NavLink
           to="/login"
           title="Acesso / relatórios"
+          aria-label="Ir para Acesso e relatórios"
           className={({ isActive }) =>
             [
               "flex size-10 items-center justify-center rounded-xl border transition-colors",
@@ -81,9 +85,9 @@ export default function DashboardLayout() {
             ].join(" ")
           }
         >
-          <Shield className="size-[1.35rem]" strokeWidth={1.75} />
+          <Shield className="size-[1.35rem]" strokeWidth={1.75} aria-hidden="true" />
         </NavLink>
-        <div className="mt-auto flex flex-col gap-3 opacity-80">
+        <div className="mt-auto flex flex-col gap-3 opacity-80" aria-hidden="true">
           <span className="flex size-10 items-center justify-center rounded-xl text-[#484F58]">
             <Hexagon className="size-[1.15rem]" strokeWidth={1.5} />
           </span>
