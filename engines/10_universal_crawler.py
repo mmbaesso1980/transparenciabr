@@ -7,6 +7,10 @@ IBGE) e palavras-chave críticas; persiste excertos na coleção ``diarios_atos`
 
 Nota: ``queridodiario.ok.org.br/api/gazettes`` resolve para a SPA React; o JSON público
 está no hostname ``api.queridodiario.ok.org.br`` (compatível com o projeto Querido Diário).
+
+Modos de execução:
+  --politico-id ID   Processa apenas um parlamentar (comportamento original).
+  --batch            Itera todos os docs da coleção `politicos` no Firestore.
 """
 
 from __future__ import annotations
@@ -302,7 +306,7 @@ def collect_atos_real(
     if not municipios:
         raise ValueError(
             "Documento sem `contexto_socioeconomico.municipios` (ou equivalente). "
-            "Ingestão socioeconómica necessária antes do crawler."
+            "Ingerão socioeconómica necessária antes do crawler."
         )
 
     session = requests.Session()
@@ -359,15 +363,83 @@ def collect_atos_real(
     return atos, http_calls
 
 
+def run_batch(
+    *,
+    pages_per_query: int,
+    page_size: int,
+    dry_run: bool,
+) -> int:
+    """
+    Modo --batch: itera todos os documentos da coleção `politicos` no Firestore
+    e chama collect_atos_real() para cada um.
+    Políticos sem municípios configurados são ignorados com aviso.
+    """
+    db = init_firestore()
+    docs = list(db.collection(COLLECTION_POLITICOS).stream())
+    total_politicos = len(docs)
+    logger.info("[batch] %d políticos encontrados em '%s'.", total_politicos, COLLECTION_POLITICOS)
+
+    total_atos = 0
+    erros = 0
+
+    for i, doc in enumerate(docs, 1):
+        pid = doc.id
+        logger.info("[batch] (%d/%d) Processando politico_id=%s", i, total_politicos, pid)
+        try:
+            atos, calls = collect_atos_real(
+                pid,
+                pages_per_query=pages_per_query,
+                page_size=page_size,
+            )
+        except ValueError as exc:
+            logger.warning("[batch] politico_id=%s ignorado: %s", pid, exc)
+            continue
+        except Exception as exc:
+            logger.error("[batch] politico_id=%s ERRO: %s", pid, exc)
+            erros += 1
+            continue
+
+        if dry_run:
+            logger.info(
+                "[batch][dry-run] politico_id=%s | calls=%d | atos=%d (não gravados)",
+                pid, calls, len(atos),
+            )
+        else:
+            try:
+                n = persistir_atos(db, atos)
+                total_atos += n
+                logger.info(
+                    "[batch] politico_id=%s | calls=%d | gravados=%d",
+                    pid, calls, n,
+                )
+            except Exception as exc:
+                logger.error("[batch] Falha ao gravar atos de %s: %s", pid, exc)
+                erros += 1
+
+    logger.info(
+        "[batch] Concluído. Políticos=%d | Atos gravados=%d | Erros=%d",
+        total_politicos, total_atos, erros,
+    )
+    return 1 if erros else 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Querido Diário — dispensa/inexigibilidade → Firestore diarios_atos.",
     )
-    parser.add_argument(
+
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument(
         "--politico-id",
-        required=True,
-        help="ID Firestore do parlamentar (politicos/{id}).",
+        default=None,
+        help="ID Firestore do parlamentar (politicos/{id}). Processa apenas este.",
     )
+    mode.add_argument(
+        "--batch",
+        action="store_true",
+        help="Itera todos os documentos da coleção `politicos` no Firestore.",
+    )
+
     parser.add_argument(
         "--dry-run",
         action="store_true",
@@ -387,10 +459,8 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    pid = args.politico_id.strip()
-    if not pid:
-        logger.error("--politico-id vazio.")
-        return 1
+    ppq = max(1, args.pages_per_query)
+    ps = min(100, max(1, args.page_size))
 
     logger.info(
         "Keywords: %s | gap=%ss | API=%s",
@@ -399,11 +469,25 @@ def main() -> int:
         GAZETTES_URL,
     )
 
+    # ------------------------------------------------------------------ batch
+    if args.batch:
+        return run_batch(pages_per_query=ppq, page_size=ps, dry_run=args.dry_run)
+
+    # ----------------------------------------------------------- individual
+    if not args.politico_id:
+        logger.error("Informe --politico-id ID ou use --batch.")
+        return 1
+
+    pid = args.politico_id.strip()
+    if not pid:
+        logger.error("--politico-id vazio.")
+        return 1
+
     try:
         atos, calls = collect_atos_real(
             pid,
-            pages_per_query=max(1, args.pages_per_query),
-            page_size=min(100, max(1, args.page_size)),
+            pages_per_query=ppq,
+            page_size=ps,
         )
     except ValueError as exc:
         logger.error("%s", exc)
