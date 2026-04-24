@@ -37,3 +37,4 @@ jobs:
           echo "$GCP_SERVICE_ACCOUNT_JSON" > sa.json
           export GOOGLE_APPLICATION_CREDENTIALS=$(pwd)/sa.json
           npx firebase-tools deploy --only functions --project transparenciabr --force
+          rm -f sa.json
