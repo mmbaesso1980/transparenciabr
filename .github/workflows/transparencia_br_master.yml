@@ -19,12 +19,16 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 90
     continue-on-error: true
+    defaults:
+      run:
+        working-directory: engines
     env:
       GOOGLE_CREDENTIALS_JSON: ${{ secrets.GCP_SERVICE_ACCOUNT_JSON }}
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
       CGU_API_TOKEN: ${{ secrets.CGU_API_TOKEN }}
       RADAR_OWNER_UID: ${{ secrets.RADAR_OWNER_UID }}
+      PYTHONPATH: ${{ github.workspace }}/engines
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
     steps:
@@ -37,6 +41,7 @@ jobs:
           cache-dependency-path: engines/requirements.txt
 
       - name: Instalar Dependências
+        working-directory: ${{ github.workspace }}
         run: |
           python -m pip install --upgrade pip
           pip install \
@@ -50,13 +55,12 @@ jobs:
             lxml==5.3.0
 
       - name: Preparar credenciais GCP
+        working-directory: ${{ github.workspace }}
         run: |
           SA_FILE=$(mktemp /tmp/gcp_sa_XXXXXX.json)
 
-          # Tenta gravar diretamente (secret já é JSON puro)
           printf '%s' "$GOOGLE_CREDENTIALS_JSON" > "$SA_FILE"
 
-          # Valida se é JSON válido
           if python3 -c "import json,sys; json.load(open('$SA_FILE'))" 2>/dev/null; then
             echo "[creds] JSON válido."
           else
@@ -66,7 +70,6 @@ jobs:
               echo "[creds] JSON válido após base64 decode."
             else
               echo "[creds] ERRO: secret GCP_SERVICE_ACCOUNT_JSON não é JSON válido nem base64 válido."
-              echo "[creds] Primeiros 80 chars do secret (sanitizado):"
               printf '%s' "$GOOGLE_CREDENTIALS_JSON" | head -c 80
               echo ""
               exit 1
@@ -80,93 +83,92 @@ jobs:
       # ── Fase 1: Ingestão base ──────────────────────────────────────────────
       - name: "Engine 01 — Ingest Políticos (Câmara)"
         continue-on-error: true
-        run: python engines/01_ingest_politicos.py
+        run: python 01_ingest_politicos.py
 
       - name: "Engine 14 — Ingest Senadores"
         continue-on-error: true
-        run: python engines/14_ingest_senadores.py
+        run: python 14_ingest_senadores.py
 
       - name: "Engine 02 — Ingest Emendas"
         continue-on-error: true
-        run: python engines/02_ingest_emendas.py
+        run: python 02_ingest_emendas.py
 
       - name: "Engine 07 — Ingest TCU CADIRREG"
         continue-on-error: true
-        run: python engines/07_ingest_tcu_cadirreg.py
+        run: python 07_ingest_tcu_cadirreg.py
 
       - name: "Engine 15 — Ingest PNCP Licitações"
         continue-on-error: true
-        run: python engines/15_ingest_pncp.py
+        run: python 15_ingest_pncp.py
 
       - name: "Engine 17 — Ingest SIOP Orçamento"
         continue-on-error: true
-        run: python engines/17_ingest_siop_budget.py
+        run: python 17_ingest_siop_budget.py
 
       - name: "Engine 18 — Ingest PNCP PCA"
         continue-on-error: true
-        run: python engines/18_ingest_pncp_pca.py
+        run: python 18_ingest_pncp_pca.py
 
       # ── Fase 2: Enriquecimento ─────────────────────────────────────────────
       - name: "Engine 06 — Sync Contexto Socioeconômico"
         continue-on-error: true
-        run: python engines/06_sync_context_socio.py
+        run: python 06_sync_context_socio.py
 
       - name: "Engine 10 — Universal Crawler (batch)"
         continue-on-error: true
-        run: python engines/10_universal_crawler.py --batch
+        run: python 10_universal_crawler.py --batch
 
-      # Engine 11 — 100% mock, desativado até portar para API real
       - name: "Engine 11 — Ghost Hunter [DESATIVADO — mock]"
         if: false
-        run: python engines/11_ghost_hunter.py
+        run: python 11_ghost_hunter.py
 
-      # Engine 12 — 100% mock, desativado até portar para API real
       - name: "Engine 12 — Family Ties [DESATIVADO — mock]"
         if: false
-        run: python engines/12_family_ties.py
+        run: python 12_family_ties.py
 
       - name: "Engine 16 — OSS Mapper (batch)"
         continue-on-error: true
-        run: python engines/16_oss_mapper.py --batch
+        run: python 16_oss_mapper.py --batch
 
       - name: "Engine 17 — Commercial Radar"
         continue-on-error: true
-        run: python engines/17_commercial_radar.py
+        run: python 17_commercial_radar.py
 
       - name: "Engine 18 — OSS Scanner"
         continue-on-error: true
-        run: python engines/18_oss_scanner.py
+        run: python 18_oss_scanner.py
 
       # ── Fase 3: Análise / IA ───────────────────────────────────────────────
       - name: "Engine 07 — Gemini Translator"
         continue-on-error: true
-        run: python engines/07_gemini_translator.py
+        run: python 07_gemini_translator.py
 
       - name: "Engine 08 — Web Call"
         continue-on-error: true
-        run: python engines/08_web_call.py
+        run: python 08_web_call.py
 
       - name: "Engine 22 — LGPD Shield"
         continue-on-error: true
-        run: python engines/22_lgpd_shield.py
+        run: python 22_lgpd_shield.py
 
       - name: "Engine 23 — Neutrality Check"
         continue-on-error: true
-        run: python engines/23_neutrality_check.py
+        run: python 23_neutrality_check.py
 
       - name: "Engine 24 — Spectrum Analyzer"
         continue-on-error: true
-        run: python engines/24_spectrum_analyzer.py
+        run: python 24_spectrum_analyzer.py
 
       - name: "Engine 25 — Alliance Scanner"
         continue-on-error: true
-        run: python engines/25_alliance_scanner.py
+        run: python 25_alliance_scanner.py
 
       # ── Fase 4: Sincronização final ────────────────────────────────────────
       - name: "Engine 05 — Sync Bodes (Alertas)"
         continue-on-error: true
-        run: python engines/05_sync_bodes.py
+        run: python 05_sync_bodes.py
 
       - name: Remover credenciais do disco
         if: always()
+        working-directory: ${{ github.workspace }}
         run: rm -f "$_SA_FILE"
