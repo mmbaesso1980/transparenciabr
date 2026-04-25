@@ -81,15 +81,11 @@ jobs:
           echo "_SA_FILE=$SA_FILE" >> $GITHUB_ENV
 
       # ── Fase 1: Ingestão base ──────────────────────────────────────────────
-      - name: "Engine 01 — Ingest Políticos (Câmara)"
+      - name: "Engine 01 — Ingest Políticos (Câmara + Senado)"
         continue-on-error: true
         run: python 01_ingest_politicos.py
 
-      - name: "Engine 14 — Ingest Senadores"
-        continue-on-error: true
-        run: python 14_ingest_senadores.py
-
-      - name: "Engine 02 — Ingest Emendas"
+      - name: "Engine 02 — Ingest Emendas (CGU API)"
         continue-on-error: true
         run: python 02_ingest_emendas.py
 
@@ -109,6 +105,36 @@ jobs:
         continue-on-error: true
         run: python 18_ingest_pncp_pca.py
 
+      # ── Bootstrap: criar views BigQuery (após ingestão base) ──────────────
+      - name: "Bootstrap — Criar/Atualizar Views BigQuery"
+        continue-on-error: true
+        working-directory: ${{ github.workspace }}
+        run: |
+          python3 - <<'EOF'
+          from google.cloud import bigquery
+          import os, pathlib, sys
+
+          project = os.environ.get("GCP_PROJECT_ID", "transparenciabr")
+          client = bigquery.Client(project=project)
+
+          sql_path = pathlib.Path("sql/create_views.sql")
+          if not sql_path.exists():
+              print("[views] sql/create_views.sql nao encontrado - skip")
+              sys.exit(0)
+
+          sql = sql_path.read_text(encoding="utf-8")
+          stmts = [s.strip() for s in sql.split(";") if s.strip()]
+          errors = 0
+          for stmt in stmts:
+              try:
+                  client.query(stmt).result()
+                  print(f"[views] OK: {stmt[:80]}...")
+              except Exception as e:
+                  print(f"[views] WARN: {e}")
+                  errors += 1
+          print(f"[views] Concluido: {len(stmts)-errors}/{len(stmts)} statements OK")
+          EOF
+
       # ── Fase 2: Enriquecimento ─────────────────────────────────────────────
       - name: "Engine 06 — Sync Contexto Socioeconômico"
         continue-on-error: true
@@ -118,12 +144,12 @@ jobs:
         continue-on-error: true
         run: python 10_universal_crawler.py --batch
 
-      - name: "Engine 11 — Ghost Hunter [DESATIVADO — mock]"
-        if: false
+      - name: "Engine 11 — Ghost Hunter"
+        continue-on-error: true
         run: python 11_ghost_hunter.py
 
-      - name: "Engine 12 — Family Ties [DESATIVADO — mock]"
-        if: false
+      - name: "Engine 12 — Family Ties"
+        continue-on-error: true
         run: python 12_family_ties.py
 
       - name: "Engine 16 — OSS Mapper (batch)"
