@@ -1,7 +1,7 @@
 -- View: vw_parlamentar_base_eleitoral
 CREATE OR REPLACE VIEW `transparenciabr.transparenciabr.vw_parlamentar_base_eleitoral` AS
 SELECT
-  CAST(e.cpfCnpjAutor AS STRING) AS parlamentar_id,
+  COALESCE(NULLIF(CAST(e.cpfCnpjAutor AS STRING), ''), NULLIF(e.autor, '')) AS parlamentar_id,
   e.autor AS parlamentar_nome,
   e.municipio AS nome_municipio,
   e.estado AS uf,
