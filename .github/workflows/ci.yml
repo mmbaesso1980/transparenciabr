@@ -35,5 +35,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+      - name: Validate workflow engine references
+        run: python scripts/validate_workflow_engines.py
       - name: Byte-compile engines
         run: python -m compileall engines -q
