@@ -100,6 +100,14 @@ def _extract_emenda_items(payload: Any) -> List[Dict[str, Any]]:
     return []
 
 
+def _extract_localidade(localidade: Any) -> Dict[str, Any]:
+    if isinstance(localidade, dict):
+        return localidade
+    if localidade not in (None, ""):
+        logger.debug("localidadeDoGasto ignorada: tipo=%s", type(localidade).__name__)
+    return {}
+
+
 def _create_session() -> requests.Session:
     session = requests.Session()
     retry = Retry(
@@ -184,7 +192,7 @@ def run_emendas_ingestion_pipeline() -> int:
 
             rows = []
             for item in items:
-                loc = item.get("localidadeDoGasto") or {}
+                loc = _extract_localidade(item.get("localidadeDoGasto"))
                 rows.append({
                     "codigoEmenda":    str(item.get("codigoEmenda", "") or ""),
                     "autor":           item.get("autor"),
