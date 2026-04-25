@@ -73,6 +73,33 @@ def _parse_brazilian_float(value: Any) -> float:
     return float(text)
 
 
+def _extract_emenda_items(payload: Any) -> List[Dict[str, Any]]:
+    """Normalize known CGU response shapes to a list of emenda dictionaries."""
+    if isinstance(payload, list):
+        items: List[Dict[str, Any]] = []
+        for raw in payload:
+            if isinstance(raw, dict):
+                items.append(raw)
+            else:
+                logger.warning("Item de emenda ignorado: tipo=%s", type(raw).__name__)
+        return items
+
+    if not isinstance(payload, dict):
+        logger.warning("Payload de emendas ignorado: tipo=%s", type(payload).__name__)
+        return []
+
+    for key in ("data", "items", "resultado", "resultados", "registros", "content"):
+        value = payload.get(key)
+        if isinstance(value, list):
+            return _extract_emenda_items(value)
+
+    if payload.get("codigoEmenda") or payload.get("autor") or payload.get("ano"):
+        return [payload]
+
+    logger.warning("Payload de emendas sem lista reconhecida. Chaves=%s", sorted(payload.keys()))
+    return []
+
+
 def _create_session() -> requests.Session:
     session = requests.Session()
     retry = Retry(
@@ -150,12 +177,13 @@ def run_emendas_ingestion_pipeline() -> int:
                 logger.error(f"Falha ao buscar emendas ano={ano} pagina={pagina}: {e}")
                 break
 
-            if not data or (isinstance(data, list) and len(data) == 0):
+            items = _extract_emenda_items(data)
+            if not items:
                 logger.info(f"Fim das emendas para o ano {ano} na página {pagina}.")
                 break
 
             rows = []
-            for item in (data if isinstance(data, list) else [data]):
+            for item in items:
                 loc = item.get("localidadeDoGasto") or {}
                 rows.append({
                     "codigoEmenda":    str(item.get("codigoEmenda", "") or ""),
@@ -183,7 +211,7 @@ def run_emendas_ingestion_pipeline() -> int:
                 except Exception as e:
                     logger.error(f"Erro ao inserir no BigQuery ano={ano} pagina={pagina}: {e}")
 
-            if len(data) < 100:
+            if len(items) < 100:
                 # menos que o tamanho da página = última página
                 break
 

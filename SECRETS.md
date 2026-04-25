@@ -40,6 +40,8 @@ Papéis confirmados para esta conta:
 - Leitor de dados do BigQuery
 - Usuário de jobs do BigQuery
 - Usuário do Cloud Datastore
+- Usuário da conta de serviço sobre
+  `transparenciabr@appspot.gserviceaccount.com` (`iam.serviceAccounts.ActAs`)
 
 Essa conta cobre os workflows canônicos: engines Python com BigQuery/Firestore,
 deploy Firebase Hosting/Functions e operações via Admin SDK. Não salve o caminho
