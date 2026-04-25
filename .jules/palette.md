@@ -5,3 +5,6 @@
 ## 2026-04-23 - [Loading Feedback on Async Action Buttons]
 **Learning:** For high-stakes asynchronous actions like deducting credits (`PremiumGate`), simply disabling the button and changing the text is insufficient UX and can make users uncertain if the action was registered. Adding a spinning indicator (`Loader2` with `animate-spin` and `aria-hidden="true"`) directly alongside the text significantly improves visual feedback. Ensure the button uses `gap-2` to clearly separate the icon and text.
 **Action:** When working on buttons that handle critical async operations (especially those related to credits, payments, or destructive actions), proactively add a loading spinner to the button's content and space it properly.
+## 2024-04-26 - [Toggle Button Accessibility]
+**Learning:** Found multiple instances of toggle buttons (e.g., active states on maps, filter buttons, monitoring toggle) lacking `aria-pressed` attributes. While their visual state was conveyed through CSS classes, screen readers couldn't identify whether the buttons were currently toggled on or off.
+**Action:** Always ensure that custom toggle buttons or tabs dynamically implement the `aria-pressed` or `aria-selected` attribute corresponding to their state boolean.

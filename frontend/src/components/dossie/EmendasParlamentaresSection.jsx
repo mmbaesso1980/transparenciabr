@@ -156,6 +156,7 @@ export default function EmendasParlamentaresSection({ politico = null }) {
               <button
                 key={p.id}
                 type="button"
+                aria-pressed={active}
                 onClick={() => setFiltro(p.id)}
                 className={[
                   "rounded-full border px-3.5 py-1.5 text-xs font-semibold tracking-tight transition",

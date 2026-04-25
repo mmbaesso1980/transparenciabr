@@ -342,6 +342,7 @@ export default function DossiePage() {
               </span>
               <button
                 type="button"
+                aria-pressed={monitoringActive}
                 onClick={() => handleToggleMonitor()}
                 className={[
                   "inline-flex shrink-0 items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold tracking-tight transition",

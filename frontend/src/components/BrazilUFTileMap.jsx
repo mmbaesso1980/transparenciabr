@@ -66,6 +66,7 @@ export default function BrazilUFTileMap({
             <button
               key={uf}
               type="button"
+              aria-pressed={active}
               title={`${uf}: ${count} alerta(s)`}
               className={[
                 "relative flex aspect-square max-h-16 flex-col items-center justify-center rounded-md border text-[11px] font-semibold uppercase tracking-wide transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#58A6FF]",
