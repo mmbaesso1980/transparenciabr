@@ -16,7 +16,8 @@ DEFAULT_BQ_DATASET = "transparenciabr"
 
 def gcp_project_id() -> str:
     return (
-        os.environ.get("GCP_PROJECT")
+        os.environ.get("GCP_PROJECT_ID")
+        or os.environ.get("GCP_PROJECT")
         or os.environ.get("GOOGLE_CLOUD_PROJECT")
         or os.environ.get("GCLOUD_PROJECT")
         or DEFAULT_GCP_PROJECT
