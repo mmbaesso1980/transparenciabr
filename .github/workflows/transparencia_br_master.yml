@@ -52,7 +52,27 @@ jobs:
       - name: Preparar credenciais GCP
         run: |
           SA_FILE=$(mktemp /tmp/gcp_sa_XXXXXX.json)
+
+          # Tenta gravar diretamente (secret já é JSON puro)
           printf '%s' "$GOOGLE_CREDENTIALS_JSON" > "$SA_FILE"
+
+          # Valida se é JSON válido
+          if python3 -c "import json,sys; json.load(open('$SA_FILE'))" 2>/dev/null; then
+            echo "[creds] JSON válido."
+          else
+            echo "[creds] Não é JSON puro, tentando decode base64..."
+            printf '%s' "$GOOGLE_CREDENTIALS_JSON" | base64 -d > "$SA_FILE" 2>/dev/null || true
+            if python3 -c "import json,sys; json.load(open('$SA_FILE'))" 2>/dev/null; then
+              echo "[creds] JSON válido após base64 decode."
+            else
+              echo "[creds] ERRO: secret GCP_SERVICE_ACCOUNT_JSON não é JSON válido nem base64 válido."
+              echo "[creds] Primeiros 80 chars do secret (sanitizado):"
+              printf '%s' "$GOOGLE_CREDENTIALS_JSON" | head -c 80
+              echo ""
+              exit 1
+            fi
+          fi
+
           chmod 600 "$SA_FILE"
           echo "GOOGLE_APPLICATION_CREDENTIALS=$SA_FILE" >> $GITHUB_ENV
           echo "_SA_FILE=$SA_FILE" >> $GITHUB_ENV
