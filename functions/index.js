@@ -129,6 +129,7 @@ exports.createCheckoutSession = functions
     // 🛡️ Sentinel: Validate origin to prevent Open Redirect
     let origin = (data.origin || "").replace(/\/$/, "");
     const allowedOrigins = [
+      "https://transparenciabr.com.br",
       "https://transparenciabr.web.app",
       "https://transparenciabr.firebaseapp.com"
     ];
