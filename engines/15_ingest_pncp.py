@@ -76,12 +76,15 @@ def _extract_ibge_municipio(m: Dict[str, Any]) -> Optional[str]:
 
 def _rows_municipios(data: Dict[str, Any]) -> List[Dict[str, Any]]:
     wrap = data.get("contexto_socioeconomico") or {}
-    raw = wrap.get("municipios") or data.get("indicadores_municipios_alvo") or []
-    out: List[Dict[str, Any]] = []
-    if isinstance(raw, list):
-        for x in raw:
-            if isinstance(x, dict):
-                out.append(x)
+    raw = wrap.get("municipios") or []
+    if not raw:
+        raw = data.get("municipios") or data.get("municipios_alvo") or []
+    if not raw:
+        mun = data.get("municipio") or data.get("municipio_nascimento") or ""
+        uf  = data.get("uf") or data.get("siglaUf") or ""
+        if mun:
+            raw = [{"nome_municipio": str(mun), "uf": str(uf)}]
+    out = [x for x in raw if isinstance(x, dict)]
     return out
 
 

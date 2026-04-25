@@ -1,7 +1,9 @@
 """
 Inicialização Firebase Admin / Firestore — uso em scripts da Fase 2 (nuvem ou emulador).
 
-Variáveis úteis: FIREBASE_PROJECT_ID, GOOGLE_APPLICATION_CREDENTIALS, FIRESTORE_EMULATOR_HOST.
+Variável canônica de projeto: GCP_PROJECT_ID  (via lib.project_config)
+Variável de credenciais:      GOOGLE_APPLICATION_CREDENTIALS (caminho de arquivo)
+Emulador local:               FIRESTORE_EMULATOR_HOST
 """
 
 from __future__ import annotations
@@ -13,6 +15,8 @@ from pathlib import Path
 import firebase_admin
 from firebase_admin import credentials, firestore
 
+from lib.project_config import gcp_project_id
+
 logger = logging.getLogger(__name__)
 
 
@@ -21,13 +25,7 @@ def init_firestore() -> firestore.Client:
     if firebase_admin._apps:
         return firestore.client()
 
-    project_id = (
-        os.environ.get("FIREBASE_PROJECT_ID")
-        or os.environ.get("GCLOUD_PROJECT")
-        or os.environ.get("GOOGLE_CLOUD_PROJECT")
-        or "transparenciabr"
-    )
-
+    project_id = gcp_project_id()
     emulator_host = os.environ.get("FIRESTORE_EMULATOR_HOST")
     cred_path = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
 
@@ -45,7 +43,10 @@ def init_firestore() -> firestore.Client:
         else:
             firebase_admin.initialize_app(options={"projectId": project_id})
     elif cred_path and Path(cred_path).is_file():
-        firebase_admin.initialize_app(credentials.Certificate(cred_path))
+        firebase_admin.initialize_app(
+            credentials.Certificate(cred_path),
+            options={"projectId": project_id},
+        )
     else:
         firebase_admin.initialize_app(options={"projectId": project_id})
 

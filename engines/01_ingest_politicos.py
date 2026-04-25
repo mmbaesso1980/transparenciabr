@@ -15,9 +15,9 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-import firebase_admin
 import requests
-from firebase_admin import credentials, firestore
+
+from lib.firebase_app import init_firestore
 
 # Se estiver rodando contra o emulador local, aponta o SDK para mock_key.json
 if os.environ.get("FIRESTORE_EMULATOR_HOST"):
@@ -25,7 +25,7 @@ if os.environ.get("FIRESTORE_EMULATOR_HOST"):
         Path(__file__).resolve().parent / "mock_key.json"
     )
 
-# ── Configuração ─────────────────────────────────────────────────────────────
+# ── Configuração ─────────────────────────────────────────────────────────────────────────────
 
 CAMARA_DEPUTADOS_URL = "https://dadosabertos.camara.leg.br/api/v2/deputados"
 SENADO_LISTA_ATUAL_URL = (
@@ -49,29 +49,6 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 logger = logging.getLogger(__name__)
-
-
-def init_firestore() -> firestore.Client:
-    """Inicia o Firestore focando na nuvem real do Firebase."""
-    try:
-        if not firebase_admin._apps:
-            project_id = (
-                os.environ.get("FIREBASE_PROJECT_ID")
-                or os.environ.get("GCLOUD_PROJECT")
-                or "transparenciabr"
-            )
-            cred_path = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
-            if cred_path and os.path.isfile(cred_path):
-                firebase_admin.initialize_app(
-                    credentials.Certificate(cred_path),
-                    options={"projectId": project_id},
-                )
-            else:
-                firebase_admin.initialize_app(options={"projectId": project_id})
-        return firestore.client()
-    except Exception as exc:
-        logger.exception("Falha ao inicializar Firebase Real: %s", exc)
-        raise
 
 
 def http_get_with_exponential_backoff(
@@ -154,7 +131,6 @@ def _senado_session() -> requests.Session:
     s.headers.update(
         {
             "User-Agent": "TransparenciaBR-engines/1.0 (ingest politicos)",
-            # Solicita XML explicitamente para evitar ambiguidade de Content-Type
             "Accept": "application/xml, text/xml, */*",
         }
     )
@@ -188,6 +164,7 @@ def map_deputado_to_politico(raw: Dict[str, Any]) -> Dict[str, Any]:
         "siglaUf": _normalize_str(raw.get("siglaUf")),
         "urlFoto": _normalize_str(raw.get("urlFoto")),
         "cargo": "Deputado Federal",
+        "contexto_socioeconomico": {"municipios": []},
     }
 
 
@@ -202,6 +179,7 @@ def map_senador_to_politico(ident: Dict[str, Optional[str]]) -> Dict[str, Any]:
         "siglaUf": _normalize_str(ident.get("UfParlamentar")),
         "urlFoto": _normalize_str(ident.get("UrlFotoParlamentar")),
         "cargo": "Senador",
+        "contexto_socioeconomico": {"municipios": []},
     }
 
 
@@ -265,7 +243,6 @@ def parse_senado_parlamentares_xml(content: bytes) -> List[Dict[str, Any]]:
     try:
         root = ET.fromstring(content)
     except ET.ParseError:
-        # Tenta decodificar e re-encodar para limpar caracteres inválidos
         text = content.decode("utf-8", errors="replace")
         root = ET.fromstring(text.encode("utf-8"))
 
@@ -320,7 +297,6 @@ def fetch_senadores_lista_atual() -> List[Dict[str, Any]]:
         ctype = (resp.headers.get("Content-Type") or "").lower()
         raw_content = resp.content
 
-        # ── Tenta JSON primeiro (quando o servidor retorna application/json) ──
         if "json" in ctype:
             try:
                 payload = resp.json()
@@ -336,8 +312,6 @@ def fetch_senadores_lista_atual() -> List[Dict[str, Any]]:
                     "Senado: Content-Type JSON mas corpo não decodificou — tentando XML."
                 )
 
-        # ── Tenta XML (principal ou fallback) ────────────────────────────────
-        # Remove BOM antes de parsear
         try:
             rows = parse_senado_parlamentares_xml(raw_content)
             if rows:
@@ -348,7 +322,6 @@ def fetch_senadores_lista_atual() -> List[Dict[str, Any]]:
         except ET.ParseError as exc:
             logger.exception("Senado: XML inválido mesmo após remoção de BOM (%s).", exc)
 
-        # ── Último recurso: tenta JSON mesmo com Content-Type de XML ─────────
         try:
             payload = resp.json()
             rows = parse_senado_parlamentares_json(payload)
@@ -372,7 +345,7 @@ def fetch_senadores_lista_atual() -> List[Dict[str, Any]]:
 
 
 def upsert_politico(
-    db: firestore.Client,
+    db: Any,
     doc_payload: Dict[str, Any],
     *,
     indice: int,

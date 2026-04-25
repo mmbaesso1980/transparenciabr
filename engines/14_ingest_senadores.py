@@ -5,13 +5,12 @@ Ingestão dedicada — Senadores Federais (Senado).
 GET JSON oficial com Accept: application/json; upsert em lote na coleção `politicos`.
 Campo `cargo` = "Senador"; documento Firestore `senado_{id}`.
 
-Score de exposição base/simulado (interno: referência ao motor forense) via `score_exposicao`.
-`contexto_socioeconomico` vazio para o motor 06 preencher.
+`contexto_socioeconomico.municipios` inicializado como [] para que engine 06
+preencha e engine 10 (batch) não pule o senador.
 """
 
 from __future__ import annotations
 
-import hashlib
 import logging
 import sys
 import time
@@ -222,14 +221,6 @@ def firestore_document_id(doc_payload: Dict[str, Any]) -> str:
     return f"senado_{cid}"
 
 
-def simulated_score_exposicao(codigo_parlamentar: int) -> float:
-    """Valor 12–97 estável por ID (substitui ausência de pipeline forense no ingest)."""
-    digest = hashlib.sha256(str(int(codigo_parlamentar)).encode()).digest()
-    span = digest[0] / 255.0 * 85.0
-    jitter = digest[1] / 2550.0
-    return round(12.0 + span + jitter, 1)
-
-
 def map_ident_to_politico(ident: Dict[str, Optional[str]]) -> Dict[str, Any]:
     cod = ident.get("CodigoParlamentar")
     if not cod:
@@ -242,8 +233,9 @@ def map_ident_to_politico(ident: Dict[str, Optional[str]]) -> Dict[str, Any]:
         "siglaUf": _normalize_str(ident.get("UfParlamentar")),
         "urlFoto": _normalize_str(ident.get("UrlFotoParlamentar")),
         "cargo": "Senador",
-        "score_exposicao": simulated_score_exposicao(cid),
-        "contexto_socioeconomico": {},
+        # municipios:[] garante que engine 10 (batch) não pule o senador;
+        # engine 06 preencherá com dados reais no próximo ciclo
+        "contexto_socioeconomico": {"municipios": []},
     }
 
 
