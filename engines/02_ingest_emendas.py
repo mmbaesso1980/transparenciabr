@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 import sys
 import time
 from datetime import datetime, timezone
@@ -40,7 +41,8 @@ BQ_DATASET = bq_dataset_id()
 BQ_TABLE_EMENDAS = "emendas"
 ANO_MIN = int(os.environ.get("EMENDAS_ANO_MIN", "2018"))
 ANO_MAX = datetime.now().year
-PAGE_SLEEP = float(os.environ.get("EMENDAS_PAGE_SLEEP", "1.0"))
+PAGE_SLEEP = float(os.environ.get("EMENDAS_PAGE_SLEEP", "2.1"))
+MAX_PAGES_PER_YEAR = int(os.environ.get("EMENDAS_MAX_PAGES_PER_YEAR", "1000"))
 
 SCHEMA = [
     bigquery.SchemaField("codigoEmenda",   "STRING",    mode="REQUIRED"),
@@ -73,6 +75,16 @@ def _parse_brazilian_float(value: Any) -> float:
     return float(text)
 
 
+def _first(*values: Any) -> Any:
+    for value in values:
+        if value is None:
+            continue
+        if isinstance(value, str) and not value.strip():
+            continue
+        return value
+    return None
+
+
 def _extract_emenda_items(payload: Any) -> List[Dict[str, Any]]:
     """Normalize known CGU response shapes to a list of emenda dictionaries."""
     if isinstance(payload, list):
@@ -103,6 +115,16 @@ def _extract_emenda_items(payload: Any) -> List[Dict[str, Any]]:
 def _extract_localidade(localidade: Any) -> Dict[str, Any]:
     if isinstance(localidade, dict):
         return localidade
+    if isinstance(localidade, str):
+        text = " ".join(localidade.strip().split())
+        if not text:
+            return {}
+        match = re.search(r"(?:^|[\s\-/])([A-Z]{2})$", text)
+        uf = match.group(1) if match else ""
+        municipio = text
+        if uf:
+            municipio = re.sub(r"[\s\-/]*[A-Z]{2}$", "", text).strip()
+        return {"municipio": municipio or text, "estado": uf}
     if localidade not in (None, ""):
         logger.debug("localidadeDoGasto ignorada: tipo=%s", type(localidade).__name__)
     return {}
@@ -165,17 +187,16 @@ def run_emendas_ingestion_pipeline() -> int:
     }
     batch_id = new_batch_id()
     total_inseridas = 0
+    seen_codes: set[str] = set()
 
     for ano in range(EMENDAS_ANO_MIN, ANO_MAX + 1):
         pagina = 1
         ano_total = 0
         while True:
-            url = (
-                f"https://api.portaldatransparencia.gov.br/api-de-dados/emendas"
-                f"?ano={ano}&pagina={pagina}&quantidade=100"
-            )
+            url = "https://api.portaldatransparencia.gov.br/api-de-dados/emendas"
+            params = {"ano": ano, "pagina": pagina}
             try:
-                resp = session.get(url, headers=headers, timeout=(15, 90))
+                resp = session.get(url, headers=headers, params=params, timeout=(15, 90))
                 if resp.status_code == 404:
                     logger.info(f"Ano {ano} pág {pagina}: 404 — fim de paginação.")
                     break
@@ -193,17 +214,24 @@ def run_emendas_ingestion_pipeline() -> int:
             rows = []
             for item in items:
                 loc = _extract_localidade(item.get("localidadeDoGasto"))
+                codigo = str(item.get("codigoEmenda", "") or "").strip()
+                if not codigo:
+                    logger.warning("Emenda sem codigoEmenda ignorada ano=%s pagina=%s", ano, pagina)
+                    continue
+                if codigo in seen_codes:
+                    continue
+                seen_codes.add(codigo)
                 rows.append({
-                    "codigoEmenda":    str(item.get("codigoEmenda", "") or ""),
-                    "autor":           item.get("autor"),
-                    "cpfCnpjAutor":    item.get("cpfCnpjAutor"),
+                    "codigoEmenda":    codigo,
+                    "autor":           _first(item.get("autor"), item.get("nomeAutor")),
+                    "cpfCnpjAutor":    _first(item.get("cpfCnpjAutor"), item.get("codigoAutor")),
                     "valorEmpenhado":  _parse_brazilian_float(item.get("valorEmpenhado")),
                     "valorLiquidado":  _parse_brazilian_float(item.get("valorLiquidado")),
                     "valorPago":       _parse_brazilian_float(item.get("valorPago")),
-                    "descricao":       item.get("descricao"),
+                    "descricao":       _first(item.get("descricao"), item.get("tipoEmenda")),
                     "ano":             int(item["ano"]) if item.get("ano") else None,
-                    "funcao":          item.get("funcao"),
-                    "subfuncao":       item.get("subfuncao"),
+                    "funcao":          _first(item.get("funcao"), item.get("nomeFuncao"), item.get("codigoFuncao")),
+                    "subfuncao":       _first(item.get("subfuncao"), item.get("nomeSubfuncao"), item.get("codigoSubfuncao")),
                     "municipio":       loc.get("municipio"),
                     "estado":          loc.get("estado"),
                     "ingest_batch_id": batch_id,
@@ -219,8 +247,12 @@ def run_emendas_ingestion_pipeline() -> int:
                 except Exception as e:
                     logger.error(f"Erro ao inserir no BigQuery ano={ano} pagina={pagina}: {e}")
 
-            if len(items) < 100:
-                # menos que o tamanho da página = última página
+            if pagina >= MAX_PAGES_PER_YEAR:
+                logger.warning(
+                    "Ano %s atingiu EMENDAS_MAX_PAGES_PER_YEAR=%s; interrompendo para evitar loop infinito.",
+                    ano,
+                    MAX_PAGES_PER_YEAR,
+                )
                 break
 
             pagina += 1

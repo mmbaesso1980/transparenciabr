@@ -19,6 +19,7 @@ import math
 import os
 import sys
 from collections import defaultdict
+from difflib import SequenceMatcher
 from typing import Any, Dict, List, Optional
 
 from google.cloud import bigquery
@@ -116,6 +117,7 @@ def fetch_ranked_rows(
     WITH ranked AS (
       SELECT
         parlamentar_id,
+        parlamentar_nome,
         codigo_ibge_municipio,
         total_emendas_valor,
         n_documentos,
@@ -137,6 +139,7 @@ def fetch_ranked_rows(
     )
     SELECT
       parlamentar_id,
+      parlamentar_nome,
       codigo_ibge_municipio,
       total_emendas_valor,
       n_documentos,
@@ -173,6 +176,40 @@ def group_by_politician(rows: List[Any]) -> Dict[str, List[Any]]:
     return dict(by_pid)
 
 
+def _norm_name(value: Any) -> str:
+    text = str(value or "").strip().lower()
+    return " ".join(text.split())
+
+
+def _build_politico_lookup(col: Any) -> Dict[str, str]:
+    lookup: Dict[str, str] = {}
+    for snap in col.stream():
+        data = snap.to_dict() or {}
+        nome = _norm_name(data.get("nome"))
+        if nome:
+            lookup.setdefault(nome, snap.id)
+    return lookup
+
+
+def _resolve_doc_id(raw_pid: str, lookup: Dict[str, str]) -> Optional[str]:
+    pid = raw_pid.strip()
+    if not pid:
+        return None
+    if pid in lookup.values():
+        return pid
+    key = _norm_name(pid)
+    if key in lookup:
+        return lookup[key]
+    best_id = None
+    best_score = 0.0
+    for nome, doc_id in lookup.items():
+        score = SequenceMatcher(None, key, nome).ratio()
+        if score > best_score:
+            best_id = doc_id
+            best_score = score
+    return best_id if best_score >= 0.88 else None
+
+
 def sync_context_socioeconomico(
     *,
     dry_run: bool = False,
@@ -201,6 +238,7 @@ def sync_context_socioeconomico(
 
     fs_client = init_firestore()
     col = fs_client.collection(COLLECTION_POLITICOS)
+    lookup = _build_politico_lookup(col)
 
     batch = fs_client.batch()
     ops = 0
@@ -210,6 +248,17 @@ def sync_context_socioeconomico(
     fonte = f"bq_{project}.{dataset}.{VIEW_CONTEXT}"
 
     for pid, muni_rows in grouped.items():
+        fallback_nome = ""
+        if muni_rows:
+            fallback_nome = str(getattr(muni_rows[0], "parlamentar_nome", "") or "").strip()
+        doc_id = _resolve_doc_id(pid, lookup) or _resolve_doc_id(fallback_nome, lookup)
+        if not doc_id:
+            logger.warning(
+                "Sem político correspondente para parlamentar_id=%s nome=%s",
+                pid,
+                fallback_nome,
+            )
+            continue
         municipios = [_row_to_municipio(r) for r in muni_rows]
         payload = {
             "contexto_socioeconomico": {
@@ -219,7 +268,7 @@ def sync_context_socioeconomico(
                 "municipios": municipios,
             }
         }
-        ref = col.document(pid)
+        ref = col.document(doc_id)
         batch.set(ref, payload, merge=True)
         ops += 1
         docs_written += 1
