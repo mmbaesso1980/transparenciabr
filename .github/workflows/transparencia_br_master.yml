@@ -18,7 +18,6 @@ jobs:
   ingest:
     runs-on: ubuntu-latest
     timeout-minutes: 90
-    continue-on-error: true
     defaults:
       run:
         working-directory: engines
@@ -54,6 +53,10 @@ jobs:
             pydantic==2.9.2 \
             lxml==5.3.0
 
+      - name: Validar referências de engines nos workflows
+        working-directory: ${{ github.workspace }}
+        run: python scripts/validate_workflow_engines.py
+
       - name: Preparar credenciais GCP
         working-directory: ${{ github.workspace }}
         run: |
@@ -82,11 +85,9 @@ jobs:
 
       # ── Fase 1: Ingestão base ──────────────────────────────────────────────
       - name: "Engine 01 — Ingest Políticos (Câmara + Senado)"
-        continue-on-error: true
         run: python 01_ingest_politicos.py
 
       - name: "Engine 02 — Ingest Emendas (CGU API)"
-        continue-on-error: true
         run: python 02_ingest_emendas.py
 
       - name: "Engine 07 — Ingest TCU CADIRREG"
@@ -191,7 +192,6 @@ jobs:
 
       # ── Fase 4: Sincronização final ────────────────────────────────────────
       - name: "Engine 05 — Sync Bodes (Alertas)"
-        continue-on-error: true
         run: python 05_sync_bodes.py
 
       - name: Remover credenciais do disco

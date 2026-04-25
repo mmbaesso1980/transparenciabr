@@ -27,10 +27,10 @@ jobs:
       - uses: google-github-actions/auth@v2
         id: auth
         with:
-          credentials_json: ${{ secrets.GCP_CREDENTIALS }}
+          credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_JSON }}
 
       - name: BigQuery → Firestore (contexto_socioeconomico)
         env:
-          GCP_PROJECT: transparenciabr
+          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
           SYNC_CONTEXT_TOP_N: "10"
         run: python engines/06_sync_context_socio.py

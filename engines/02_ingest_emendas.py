@@ -60,6 +60,19 @@ SCHEMA = [
 ]
 
 
+def _parse_brazilian_float(value: Any) -> float:
+    if value is None or value == "":
+        return 0.0
+    if isinstance(value, (int, float)):
+        return float(value)
+    text = str(value).strip()
+    if not text:
+        return 0.0
+    if "," in text:
+        text = text.replace(".", "").replace(",", ".")
+    return float(text)
+
+
 def _create_session() -> requests.Session:
     session = requests.Session()
     retry = Retry(
@@ -118,7 +131,7 @@ def run_emendas_ingestion_pipeline() -> int:
     batch_id = new_batch_id()
     total_inseridas = 0
 
-    for ano in range(EMENDAS_ANO_MIN if False else EMENDAS_ANO_MIN, ANO_MAX + 1):
+    for ano in range(EMENDAS_ANO_MIN, ANO_MAX + 1):
         pagina = 1
         ano_total = 0
         while True:
@@ -148,9 +161,9 @@ def run_emendas_ingestion_pipeline() -> int:
                     "codigoEmenda":    str(item.get("codigoEmenda", "") or ""),
                     "autor":           item.get("autor"),
                     "cpfCnpjAutor":    item.get("cpfCnpjAutor"),
-                    "valorEmpenhado":  float(item.get("valorEmpenhado") or 0.0),
-                    "valorLiquidado":  float(item.get("valorLiquidado") or 0.0),
-                    "valorPago":       float(item.get("valorPago") or 0.0),
+                    "valorEmpenhado":  _parse_brazilian_float(item.get("valorEmpenhado")),
+                    "valorLiquidado":  _parse_brazilian_float(item.get("valorLiquidado")),
+                    "valorPago":       _parse_brazilian_float(item.get("valorPago")),
                     "descricao":       item.get("descricao"),
                     "ano":             int(item["ano"]) if item.get("ano") else None,
                     "funcao":          item.get("funcao"),

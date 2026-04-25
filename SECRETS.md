@@ -23,6 +23,29 @@
 | `VITE_BR_PM_TILES_URL` | Build frontend (Vite) | URL de tiles do mapa (PMTiles). |
 | `VITE_RADAR_ADMIN_UID` | Build frontend (Vite) | UID admin para UI do Radar. |
 
+## Conta de serviço recomendada para GitHub Actions
+
+Use `GCP_SERVICE_ACCOUNT_JSON` com o JSON da conta:
+
+```
+firebase-adminsdk-fbsvc@transparenciabr.iam.gserviceaccount.com
+```
+
+Papéis confirmados para esta conta:
+
+- Administrador do Firebase Authentication
+- Agente de serviço administrador do SDK Admin do Firebase
+- Criador do token da conta de serviço
+- Editor de dados BigQuery
+- Leitor de dados do BigQuery
+- Usuário de jobs do BigQuery
+- Usuário do Cloud Datastore
+
+Essa conta cobre os workflows canônicos: engines Python com BigQuery/Firestore,
+deploy Firebase Hosting/Functions e operações via Admin SDK. Não salve o caminho
+`GOOGLE_APPLICATION_CREDENTIALS` como secret; o workflow cria esse arquivo em
+runtime a partir do JSON.
+
 ## Secrets a remover
 
 | Secret | Motivo |
