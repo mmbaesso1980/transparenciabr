@@ -81,6 +81,39 @@ jobs:
           echo "_SA_FILE=$SA_FILE" >> $GITHUB_ENV
 
       # ── Fase 1: Ingestão base ──────────────────────────────────────────────
+      - name: "Fase 1: Preflight e Diagnóstico"
+        working-directory: engines
+        env:
+          CGU_API_TOKEN: ${{ secrets.CGU_API_TOKEN }}
+        run: python 00_preflight_diagnostico.py
+
+      - name: "Fase 1: Bootstrap BigQuery DDL"
+        run: bq query --use_legacy_sql=false < ../sql/00_bootstrap_ddl.sql
+
+      - name: "Fase 1: Ingestão Engine 02 (Emendas)"
+        working-directory: engines
+        env:
+          CGU_API_TOKEN: ${{ secrets.CGU_API_TOKEN }}
+        run: python 02_ingest_emendas.py
+
+      - name: "Fase 1: Gate de Dependência - Tabela Emendas"
+        working-directory: engines
+        run: |
+          python -c "
+          from google.cloud import bigquery
+          c = bigquery.Client()
+          try:
+              t = c.get_table(f'{c.project}.transparenciabr.emendas')
+              if t.num_rows == 0:
+                  print(' ERROR: Tabela de emendas está vazia. Abortando processos downstream.')
+                  exit(1)
+              else:
+                  print(f' Sucesso: {t.num_rows} emendas detectadas.')
+          except Exception as e:
+              print(f' Erro crítico: Tabela não encontrada. {e}')
+              exit(1)
+          "
+
       - name: "Engine 01 — Ingest Políticos (Câmara)"
         continue-on-error: true
         run: python 01_ingest_politicos.py

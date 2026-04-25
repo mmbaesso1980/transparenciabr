@@ -55,20 +55,22 @@ def _create_session() -> requests.Session:
 
 def ensure_emendas_table(client: bigquery.Client) -> None:
     schema = [
-        bigquery.SchemaField("codigoEmenda", "STRING", mode="REQUIRED"),
-        bigquery.SchemaField("autor", "STRING", mode="NULLABLE"),
-        bigquery.SchemaField("cpfCnpjAutor", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("codigoEmenda", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("ano", "INTEGER", mode="NULLABLE"),
+        bigquery.SchemaField("tipoEmenda", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("nomeAutor", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("codigoAutor", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("localidadeDoGasto", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("codigoFuncao", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("nomeFuncao", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("codigoSubfuncao", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("nomeSubfuncao", "STRING", mode="NULLABLE"),
         bigquery.SchemaField("valorEmpenhado", "FLOAT", mode="NULLABLE"),
         bigquery.SchemaField("valorLiquidado", "FLOAT", mode="NULLABLE"),
         bigquery.SchemaField("valorPago", "FLOAT", mode="NULLABLE"),
-        bigquery.SchemaField("descricao", "STRING", mode="NULLABLE"),
-        bigquery.SchemaField("ano", "INTEGER", mode="NULLABLE"),
-        bigquery.SchemaField("funcao", "STRING", mode="NULLABLE"),
-        bigquery.SchemaField("subfuncao", "STRING", mode="NULLABLE"),
-        bigquery.SchemaField("municipio", "STRING", mode="NULLABLE"),
-        bigquery.SchemaField("estado", "STRING", mode="NULLABLE"),
-        bigquery.SchemaField("ingest_batch_id", "STRING", mode="NULLABLE"),
-        bigquery.SchemaField("fetched_at", "TIMESTAMP", mode="NULLABLE"),
+        bigquery.SchemaField("valorRestoInscrito", "FLOAT", mode="NULLABLE"),
+        bigquery.SchemaField("valorRestoCancelado", "FLOAT", mode="NULLABLE"),
+        bigquery.SchemaField("valorRestoPago", "FLOAT", mode="NULLABLE")
     ]
     table_ref = f"{GCP_PROJECT_ID}.{BQ_DATASET}.{BQ_TABLE_EMENDAS}"
     table = bigquery.Table(table_ref, schema=schema)
@@ -116,22 +118,23 @@ def run_emendas_ingestion_pipeline() -> int:
 
             rows = []
             for item in data:
-                loc = item.get("localidadeDoGasto") or {}
                 rows.append({
                     "codigoEmenda": str(item.get("codigoEmenda", "")),
-                    "autor": item.get("autor"),
-                    "cpfCnpjAutor": item.get("cpfCnpjAutor"),
+                    "ano": int(item.get("ano")) if item.get("ano") else None,
+                    "tipoEmenda": item.get("tipoEmenda"),
+                    "nomeAutor": item.get("nomeAutor"),
+                    "codigoAutor": item.get("codigoAutor"),
+                    "localidadeDoGasto": item.get("localidadeDoGasto"),
+                    "codigoFuncao": item.get("codigoFuncao"),
+                    "nomeFuncao": item.get("nomeFuncao"),
+                    "codigoSubfuncao": item.get("codigoSubfuncao"),
+                    "nomeSubfuncao": item.get("nomeSubfuncao"),
                     "valorEmpenhado": float(item.get("valorEmpenhado", 0.0) or 0.0),
                     "valorLiquidado": float(item.get("valorLiquidado", 0.0) or 0.0),
                     "valorPago": float(item.get("valorPago", 0.0) or 0.0),
-                    "descricao": item.get("descricao"),
-                    "ano": int(item.get("ano")) if item.get("ano") else None,
-                    "funcao": item.get("funcao"),
-                    "subfuncao": item.get("subfuncao"),
-                    "municipio": loc.get("municipio"),
-                    "estado": loc.get("estado"),
-                    "ingest_batch_id": batch_id,
-                    "fetched_at": datetime.now(timezone.utc).isoformat(),
+                    "valorRestoInscrito": float(item.get("valorRestoInscrito", 0.0) or 0.0),
+                    "valorRestoCancelado": float(item.get("valorRestoCancelado", 0.0) or 0.0),
+                    "valorRestoPago": float(item.get("valorRestoPago", 0.0) or 0.0)
                 })
 
             if rows:
