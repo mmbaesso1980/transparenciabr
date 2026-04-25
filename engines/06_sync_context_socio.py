@@ -8,7 +8,7 @@ por parlamentar e faz merge em `politicos/{id}` sem apagar `alertas_anexados` ne
 Cadência recomendada: semanal ou mensal (dados IBGE/INEP/SNIS mudam pouco).
 Separado de `05_sync_bodes.py` para não duplicar writes quando alertas mudam.
 
-Variáveis: GCP_PROJECT (default transparenciabr), SYNC_CONTEXT_TOP_N (default 10).
+Variáveis: GCP_PROJECT_ID (default transparenciabr), SYNC_CONTEXT_TOP_N (default 10).
 """
 
 from __future__ import annotations
