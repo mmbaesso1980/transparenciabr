@@ -44,9 +44,9 @@ def insert_staging_rows(
     if not rows:
         return
     pid = project_id or get_project_id()
-    ds = dataset_id or get_dataset_id()
+    ds  = dataset_id or get_dataset_id()
     if not pid:
-        raise RuntimeError("Defina GCP_PROJECT / GOOGLE_CLOUD_PROJECT.")
+        raise RuntimeError("Defina GCP_PROJECT_ID no ambiente.")
 
     client = get_client()
     full = f"{pid}.{ds}.{table_id}"
