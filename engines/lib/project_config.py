@@ -1,12 +1,12 @@
 """
-Identidade GCP / BigQuery / Firebase — projeto **Transparência BR** (único).
+Identidade GCP / BigQuery / Firebase -- projeto Transparencia BR (unico).
 
-Variável canônica: GCP_PROJECT_ID
+Variavel canonica: GCP_PROJECT_ID
 Todos os engines devem usar gcp_project_id() e bq_dataset_id().
 
-Hieraqurquia de resolução (do mais ao menos prioritário):
-  1. GCP_PROJECT_ID  (canonical — definido pelo workflow)
-  2. GOOGLE_CLOUD_PROJECT / GCLOUD_PROJECT  (ADC padrão do GCP)
+Hierarquia de resolucao (do mais ao menos prioritario):
+  1. GCP_PROJECT_ID  (canonical -- definido pelo workflow)
+  2. GOOGLE_CLOUD_PROJECT / GCLOUD_PROJECT  (ADC padrao do GCP)
   3. DEFAULT_GCP_PROJECT (fallback hardcoded)
 """
 
@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import os
 
-# IDs canônicos (sobrescrever com GCP_PROJECT_ID no ambiente)
+# IDs canonicos (sobrescrever com GCP_PROJECT_ID no ambiente)
 DEFAULT_GCP_PROJECT = "transparenciabr"
 DEFAULT_BQ_DATASET  = "transparenciabr"
 
@@ -33,5 +33,5 @@ def bq_dataset_id() -> str:
 
 
 def bq_table_fqn(table: str) -> str:
-    ""`projeto.dataset.tabela` (sem backticks)."""
+    # Retorna projeto.dataset.tabela (sem backticks)
     return f"{gcp_project_id()}.{bq_dataset_id()}.{table}"
