@@ -1,10 +1,11 @@
 -- View: vw_parlamentar_base_eleitoral
 CREATE OR REPLACE VIEW `transparenciabr.transparenciabr.vw_parlamentar_base_eleitoral` AS
 SELECT
-  e.cpfCnpjAutor AS parlamentar_id,
+  CAST(e.cpfCnpjAutor AS STRING) AS parlamentar_id,
+  e.autor AS parlamentar_nome,
   e.municipio AS nome_municipio,
   e.estado AS uf,
-  e.localidadeDoGasto.municipio AS codigo_ibge_municipio,
+  CAST(NULL AS STRING) AS codigo_ibge_municipio,
   SUM(e.valorEmpenhado) AS total_emendas_valor,
   COUNT(*) AS n_documentos,
   AVG(e.valorEmpenhado) AS emendas_per_capita_aprox,
@@ -14,8 +15,19 @@ SELECT
   NULL AS indice_atendimento_esgoto,
   NULL AS leitos_por_habitante
 FROM `transparenciabr.transparenciabr.emendas` e
-WHERE e.cpfCnpjAutor IS NOT NULL
-GROUP BY 1,2,3,4;
+WHERE e.autor IS NOT NULL OR e.cpfCnpjAutor IS NOT NULL
+GROUP BY 1,2,3,4,5;
+
+-- Staging opcional para alertas BODES. Mantém a view criável mesmo antes de
+-- qualquer engine popular alertas.
+CREATE TABLE IF NOT EXISTS `transparenciabr.transparenciabr.alertas_bodes_staging` (
+  politico_id STRING,
+  tipo_risco STRING,
+  mensagem STRING,
+  severidade STRING,
+  criado_em TIMESTAMP,
+  fonte STRING
+);
 
 -- View: vw_alertas_bodes_export
 CREATE OR REPLACE VIEW `transparenciabr.transparenciabr.vw_alertas_bodes_export` AS
