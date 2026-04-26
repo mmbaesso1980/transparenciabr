@@ -43,6 +43,8 @@ ANO_MIN = int(os.environ.get("EMENDAS_ANO_MIN", "2018"))
 ANO_MAX = datetime.now().year
 PAGE_SLEEP = float(os.environ.get("EMENDAS_PAGE_SLEEP", "2.1"))
 MAX_PAGES_PER_YEAR = int(os.environ.get("EMENDAS_MAX_PAGES_PER_YEAR", "1000"))
+START_YEAR = int(os.environ.get("EMENDAS_START_YEAR", str(ANO_MIN)))
+START_PAGE = max(1, int(os.environ.get("EMENDAS_START_PAGE", "1")))
 
 SCHEMA = [
     bigquery.SchemaField("codigoEmenda",   "STRING",    mode="REQUIRED"),
@@ -167,6 +169,37 @@ def _load_rows_bq(client: bigquery.Client, rows: List[Dict[str, Any]]) -> int:
     return len(rows)
 
 
+def _load_existing_codes(
+    client: bigquery.Client,
+    *,
+    ano_min: int,
+    ano_max: int,
+) -> set[str]:
+    table_ref = f"{GCP_PROJECT_ID}.{BQ_DATASET}.{BQ_TABLE_EMENDAS}"
+    sql = f"""
+    SELECT DISTINCT codigoEmenda
+    FROM `{table_ref}`
+    WHERE ano BETWEEN @ano_min AND @ano_max
+      AND codigoEmenda IS NOT NULL
+      AND TRIM(CAST(codigoEmenda AS STRING)) != ''
+    """
+    job_config = bigquery.QueryJobConfig(
+        query_parameters=[
+            bigquery.ScalarQueryParameter("ano_min", "INT64", int(ano_min)),
+            bigquery.ScalarQueryParameter("ano_max", "INT64", int(ano_max)),
+        ],
+        use_query_cache=True,
+    )
+    try:
+        rows = client.query(sql, job_config=job_config).result()
+        codes = {str(row.codigoEmenda).strip() for row in rows if row.codigoEmenda}
+    except Exception as exc:
+        logger.warning("Não foi possível carregar códigos existentes de emendas: %s", exc)
+        return set()
+    logger.info("BigQuery | códigos de emendas já existentes=%s", len(codes))
+    return codes
+
+
 def run_emendas_ingestion_pipeline() -> int:
     api_token = os.environ.get("CGU_API_TOKEN")
     if not api_token:
@@ -187,10 +220,19 @@ def run_emendas_ingestion_pipeline() -> int:
     }
     batch_id = new_batch_id()
     total_inseridas = 0
-    seen_codes: set[str] = set()
+    start_year = max(ANO_MIN, START_YEAR)
+    seen_codes = _load_existing_codes(client, ano_min=start_year, ano_max=ANO_MAX)
+    logger.info(
+        "Retomada emendas | ano_min=%s ano_max=%s start_year=%s start_page=%s max_pages_per_year=%s",
+        ANO_MIN,
+        ANO_MAX,
+        start_year,
+        START_PAGE,
+        MAX_PAGES_PER_YEAR,
+    )
 
-    for ano in range(EMENDAS_ANO_MIN, ANO_MAX + 1):
-        pagina = 1
+    for ano in range(start_year, ANO_MAX + 1):
+        pagina = START_PAGE if ano == start_year else 1
         ano_total = 0
         while True:
             url = "https://api.portaldatransparencia.gov.br/api-de-dados/emendas"

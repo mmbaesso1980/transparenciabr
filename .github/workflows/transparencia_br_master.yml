@@ -6,6 +6,15 @@ on:
   schedule:
     - cron: "0 6 * * *"
   workflow_dispatch:
+    inputs:
+      emendas_start_year:
+        description: "Ano inicial da Engine 02 (ex.: 2019 para retomar)"
+        required: false
+        type: string
+      emendas_start_page:
+        description: "Página inicial no ano inicial da Engine 02 (ex.: 410 para retomar)"
+        required: false
+        type: string
 
 concurrency:
   group: master-${{ github.ref }}
@@ -27,6 +36,8 @@ jobs:
       GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
       CGU_API_TOKEN: ${{ secrets.CGU_API_TOKEN }}
       RADAR_OWNER_UID: ${{ secrets.RADAR_OWNER_UID }}
+      EMENDAS_START_YEAR: ${{ github.event.inputs.emendas_start_year || '' }}
+      EMENDAS_START_PAGE: ${{ github.event.inputs.emendas_start_page || '' }}
       PYTHONPATH: ${{ github.workspace }}/engines
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 

@@ -8,6 +8,15 @@ name: 🔄 Ingest Incremental
 
 on:
   workflow_dispatch:
+    inputs:
+      emendas_start_year:
+        description: "Ano inicial para retomar Engine 02 (opcional)"
+        required: false
+        type: string
+      emendas_start_page:
+        description: "Página inicial para o ano inicial da Engine 02 (opcional)"
+        required: false
+        type: string
   schedule:
     - cron: "0 9 * * *"
 
@@ -21,6 +30,8 @@ jobs:
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
       CGU_API_TOKEN: ${{ secrets.CGU_API_TOKEN }}
+      EMENDAS_START_YEAR: ${{ inputs.emendas_start_year }}
+      EMENDAS_START_PAGE: ${{ inputs.emendas_start_page }}
       RADAR_OWNER_UID: ${{ secrets.RADAR_OWNER_UID }}
       PYTHONPATH: ${{ github.workspace }}/engines
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
