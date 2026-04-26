@@ -42,7 +42,12 @@ def _doc_id_from_dict(d: Dict[str, Any]) -> str:
     return hashlib.sha256(raw).hexdigest()
 
 
-def fetch_servidores_api(orgao_id: str, api_token: str) -> List[Dict[str, Any]]:
+def fetch_servidores_api(
+    orgao_id: str,
+    api_token: str,
+    *,
+    max_pages: int,
+) -> List[Dict[str, Any]]:
     """Busca servidores via API Portal da Transparência com paginação e retries."""
     headers = {
         "chave-api-dados": api_token,
@@ -53,6 +58,14 @@ def fetch_servidores_api(orgao_id: str, api_token: str) -> List[Dict[str, Any]]:
     pagina = 1
 
     while True:
+        if max_pages > 0 and pagina > max_pages:
+            logger.info(
+                "Limite de páginas atingido para órgão %s: max_pages=%d",
+                orgao_id,
+                max_pages,
+            )
+            return resultados
+
         params = {"orgaoServidorExercicio": orgao_id, "pagina": pagina}
         sucesso = False
 
@@ -96,6 +109,12 @@ def main() -> int:
         default=int(os.environ.get("GHOST_HUNTER_MAX_POLITICOS", "25")),
         help="Limita políticos processados nesta execução (0 = todos).",
     )
+    parser.add_argument(
+        "--max-pages-per-orgao",
+        type=int,
+        default=int(os.environ.get("GHOST_HUNTER_MAX_PAGES_PER_ORGAO", "5")),
+        help="Limita páginas da API por órgão (0 = todas).",
+    )
     args = parser.parse_args()
 
     api_token = os.environ.get("CGU_API_TOKEN")
@@ -122,9 +141,12 @@ def main() -> int:
         politicos_docs = []
 
     max_politicos = max(0, args.max_politicos)
+    max_pages = max(0, args.max_pages_per_orgao)
     if max_politicos > 0:
         politicos_docs = politicos_docs[:max_politicos]
         logger.info("Limitado a %d políticos nesta execução.", len(politicos_docs))
+
+    servidores_cache: Dict[str, List[Dict[str, Any]]] = {}
 
     for doc in politicos_docs:
         politico_id = doc.id
@@ -134,7 +156,13 @@ def main() -> int:
 
         logger.info("Processando politico %s (orgao_id: %s)...", politico_id, orgao_id)
 
-        servidores = fetch_servidores_api(orgao_id, api_token)
+        if orgao_id not in servidores_cache:
+            servidores_cache[orgao_id] = fetch_servidores_api(
+                orgao_id,
+                api_token,
+                max_pages=max_pages,
+            )
+        servidores = servidores_cache[orgao_id]
 
         for serv in servidores:
             doc_body: Dict[str, Any] = {
