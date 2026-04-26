@@ -201,7 +201,7 @@ export async function fetchTransparencyReportById(reportId) {
 }
 
 export function transparencyReportQueryKey(reportId) {
-  return [TRANSPARENCY_REPORTS_COLLECTION, String(reportId || "").trim()];
+  return ["dossie-record-v2", TRANSPARENCY_REPORTS_COLLECTION, String(reportId || "").trim()];
 }
 
 /**

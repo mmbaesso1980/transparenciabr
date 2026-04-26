@@ -272,8 +272,10 @@ export default function DossiePage() {
           Registro não encontrado
         </p>
         <p className="max-w-md text-xs text-[#8B949E]">
-          Não existe documento na coleção correspondente ao identificador
-          informado.
+          Não existe documento em{" "}
+          <span className="font-mono text-[#C9D1D9]">transparency_reports</span>{" "}
+          nem em <span className="font-mono text-[#C9D1D9]">politicos</span>{" "}
+          para o identificador informado.
         </p>
       </div>
     );

@@ -23,7 +23,7 @@ export const queryPersister =
     ? undefined
     : createSyncStoragePersister({
         storage: window.localStorage,
-        key: "transparenciabr_query_cache_v1",
+        key: "transparenciabr_query_cache_v2",
         throttleTime: 1000,
       });
 
@@ -39,7 +39,7 @@ export function QueryProvider({ children }) {
       persistOptions: {
         persister: queryPersister,
         maxAge: ONE_DAY_MS,
-        buster: "transparency-reports-v1",
+        buster: "transparency-reports-v2-politicos-fallback",
       },
     },
     children,
