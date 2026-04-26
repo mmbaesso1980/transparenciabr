@@ -86,18 +86,39 @@ function InstancedSpheres({
   baseScales,
   dadosPorInstancia,
   onOrbSelect,
-  hoveredInstanceId,
-  onHoverInstance,
 }) {
   const temp = useMemo(() => new THREE.Object3D(), []);
   const tempColor = useMemo(() => new THREE.Color(), []); // Bolt: Reusable color instance
+
+  // Track hovered instance mutably to avoid re-renders
+  const hoveredRef = useRef(null);
+
+  // Helper to update a single instance's scale
+  const updateInstanceScale = useCallback((instanceId, isHovered) => {
+    const mesh = meshRef.current;
+    if (!mesh || instanceId == null || instanceId < 0 || instanceId >= count) return;
+
+    const hx = isHovered ? 1.14 : 1;
+    const s = baseScales[instanceId] * hx;
+
+    temp.position.set(
+      positions[instanceId * 3],
+      positions[instanceId * 3 + 1],
+      positions[instanceId * 3 + 2]
+    );
+    temp.scale.set(s, s, s);
+    temp.updateMatrix();
+    mesh.setMatrixAt(instanceId, temp.matrix);
+
+    mesh.instanceMatrix.needsUpdate = true;
+  }, [meshRef, baseScales, positions, temp, count]);
 
   useLayoutEffect(() => {
     const mesh = meshRef.current;
     if (!mesh || count < 1) return;
 
     for (let i = 0; i < count; i++) {
-      const hx = hoveredInstanceId === i ? 1.14 : 1;
+      const hx = hoveredRef.current === i ? 1.14 : 1;
       const s = baseScales[i] * hx;
       temp.position.set(
         positions[i * 3],
@@ -127,7 +148,6 @@ function InstancedSpheres({
     baseScales,
     temp,
     tempColor,
-    hoveredInstanceId,
   ]);
 
   if (count < 1) return null;
@@ -152,12 +172,23 @@ function InstancedSpheres({
       onPointerOver={(e) => {
         e.stopPropagation();
         if (e.instanceId != null) {
-          onHoverInstance(e.instanceId);
+          document.body.style.cursor = 'pointer';
+          // Revert old hover
+          if (hoveredRef.current != null && hoveredRef.current !== e.instanceId) {
+            updateInstanceScale(hoveredRef.current, false);
+          }
+          // Set new hover
+          hoveredRef.current = e.instanceId;
+          updateInstanceScale(e.instanceId, true);
         }
       }}
       onPointerOut={(e) => {
         e.stopPropagation();
-        onHoverInstance(null);
+        document.body.style.cursor = 'auto';
+        if (hoveredRef.current != null) {
+          updateInstanceScale(hoveredRef.current, false);
+          hoveredRef.current = null;
+        }
       }}
     >
       <sphereGeometry args={[0.5, 24, 24]} />
@@ -207,7 +238,6 @@ export default function UniverseGraph({ politicos = [] }) {
   const navigate = useNavigate();
   const meshRef = useRef(null);
   const controlsRef = useRef(null);
-  const [hoveredInstanceId, setHoveredInstanceId] = useState(null);
   const trackingRef = useRef({
     active: false,
     startedAt: null,
@@ -308,8 +338,6 @@ export default function UniverseGraph({ politicos = [] }) {
         baseScales={sceneBundle.baseScales}
         dadosPorInstancia={sceneBundle.dadosPorInstancia}
         onOrbSelect={beginTrackingToWorldPoint}
-        hoveredInstanceId={hoveredInstanceId}
-        onHoverInstance={setHoveredInstanceId}
       />
       <CameraTargetRig controlsRef={controlsRef} trackingRef={trackingRef} />
       <OrbitControls
