@@ -29,6 +29,7 @@ import NetworkGraph from "../components/dossie/NetworkGraph.jsx";
 import { useUserCredits } from "../hooks/useUserCredits.js";
 import {
   deductCredits,
+  fetchPoliticoById,
   getFirebaseApp,
 } from "../lib/firebase.js";
 import { useTransparencyReport } from "../services/transparencyReports.js";
