@@ -36,15 +36,30 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+
+def _env_int(name: str, default: int) -> int:
+    raw = os.environ.get(name)
+    if raw is None or str(raw).strip() == "":
+        return default
+    return int(str(raw).strip())
+
+
+def _env_float(name: str, default: float) -> float:
+    raw = os.environ.get(name)
+    if raw is None or str(raw).strip() == "":
+        return default
+    return float(str(raw).strip())
+
+
 GCP_PROJECT_ID = gcp_project_id()
 BQ_DATASET = bq_dataset_id()
 BQ_TABLE_EMENDAS = "emendas"
-ANO_MIN = int(os.environ.get("EMENDAS_ANO_MIN", "2018"))
+ANO_MIN = _env_int("EMENDAS_ANO_MIN", 2018)
 ANO_MAX = datetime.now().year
-PAGE_SLEEP = float(os.environ.get("EMENDAS_PAGE_SLEEP", "2.1"))
-MAX_PAGES_PER_YEAR = int(os.environ.get("EMENDAS_MAX_PAGES_PER_YEAR", "1000"))
-START_YEAR = int(os.environ.get("EMENDAS_START_YEAR", str(ANO_MIN)))
-START_PAGE = max(1, int(os.environ.get("EMENDAS_START_PAGE", "1")))
+PAGE_SLEEP = _env_float("EMENDAS_PAGE_SLEEP", 2.1)
+MAX_PAGES_PER_YEAR = _env_int("EMENDAS_MAX_PAGES_PER_YEAR", 1000)
+START_YEAR = _env_int("EMENDAS_START_YEAR", ANO_MIN)
+START_PAGE = max(1, _env_int("EMENDAS_START_PAGE", 1))
 
 SCHEMA = [
     bigquery.SchemaField("codigoEmenda",   "STRING",    mode="REQUIRED"),
