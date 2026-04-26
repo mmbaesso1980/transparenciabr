@@ -158,7 +158,7 @@ jobs:
 
       - name: "Engine 11 — Ghost Hunter"
         continue-on-error: true
-        run: python 11_ghost_hunter.py
+        run: python 11_ghost_hunter.py --max-politicos 25
 
       - name: "Engine 12 — Family Ties"
         continue-on-error: true
