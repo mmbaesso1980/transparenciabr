@@ -20,13 +20,23 @@ import {
   where,
 } from "firebase/firestore";
 
+const FIREBASE_PUBLIC_FALLBACK = {
+  apiKey: "AIzaSyDU5MEsXFf_z6Xvq5pPtQU1fg-28FsUvVk",
+  authDomain: "transparenciabr.firebaseapp.com",
+  projectId: "transparenciabr",
+  storageBucket: "transparenciabr.firebasestorage.app",
+  messagingSenderId: "89728155070",
+  appId: "1:89728155070:web:5dcae5e5dd6016e63f0def",
+};
+
 export const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || FIREBASE_PUBLIC_FALLBACK.apiKey,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || FIREBASE_PUBLIC_FALLBACK.authDomain,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || FIREBASE_PUBLIC_FALLBACK.projectId,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || FIREBASE_PUBLIC_FALLBACK.storageBucket,
+  messagingSenderId:
+    import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || FIREBASE_PUBLIC_FALLBACK.messagingSenderId,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || FIREBASE_PUBLIC_FALLBACK.appId,
 };
 
 console.log("Config do Firebase carregada:", !!firebaseConfig.apiKey);
