@@ -57,6 +57,13 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    match /transparency_reports/{reportId} {
+      allow get: if true;
+      allow list: if request.query.limit != null
+        && request.query.limit <= 50;
+      allow write: if false;
+    }
+
     /** QG Advocacia / BI comercial — apenas o uid proprietário (admin), documentos privados */
     match /radar_dossiers/{rid} {
       allow read: if request.auth != null

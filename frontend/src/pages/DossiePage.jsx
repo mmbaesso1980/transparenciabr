@@ -29,9 +29,9 @@ import NetworkGraph from "../components/dossie/NetworkGraph.jsx";
 import { useUserCredits } from "../hooks/useUserCredits.js";
 import {
   deductCredits,
-  fetchPoliticoById,
   getFirebaseApp,
 } from "../lib/firebase.js";
+import { useTransparencyReport } from "../services/transparencyReports.js";
 import {
   absolutizeMediaUrl,
   enrichPoliticoRecord,
@@ -88,6 +88,7 @@ export default function DossiePage() {
   const [record, setRecord] = useState(null);
   const [oracleUnlocked, setOracleUnlocked] = useState(false);
   const [monitoringActive, setMonitoringActive] = useState(false);
+  const reportQuery = useTransparencyReport(politicoId);
 
   const displayRecord = useMemo(() => enrichPoliticoRecord(record), [record]);
 
@@ -146,49 +147,48 @@ export default function DossiePage() {
   }, [displayRecord]);
 
   useEffect(() => {
-    let cancelled = false;
-
-    async function load() {
-      setLoading(true);
-      setError(null);
+    if (!politicoId.trim()) {
+      setLoading(false);
+      setError("missing_id");
       setRecord(null);
-
-      if (!politicoId.trim()) {
-        setLoading(false);
-        setError("missing_id");
-        return;
-      }
-
-      if (!getFirebaseApp()) {
-        setLoading(false);
-        setError("missing_config");
-        return;
-      }
-
-      try {
-        const docSnap = await fetchPoliticoById(politicoId.trim());
-        if (cancelled) return;
-        if (!docSnap) {
-          setError("not_found");
-          setRecord(null);
-        } else {
-          setRecord(docSnap);
-        }
-      } catch (e) {
-        if (!cancelled) {
-          setError(e instanceof Error ? e.message : "fetch_failed");
-          setRecord(null);
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
+      return;
     }
 
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, [politicoId]);
+    if (!getFirebaseApp()) {
+      setLoading(false);
+      setError("missing_config");
+      setRecord(null);
+      return;
+    }
+
+    setLoading(reportQuery.isLoading || reportQuery.isFetching);
+    setError(null);
+
+    if (reportQuery.isError) {
+      setError(reportQuery.error instanceof Error ? reportQuery.error.message : "fetch_failed");
+      setRecord(null);
+      setLoading(false);
+      return;
+    }
+
+    if (reportQuery.isSuccess) {
+      if (!reportQuery.data) {
+        setError("not_found");
+        setRecord(null);
+      } else {
+        setRecord(reportQuery.data);
+      }
+      setLoading(false);
+    }
+  }, [
+    politicoId,
+    reportQuery.data,
+    reportQuery.error,
+    reportQuery.isError,
+    reportQuery.isFetching,
+    reportQuery.isLoading,
+    reportQuery.isSuccess,
+  ]);
 
   const nomeExibicao = useMemo(() => pickNome(displayRecord), [displayRecord]);
   const partidoSigla = useMemo(
