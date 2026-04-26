@@ -90,6 +90,12 @@ def main() -> int:
         description="F.L.A.V.I.O. — Caçador de Fantasmas via Portal da Transparência."
     )
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument(
+        "--max-politicos",
+        type=int,
+        default=int(os.environ.get("GHOST_HUNTER_MAX_POLITICOS", "25")),
+        help="Limita políticos processados nesta execução (0 = todos).",
+    )
     args = parser.parse_args()
 
     api_token = os.environ.get("CGU_API_TOKEN")
@@ -114,6 +120,11 @@ def main() -> int:
     else:
         logger.info("[dry-run] Mockando iteração de politicos (db is None).")
         politicos_docs = []
+
+    max_politicos = max(0, args.max_politicos)
+    if max_politicos > 0:
+        politicos_docs = politicos_docs[:max_politicos]
+        logger.info("Limitado a %d políticos nesta execução.", len(politicos_docs))
 
     for doc in politicos_docs:
         politico_id = doc.id
