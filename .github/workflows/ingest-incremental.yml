@@ -106,7 +106,7 @@ jobs:
 
       # ── ANÁLISE & SCORES ──────────────────────────────────────────────────
       - name: "[10] Universal Crawler (batch)"
-        run: python engines/10_universal_crawler.py --batch
+        run: python engines/10_universal_crawler.py --batch --max-politicos 25
         continue-on-error: true
 
       - name: "[11] Ghost Hunter"

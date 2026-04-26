@@ -154,7 +154,7 @@ jobs:
 
       - name: "Engine 10 — Universal Crawler (batch)"
         continue-on-error: true
-        run: python 10_universal_crawler.py --batch
+        run: python 10_universal_crawler.py --batch --max-politicos 50
 
       - name: "Engine 11 — Ghost Hunter"
         continue-on-error: true
