@@ -189,10 +189,12 @@ def _load_existing_codes(
     *,
     ano_min: int,
     ano_max: int,
-) -> set[str]:
+) -> tuple[set[str], Dict[int, int]]:
     table_ref = f"{GCP_PROJECT_ID}.{BQ_DATASET}.{BQ_TABLE_EMENDAS}"
     sql = f"""
-    SELECT DISTINCT codigoEmenda
+    SELECT
+      SAFE_CAST(ano AS INT64) AS ano,
+      CAST(codigoEmenda AS STRING) AS codigoEmenda
     FROM `{table_ref}`
     WHERE ano BETWEEN @ano_min AND @ano_max
       AND codigoEmenda IS NOT NULL
@@ -207,12 +209,29 @@ def _load_existing_codes(
     )
     try:
         rows = client.query(sql, job_config=job_config).result()
-        codes = {str(row.codigoEmenda).strip() for row in rows if row.codigoEmenda}
+        codes: set[str] = set()
+        counts_by_year: Dict[int, int] = {}
+        for row in rows:
+            code = str(row.codigoEmenda or "").strip()
+            if not code:
+                continue
+            if code in codes:
+                continue
+            codes.add(code)
+            try:
+                year = int(row.ano)
+            except (TypeError, ValueError):
+                continue
+            counts_by_year[year] = counts_by_year.get(year, 0) + 1
     except Exception as exc:
         logger.warning("Não foi possível carregar códigos existentes de emendas: %s", exc)
-        return set()
-    logger.info("BigQuery | códigos de emendas já existentes=%s", len(codes))
-    return codes
+        return set(), {}
+    logger.info(
+        "BigQuery | códigos de emendas já existentes=%s | anos=%s",
+        len(codes),
+        counts_by_year,
+    )
+    return codes, counts_by_year
 
 
 def run_emendas_ingestion_pipeline() -> int:
@@ -236,7 +255,7 @@ def run_emendas_ingestion_pipeline() -> int:
     batch_id = new_batch_id()
     total_inseridas = 0
     start_year = max(ANO_MIN, START_YEAR)
-    seen_codes = _load_existing_codes(client, ano_min=start_year, ano_max=ANO_MAX)
+    seen_codes, counts_by_year = _load_existing_codes(client, ano_min=start_year, ano_max=ANO_MAX)
     logger.info(
         "Retomada emendas | ano_min=%s ano_max=%s start_year=%s start_page=%s max_pages_per_year=%s",
         ANO_MIN,
@@ -247,7 +266,13 @@ def run_emendas_ingestion_pipeline() -> int:
     )
 
     for ano in range(start_year, ANO_MAX + 1):
-        pagina = START_PAGE if ano == start_year else 1
+        if START_PAGE > 1 and ano == start_year:
+            pagina = START_PAGE
+        else:
+            # A API pública da CGU pagina em 15 registros. Se o run anterior
+            # caiu, retomamos perto da próxima página estimada e a deduplicação
+            # por codigoEmenda cobre eventuais sobreposições.
+            pagina = max(1, (counts_by_year.get(ano, 0) // 15) + 1)
         ano_total = 0
         while True:
             url = "https://api.portaldatransparencia.gov.br/api-de-dados/emendas"
