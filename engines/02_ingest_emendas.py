@@ -58,6 +58,7 @@ ANO_MIN = _env_int("EMENDAS_ANO_MIN", 2018)
 ANO_MAX = datetime.now().year
 PAGE_SLEEP = _env_float("EMENDAS_PAGE_SLEEP", 2.1)
 MAX_PAGES_PER_YEAR = _env_int("EMENDAS_MAX_PAGES_PER_YEAR", 1000)
+MAX_RUNTIME_SECONDS = _env_int("EMENDAS_MAX_RUNTIME_SECONDS", 2400)
 START_YEAR = _env_int("EMENDAS_START_YEAR", ANO_MIN)
 START_PAGE = max(1, _env_int("EMENDAS_START_PAGE", 1))
 
@@ -235,6 +236,7 @@ def _load_existing_codes(
 
 
 def run_emendas_ingestion_pipeline() -> int:
+    started_at = time.monotonic()
     api_token = os.environ.get("CGU_API_TOKEN")
     if not api_token:
         logger.warning("CGU_API_TOKEN não definido. Abortando com exit limpo.")
@@ -275,6 +277,19 @@ def run_emendas_ingestion_pipeline() -> int:
             pagina = max(1, (counts_by_year.get(ano, 0) // 15) + 1)
         ano_total = 0
         while True:
+            elapsed = time.monotonic() - started_at
+            if elapsed >= MAX_RUNTIME_SECONDS:
+                logger.warning(
+                    "Tempo máximo da Engine 02 atingido (%ss). "
+                    "Encerrando sem erro; reexecute para continuar de ano=%s pagina=%s.",
+                    MAX_RUNTIME_SECONDS,
+                    ano,
+                    pagina,
+                )
+                logger.info(f"Ano {ano}: total parcial {ano_total} emendas processadas.")
+                logger.info(f"Ingestão parcial concluída. Total inseridas: {total_inseridas}")
+                return 0
+
             url = "https://api.portaldatransparencia.gov.br/api-de-dados/emendas"
             params = {"ano": ano, "pagina": pagina}
             try:
