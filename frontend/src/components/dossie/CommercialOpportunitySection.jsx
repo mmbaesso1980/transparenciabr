@@ -1,6 +1,6 @@
-import { Briefcase, FileDown, TrendingUp } from "lucide-react";
+import { Briefcase, FileDown, Loader2, TrendingUp } from "lucide-react";
 import html2pdf from "html2pdf.js";
-import { useMemo, useRef } from "react";
+import { useMemo, useRef, useState } from "react";
 
 function fmtBrl(n) {
   const x = Number(n);
@@ -34,6 +34,7 @@ function normalizeSnapshot(politico) {
 
 export default function CommercialOpportunitySection({ politico }) {
   const pdfRef = useRef(null);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const snap = useMemo(() => normalizeSnapshot(politico), [politico]);
 
@@ -45,24 +46,31 @@ export default function CommercialOpportunitySection({ politico }) {
         : "Parlamentar";
 
   async function handleLeadPdf() {
+    if (isGenerating) return;
     const el = pdfRef.current;
     if (!el) return;
-    const filename = `Lead_OportunidadesMercado_${String(nomeParlamentar)
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/[^a-zA-Z0-9]+/g, "_")
-      .slice(0, 72)}.pdf`;
 
-    await html2pdf()
-      .set({
-        margin: 10,
-        filename,
-        image: { type: "jpeg", quality: 0.96 },
-        html2canvas: { scale: 2, useCORS: true },
-        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-      })
-      .from(el)
-      .save();
+    setIsGenerating(true);
+    try {
+      const filename = `Lead_OportunidadesMercado_${String(nomeParlamentar)
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-zA-Z0-9]+/g, "_")
+        .slice(0, 72)}.pdf`;
+
+      await html2pdf()
+        .set({
+          margin: 10,
+          filename,
+          image: { type: "jpeg", quality: 0.96 },
+          html2canvas: { scale: 2, useCORS: true },
+          jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+        })
+        .from(el)
+        .save();
+    } finally {
+      setIsGenerating(false);
+    }
   }
 
   if (!snap || snap.municipios.length === 0) {
@@ -99,11 +107,21 @@ export default function CommercialOpportunitySection({ politico }) {
         </div>
         <button
           type="button"
+          disabled={isGenerating}
           onClick={() => void handleLeadPdf()}
-          className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#58A6FF]/40 bg-[#58A6FF]/10 px-4 py-2 text-xs font-semibold tracking-tight text-[#F0F4FC] transition hover:border-[#58A6FF]/70 hover:bg-[#58A6FF]/18 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#58A6FF]"
+          className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#58A6FF]/40 bg-[#58A6FF]/10 px-4 py-2 text-xs font-semibold tracking-tight text-[#F0F4FC] shadow-[0_0_24px_rgba(88,166,255,0.08)] transition enabled:hover:border-[#58A6FF]/70 enabled:hover:bg-[#58A6FF]/18 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#58A6FF] disabled:cursor-not-allowed disabled:opacity-50"
         >
-          <FileDown className="size-3.5" strokeWidth={1.75} />
-          Gerar Lead de Venda (PDF)
+          {isGenerating ? (
+            <>
+              <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
+              A gerar…
+            </>
+          ) : (
+            <>
+              <FileDown className="size-3.5" strokeWidth={1.75} aria-hidden="true" />
+              Gerar Lead de Venda (PDF)
+            </>
+          )}
         </button>
       </div>
 
