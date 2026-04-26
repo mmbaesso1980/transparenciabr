@@ -368,6 +368,7 @@ def run_batch(
     pages_per_query: int,
     page_size: int,
     dry_run: bool,
+    max_politicos: int,
 ) -> int:
     """
     Modo --batch: itera todos os documentos da coleção `politicos` no Firestore
@@ -381,6 +382,10 @@ def run_batch(
 
     total_atos = 0
     erros = 0
+
+    if max_politicos > 0:
+        docs = docs[:max_politicos]
+        logger.info("[batch] Limitado a %d políticos nesta execução.", len(docs))
 
     for i, doc in enumerate(docs, 1):
         pid = doc.id
@@ -457,10 +462,17 @@ def main() -> int:
         default=50,
         help="Registros por página (máx. 100 na API).",
     )
+    parser.add_argument(
+        "--max-politicos",
+        type=int,
+        default=int(os.environ.get("CRAWLER_MAX_POLITICOS", "50")),
+        help="Limita o número de políticos no modo --batch (0 = todos).",
+    )
     args = parser.parse_args()
 
     ppq = max(1, args.pages_per_query)
     ps = min(100, max(1, args.page_size))
+    max_pol = max(0, args.max_politicos)
 
     logger.info(
         "Keywords: %s | gap=%ss | API=%s",
@@ -471,7 +483,12 @@ def main() -> int:
 
     # ------------------------------------------------------------------ batch
     if args.batch:
-        return run_batch(pages_per_query=ppq, page_size=ps, dry_run=args.dry_run)
+        return run_batch(
+            pages_per_query=ppq,
+            page_size=ps,
+            dry_run=args.dry_run,
+            max_politicos=max_pol,
+        )
 
     # ----------------------------------------------------------- individual
     if not args.politico_id:
