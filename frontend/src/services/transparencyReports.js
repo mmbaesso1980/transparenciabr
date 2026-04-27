@@ -184,6 +184,7 @@ export function mapTransparencyReportToDossieRecord(report) {
     contratos_pncp: report.contratos,
     alertas_preditivos: report.alertas,
     analise_semantica: report.analise_semantica ?? report.semantic_audit,
+    osint_radar: report.osint?.boatos ?? report.osint_radar ?? [],
     metadados_sync: report.metadados,
   };
 }
