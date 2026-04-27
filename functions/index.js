@@ -120,7 +120,7 @@ async function analyzeCeapWithSupremeLeader(row) {
     systemInstruction:
       "Voce e o Lider Supremo A.S.M.O.D.E.U.S. (Agent ID agent_1777236402725). " +
       "Atue como auditor forense de CEAP, direito administrativo e gasto parlamentar brasileiro. " +
-      "Consolide a deliberacao dos 11 agentes subordinados. Responda apenas JSON valido.",
+      "Consolide a deliberacao dos 12 agentes subordinados (Vertex IA sob o Lider Supremo). Responda apenas JSON valido.",
     generationConfig: {
       temperature: 0.1,
       responseMimeType: "application/json",
