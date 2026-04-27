@@ -66,7 +66,7 @@ export function useUserCredits() {
       }
 
       try {
-        await ensureUsuarioDoc(user.uid);
+        await ensureUsuarioDoc(user.uid, { email: user.email });
       } catch {
         /* rules / rede */
       }

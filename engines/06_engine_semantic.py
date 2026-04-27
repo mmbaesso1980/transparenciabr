@@ -51,14 +51,15 @@ logger = logging.getLogger("engine_06_semantic")
 
 DEFAULT_INPUT_DIR = os.environ.get("SEMANTIC_INPUT_DIR", "/extracted_texts")
 DEFAULT_OUTPUT_DIR = os.environ.get("SEMANTIC_OUTPUT_DIR", "/semantic_results")
-DEFAULT_MODEL = os.environ.get("GEMINI_SEMANTIC_MODEL", "gemini-1.5-pro")
+SUPREME_AGENT_ID = "agent_1777236402725"
+DEFAULT_MODEL = os.environ.get("GEMINI_SEMANTIC_MODEL", "gemini-2.5-pro")
 DEFAULT_BATCH_SIZE = int(os.environ.get("SEMANTIC_BATCH_SIZE", "5"))
 DEFAULT_MAX_RETRIES = int(os.environ.get("SEMANTIC_MAX_RETRIES", "6"))
 DEFAULT_BACKOFF_INITIAL = float(os.environ.get("SEMANTIC_BACKOFF_INITIAL_SECONDS", "1.0"))
 DEFAULT_BACKOFF_MAX = float(os.environ.get("SEMANTIC_BACKOFF_MAX_SECONDS", "90.0"))
 DEFAULT_MAX_CHARS = int(os.environ.get("SEMANTIC_MAX_CHARS", "700000"))
 
-ALLOWED_MODELS = {"gemini-1.5-pro", "gemini-1.5-pro-preview"}
+ALLOWED_MODELS = {"gemini-2.5-pro"}
 
 SYSTEM_INSTRUCTION = """\
 Voce e um auditor forense senior do TransparenciaBR, especialista em direito
@@ -449,7 +450,8 @@ async def run_async(args: argparse.Namespace) -> int:
 
     if args.model not in ALLOWED_MODELS:
         raise ValueError(
-            f"Modelo nao permitido: {args.model}. Use gemini-1.5-pro ou gemini-1.5-pro-preview.",
+            f"Modelo nao permitido: {args.model}. Motor unico: gemini-2.5-pro "
+            f"(Lider Supremo {SUPREME_AGENT_ID}).",
         )
 
     input_dir = Path(args.input_dir)

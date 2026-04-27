@@ -20,32 +20,47 @@ import {
   runTransaction,
   serverTimestamp,
   setDoc,
+  updateDoc,
   where,
 } from "firebase/firestore";
 
-const FIREBASE_PUBLIC_FALLBACK = {
-  apiKey: "AIzaSyDU5MEsXFf_z6Xvq5pPtQU1fg-28FsUvVk",
-  authDomain: "transparenciabr.firebaseapp.com",
-  projectId: "transparenciabr",
-  storageBucket: "transparenciabr.firebasestorage.app",
-  messagingSenderId: "89728155070",
-  appId: "1:89728155070:web:5dcae5e5dd6016e63f0def",
+/**
+ * SECOPS — Nenhum apiKey em texto plano. Toda a configuração tem de vir
+ * estritamente das variáveis de ambiente VITE_FIREBASE_*. Se a chave
+ * não estiver presente, falhamos cedo (fail-fast) para evitar que um
+ * bundle saia para produção com credenciais hardcoded.
+ */
+const REQUIRED_ENV = {
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
-export const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || FIREBASE_PUBLIC_FALLBACK.apiKey,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || FIREBASE_PUBLIC_FALLBACK.authDomain,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || FIREBASE_PUBLIC_FALLBACK.projectId,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || FIREBASE_PUBLIC_FALLBACK.storageBucket,
-  messagingSenderId:
-    import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || FIREBASE_PUBLIC_FALLBACK.messagingSenderId,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || FIREBASE_PUBLIC_FALLBACK.appId,
-};
+const MISSING_ENV_KEYS = Object.entries(REQUIRED_ENV)
+  .filter(([, value]) => !value || String(value).trim() === "")
+  .map(([key]) => `VITE_FIREBASE_${camelToScreamingSnake(key)}`);
 
-console.log("Config do Firebase carregada:", !!firebaseConfig.apiKey);
+if (MISSING_ENV_KEYS.length > 0) {
+  const message =
+    `[firebase.js] Configuração inválida: as seguintes variáveis de ambiente ` +
+    `estão ausentes ou vazias: ${MISSING_ENV_KEYS.join(", ")}. ` +
+    `Não há fallback de chaves em código cliente — preencha o arquivo .env / Secret Manager.`;
+  // Fail-fast: aborta o boot do bundle em vez de cair em fallback inseguro.
+  throw new Error(message);
+}
+
+export const firebaseConfig = Object.freeze({ ...REQUIRED_ENV });
+
+function camelToScreamingSnake(input) {
+  return String(input)
+    .replace(/([a-z0-9])([A-Z])/g, "$1_$2")
+    .toUpperCase();
+}
 
 function buildConfig() {
-  if (!firebaseConfig.apiKey || !firebaseConfig.projectId) return null;
   return firebaseConfig;
 }
 
@@ -53,10 +68,9 @@ let cachedApp;
 let cachedDb;
 let cachedAuth;
 
-/** Uma única app Firebase (singleton). Retorna null se env incompleto. */
+/** Uma única app Firebase (singleton). */
 export function getFirebaseApp() {
   const cfg = buildConfig();
-  if (!cfg?.projectId) return null;
   if (!cachedApp) {
     cachedApp = getApps().length > 0 ? getApps()[0] : initializeApp(cfg);
   }
@@ -86,9 +100,27 @@ export function getFirebaseAuth() {
   return cachedAuth;
 }
 
-const DEFAULT_INITIAL_CREDITS = Number(
-  import.meta.env.VITE_INITIAL_USER_CREDITS ?? 320,
-);
+/**
+ * Cota freemium não-cumulativa (300/dia). Foi 320 antes; G.O.A.T. patch
+ * reduziu para 300 com reset diário (ver `ensureUsuarioDoc`).
+ */
+export const DAILY_FREEMIUM_CREDITS = 300;
+
+/** Email do Comandante — perfil GOD blindado. */
+const GOD_MODE_EMAIL = "manusalt13@gmail.com";
+
+/** Calcula a data ISO YYYY-MM-DD do "hoje" (timezone do dispositivo). */
+function todayIsoDate() {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+function isGodEmail(email) {
+  return typeof email === "string" && email.trim().toLowerCase() === GOD_MODE_EMAIL;
+}
 
 /**
  * Garante sessão anónima + documento `usuarios/{uid}` para leitura de créditos e débitos.
@@ -99,26 +131,83 @@ export async function bootstrapAnonymousSession() {
   if (!auth.currentUser) {
     await signInAnonymously(auth);
   }
-  const uid = auth.currentUser?.uid;
-  if (uid) {
-    await ensureUsuarioDoc(uid);
+  const user = auth.currentUser;
+  if (user?.uid) {
+    await ensureUsuarioDoc(user.uid, { email: user.email });
   }
   return auth.currentUser;
 }
 
 /**
- * Cria perfil mínimo se ausente (campos permitidos pelas Security Rules).
+ * Garante o documento `usuarios/{uid}` aplicando:
+ *   1. Pilar 2.1 — Perfil GOD para `manusalt13@gmail.com`
+ *      (creditos: 9999, creditos_ilimitados: true, isAdmin: true, role: "admin").
+ *   2. Pilar 2.2 — Cota freemium diária 300 (não-cumulativa).
+ *   3. Pilar 2.3 — Reset diário: se `last_login_date` mudou, repõe 300.
+ *
+ * Importante: o cliente nunca pode escalar privilégios em rotas/usuários
+ * que não sejam o seu (`request.auth.uid == userId`) e o e-mail GOD
+ * é validado no servidor pela Cloud Function/regra. Aqui apenas
+ * preenchemos os campos para o operador autorizado.
  */
-export async function ensureUsuarioDoc(uid) {
+export async function ensureUsuarioDoc(uid, options = {}) {
   const firestore = getFirestoreDb();
   if (!firestore || !uid) return;
+  const auth = getFirebaseAuth();
+  const user = auth?.currentUser;
+  const email = (options.email ?? user?.email ?? "").toString();
+  const today = todayIsoDate();
   const ref = doc(firestore, "usuarios", uid);
   const snap = await getDoc(ref);
-  if (snap.exists()) return;
-  await setDoc(ref, {
-    creditos: DEFAULT_INITIAL_CREDITS,
-    updated_at: serverTimestamp(),
-  });
+
+  if (!snap.exists()) {
+    if (isGodEmail(email)) {
+      await setDoc(ref, {
+        email,
+        creditos: 9999,
+        creditos_ilimitados: true,
+        isAdmin: true,
+        role: "admin",
+        last_login_date: today,
+        updated_at: serverTimestamp(),
+      });
+    } else {
+      await setDoc(ref, {
+        email: email || null,
+        creditos: DAILY_FREEMIUM_CREDITS,
+        creditos_ilimitados: false,
+        isAdmin: false,
+        role: "user",
+        last_login_date: today,
+        updated_at: serverTimestamp(),
+      });
+    }
+    return;
+  }
+
+  const data = snap.data() || {};
+  const patch = {};
+
+  if (isGodEmail(email)) {
+    if (data.creditos_ilimitados !== true) patch.creditos_ilimitados = true;
+    if (data.isAdmin !== true) patch.isAdmin = true;
+    if (data.role !== "admin") patch.role = "admin";
+    if (Number(data.creditos ?? 0) < 9999) patch.creditos = 9999;
+  } else {
+    if (data.last_login_date !== today) {
+      patch.creditos = DAILY_FREEMIUM_CREDITS;
+      patch.last_login_date = today;
+    }
+  }
+
+  if (Object.keys(patch).length > 0) {
+    patch.updated_at = serverTimestamp();
+    try {
+      await updateDoc(ref, patch);
+    } catch {
+      /* permissão / rede */
+    }
+  }
 }
 
 /**

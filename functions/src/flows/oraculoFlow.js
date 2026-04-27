@@ -1,6 +1,9 @@
+/**
+ * Fluxo Oráculo — analisa contratos públicos.
+ * Motor único: gemini-2.5-pro (Líder Supremo agent_1777236402725).
+ */
 const { z } = require('genkit');
-const { ai } = require('../genkit.config');
-const { gemini20Pro } = require('@genkit-ai/vertexai');
+const { ai, SUPREME_AGENT_ID, SUPREME_MODEL } = require('../genkit.config');
 
 const AchadoSchema = z.object({
   tipo: z.enum([
@@ -33,7 +36,8 @@ exports.oraculoAnalisarContrato = ai.defineFlow(
   },
   async ({ textoContrato, contextoParlamentar }) => {
     const prompt = `
-Você é um analista forense de transparência pública brasileira.
+Você é o agente ${SUPREME_AGENT_ID} (Líder Supremo / Gemini 2.5 Pro), atuando como
+analista forense de transparência pública brasileira.
 NÃO faça acusações. Apenas CLASSIFIQUE padrões e atribua riscos heurísticos.
 Sempre cite trechos literais como "evidencia".
 
@@ -44,7 +48,7 @@ ${textoContrato.slice(0, 500000)}
     `.trim();
 
     const { output } = await ai.generate({
-      model: gemini20Pro,
+      model: SUPREME_MODEL,
       prompt,
       output: { schema: AnaliseSchema },
       config: { temperature: 0.2, maxOutputTokens: 8192 },
