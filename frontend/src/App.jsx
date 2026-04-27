@@ -1,11 +1,10 @@
-import { lazy, Suspense, useEffect } from "react";
+import { lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import RouteFallback from "./components/RouteFallback.jsx";
 import { AuthProvider } from "./context/AuthContext.jsx";
 import { CameraFocusProvider } from "./context/CameraFocusContext.jsx";
-import { bootstrapAnonymousSession, getFirebaseApp } from "./lib/firebase.js";
 import HomePage from "./pages/HomePage.jsx";
 
 const DashboardLayout = lazy(() => import("./layouts/DashboardLayout.jsx"));
@@ -24,15 +23,6 @@ const RadarPage = lazy(() => import("./pages/RadarPage.jsx"));
 const basename = import.meta.env.BASE_URL;
 
 export default function App() {
-  useEffect(() => {
-    if (!getFirebaseApp()) return undefined;
-    // Mantém o bootstrap anónimo apenas para garantir leituras de
-    // colecções públicas; rotas internas exigem autenticação real
-    // (Google ou email/senha) — controlado por <ProtectedRoute />.
-    bootstrapAnonymousSession().catch(() => {});
-    return undefined;
-  }, []);
-
   return (
     <BrowserRouter basename={basename}>
       <AuthProvider>

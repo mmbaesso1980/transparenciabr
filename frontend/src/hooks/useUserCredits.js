@@ -3,7 +3,6 @@ import { doc, onSnapshot } from "firebase/firestore";
 import { useEffect, useState } from "react";
 
 import {
-  bootstrapAnonymousSession,
   getFirebaseApp,
   getFirebaseAuth,
   getFirestoreDb,
@@ -12,7 +11,8 @@ import {
 import { isFrontendGodModeBypass } from "../lib/godModeEnv.js";
 
 /**
- * Saldo em tempo real (`usuarios/{uid}`) após sessão Firebase (anónima por defeito).
+ * Saldo em tempo real (`usuarios/{uid}`) após sessão Firebase.
+ * Sem login explícito, não há utilizador nem subscrição de créditos.
  */
 export function useUserCredits() {
   const [credits, setCredits] = useState(null);
@@ -41,11 +41,6 @@ export function useUserCredits() {
         setUser(null);
         setGodMode(false);
         setCredits(null);
-        try {
-          await bootstrapAnonymousSession();
-        } catch {
-          setCredits(0);
-        }
         return;
       }
       setUser(user);

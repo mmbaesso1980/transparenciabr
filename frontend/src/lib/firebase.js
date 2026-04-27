@@ -3,7 +3,6 @@ import {
   createUserWithEmailAndPassword,
   getAuth,
   GoogleAuthProvider,
-  signInAnonymously,
   signInWithEmailAndPassword,
   signInWithPopup,
   signOut as firebaseSignOut,
@@ -25,10 +24,9 @@ import {
 } from "firebase/firestore";
 
 /**
- * SECOPS — Nenhum apiKey em texto plano. Toda a configuração tem de vir
- * estritamente das variáveis de ambiente VITE_FIREBASE_*. Se a chave
- * não estiver presente, falhamos cedo (fail-fast) para evitar que um
- * bundle saia para produção com credenciais hardcoded.
+ * SECOPS — Configuração exclusivamente via VITE_FIREBASE_*.
+ * Valores ausentes não interrompem o bundle (build estático / CI sem secrets locais).
+ * Runtime: preencher .env.production.local ou secrets — sem isso Auth/Firestore ficam indisponíveis.
  */
 const REQUIRED_ENV = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -43,16 +41,32 @@ const MISSING_ENV_KEYS = Object.entries(REQUIRED_ENV)
   .filter(([, value]) => !value || String(value).trim() === "")
   .map(([key]) => `VITE_FIREBASE_${camelToScreamingSnake(key)}`);
 
-if (MISSING_ENV_KEYS.length > 0) {
-  const message =
-    `[firebase.js] Configuração inválida: as seguintes variáveis de ambiente ` +
-    `estão ausentes ou vazias: ${MISSING_ENV_KEYS.join(", ")}. ` +
-    `Não há fallback de chaves em código cliente — preencha o arquivo .env / Secret Manager.`;
-  // Fail-fast: aborta o boot do bundle em vez de cair em fallback inseguro.
-  throw new Error(message);
+/** Quando todas as variáveis estão definidas (ex.: build CI com secrets). */
+export const HAS_FULL_FIREBASE_CONFIG = MISSING_ENV_KEYS.length === 0;
+
+let firebaseConfigWarned = false;
+
+function warnFirebaseConfigMissingOnce() {
+  if (MISSING_ENV_KEYS.length === 0 || firebaseConfigWarned) return;
+  firebaseConfigWarned = true;
+  console.warn(
+    `[firebase.js] Configuração incompleta — variáveis ausentes ou vazias: ${MISSING_ENV_KEYS.join(", ")}. ` +
+      `Autenticação e Firestore ficam desativados até preencher .env / CI secrets.`,
+  );
 }
 
-export const firebaseConfig = Object.freeze({ ...REQUIRED_ENV });
+const EMPTY_CONFIG = Object.freeze({
+  apiKey: "",
+  authDomain: "",
+  projectId: "",
+  storageBucket: "",
+  messagingSenderId: "",
+  appId: "",
+});
+
+export const firebaseConfig = HAS_FULL_FIREBASE_CONFIG
+  ? Object.freeze({ ...REQUIRED_ENV })
+  : EMPTY_CONFIG;
 
 function camelToScreamingSnake(input) {
   return String(input)
@@ -68,8 +82,12 @@ let cachedApp;
 let cachedDb;
 let cachedAuth;
 
-/** Uma única app Firebase (singleton). */
+/** Uma única app Firebase (singleton). Retorna null se env incompleto. */
 export function getFirebaseApp() {
+  if (!HAS_FULL_FIREBASE_CONFIG) {
+    warnFirebaseConfigMissingOnce();
+    return null;
+  }
   const cfg = buildConfig();
   if (!cachedApp) {
     cachedApp = getApps().length > 0 ? getApps()[0] : initializeApp(cfg);
@@ -120,22 +138,6 @@ function todayIsoDate() {
 
 function isGodEmail(email) {
   return typeof email === "string" && email.trim().toLowerCase() === GOD_MODE_EMAIL;
-}
-
-/**
- * Garante sessão anónima + documento `usuarios/{uid}` para leitura de créditos e débitos.
- */
-export async function bootstrapAnonymousSession() {
-  const auth = getFirebaseAuth();
-  if (!auth) return null;
-  if (!auth.currentUser) {
-    await signInAnonymously(auth);
-  }
-  const user = auth.currentUser;
-  if (user?.uid) {
-    await ensureUsuarioDoc(user.uid, { email: user.email });
-  }
-  return auth.currentUser;
 }
 
 /**
