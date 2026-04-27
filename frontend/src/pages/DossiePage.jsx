@@ -311,7 +311,7 @@ export default function DossiePage() {
         <meta property="og:type" content="article" />
       </Helmet>
 
-      <div className="relative isolate min-h-full max-w-[100vw] overflow-x-hidden bg-[#0A0E17] pb-12 text-[#F0F4FC]">
+      <div className="relative isolate min-h-full w-full overflow-x-hidden bg-[#0A0E17] pb-12 text-[#F0F4FC]">
         <div
           aria-hidden
           className="pointer-events-none fixed inset-0 overflow-hidden"
