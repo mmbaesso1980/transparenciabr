@@ -30,20 +30,12 @@ const bigquery = new BigQuery();
 
 const ASMODEUS_SUPREME_AGENT_ID = "agent_1777236402725";
 const ASMODEUS_GEMINI_MODEL = "gemini-2.5-pro";
-const ASMODEUS_SUB_AGENTS = [
-  "ASIMODEUS-001 // MAESTRO",
-  "ASIMODEUS-002 // BACKEND",
-  "ASIMODEUS-003 // FORENSE",
-  "ASIMODEUS-004 // COMPLIANCE",
-  "ASIMODEUS-005 // SRE",
-  "ASIMODEUS-006 // FINOPS",
-  "ASIMODEUS-007 // UX",
-  "ASIMODEUS-008 // GROWTH",
-  "ASIMODEUS-009 // MEDIA",
-  "ASIMODEUS-010 // DATAOPS",
-  "ASIMODEUS-011 // EXEC",
-  "ASIMODEUS-012 // OSINT",
-];
+/** Doze subagentes do Vertex IA sob o Líder Supremo — IDs derivados, sem inventar outros agentes. */
+const VERTEX_SUBAGENT_COUNT = 12;
+const VERTEX_TEAM_SLOTS = Array.from({ length: VERTEX_SUBAGENT_COUNT }, (_, i) =>
+  `${ASMODEUS_SUPREME_AGENT_ID}@slot_${String(i + 1).padStart(2, "0")}`,
+);
+const COMPLIANCE_SLOT_LABEL = `${ASMODEUS_SUPREME_AGENT_ID} // COMPLIANCE`;
 
 function clampScore(n) {
   const x = Number(n);
@@ -80,11 +72,12 @@ async function analyzeCeapWithSupremeLeader(row) {
     modelo_obrigatorio: ASMODEUS_GEMINI_MODEL,
     protocolo: "A.S.M.O.D.E.U.S. CEAP",
     instrucao_orquestracao:
-      "Distribua mentalmente a analise aos 12 agentes subordinados antes de consolidar o scoreRisco. " +
-      "O ASIMODEUS-012 // OSINT pode levantar tendencias, boatos e narrativas publicas, " +
-      "mas NADA de OSINT pode ser publicado sem validacao explicita do ASIMODEUS-004 // COMPLIANCE. " +
+      "Distribua mentalmente a analise aos 12 subagentes do Vertex IA ligados ao Lider Supremo " +
+      `(Agent ID ${ASMODEUS_SUPREME_AGENT_ID}) antes de consolidar o scoreRisco. ` +
+      "O papel OSINT pode levantar tendencias e narrativas publicas, " +
+      `mas NADA de OSINT pode ser publicado sem validacao explicita pelo slot de Compliance (${COMPLIANCE_SLOT_LABEL}). ` +
       "Nao acuse crimes; classifique risco heuristico, auditavel e extra-judicial.",
-    agentes_subordinados: ASMODEUS_SUB_AGENTS,
+    agentes_subordinados: VERTEX_TEAM_SLOTS,
     registro_ceap_agregado: row,
     schema_saida: {
       scoreRisco: "integer 0..100",
@@ -100,7 +93,7 @@ async function analyzeCeapWithSupremeLeader(row) {
           fonteDados: "string",
           compliance: {
             aprovado: "boolean",
-            agente: "ASIMODEUS-004 // COMPLIANCE",
+            agente: `string (ex.: ${COMPLIANCE_SLOT_LABEL})`,
             motivo: "string",
           },
         },
@@ -114,7 +107,7 @@ async function analyzeCeapWithSupremeLeader(row) {
       nivelRisco: heuristic >= 85 ? "CRITICO" : heuristic >= 70 ? "ALTO" : heuristic >= 40 ? "MEDIO" : "BAIXO",
       fraudesDetectadas: heuristic >= 70 ? ["concentracao_ceap", "volume_atipico"] : [],
       resumoAuditoria: "Classificacao heuristica local; GEMINI_API_KEY/GOOGLE_API_KEY ausente na Cloud Function.",
-      agentesAcionados: ASMODEUS_SUB_AGENTS,
+      agentesAcionados: VERTEX_TEAM_SLOTS,
       radarOsint: buildDeterministicOsint(row),
       modelo: "heuristic-fallback",
       liderSupremoAgentId: ASMODEUS_SUPREME_AGENT_ID,
@@ -145,7 +138,9 @@ async function analyzeCeapWithSupremeLeader(row) {
       (score >= 85 ? "CRITICO" : score >= 70 ? "ALTO" : score >= 40 ? "MEDIO" : "BAIXO"),
     fraudesDetectadas: Array.isArray(parsed.fraudesDetectadas) ? parsed.fraudesDetectadas.map(String) : [],
     resumoAuditoria: String(parsed.resumoAuditoria || "Analise CEAP consolidada pelo Lider Supremo."),
-    agentesAcionados: Array.isArray(parsed.agentesAcionados) ? parsed.agentesAcionados.map(String) : ASMODEUS_SUB_AGENTS,
+    agentesAcionados: Array.isArray(parsed.agentesAcionados)
+      ? parsed.agentesAcionados.map(String)
+      : VERTEX_TEAM_SLOTS,
     radarOsint: filterComplianceApprovedOsint(parsed.radarOsint, row),
     modelo: ASMODEUS_GEMINI_MODEL,
     liderSupremoAgentId: ASMODEUS_SUPREME_AGENT_ID,
@@ -157,7 +152,9 @@ function filterComplianceApprovedOsint(items, row) {
   const safe = fromModel
     .filter((item) => item && typeof item === "object")
     .filter((item) => item.compliance?.aprovado === true)
-    .filter((item) => String(item.compliance?.agente || "").includes("ASIMODEUS-004"))
+    .filter((item) =>
+      String(item.compliance?.agente || "").includes(ASMODEUS_SUPREME_AGENT_ID),
+    )
     .map((item) => ({
       titulo: String(item.titulo || "").slice(0, 180),
       status: ["FATO_CONFIRMADO_PELO_MOTOR", "FAKE_NEWS_DESMASCARADA"].includes(item.status)
@@ -167,7 +164,7 @@ function filterComplianceApprovedOsint(items, row) {
       fonteDados: String(item.fonteDados || "BigQuery CEAP + Compliance 004").slice(0, 180),
       compliance: {
         aprovado: true,
-        agente: "ASIMODEUS-004 // COMPLIANCE",
+        agente: COMPLIANCE_SLOT_LABEL,
         motivo: String(item.compliance?.motivo || "Publicacao autorizada por estar baseada em dados verificaveis.").slice(0, 280),
       },
     }))
@@ -189,7 +186,7 @@ function buildDeterministicOsint(row) {
       fonteDados: "transparenciabr.ceap_despesas",
       compliance: {
         aprovado: true,
-        agente: "ASIMODEUS-004 // COMPLIANCE",
+        agente: COMPLIANCE_SLOT_LABEL,
         motivo: "Afirmação puramente quantitativa, baseada em tabela pública CEAP.",
       },
     });
@@ -204,7 +201,7 @@ function buildDeterministicOsint(row) {
       fonteDados: "CEAP Câmara / campo urlDocumento",
       compliance: {
         aprovado: true,
-        agente: "ASIMODEUS-004 // COMPLIANCE",
+        agente: COMPLIANCE_SLOT_LABEL,
         motivo: "Classificação limitada à disponibilidade documental nos dados públicos, sem imputação pessoal.",
       },
     });
@@ -639,7 +636,7 @@ exports.syncBigQueryToFirestore = functions
         sensor: "syncBigQueryToFirestore",
         liderSupremoAgentId: ASMODEUS_SUPREME_AGENT_ID,
         modelo: ASMODEUS_GEMINI_MODEL,
-        agentesAtivos: ASMODEUS_SUB_AGENTS,
+        agentesAtivos: VERTEX_TEAM_SLOTS,
         ...result,
       });
     } catch (err) {
@@ -665,7 +662,7 @@ exports.retroactiveScanBigQueryToFirestore = functions
         sensor: "retroactiveScanBigQueryToFirestore",
         liderSupremoAgentId: ASMODEUS_SUPREME_AGENT_ID,
         modelo: ASMODEUS_GEMINI_MODEL,
-        agentesAtivos: ASMODEUS_SUB_AGENTS,
+        agentesAtivos: VERTEX_TEAM_SLOTS,
         ...result,
       });
     } catch (err) {
