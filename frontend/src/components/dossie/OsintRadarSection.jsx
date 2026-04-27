@@ -1,5 +1,8 @@
 import { CheckCircle2, Radio, ShieldAlert, XCircle } from "lucide-react";
 
+/** G.O.A.T. — único ID de orquestração Vertex IA (Gemini 2.5). */
+const SUPREME_AGENT_ID = "agent_1777236402725";
+
 function statusMeta(status) {
   const s = String(status || "").toUpperCase();
   if (s.includes("FAKE")) {
@@ -35,7 +38,7 @@ export default function OsintRadarSection({ osint = [] }) {
               Radar OSINT — Fato ou Fake
             </h2>
             <p className="text-[11px] text-[#8B949E]">
-              ASIMODEUS-012 coleta sinais; ASIMODEUS-004 valida antes de publicar.
+              Subagentes Vertex IA sob o Líder Supremo ({SUPREME_AGENT_ID}); Compliance valida antes de publicar.
             </p>
           </div>
         </div>
