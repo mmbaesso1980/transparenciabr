@@ -60,6 +60,8 @@ export const TRANSPARENCY_REPORTS_COLLECTION = "transparency_reports";
  * @property {{ empresas_fachada?: KMeansRisk[], surtos_orcamentarios?: TemporalAlert[] }=} alertas
  * @property {SemanticAudit=} analise_semantica
  * @property {SemanticAudit=} semantic_audit
+ * @property {string=} llm_summary
+ * @property {string=} conteudo_premium
  * @property {{ boatos?: Array<Record<string, unknown>>, compliance?: Record<string, unknown> }=} osint
  * @property {{ sincronizado_em?: unknown, fonte?: string, tabela_contratos?: string, tabela_risco_cnpj?: string, tabela_arima?: string }=} metadados
  */
@@ -185,6 +187,9 @@ export function mapTransparencyReportToDossieRecord(report) {
     alertas_preditivos: report.alertas,
     analise_semantica: report.analise_semantica ?? report.semantic_audit,
     osint_radar: report.osint?.boatos ?? report.osint_radar ?? [],
+    osint_boatos: report.osint?.boatos ?? report.osint_boatos ?? [],
+    llm_summary: report.llm_summary ?? report.conteudo_premium,
+    conteudo_premium: report.conteudo_premium ?? report.llm_summary,
     metadados_sync: report.metadados,
   };
 }

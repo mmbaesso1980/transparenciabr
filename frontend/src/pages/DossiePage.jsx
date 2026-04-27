@@ -22,6 +22,7 @@ import CeapMonitorSection from "../components/dossie/CeapMonitorSection.jsx";
 import EmendasParlamentaresSection from "../components/dossie/EmendasParlamentaresSection.jsx";
 import HealthAuditSection from "../components/dossie/HealthAuditSection.jsx";
 import OsintRadarSection from "../components/dossie/OsintRadarSection.jsx";
+import PremiumDossierSection from "../components/dossie/PremiumDossierSection.jsx";
 import SocioeconomicBaseSection from "../components/dossie/SocioeconomicBaseSection.jsx";
 import CommercialOpportunitySection from "../components/dossie/CommercialOpportunitySection.jsx";
 import Section4Placeholder from "../components/dossie/Section4Placeholder.jsx";
@@ -567,6 +568,8 @@ export default function DossiePage() {
                       Baixar Dossiê Forense (PDF)
                     </button>
                   </div>
+
+                  <PremiumDossierSection record={displayRecord} />
 
                   <div className="glass-card overflow-hidden">
                     <div className="flex items-center justify-between border-b border-[#30363D] px-4 py-3">
