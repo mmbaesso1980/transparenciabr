@@ -40,6 +40,7 @@ const ASMODEUS_SUB_AGENTS = [
   "ASIMODEUS-009 // MEDIA",
   "ASIMODEUS-010 // DATAOPS",
   "ASIMODEUS-011 // EXEC",
+  "ASIMODEUS-012 // OSINT",
 ];
 
 function clampScore(n) {
@@ -77,7 +78,9 @@ async function analyzeCeapWithSupremeLeader(row) {
     modelo_obrigatorio: ASMODEUS_GEMINI_MODEL,
     protocolo: "A.S.M.O.D.E.U.S. CEAP",
     instrucao_orquestracao:
-      "Distribua mentalmente a analise aos 11 agentes subordinados antes de consolidar o scoreRisco. " +
+      "Distribua mentalmente a analise aos 12 agentes subordinados antes de consolidar o scoreRisco. " +
+      "O ASIMODEUS-012 // OSINT pode levantar tendencias, boatos e narrativas publicas, " +
+      "mas NADA de OSINT pode ser publicado sem validacao explicita do ASIMODEUS-004 // COMPLIANCE. " +
       "Nao acuse crimes; classifique risco heuristico, auditavel e extra-judicial.",
     agentes_subordinados: ASMODEUS_SUB_AGENTS,
     registro_ceap_agregado: row,
@@ -87,6 +90,19 @@ async function analyzeCeapWithSupremeLeader(row) {
       fraudesDetectadas: ["string"],
       resumoAuditoria: "string curta",
       agentesAcionados: ["string"],
+      radarOsint: [
+        {
+          titulo: "string",
+          status: "FATO_CONFIRMADO_PELO_MOTOR|FAKE_NEWS_DESMASCARADA|VETADO_COMPLIANCE",
+          prova: "string baseada em CEAP/BigQuery/nota fiscal",
+          fonteDados: "string",
+          compliance: {
+            aprovado: "boolean",
+            agente: "ASIMODEUS-004 // COMPLIANCE",
+            motivo: "string",
+          },
+        },
+      ],
     },
   };
 
@@ -97,6 +113,7 @@ async function analyzeCeapWithSupremeLeader(row) {
       fraudesDetectadas: heuristic >= 70 ? ["concentracao_ceap", "volume_atipico"] : [],
       resumoAuditoria: "Classificacao heuristica local; GEMINI_API_KEY/GOOGLE_API_KEY ausente na Cloud Function.",
       agentesAcionados: ASMODEUS_SUB_AGENTS,
+      radarOsint: buildDeterministicOsint(row),
       modelo: "heuristic-fallback",
       liderSupremoAgentId: ASMODEUS_SUPREME_AGENT_ID,
     };
@@ -127,9 +144,70 @@ async function analyzeCeapWithSupremeLeader(row) {
     fraudesDetectadas: Array.isArray(parsed.fraudesDetectadas) ? parsed.fraudesDetectadas.map(String) : [],
     resumoAuditoria: String(parsed.resumoAuditoria || "Analise CEAP consolidada pelo Lider Supremo."),
     agentesAcionados: Array.isArray(parsed.agentesAcionados) ? parsed.agentesAcionados.map(String) : ASMODEUS_SUB_AGENTS,
+    radarOsint: filterComplianceApprovedOsint(parsed.radarOsint, row),
     modelo: ASMODEUS_GEMINI_MODEL,
     liderSupremoAgentId: ASMODEUS_SUPREME_AGENT_ID,
   };
+}
+
+function filterComplianceApprovedOsint(items, row) {
+  const fromModel = Array.isArray(items) ? items : [];
+  const safe = fromModel
+    .filter((item) => item && typeof item === "object")
+    .filter((item) => item.compliance?.aprovado === true)
+    .filter((item) => String(item.compliance?.agente || "").includes("ASIMODEUS-004"))
+    .map((item) => ({
+      titulo: String(item.titulo || "").slice(0, 180),
+      status: ["FATO_CONFIRMADO_PELO_MOTOR", "FAKE_NEWS_DESMASCARADA"].includes(item.status)
+        ? item.status
+        : "FATO_CONFIRMADO_PELO_MOTOR",
+      prova: String(item.prova || "").slice(0, 500),
+      fonteDados: String(item.fonteDados || "BigQuery CEAP + Compliance 004").slice(0, 180),
+      compliance: {
+        aprovado: true,
+        agente: "ASIMODEUS-004 // COMPLIANCE",
+        motivo: String(item.compliance?.motivo || "Publicacao autorizada por estar baseada em dados verificaveis.").slice(0, 280),
+      },
+    }))
+    .filter((item) => item.titulo && item.prova);
+  return safe.length ? safe : buildDeterministicOsint(row);
+}
+
+function buildDeterministicOsint(row) {
+  const total = Number(row.total_ceap || 0);
+  const docs = Number(row.documentos || 0);
+  const top = Array.isArray(row.top_despesas) ? row.top_despesas : [];
+  const withReceipt = top.filter((item) => item?.url_documento).length;
+  const out = [];
+  if (total > 0) {
+    out.push({
+      titulo: "Volume CEAP auditado no recorte selecionado",
+      status: "FATO_CONFIRMADO_PELO_MOTOR",
+      prova: `BigQuery consolidou ${docs.toLocaleString("pt-BR")} documentos CEAP no recorte, totalizando ${total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}.`,
+      fonteDados: "transparenciabr.ceap_despesas",
+      compliance: {
+        aprovado: true,
+        agente: "ASIMODEUS-004 // COMPLIANCE",
+        motivo: "Afirmação puramente quantitativa, baseada em tabela pública CEAP.",
+      },
+    });
+  }
+  if (top.length > 0) {
+    out.push({
+      titulo: "Alegação genérica de ausência de comprovantes na amostra principal",
+      status: withReceipt > 0 ? "FAKE_NEWS_DESMASCARADA" : "FATO_CONFIRMADO_PELO_MOTOR",
+      prova: withReceipt > 0
+        ? `${withReceipt} das maiores despesas auditadas incluem link de nota/recibo público para conferência.`
+        : "A amostra principal ainda não trouxe URL de recibo nos campos públicos disponíveis.",
+      fonteDados: "CEAP Câmara / campo urlDocumento",
+      compliance: {
+        aprovado: true,
+        agente: "ASIMODEUS-004 // COMPLIANCE",
+        motivo: "Classificação limitada à disponibilidade documental nos dados públicos, sem imputação pessoal.",
+      },
+    });
+  }
+  return out;
 }
 
 function buildCeapQuery({ startYear, endYear, limit, targetId, targetName }) {

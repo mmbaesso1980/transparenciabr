@@ -21,6 +21,7 @@ import BussolaPolitica from "../components/dossie/BussolaPolitica.jsx";
 import CeapMonitorSection from "../components/dossie/CeapMonitorSection.jsx";
 import EmendasParlamentaresSection from "../components/dossie/EmendasParlamentaresSection.jsx";
 import HealthAuditSection from "../components/dossie/HealthAuditSection.jsx";
+import OsintRadarSection from "../components/dossie/OsintRadarSection.jsx";
 import SocioeconomicBaseSection from "../components/dossie/SocioeconomicBaseSection.jsx";
 import CommercialOpportunitySection from "../components/dossie/CommercialOpportunitySection.jsx";
 import Section4Placeholder from "../components/dossie/Section4Placeholder.jsx";
@@ -524,6 +525,7 @@ export default function DossiePage() {
             </div>
 
             {/* Linha 4 — OSS / saúde */}
+            <OsintRadarSection osint={displayRecord?.osint_radar} />
             <HealthAuditSection politico={displayRecord} />
 
             {/* Linha 5 — paywall 200 créditos */}

@@ -60,6 +60,7 @@ export const TRANSPARENCY_REPORTS_COLLECTION = "transparency_reports";
  * @property {{ empresas_fachada?: KMeansRisk[], surtos_orcamentarios?: TemporalAlert[] }=} alertas
  * @property {SemanticAudit=} analise_semantica
  * @property {SemanticAudit=} semantic_audit
+ * @property {{ boatos?: Array<Record<string, unknown>>, compliance?: Record<string, unknown> }=} osint
  * @property {{ sincronizado_em?: unknown, fonte?: string, tabela_contratos?: string, tabela_risco_cnpj?: string, tabela_arima?: string }=} metadados
  */
 
