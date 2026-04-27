@@ -2,8 +2,8 @@
 """
 Tradutor Oráculo (A.S.M.O.D.E.U.S.) — alertas BigQuery → linguagem jornalística via Gemini.
 
-Lê ``alertas_bodes`` sem ``explicacao_oraculo``, chama ``gemini-1.5-flash`` (SDK
-``google-generativeai``) e faz merge da string no documento.
+Lê ``alertas_bodes`` sem ``explicacao_oraculo``, chama o motor único Gemini 2.5 Pro
+(Líder Supremo Agent ID ``agent_1777236402725``) e faz merge da string no documento.
 
 Requer GEMINI_API_KEY ou GOOGLE_API_KEY no ambiente (.env carregado pelo shell).
 """
@@ -35,7 +35,8 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 COLLECTION_ALERTAS = "alertas_bodes"
-GEMINI_MODEL = os.environ.get("GEMINI_ORACULO_MODEL", "gemini-1.5-flash")
+SUPREME_AGENT_ID = "agent_1777236402725"
+GEMINI_MODEL = os.environ.get("GEMINI_ORACULO_MODEL", "gemini-2.5-pro")
 MAX_SCAN = int(os.environ.get("ORACULO_MAX_SCAN", "200"))
 
 SYSTEM_ORACULO = (

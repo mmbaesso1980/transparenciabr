@@ -27,6 +27,29 @@ service cloud.firestore {
         && prev >= delta;
     }
 
+    /** Cota freemium diária — 300 créditos não-cumulativos. */
+    function dailyFreemiumQuota() {
+      return 300;
+    }
+
+    /**
+     * Reset diário: o cliente pode "recarregar" o saldo para 300 desde que
+     * mude também `last_login_date` para um string diferente. Isto evita que
+     * um cliente recupere 300 créditos enquanto mantém a mesma data.
+     */
+    function isValidDailyReset() {
+      let next = request.resource.data.creditos;
+      let nextDate = request.resource.data.last_login_date;
+      let prevDate = resource.data.keys().hasAny(['last_login_date'])
+        ? resource.data.last_login_date
+        : '';
+      return isNumericLike(next)
+        && next == dailyFreemiumQuota()
+        && nextDate is string
+        && nextDate.size() >= 8
+        && nextDate != prevDate;
+    }
+
     /** Tier do utilizador (custom claim definido pela function `grantRole`). */
     function userTier() {
       return request.auth != null && request.auth.token.tier is string
@@ -47,19 +70,54 @@ service cloud.firestore {
     match /usuarios/{userId} {
       allow read: if request.auth != null && request.auth.uid == userId;
 
-      /** Perfil inicial: apenas créditos + timestamp — sem privilege escalation. */
+      /**
+       * Perfil inicial: o cliente NUNCA pode marcar a si mesmo como
+       * admin / role=admin / creditos_ilimitados / saldo > cota diária.
+       * O perfil GOD do Líder Supremo é injetado pela Cloud Function
+       * (Admin SDK) — nunca pelo SDK web. Aqui só permitimos os campos
+       * neutros do onboarding freemium.
+       */
       allow create: if request.auth != null
         && request.auth.uid == userId
-        && request.resource.data.keys().hasOnly(['creditos', 'updated_at'])
+        && request.resource.data.keys().hasOnly([
+          'email', 'creditos', 'creditos_ilimitados', 'isAdmin', 'role',
+          'last_login_date', 'updated_at'
+        ])
         && request.resource.data.creditos is int
         && request.resource.data.creditos >= 0
-        && request.resource.data.creditos <= 500;
+        && request.resource.data.creditos <= dailyFreemiumQuota()
+        && request.resource.data.creditos_ilimitados == false
+        && request.resource.data.isAdmin == false
+        && request.resource.data.role == 'user'
+        && request.resource.data.last_login_date is string;
 
+      /**
+       * Update tem dois caminhos legítimos do cliente:
+       *   1. Débito do Oráculo Laboratório (`isValidCreditDeduction`).
+       *   2. Reset diário freemium (`isValidDailyReset`).
+       * Em ambos NÃO pode haver mudança de `isAdmin`, `role`,
+       * `creditos_ilimitados` ou `email` (anti-escalonamento).
+       * Esses campos só podem ser tocados pelo Admin SDK / Cloud
+       * Function `grantRole`.
+       */
       allow update: if request.auth != null
         && request.auth.uid == userId
-        && request.resource.data.keys().hasOnly(['creditos', 'updated_at'])
-        && resource.data.keys().hasAny(['creditos'])
-        && isValidCreditDeduction();
+        && (
+          (
+            request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(['creditos', 'updated_at'])
+            && resource.data.keys().hasAny(['creditos'])
+            && isValidCreditDeduction()
+          ) ||
+          (
+            request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(['creditos', 'last_login_date', 'updated_at'])
+            && isValidDailyReset()
+          )
+        )
+        // Anti-escalonamento: nenhum dos campos privilegiados pode mudar.
+        && !request.resource.data.diff(resource.data).affectedKeys()
+            .hasAny(['isAdmin', 'role', 'creditos_ilimitados', 'email']);
 
       allow delete: if false;
     }

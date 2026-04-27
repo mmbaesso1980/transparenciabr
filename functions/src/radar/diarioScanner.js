@@ -7,6 +7,13 @@ const crypto = require("crypto");
 
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
+/**
+ * Motor único de IA — Líder Supremo (Agent Builder agent_1777236402725)
+ * usando Gemini 2.5 Pro. Não invente outros agentes nem modelos legados.
+ */
+const SUPREME_AGENT_ID = "agent_1777236402725";
+const SUPREME_GEMINI_MODEL = "gemini-2.5-pro";
+
 /** @typedef {'previdenciario'|'trabalhista'|'tributario'} AreaLegal */
 
 /**
@@ -125,10 +132,15 @@ async function analyzeWithGemini(trecho) {
   }
   const genAI = new GoogleGenerativeAI(key);
   const model = genAI.getGenerativeModel({
-    model: "gemini-1.5-flash",
+    model: SUPREME_GEMINI_MODEL,
+    systemInstruction:
+      `Você é o agente ${SUPREME_AGENT_ID} (Líder Supremo / Gemini 2.5 Pro). ` +
+      `Toda análise jurídico-previdenciária do Querido Diário passa por você. ` +
+      `Não invente outros agentes nem invoque modelos legados (1.5-flash, 2.0-pro, etc.).`,
     generationConfig: {
       temperature: 0.2,
       responseMimeType: "application/json",
+      maxOutputTokens: 4096,
     },
   });
 
@@ -150,6 +162,8 @@ function dossierDocId(atoId, ownerUid) {
 
 module.exports = {
   TEMAS,
+  SUPREME_AGENT_ID,
+  SUPREME_GEMINI_MODEL,
   classifyArea,
   urgencyFromAnalysis,
   analyzeWithGemini,
