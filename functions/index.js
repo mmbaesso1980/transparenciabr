@@ -805,6 +805,8 @@ exports.createCheckoutSession = functions
 
     if (priceId) {
       params.line_items = [{ price: priceId, quantity: 1 }];
+      // 🛡️ Sentinel: Prevent parameter tampering by zeroing credits when using a predefined priceId
+      params.metadata = { ...params.metadata, credits: "0" };
     } else if (credits > 0) {
       params.line_items = [
         {
