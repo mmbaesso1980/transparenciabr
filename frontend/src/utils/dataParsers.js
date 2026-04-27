@@ -60,6 +60,25 @@ export function pickMalhaSaude(record) {
   return Object.keys(m).length ? m : null;
 }
 
+/** Achados Agente 12 — despesa CEAP × rastro público / mídia oficial. */
+export function pickOsintCeapCrossItems(record) {
+  if (!record || typeof record !== "object") return [];
+  const wrap =
+    record.osint_ceap_cross ??
+    record.radar_osint_ceap ??
+    record.osint_radar_ceap ??
+    record.osint?.cruzamento_ceap;
+
+  if (Array.isArray(wrap)) return wrap;
+
+  const nested =
+    wrap?.itens ??
+    wrap?.items ??
+    wrap?.achados ??
+    record.ceap_osint_achados;
+  return Array.isArray(nested) ? nested : [];
+}
+
 /** Radar comercial agregado (motor PCA / snapshot Firestore). */
 export function pickOportunidadesMercado(record) {
   if (!record || typeof record !== "object") return null;
@@ -165,14 +184,63 @@ export function pickInvestigations(data) {
   return Array.isArray(raw) ? raw : [];
 }
 
+/** Evita `[object Object]` quando motores gravam objeto em titulo/foco. */
+export function scalarToDisplay(value, fallback = "—") {
+  if (value == null || value === "") return fallback;
+  if (typeof value === "string") {
+    const t = value.trim();
+    return t || fallback;
+  }
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return String(value);
+  }
+  if (typeof value === "boolean") return value ? "sim" : "não";
+  if (typeof value === "object") {
+    const o = /** @type {Record<string, unknown>} */ (value);
+    const nested =
+      o.label ??
+      o.titulo ??
+      o.nome ??
+      o.texto ??
+      o.descricao ??
+      o.valor ??
+      o.ref;
+    if (nested != null && nested !== value) {
+      const s = scalarToDisplay(nested, "");
+      if (s && s !== "—") return s;
+    }
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return fallback;
+    }
+  }
+  return String(value);
+}
+
+/**
+ * Pontuação heurística para ordenar “despesas mais suspeitas” (CEAP / contratos).
+ */
+function suspicionScoreFromRow(row, valor) {
+  const z = Number(row.zscore ?? row.z_score ?? row.score_z ?? row.desvio_padrao);
+  if (Number.isFinite(z)) return Math.abs(z) * 10 + valor / 1e6;
+  const idx = Number(row.indice_risco ?? row.indice_suspeita ?? row.score);
+  if (Number.isFinite(idx)) return idx * 5 + valor / 1e6;
+  const flag = row.flagged === true || row.alertado === true || row.suspeito === true;
+  if (flag) return 100 + valor / 1e6;
+  return valor;
+}
+
 export function normalizeInvestigationRow(row, idx) {
   if (!row || typeof row !== "object") return null;
   const ref =
     row.ref ?? row.codigo ?? row.id ?? String(idx + 1).padStart(4, "0");
-  const titulo =
+  const tituloRaw =
     row.titulo ?? row.nome ?? row.descricao ?? row.objeto ?? "—";
-  const foco = row.foco ?? row.tipo ?? row.tema ?? "";
-  const valor = Number(row.valor ?? row.gasto_total ?? row.valor_aprovado);
+  const focoRaw = row.foco ?? row.tipo ?? row.tema ?? "";
+  const titulo = scalarToDisplay(tituloRaw, "—");
+  const foco = scalarToDisplay(focoRaw, "");
+  const valor = Number(row.valor ?? row.gasto_total ?? row.valor_aprovado ?? row.valor_documento);
   const teto = Number(row.teto ?? row.limite ?? row.teto_orcamento);
   let progressPct = null;
   if (Number.isFinite(valor) && Number.isFinite(teto) && teto > 0) {
@@ -181,12 +249,23 @@ export function normalizeInvestigationRow(row, idx) {
     const p = Number(row.percentual ?? row.exposicao ?? row.score);
     if (Number.isFinite(p)) progressPct = Math.min(100, Math.max(0, p));
   }
+  const rawValue = Number.isFinite(valor) ? valor : 0;
+  const suspicionScore = suspicionScoreFromRow(row, rawValue);
+  const urlRaw = row.urlDocumento ?? row.url_documento ?? row.url ?? "";
+  const urlDocumento =
+    typeof urlRaw === "string"
+      ? urlRaw.trim()
+      : typeof urlRaw === "object" && urlRaw && "href" in urlRaw
+        ? String(/** @type {{ href?: string }} */ (urlRaw).href || "")
+        : "";
+
   return {
     ref: String(ref),
-    titulo: String(titulo),
-    foco: String(foco),
-    rawValue: Number.isFinite(valor) ? valor : 0,
-    urlDocumento: row.urlDocumento ?? row.url_documento ?? row.url ?? "",
+    titulo,
+    foco,
+    rawValue,
+    suspicionScore,
+    urlDocumento,
     progressPct,
     valorLabel:
       Number.isFinite(valor) && valor > 0
@@ -197,6 +276,96 @@ export function normalizeInvestigationRow(row, idx) {
           })
         : null,
   };
+}
+
+/** Linhas agregadas em `historico_ceap` (BigQuery → Firestore). */
+export function normalizeCeapHistoricoRow(row, idx) {
+  if (!row || typeof row !== "object") return null;
+  const ref = row.ref ?? row.numero_documento ?? row.codigo ?? `CEAP-${idx + 1}`;
+  const titulo =
+    scalarToDisplay(row.tipo_despesa ?? row.titulo ?? row.descricao, "Despesa CEAP") ||
+    "Despesa CEAP";
+  const focoParts = [
+    scalarToDisplay(row.cnpj_fornecedor, ""),
+    row.data_emissao ? String(row.data_emissao) : "",
+  ].filter(Boolean);
+  const foco = focoParts.join(" · ");
+  const valor = Number(row.valor_documento ?? row.valor ?? 0);
+  const rawValue = Number.isFinite(valor) ? valor : 0;
+  const urlRaw = row.url_documento ?? row.urlDocumento ?? row.url ?? "";
+  const urlDocumento = typeof urlRaw === "string" ? urlRaw.trim() : "";
+
+  return {
+    ref: String(ref),
+    titulo,
+    foco,
+    rawValue,
+    suspicionScore: suspicionScoreFromRow(row, rawValue),
+    urlDocumento,
+    progressPct: null,
+    valorLabel:
+      rawValue > 0
+        ? rawValue.toLocaleString("pt-BR", {
+            style: "currency",
+            currency: "BRL",
+            maximumFractionDigits: 0,
+          })
+        : null,
+  };
+}
+
+function byRefDedupeMerge(rows) {
+  const map = new Map();
+  for (const r of rows) {
+    if (!r) continue;
+    const prev = map.get(r.ref);
+    if (!prev) {
+      map.set(r.ref, r);
+      continue;
+    }
+    const keep =
+      r.rawValue > prev.rawValue ||
+      (r.urlDocumento && !prev.urlDocumento) ||
+      r.suspicionScore > prev.suspicionScore
+        ? r
+        : prev;
+    const drop = keep === r ? prev : r;
+    map.set(r.ref, {
+      ...drop,
+      ...keep,
+      rawValue: Math.max(prev.rawValue, r.rawValue),
+      suspicionScore: Math.max(prev.suspicionScore, r.suspicionScore),
+      urlDocumento: keep.urlDocumento || drop.urlDocumento || "",
+      valorLabel:
+        keep.rawValue >= drop.rawValue ? keep.valorLabel : drop.valorLabel,
+      foco: String(keep.foco).length >= String(drop.foco).length ? keep.foco : drop.foco,
+    });
+  }
+  return [...map.values()];
+}
+
+/**
+ * Une `investigacoes_top` e `historico_ceap`, deduplica por ref, ordena por relevância/suspeita.
+ */
+export function mergeCeapInvestigationRows(record) {
+  if (!record || typeof record !== "object") return [];
+
+  const fromTop = pickInvestigations(record)
+    .map((r, i) => normalizeInvestigationRow(r, i))
+    .filter(Boolean);
+
+  const hist = Array.isArray(record.historico_ceap) ? record.historico_ceap : [];
+  const fromHist = hist
+    .map((r, i) => normalizeCeapHistoricoRow(r, i))
+    .filter(Boolean);
+
+  const merged = byRefDedupeMerge([...fromHist, ...fromTop]);
+  merged.sort((a, b) => {
+    const sa = b.suspicionScore - a.suspicionScore;
+    if (Math.abs(sa) > 1e-6) return sa;
+    return b.rawValue - a.rawValue;
+  });
+  return merged;
 }
 
 export function pickUf(data) {
@@ -283,7 +452,7 @@ export function pickContextoSocioeconomicoRows(record) {
 export function normalizeAlertRow(row) {
   if (!row || typeof row !== "object") return null;
   const tipo = row.tipo ?? row.tipo_risco ?? row.categoria ?? "Classificação";
-  const trecho =
+  const trechoRaw =
     row.mensagem ??
     row.texto ??
     row.justificativa ??
@@ -292,8 +461,8 @@ export function normalizeAlertRow(row) {
     "—";
   const severidade = row.severidade ?? row.nivel ?? row.gravidade ?? "";
   return {
-    tipo: String(tipo),
-    trecho: String(trecho),
-    severidade: String(severidade),
+    tipo: scalarToDisplay(tipo, "Classificação"),
+    trecho: scalarToDisplay(trechoRaw, "—"),
+    severidade: scalarToDisplay(severidade, ""),
   };
 }

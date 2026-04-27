@@ -2,6 +2,7 @@ import { onAuthStateChanged } from "firebase/auth";
 import { useEffect, useState } from "react";
 
 import { getFirebaseAuth } from "../lib/firebase.js";
+import { isFrontendGodModeBypass } from "../lib/godModeEnv.js";
 
 /**
  * Lê os custom claims do utilizador autenticado em tempo real.
@@ -51,7 +52,7 @@ export function useUserClaims() {
         const token = await user.getIdTokenResult(true);
         const claims = token.claims || {};
         const tier = typeof claims.tier === "string" ? claims.tier : "free";
-        const isGodMode = tier === "god_mode";
+        const isGodMode = tier === "god_mode" || isFrontendGodModeBypass(user);
         const isPremium = tier === "premium" || isGodMode;
         const isAdmin = claims.admin === true || isGodMode;
         setState({

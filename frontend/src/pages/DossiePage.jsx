@@ -22,6 +22,7 @@ import CeapMonitorSection from "../components/dossie/CeapMonitorSection.jsx";
 import EmendasParlamentaresSection from "../components/dossie/EmendasParlamentaresSection.jsx";
 import HealthAuditSection from "../components/dossie/HealthAuditSection.jsx";
 import OsintRadarSection from "../components/dossie/OsintRadarSection.jsx";
+import OsintCeapCrossSection from "../components/dossie/OsintCeapCrossSection.jsx";
 import PremiumDossierSection from "../components/dossie/PremiumDossierSection.jsx";
 import SocioeconomicBaseSection from "../components/dossie/SocioeconomicBaseSection.jsx";
 import CommercialOpportunitySection from "../components/dossie/CommercialOpportunitySection.jsx";
@@ -39,11 +40,11 @@ import { useTransparencyReport } from "../services/transparencyReports.js";
 import {
   absolutizeMediaUrl,
   enrichPoliticoRecord,
+  mergeCeapInvestigationRows,
   normalizeAlertRow,
-  normalizeInvestigationRow,
   pickGraphPayload,
-  pickInvestigations,
   pickNome,
+  pickOsintCeapCrossItems,
   pickPhotoUrl,
   pickPartidoSigla,
   pickRiskScore,
@@ -217,12 +218,15 @@ export default function DossiePage() {
 
   const graphPayload = useMemo(() => pickGraphPayload(displayRecord), [displayRecord]);
 
-  const investigations = useMemo(() => {
-    const rows = pickInvestigations(displayRecord);
-    return rows
-      .map((r, i) => normalizeInvestigationRow(r, i))
-      .filter(Boolean);
-  }, [displayRecord]);
+  const investigations = useMemo(
+    () => mergeCeapInvestigationRows(displayRecord),
+    [displayRecord],
+  );
+
+  const osintCeapCross = useMemo(
+    () => pickOsintCeapCrossItems(displayRecord),
+    [displayRecord],
+  );
 
   const alerts = useMemo(() => {
     const rows = Array.isArray(displayRecord?.alertas_anexados)
@@ -530,6 +534,7 @@ export default function DossiePage() {
 
             {/* Linha 4 — OSS / saúde */}
             <OsintRadarSection osint={displayRecord?.osint_radar} />
+            <OsintCeapCrossSection items={osintCeapCross} />
             <HealthAuditSection politico={displayRecord} />
 
             {/* Linha 5 — paywall 200 créditos */}

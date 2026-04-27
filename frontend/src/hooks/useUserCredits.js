@@ -9,6 +9,7 @@ import {
   getFirestoreDb,
   ensureUsuarioDoc,
 } from "../lib/firebase.js";
+import { isFrontendGodModeBypass } from "../lib/godModeEnv.js";
 
 /**
  * Saldo em tempo real (`usuarios/{uid}`) após sessão Firebase (anónima por defeito).
@@ -53,7 +54,7 @@ export function useUserCredits() {
         const claims = token.claims || {};
         const tierIsGod = claims.tier === "god_mode";
         const legacyGod = claims.godMode === true;
-        setGodMode(tierIsGod || legacyGod);
+        setGodMode(tierIsGod || legacyGod || isFrontendGodModeBypass(user));
       } catch {
         setGodMode(false);
       }
