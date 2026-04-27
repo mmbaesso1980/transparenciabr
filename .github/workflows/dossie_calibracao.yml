@@ -1,0 +1,199 @@
+name: Dossiê factual · Calibração Engine 26
+
+# Gatilho remoto para validar a engine 26 contra dados reais (BigQuery + Firestore + Vertex).
+# - Disparo exclusivamente manual (workflow_dispatch).
+# - O JSON gerado vai como Artifact no GitHub e (opcionalmente) para gs://transparenciabr-raw/dossies/.
+# - O prompt-guard de lib/vertex_agent.py proíbe rotulagem ideológica de pessoas reais.
+
+on:
+  workflow_dispatch:
+    inputs:
+      politico_id:
+        description: "Documento ID em politicos/{id} (ex.: ID interno do parlamentar)."
+        required: true
+        type: string
+      janela_inicio:
+        description: "Início da janela (YYYY-MM-DD)."
+        required: true
+        type: string
+        default: "2023-01-01"
+      janela_fim:
+        description: "Fim da janela (YYYY-MM-DD). Por padrão, hoje."
+        required: false
+        type: string
+        default: ""
+      include_llm_summary:
+        description: "Adicionar sumário em linguagem natural via Vertex (com prompt-guard neutro)."
+        required: false
+        type: boolean
+        default: true
+      vertex_location:
+        description: "Região do Vertex AI."
+        required: false
+        type: string
+        default: "us-central1"
+      vertex_model:
+        description: "Modelo Gemini a utilizar."
+        required: false
+        type: string
+        default: "gemini-2.5-pro"
+      gcs_upload:
+        description: "Subir o JSON também para gs://transparenciabr-raw/dossies/."
+        required: false
+        type: boolean
+        default: true
+
+concurrency:
+  group: dossie-calibracao-${{ github.event.inputs.politico_id }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  build-dossie:
+    name: Engine 26 · politico=${{ github.event.inputs.politico_id }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: engines
+
+    env:
+      GOOGLE_CREDENTIALS_JSON: ${{ secrets.GCP_SERVICE_ACCOUNT_JSON }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+      VERTEX_LOCATION: ${{ github.event.inputs.vertex_location }}
+      VERTEX_MODEL: ${{ github.event.inputs.vertex_model }}
+      VERTEX_REQUEST_TIMEOUT: "60"
+      PYTHONPATH: ${{ github.workspace }}/engines
+      LOG_LEVEL: INFO
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: engines/requirements.txt
+
+      - name: Instalar dependências
+        working-directory: ${{ github.workspace }}
+        run: |
+          python -m pip install --upgrade pip
+          pip install \
+            google-cloud-bigquery==3.41.0 \
+            google-cloud-storage==2.18.2 \
+            firebase-admin==7.4.0 \
+            requests==2.31.0 \
+            google-genai==0.5.0 \
+            google-generativeai==0.8.6 \
+            pydantic==2.9.2
+
+      - name: Preparar credenciais GCP
+        working-directory: ${{ github.workspace }}
+        run: |
+          SA_FILE=$(mktemp /tmp/gcp_sa_XXXXXX.json)
+          printf '%s' "$GOOGLE_CREDENTIALS_JSON" > "$SA_FILE"
+          if python3 -c "import json; json.load(open('$SA_FILE'))" 2>/dev/null; then
+            echo "[creds] JSON valido."
+          else
+            echo "[creds] Tentando decode base64..."
+            printf '%s' "$GOOGLE_CREDENTIALS_JSON" | base64 -d > "$SA_FILE" 2>/dev/null || true
+            if python3 -c "import json; json.load(open('$SA_FILE'))" 2>/dev/null; then
+              echo "[creds] JSON valido apos base64 decode."
+            else
+              echo "[creds] ERRO: secret GCP_SERVICE_ACCOUNT_JSON nao e JSON valido."
+              exit 1
+            fi
+          fi
+          chmod 600 "$SA_FILE"
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$SA_FILE" >> "$GITHUB_ENV"
+
+      - name: Resolver janela_fim (default = hoje)
+        run: |
+          if [ -z "${{ github.event.inputs.janela_fim }}" ]; then
+            echo "JANELA_FIM=$(date -u +%Y-%m-%d)" >> "$GITHUB_ENV"
+          else
+            echo "JANELA_FIM=${{ github.event.inputs.janela_fim }}" >> "$GITHUB_ENV"
+          fi
+
+      - name: Validar inputs
+        run: |
+          python3 - <<'PY'
+          import os, re, sys
+          pid = os.environ.get("INPUT_PID", "").strip()
+          ini = os.environ.get("INPUT_INI", "").strip()
+          fim = os.environ.get("JANELA_FIM", "").strip()
+          if not pid or len(pid) > 64 or not re.fullmatch(r"[A-Za-z0-9_\-]+", pid):
+              print(f"[validate] politico_id invalido: {pid!r}", file=sys.stderr); sys.exit(2)
+          for label, v in (("janela_inicio", ini), ("janela_fim", fim)):
+              if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", v):
+                  print(f"[validate] {label} invalida (esperado YYYY-MM-DD): {v!r}", file=sys.stderr); sys.exit(2)
+          print(f"[validate] OK politico_id={pid} janela={ini}..{fim}")
+          PY
+        env:
+          INPUT_PID: ${{ github.event.inputs.politico_id }}
+          INPUT_INI: ${{ github.event.inputs.janela_inicio }}
+
+      - name: Gerar dossiê factual (Engine 26)
+        working-directory: ${{ github.workspace }}
+        run: |
+          mkdir -p out
+          OUT_PATH="out/dossie_${{ github.event.inputs.politico_id }}_${{ github.run_id }}.json"
+          echo "OUT_PATH=$OUT_PATH" >> "$GITHUB_ENV"
+          ARGS=(
+            --politico-id "${{ github.event.inputs.politico_id }}"
+            --janela-inicio "${{ github.event.inputs.janela_inicio }}"
+            --janela-fim "$JANELA_FIM"
+            --output "$OUT_PATH"
+          )
+          if [ "${{ github.event.inputs.include_llm_summary }}" = "true" ]; then
+            ARGS+=( --include-llm-summary )
+          fi
+          python engines/26_ceap_dossier.py "${ARGS[@]}"
+
+      - name: Sanity-check do JSON gerado
+        working-directory: ${{ github.workspace }}
+        run: |
+          python3 - <<PY
+          import json, sys
+          path = "${{ env.OUT_PATH }}"
+          with open(path, "r", encoding="utf-8") as f:
+              data = json.load(f)
+          required = {"politico_id", "janela_inicio", "janela_fim", "blocos", "gerado_em"}
+          missing = required - set(data)
+          if missing:
+              print(f"[sanity] campos ausentes: {missing}", file=sys.stderr); sys.exit(2)
+          blocos = data.get("blocos", {})
+          print(f"[sanity] OK blocos={list(blocos.keys())} sumario={'sim' if data.get('sumario_neutro') else 'nao'}")
+          PY
+
+      - name: Upload Artifact (GitHub)
+        uses: actions/upload-artifact@v4
+        with:
+          name: dossie-${{ github.event.inputs.politico_id }}-${{ github.run_id }}
+          path: out/*.json
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload para gs://transparenciabr-raw/dossies/ (opcional)
+        if: ${{ github.event.inputs.gcs_upload == 'true' }}
+        working-directory: ${{ github.workspace }}
+        run: |
+          python3 - <<PY
+          import os
+          from google.cloud import storage
+          path = os.environ["OUT_PATH"]
+          name = os.path.basename(path)
+          client = storage.Client()
+          bucket = client.bucket("transparenciabr-raw")
+          blob = bucket.blob(f"dossies/{name}")
+          blob.upload_from_filename(path, content_type="application/json")
+          print(f"[gcs] uploaded gs://transparenciabr-raw/dossies/{name}")
+          PY
+
+      - name: Limpar credenciais
+        if: always()
+        run: rm -f "$GOOGLE_APPLICATION_CREDENTIALS" || true
