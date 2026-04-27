@@ -180,6 +180,214 @@ function buildCeapQuery({ startYear, endYear, limit }) {
   };
 }
 
+async function countCeapRows(startYear, endYear) {
+  const [job] = await bigquery.createQueryJob({
+    query: `
+      SELECT COUNT(1) AS total
+      FROM \`transparenciabr.ceap_despesas\`
+      WHERE EXTRACT(YEAR FROM DATE(data_emissao)) BETWEEN @startYear AND @endYear
+    `,
+    params: { startYear, endYear },
+    location: "US",
+  });
+  const [rows] = await job.getQueryResults();
+  return Number(rows?.[0]?.total || 0);
+}
+
+async function loadPublicCeapColumns() {
+  const [job] = await bigquery.createQueryJob({
+    query: `
+      SELECT column_name
+      FROM \`basedosdados.br_camara_dados_abertos.INFORMATION_SCHEMA.COLUMNS\`
+      WHERE table_name = 'despesa'
+    `,
+    location: "US",
+  });
+  const [rows] = await job.getQueryResults();
+  const byLower = {};
+  for (const row of rows) {
+    const name = String(row.column_name || "");
+    if (name) byLower[name.toLowerCase()] = name;
+  }
+  return byLower;
+}
+
+function pickPublicColumn(columns, candidates) {
+  for (const candidate of candidates) {
+    const found = columns[String(candidate).toLowerCase()];
+    if (found) return found;
+  }
+  return null;
+}
+
+function publicColumnRef(column) {
+  return `\`${column}\``;
+}
+
+function publicStringExpr(columns, candidates, fallback = "''") {
+  const col = pickPublicColumn(columns, candidates);
+  return col ? `CAST(${publicColumnRef(col)} AS STRING)` : fallback;
+}
+
+function publicNumberExpr(columns, candidates, fallback = "0.0") {
+  const col = pickPublicColumn(columns, candidates);
+  return col ? `SAFE_CAST(${publicColumnRef(col)} AS FLOAT64)` : fallback;
+}
+
+function publicDateExpr(columns, candidates) {
+  const col = pickPublicColumn(columns, candidates);
+  if (!col) return null;
+  const ref = publicColumnRef(col);
+  return (
+    `COALESCE(` +
+    `SAFE_CAST(${ref} AS DATE), ` +
+    `DATE(SAFE_CAST(${ref} AS TIMESTAMP)), ` +
+    `SAFE.PARSE_DATE('%Y-%m-%d', SUBSTR(CAST(${ref} AS STRING), 1, 10)), ` +
+    `SAFE.PARSE_DATE('%d/%m/%Y', SUBSTR(CAST(${ref} AS STRING), 1, 10))` +
+    `)`
+  );
+}
+
+async function ensureCeapTableSeeded(startYear, endYear) {
+  const existing = await countCeapRows(startYear, endYear).catch((error) => {
+    console.warn("CEAP count falhou; tabela sera criada/semeada:", error.message || error);
+    return 0;
+  });
+  if (existing > 0) {
+    return { seeded: false, rowsBefore: existing, inserted: 0 };
+  }
+
+  const sourceColumns = await loadPublicCeapColumns();
+  const parlamentarExpr = publicStringExpr(sourceColumns, [
+    "id_deputado",
+    "ide_cadastro",
+    "idecadastro",
+    "nudeputadoid",
+    "cpf",
+  ]);
+  const nomeExpr = publicStringExpr(sourceColumns, [
+    "nome_parlamentar",
+    "tx_nome_parlamentar",
+    "txnomeparlamentar",
+    "nome",
+  ]);
+  const cnpjExpr = publicStringExpr(sourceColumns, [
+    "txt_cnpj_cpf",
+    "txtcnpjcpf",
+    "cnpj_cpf",
+    "cpf_cnpj",
+    "cpf_cnpj_fornecedor",
+  ]);
+  const fornecedorExpr = publicStringExpr(sourceColumns, [
+    "txt_fornecedor",
+    "txtfornecedor",
+    "nome_fornecedor",
+    "fornecedor",
+  ]);
+  const valorExpr = publicNumberExpr(sourceColumns, [
+    "valor_liquido",
+    "vlr_liquido",
+    "vlrliquido",
+    "valor_documento",
+    "vlr_documento",
+    "vlrdocumento",
+  ]);
+  const numeroExpr = publicStringExpr(sourceColumns, [
+    "txt_numero",
+    "txtnumero",
+    "id_documento",
+    "idedocumento",
+    "numero_documento",
+  ]);
+  const tipoExpr = publicStringExpr(sourceColumns, [
+    "categoria_despesa",
+    "txt_descricao",
+    "txtdescricao",
+    "tipo_despesa",
+  ]);
+  const codigoEleitoralExpr = publicStringExpr(sourceColumns, [
+    "id_deputado",
+    "ide_cadastro",
+    "idecadastro",
+    "nudeputadoid",
+  ]);
+  const dateExpr = publicDateExpr(sourceColumns, [
+    "data_emissao",
+    "dat_emissao",
+    "datemissao",
+    "data",
+  ]);
+  if (!dateExpr) {
+    throw new Error(
+      `Nao foi possivel identificar coluna de data em basedosdados.br_camara_dados_abertos.despesa. ` +
+      `Colunas: ${Object.keys(sourceColumns).sort().join(", ")}`,
+    );
+  }
+
+  const [job] = await bigquery.createQueryJob({
+    query: `
+      CREATE TABLE IF NOT EXISTS \`transparenciabr.ceap_despesas\` (
+        parlamentar_id STRING NOT NULL,
+        nome_parlamentar STRING,
+        cnpj_fornecedor STRING,
+        nome_fornecedor STRING,
+        uf_fornecedor STRING,
+        codigo_ibge_municipio STRING,
+        municipio_nome STRING,
+        valor_documento FLOAT64,
+        numero_documento STRING,
+        tipo_despesa STRING,
+        codigo_eleitoral STRING,
+        data_emissao DATE,
+        ingest_ts TIMESTAMP DEFAULT CURRENT_TIMESTAMP()
+      )
+      PARTITION BY data_emissao
+      CLUSTER BY parlamentar_id, cnpj_fornecedor;
+
+      INSERT INTO \`transparenciabr.ceap_despesas\` (
+        parlamentar_id,
+        nome_parlamentar,
+        cnpj_fornecedor,
+        nome_fornecedor,
+        uf_fornecedor,
+        codigo_ibge_municipio,
+        municipio_nome,
+        valor_documento,
+        numero_documento,
+        tipo_despesa,
+        codigo_eleitoral,
+        data_emissao,
+        ingest_ts
+      )
+      SELECT
+        ${parlamentarExpr} AS parlamentar_id,
+        ${nomeExpr} AS nome_parlamentar,
+        REGEXP_REPLACE(${cnpjExpr}, r'[^0-9]', '') AS cnpj_fornecedor,
+        ${fornecedorExpr} AS nome_fornecedor,
+        CAST(NULL AS STRING) AS uf_fornecedor,
+        CAST(NULL AS STRING) AS codigo_ibge_municipio,
+        CAST(NULL AS STRING) AS municipio_nome,
+        ${valorExpr} AS valor_documento,
+        ${numeroExpr} AS numero_documento,
+        ${tipoExpr} AS tipo_despesa,
+        ${codigoEleitoralExpr} AS codigo_eleitoral,
+        ${dateExpr} AS data_emissao,
+        CURRENT_TIMESTAMP() AS ingest_ts
+      FROM \`basedosdados.br_camara_dados_abertos.despesa\`
+      WHERE EXTRACT(YEAR FROM ${dateExpr}) BETWEEN @startYear AND @endYear
+        AND ${parlamentarExpr} IS NOT NULL
+        AND ${parlamentarExpr} != ''
+        AND ${valorExpr} IS NOT NULL
+        AND ${dateExpr} IS NOT NULL
+    `,
+    params: { startYear, endYear },
+    location: "US",
+  });
+  await job.getQueryResults();
+  const inserted = await countCeapRows(startYear, endYear);
+  return { seeded: true, rowsBefore: existing, inserted };
+}
+
 function plainValue(v) {
   if (v == null) return v;
   if (typeof v.value === "function") return v.value();
@@ -270,6 +478,7 @@ async function commitReports(reports) {
 }
 
 async function runCeapScan({ startYear, endYear, limit }) {
+  const seed = await ensureCeapTableSeeded(startYear, endYear);
   const rows = await loadCeapAggregates(startYear, endYear, limit);
   const reports = [];
   for (const row of rows) {
@@ -304,7 +513,7 @@ async function runCeapScan({ startYear, endYear, limit }) {
     });
   }
   const batches = await commitReports(reports);
-  return { processed: reports.length, batches, startYear, endYear };
+  return { processed: reports.length, batches, startYear, endYear, seed };
 }
 
 exports.syncBigQueryToFirestore = functions
