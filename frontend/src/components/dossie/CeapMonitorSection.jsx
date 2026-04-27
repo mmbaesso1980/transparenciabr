@@ -1,5 +1,15 @@
 import { Receipt } from "lucide-react";
 
+function fmtBrl(n) {
+  const x = Number(n);
+  if (!Number.isFinite(x)) return "—";
+  return x.toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+    maximumFractionDigits: 0,
+  });
+}
+
 /**
  * Monitor CEAP — linhas prioritárias de gasto / investigações estruturadas no documento.
  *
@@ -11,9 +21,15 @@ import { Receipt } from "lucide-react";
  *     valorLabel: string | null,
  *     progressPct: number | null,
  *   }>,
+ *   resumo?: Record<string, unknown> | null,
  * }} props
  */
-export default function CeapMonitorSection({ investigations = [] }) {
+export default function CeapMonitorSection({ investigations = [], resumo = null }) {
+  const total = resumo?.total_ceap ?? resumo?.valor_total_contratos;
+  const documentos = resumo?.documentos ?? resumo?.total_contratos;
+  const fornecedores = resumo?.fornecedores_distintos;
+  const periodo = resumo?.periodo;
+
   return (
     <section className="glass-card flex min-h-[24rem] flex-col overflow-hidden p-0 lg:min-h-[26rem]">
       <div className="flex items-center justify-between border-b border-[#30363D] px-4 py-3">
@@ -29,6 +45,27 @@ export default function CeapMonitorSection({ investigations = [] }) {
           </div>
         </div>
       </div>
+      {resumo ? (
+        <div className="grid grid-cols-3 gap-2 border-b border-[#21262D] px-4 py-3">
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.18em] text-[#8B949E]">Total</p>
+            <p className="mt-1 font-data text-sm text-[#F0F4FC]">{fmtBrl(total)}</p>
+          </div>
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.18em] text-[#8B949E]">Docs</p>
+            <p className="mt-1 font-data text-sm text-[#F0F4FC]">{Number(documentos || 0).toLocaleString("pt-BR")}</p>
+          </div>
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.18em] text-[#8B949E]">Fornec.</p>
+            <p className="mt-1 font-data text-sm text-[#F0F4FC]">{Number(fornecedores || 0).toLocaleString("pt-BR")}</p>
+          </div>
+          {periodo?.startYear ? (
+            <p className="col-span-3 font-data text-[10px] text-[#484F58]">
+              Série auditada: {periodo.startYear}–{periodo.endYear}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
       <ul className="flex min-h-0 flex-1 flex-col gap-0 overflow-y-auto px-4 py-3">
         {investigations.length === 0 ? (
           <li className="py-8 text-center text-xs text-[#8B949E]">

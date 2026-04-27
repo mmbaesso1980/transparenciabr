@@ -132,7 +132,20 @@ async function analyzeCeapWithSupremeLeader(row) {
   };
 }
 
-function buildCeapQuery({ startYear, endYear, limit }) {
+function buildCeapQuery({ startYear, endYear, limit, targetId, targetName }) {
+  const targetFilters = [];
+  const params = { startYear, endYear, limit };
+  const cleanTargetId = String(targetId || "").trim();
+  const cleanTargetName = String(targetName || "").trim();
+  if (cleanTargetId) {
+    targetFilters.push("CAST(parlamentar_id AS STRING) = @targetId");
+    params.targetId = cleanTargetId;
+  }
+  if (cleanTargetName) {
+    targetFilters.push("LOWER(CAST(nome_parlamentar AS STRING)) LIKE LOWER(@targetNameLike)");
+    params.targetNameLike = `%${cleanTargetName}%`;
+  }
+  const targetWhere = targetFilters.length ? `AND (${targetFilters.join(" OR ")})` : "";
   return {
     query: `
       WITH base AS (
@@ -148,6 +161,7 @@ function buildCeapQuery({ startYear, endYear, limit }) {
         WHERE EXTRACT(YEAR FROM DATE(data_emissao)) BETWEEN @startYear AND @endYear
           AND parlamentar_id IS NOT NULL
           AND SAFE_CAST(valor_documento AS FLOAT64) IS NOT NULL
+          ${targetWhere}
       ),
       agg AS (
         SELECT
@@ -166,7 +180,7 @@ function buildCeapQuery({ startYear, endYear, limit }) {
               valor_documento
             )
             ORDER BY valor_documento DESC
-            LIMIT 12
+            LIMIT 120
           ) AS top_despesas
         FROM base
         GROUP BY parlamentar_id
@@ -176,7 +190,7 @@ function buildCeapQuery({ startYear, endYear, limit }) {
       ORDER BY total_ceap DESC
       LIMIT @limit
     `,
-    params: { startYear, endYear, limit },
+    params,
   };
 }
 
@@ -401,8 +415,8 @@ function plainValue(v) {
   return v;
 }
 
-async function loadCeapAggregates(startYear, endYear, limit) {
-  const q = buildCeapQuery({ startYear, endYear, limit });
+async function loadCeapAggregates(startYear, endYear, limit, targetId, targetName) {
+  const q = buildCeapQuery({ startYear, endYear, limit, targetId, targetName });
   const [job] = await bigquery.createQueryJob({
     query: q.query,
     params: q.params,
@@ -477,9 +491,9 @@ async function commitReports(reports) {
   return committed;
 }
 
-async function runCeapScan({ startYear, endYear, limit }) {
+async function runCeapScan({ startYear, endYear, limit, targetId, targetName }) {
   const seed = await ensureCeapTableSeeded(startYear, endYear);
-  const rows = await loadCeapAggregates(startYear, endYear, limit);
+  const rows = await loadCeapAggregates(startYear, endYear, limit, targetId, targetName);
   const reports = [];
   for (const row of rows) {
     const analysis = await analyzeCeapWithSupremeLeader(row);
@@ -501,6 +515,13 @@ async function runCeapScan({ startYear, endYear, limit }) {
         valor: Number(d.valor_documento || 0),
         data_referencia: d.data_emissao || "",
       })),
+      historico_ceap: top.map((d, idx) => ({
+        ref: d.numero_documento || `CEAP-${idx + 1}`,
+        tipo_despesa: d.tipo_despesa || "Despesa CEAP",
+        cnpj_fornecedor: d.cnpj_fornecedor || "",
+        valor_documento: Number(d.valor_documento || 0),
+        data_emissao: d.data_emissao || "",
+      })),
       alertas_anexados: [
         {
           tipo: "ASMODEUS_CEAP",
@@ -513,7 +534,7 @@ async function runCeapScan({ startYear, endYear, limit }) {
     });
   }
   const batches = await commitReports(reports);
-  return { processed: reports.length, batches, startYear, endYear, seed };
+  return { processed: reports.length, batches, startYear, endYear, seed, targetId, targetName };
 }
 
 exports.syncBigQueryToFirestore = functions
@@ -524,7 +545,9 @@ exports.syncBigQueryToFirestore = functions
       const year = new Date().getUTCFullYear();
       const payload = typeof req.body === "object" && req.body ? req.body : {};
       const limit = Math.max(1, Math.min(Number(payload.limit || 80), 250));
-      const result = await runCeapScan({ startYear: year, endYear: year, limit });
+      const targetId = payload.targetId || payload.parlamentarId || payload.idParlamentar;
+      const targetName = payload.targetName || payload.nomeParlamentar || payload.name;
+      const result = await runCeapScan({ startYear: year, endYear: year, limit, targetId, targetName });
       res.json({
         ok: true,
         sensor: "syncBigQueryToFirestore",
@@ -548,7 +571,9 @@ exports.retroactiveScanBigQueryToFirestore = functions
       const startYear = Math.max(2009, Number(payload.startYear || 2023));
       const endYear = Math.max(startYear, Math.min(Number(payload.endYear || new Date().getUTCFullYear()), 2030));
       const limit = Math.max(1, Math.min(Number(payload.limit || 120), 500));
-      const result = await runCeapScan({ startYear, endYear, limit });
+      const targetId = payload.targetId || payload.parlamentarId || payload.idParlamentar;
+      const targetName = payload.targetName || payload.nomeParlamentar || payload.name;
+      const result = await runCeapScan({ startYear, endYear, limit, targetId, targetName });
       res.json({
         ok: true,
         sensor: "retroactiveScanBigQueryToFirestore",

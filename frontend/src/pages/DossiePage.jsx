@@ -417,7 +417,11 @@ export default function DossiePage() {
 
             {/* Linha 3 — CEAP · agenda · IBGE */}
             <div className="grid gap-4 lg:grid-cols-3">
-              <CeapMonitorSection investigations={investigations} />
+              <CeapMonitorSection
+                investigations={investigations}
+                ceapResumo={displayRecord?.ceap_resumo}
+                analiseAsmodeus={displayRecord?.analise_asmodeus}
+              />
               <AgendaDoDia politico={displayRecord} />
               <SocioeconomicBaseSection
                 politico={displayRecord}
