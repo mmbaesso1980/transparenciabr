@@ -27,6 +27,23 @@ service cloud.firestore {
         && prev >= delta;
     }
 
+    /** Tier do utilizador (custom claim definido pela function `grantRole`). */
+    function userTier() {
+      return request.auth != null && request.auth.token.tier is string
+        ? request.auth.token.tier
+        : 'free';
+    }
+
+    /** Premium ou superior (god_mode também passa). */
+    function isPremium() {
+      return userTier() == 'premium' || userTier() == 'god_mode';
+    }
+
+    /** God-mode (apenas claim explícita; nunca por e-mail hardcoded). */
+    function isGodMode() {
+      return userTier() == 'god_mode';
+    }
+
     match /usuarios/{userId} {
       allow read: if request.auth != null && request.auth.uid == userId;
 
@@ -76,6 +93,22 @@ service cloud.firestore {
       allow read: if request.auth != null
         && resource.data.uid_proprietario == request.auth.uid
         && resource.data.is_private == true;
+      allow write: if false;
+    }
+
+    /**
+     * Dossiês factuais gerados pela engine 26. Leitura liberada para tier
+     * premium/god_mode. Escrita apenas via Admin SDK (engines / Cloud
+     * Functions com privilégio).
+     */
+    match /dossies_factuais/{did} {
+      allow read: if request.auth != null && isPremium();
+      allow write: if false;
+    }
+
+    /** Auditoria de alterações de papel — somente god_mode pode ler. */
+    match /audit_role_changes/{aid} {
+      allow read: if request.auth != null && isGodMode();
       allow write: if false;
     }
 
