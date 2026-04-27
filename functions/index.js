@@ -9,6 +9,8 @@
 /** API v1 (region + https.onCall etc.) — o pacote principal exporta v2 desde firebase-functions v6 */
 const functions = require("firebase-functions/v1");
 const admin = require("firebase-admin");
+const { BigQuery } = require("@google-cloud/bigquery");
+const { GoogleGenerativeAI } = require("@google/generative-ai");
 const Stripe = require("stripe");
 
 const {
@@ -22,6 +24,335 @@ admin.initializeApp();
 
 const db = admin.firestore();
 const FieldValue = admin.firestore.FieldValue;
+const bigquery = new BigQuery();
+
+const ASMODEUS_SUPREME_AGENT_ID = "agent_1777236402725";
+const ASMODEUS_GEMINI_MODEL = "gemini-2.5-pro";
+const ASMODEUS_SUB_AGENTS = [
+  "ASIMODEUS-001 // MAESTRO",
+  "ASIMODEUS-002 // BACKEND",
+  "ASIMODEUS-003 // FORENSE",
+  "ASIMODEUS-004 // COMPLIANCE",
+  "ASIMODEUS-005 // SRE",
+  "ASIMODEUS-006 // FINOPS",
+  "ASIMODEUS-007 // UX",
+  "ASIMODEUS-008 // GROWTH",
+  "ASIMODEUS-009 // MEDIA",
+  "ASIMODEUS-010 // DATAOPS",
+  "ASIMODEUS-011 // EXEC",
+];
+
+function clampScore(n) {
+  const x = Number(n);
+  if (!Number.isFinite(x)) return 0;
+  return Math.max(0, Math.min(100, Math.round(x)));
+}
+
+function parseJsonLoose(raw) {
+  const text = String(raw || "")
+    .replace(/^```json\s*/i, "")
+    .replace(/\s*```$/i, "")
+    .trim();
+  return JSON.parse(text);
+}
+
+function heuristicCeapRisk(row) {
+  const total = Number(row.total_ceap || 0);
+  const fornecedores = Number(row.fornecedores_distintos || 0);
+  const docs = Number(row.documentos || 0);
+  const maior = Number(row.maior_documento || 0);
+  const concentration = total > 0 ? maior / total : 0;
+  const volume = Math.min(35, Math.log10(total + 1) * 5);
+  const concentrationRisk = Math.min(35, concentration * 80);
+  const frequencyRisk = docs > 120 ? 18 : docs > 60 ? 10 : docs > 20 ? 5 : 0;
+  const supplierRisk = fornecedores <= 2 && total > 50000 ? 12 : 0;
+  return clampScore(volume + concentrationRisk + frequencyRisk + supplierRisk);
+}
+
+async function analyzeCeapWithSupremeLeader(row) {
+  const heuristic = heuristicCeapRisk(row);
+  const key = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+  const payload = {
+    lider_supremo_agent_id: ASMODEUS_SUPREME_AGENT_ID,
+    modelo_obrigatorio: ASMODEUS_GEMINI_MODEL,
+    protocolo: "A.S.M.O.D.E.U.S. CEAP",
+    instrucao_orquestracao:
+      "Distribua mentalmente a analise aos 11 agentes subordinados antes de consolidar o scoreRisco. " +
+      "Nao acuse crimes; classifique risco heuristico, auditavel e extra-judicial.",
+    agentes_subordinados: ASMODEUS_SUB_AGENTS,
+    registro_ceap_agregado: row,
+    schema_saida: {
+      scoreRisco: "integer 0..100",
+      nivelRisco: "BAIXO|MEDIO|ALTO|CRITICO",
+      fraudesDetectadas: ["string"],
+      resumoAuditoria: "string curta",
+      agentesAcionados: ["string"],
+    },
+  };
+
+  if (!key) {
+    return {
+      scoreRisco: heuristic,
+      nivelRisco: heuristic >= 85 ? "CRITICO" : heuristic >= 70 ? "ALTO" : heuristic >= 40 ? "MEDIO" : "BAIXO",
+      fraudesDetectadas: heuristic >= 70 ? ["concentracao_ceap", "volume_atipico"] : [],
+      resumoAuditoria: "Classificacao heuristica local; GEMINI_API_KEY/GOOGLE_API_KEY ausente na Cloud Function.",
+      agentesAcionados: ASMODEUS_SUB_AGENTS,
+      modelo: "heuristic-fallback",
+      liderSupremoAgentId: ASMODEUS_SUPREME_AGENT_ID,
+    };
+  }
+
+  const genAI = new GoogleGenerativeAI(key);
+  const model = genAI.getGenerativeModel({
+    model: ASMODEUS_GEMINI_MODEL,
+    systemInstruction:
+      "Voce e o Lider Supremo A.S.M.O.D.E.U.S. (Agent ID agent_1777236402725). " +
+      "Atue como auditor forense de CEAP, direito administrativo e gasto parlamentar brasileiro. " +
+      "Consolide a deliberacao dos 11 agentes subordinados. Responda apenas JSON valido.",
+    generationConfig: {
+      temperature: 0.1,
+      responseMimeType: "application/json",
+      maxOutputTokens: 2048,
+    },
+  });
+
+  const result = await model.generateContent(JSON.stringify(payload));
+  const parsed = parseJsonLoose(result.response.text());
+  const score = clampScore(parsed.scoreRisco ?? heuristic);
+  return {
+    scoreRisco: score,
+    nivelRisco:
+      parsed.nivelRisco ||
+      (score >= 85 ? "CRITICO" : score >= 70 ? "ALTO" : score >= 40 ? "MEDIO" : "BAIXO"),
+    fraudesDetectadas: Array.isArray(parsed.fraudesDetectadas) ? parsed.fraudesDetectadas.map(String) : [],
+    resumoAuditoria: String(parsed.resumoAuditoria || "Analise CEAP consolidada pelo Lider Supremo."),
+    agentesAcionados: Array.isArray(parsed.agentesAcionados) ? parsed.agentesAcionados.map(String) : ASMODEUS_SUB_AGENTS,
+    modelo: ASMODEUS_GEMINI_MODEL,
+    liderSupremoAgentId: ASMODEUS_SUPREME_AGENT_ID,
+  };
+}
+
+function buildCeapQuery({ startYear, endYear, limit }) {
+  return {
+    query: `
+      WITH base AS (
+        SELECT
+          CAST(parlamentar_id AS STRING) AS parlamentar_id,
+          CAST(nome_parlamentar AS STRING) AS nome_parlamentar,
+          SAFE_CAST(valor_documento AS FLOAT64) AS valor_documento,
+          CAST(cnpj_fornecedor AS STRING) AS cnpj_fornecedor,
+          CAST(tipo_despesa AS STRING) AS tipo_despesa,
+          CAST(numero_documento AS STRING) AS numero_documento,
+          DATE(data_emissao) AS data_emissao
+        FROM \`transparenciabr.ceap_despesas\`
+        WHERE EXTRACT(YEAR FROM DATE(data_emissao)) BETWEEN @startYear AND @endYear
+          AND parlamentar_id IS NOT NULL
+          AND SAFE_CAST(valor_documento AS FLOAT64) IS NOT NULL
+      ),
+      agg AS (
+        SELECT
+          parlamentar_id,
+          ANY_VALUE(nome_parlamentar) AS nome_parlamentar,
+          SUM(valor_documento) AS total_ceap,
+          COUNT(1) AS documentos,
+          COUNT(DISTINCT NULLIF(cnpj_fornecedor, '')) AS fornecedores_distintos,
+          MAX(valor_documento) AS maior_documento,
+          ARRAY_AGG(
+            STRUCT(
+              data_emissao,
+              numero_documento,
+              tipo_despesa,
+              cnpj_fornecedor,
+              valor_documento
+            )
+            ORDER BY valor_documento DESC
+            LIMIT 12
+          ) AS top_despesas
+        FROM base
+        GROUP BY parlamentar_id
+      )
+      SELECT *
+      FROM agg
+      ORDER BY total_ceap DESC
+      LIMIT @limit
+    `,
+    params: { startYear, endYear, limit },
+  };
+}
+
+function plainValue(v) {
+  if (v == null) return v;
+  if (typeof v.value === "function") return v.value();
+  if (Array.isArray(v)) return v.map(plainValue);
+  if (typeof v === "object") {
+    if (typeof v.toISOString === "function") return v.toISOString().slice(0, 10);
+    const out = {};
+    for (const [k, val] of Object.entries(v)) out[k] = plainValue(val);
+    return out;
+  }
+  return v;
+}
+
+async function loadCeapAggregates(startYear, endYear, limit) {
+  const q = buildCeapQuery({ startYear, endYear, limit });
+  const [job] = await bigquery.createQueryJob({
+    query: q.query,
+    params: q.params,
+    location: "US",
+  });
+  const [rows] = await job.getQueryResults();
+  return rows.map((row) => plainValue(row));
+}
+
+async function commitReports(reports) {
+  let batch = db.batch();
+  let pending = 0;
+  let committed = 0;
+  for (const report of reports) {
+    const pid = String(report.parlamentar_id || "").trim();
+    if (!pid) continue;
+    const publicDoc = {
+      id: pid,
+      nome: report.nome_parlamentar || pid,
+      nome_completo: report.nome_parlamentar || pid,
+      apelido_publico: report.nome_parlamentar || pid,
+      partido_sigla: "CEAP",
+      score_forense: report.analise_asmodeus.scoreRisco,
+      indice_risco: report.analise_asmodeus.scoreRisco,
+      alertas_anexados: report.alertas_anexados,
+      investigacoes_top: report.investigacoes_top,
+      ceap_resumo: report.ceap_resumo,
+      analise_asmodeus: report.analise_asmodeus,
+      atualizado_em: FieldValue.serverTimestamp(),
+    };
+    const transparencyDoc = {
+      report_id: `politico_${pid}`,
+      tipo_dossie: "politico_ceap",
+      identidade: { parlamentar_id: pid, nome: report.nome_parlamentar || pid },
+      contratos: {
+        total_contratos: Number(report.ceap_resumo.documentos || 0),
+        valor_total_contratos: Number(report.ceap_resumo.total_ceap || 0),
+        contratos_relevantes: report.investigacoes_top,
+      },
+      alertas: {
+        empresas_fachada: [],
+        surtos_orcamentarios: [],
+      },
+      analise_semantica: {
+        indice_risco: report.analise_asmodeus.scoreRisco,
+        fraudes_detectadas: report.analise_asmodeus.fraudesDetectadas,
+        resumo_auditoria: report.analise_asmodeus.resumoAuditoria,
+        confianca: 0.72,
+      },
+      metadados: {
+        fonte: "retroactiveScanBigQueryToFirestore",
+        modelo: report.analise_asmodeus.modelo,
+        lider_supremo_agent_id: ASMODEUS_SUPREME_AGENT_ID,
+        sincronizado_em: new Date().toISOString(),
+      },
+      updated_at: FieldValue.serverTimestamp(),
+    };
+    batch.set(db.collection("politicos").doc(pid), publicDoc, { merge: true });
+    batch.set(db.collection("transparency_reports").doc(pid), transparencyDoc, { merge: true });
+    pending += 2;
+    if (pending >= 498) {
+      await batch.commit();
+      committed += 1;
+      batch = db.batch();
+      pending = 0;
+    }
+  }
+  if (pending) {
+    await batch.commit();
+    committed += 1;
+  }
+  return committed;
+}
+
+async function runCeapScan({ startYear, endYear, limit }) {
+  const rows = await loadCeapAggregates(startYear, endYear, limit);
+  const reports = [];
+  for (const row of rows) {
+    const analysis = await analyzeCeapWithSupremeLeader(row);
+    const top = Array.isArray(row.top_despesas) ? row.top_despesas : [];
+    reports.push({
+      parlamentar_id: row.parlamentar_id,
+      nome_parlamentar: row.nome_parlamentar,
+      ceap_resumo: {
+        periodo: { startYear, endYear },
+        total_ceap: Number(row.total_ceap || 0),
+        documentos: Number(row.documentos || 0),
+        fornecedores_distintos: Number(row.fornecedores_distintos || 0),
+        maior_documento: Number(row.maior_documento || 0),
+      },
+      investigacoes_top: top.map((d, idx) => ({
+        ref: d.numero_documento || `CEAP-${idx + 1}`,
+        titulo: d.tipo_despesa || "Despesa CEAP",
+        foco: d.cnpj_fornecedor || "fornecedor nao identificado",
+        valor: Number(d.valor_documento || 0),
+        data_referencia: d.data_emissao || "",
+      })),
+      alertas_anexados: [
+        {
+          tipo: "ASMODEUS_CEAP",
+          severidade: analysis.nivelRisco,
+          trecho: analysis.resumoAuditoria,
+          fonte: "gemini-2.5-pro/lider-supremo",
+        },
+      ],
+      analise_asmodeus: analysis,
+    });
+  }
+  const batches = await commitReports(reports);
+  return { processed: reports.length, batches, startYear, endYear };
+}
+
+exports.syncBigQueryToFirestore = functions
+  .region("us-central1")
+  .runWith({ memory: "1GB", timeoutSeconds: 300 })
+  .https.onRequest(async (req, res) => {
+    try {
+      const year = new Date().getUTCFullYear();
+      const payload = typeof req.body === "object" && req.body ? req.body : {};
+      const limit = Math.max(1, Math.min(Number(payload.limit || 80), 250));
+      const result = await runCeapScan({ startYear: year, endYear: year, limit });
+      res.json({
+        ok: true,
+        sensor: "syncBigQueryToFirestore",
+        liderSupremoAgentId: ASMODEUS_SUPREME_AGENT_ID,
+        modelo: ASMODEUS_GEMINI_MODEL,
+        agentesAtivos: ASMODEUS_SUB_AGENTS,
+        ...result,
+      });
+    } catch (err) {
+      console.error("syncBigQueryToFirestore failed:", err);
+      res.status(500).json({ ok: false, error: err.message || String(err) });
+    }
+  });
+
+exports.retroactiveScanBigQueryToFirestore = functions
+  .region("us-central1")
+  .runWith({ memory: "2GB", timeoutSeconds: 540 })
+  .https.onRequest(async (req, res) => {
+    try {
+      const payload = typeof req.body === "object" && req.body ? req.body : {};
+      const startYear = Math.max(2009, Number(payload.startYear || 2023));
+      const endYear = Math.max(startYear, Math.min(Number(payload.endYear || new Date().getUTCFullYear()), 2030));
+      const limit = Math.max(1, Math.min(Number(payload.limit || 120), 500));
+      const result = await runCeapScan({ startYear, endYear, limit });
+      res.json({
+        ok: true,
+        sensor: "retroactiveScanBigQueryToFirestore",
+        liderSupremoAgentId: ASMODEUS_SUPREME_AGENT_ID,
+        modelo: ASMODEUS_GEMINI_MODEL,
+        agentesAtivos: ASMODEUS_SUB_AGENTS,
+        ...result,
+      });
+    } catch (err) {
+      console.error("retroactiveScanBigQueryToFirestore failed:", err);
+      res.status(500).json({ ok: false, error: err.message || String(err) });
+    }
+  });
 
 function requireStripe() {
   const key = process.env.STRIPE_SECRET_KEY;
