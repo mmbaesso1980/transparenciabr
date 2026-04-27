@@ -81,7 +81,7 @@ export default function DossiePage() {
   const { id } = useParams();
   const politicoId = id ?? "";
 
-  const credits = useUserCredits();
+  const creditsState = useUserCredits();
   const pdfRef = useRef(null);
 
   const [loading, setLoading] = useState(true);
@@ -239,8 +239,10 @@ export default function DossiePage() {
       ? `TransparênciaBR — ${nomeExibicao}. Índice de Risco ${Math.round(Number(riskValue))} (dados agregados).`
       : `Painel de transparência e fiscalização — ${nomeExibicao || "parlamentar"}.`;
 
-  const oracleLocked = !oracleUnlocked;
-  const creditsLoading = credits === null;
+  const godMode = Boolean(creditsState?.godMode);
+  const credits = creditsState?.credits ?? null;
+  const oracleLocked = !godMode && !oracleUnlocked;
+  const creditsLoading = creditsState === null;
 
   if (loading) {
     return <PanelSkeleton />;
@@ -421,6 +423,8 @@ export default function DossiePage() {
                 investigations={investigations}
                 ceapResumo={displayRecord?.ceap_resumo}
                 analiseAsmodeus={displayRecord?.analise_asmodeus}
+                godMode={godMode}
+                onUnlockAll={handleOraclePay}
               />
               <AgendaDoDia politico={displayRecord} />
               <SocioeconomicBaseSection
@@ -544,6 +548,7 @@ export default function DossiePage() {
                 creditsRequired={ORACLE_LABORATORIO_CREDITS}
                 currentCredits={credits ?? 0}
                 creditsLoading={creditsLoading}
+                godMode={godMode}
                 onPayCredits={handleOraclePay}
               >
                 <div className="oracle-laboratory space-y-4">

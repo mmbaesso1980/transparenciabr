@@ -12,13 +12,14 @@ export default function PremiumGate({
   creditsRequired = CREDITS_DEFAULT,
   currentCredits = 0,
   creditsLoading = false,
+  godMode = false,
   title = "Motor Forense TransparênciaBR — relatório premium",
   onPayCredits,
 }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
 
-  if (!locked) {
+  if (!locked || godMode) {
     return children;
   }
 

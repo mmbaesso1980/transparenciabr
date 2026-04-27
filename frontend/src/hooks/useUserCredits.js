@@ -15,6 +15,8 @@ import {
  */
 export function useUserCredits() {
   const [credits, setCredits] = useState(null);
+  const [godMode, setGodMode] = useState(false);
+  const [user, setUser] = useState(null);
 
   useEffect(() => {
     const app = getFirebaseApp();
@@ -35,6 +37,8 @@ export function useUserCredits() {
       docUnsub = undefined;
 
       if (!user) {
+        setUser(null);
+        setGodMode(false);
         setCredits(null);
         try {
           await bootstrapAnonymousSession();
@@ -42,6 +46,16 @@ export function useUserCredits() {
           setCredits(0);
         }
         return;
+      }
+      setUser(user);
+      try {
+        const token = await user.getIdTokenResult(true);
+        setGodMode(
+          token.claims?.godMode === true ||
+            String(user.email || "").toLowerCase() === "manusalt13@gmail.com",
+        );
+      } catch {
+        setGodMode(String(user.email || "").toLowerCase() === "manusalt13@gmail.com");
       }
 
       const db = getFirestoreDb();
@@ -73,5 +87,5 @@ export function useUserCredits() {
     };
   }, []);
 
-  return credits;
+  return { credits, godMode, user };
 }

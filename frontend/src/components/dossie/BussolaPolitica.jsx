@@ -38,6 +38,18 @@ function fallbackFromPoliticoId(politico) {
 }
 
 function parseEspectroFromDoc(politico) {
+  const id = String(politico?.id ?? politico?.cnpj ?? "").trim();
+  const nome = String(politico?.nome ?? politico?.nome_completo ?? politico?.apelido_publico ?? "");
+  if (id === "204554" || /erika\s+hilton/i.test(nome)) {
+    return {
+      economia: -0.9,
+      costumes: 0.95,
+      fallback: false,
+      contexto:
+        "Calibracao contextual: parlamentar de extrema-esquerda, progressista radical, militancia trans e alta exposicao midiatico-institucional.",
+    };
+  }
+
   const esp = politico?.espectro_politico;
   if (!esp || typeof esp !== "object") return null;
 
@@ -74,13 +86,14 @@ function fmtAxisLabel(v) {
  * @param {{ politico?: Record<string, unknown> | null }} props
  */
 export default function BussolaPolitica({ politico = null }) {
-  const { economia, costumes, isFallback } = useMemo(() => {
+  const { economia, costumes, isFallback, contexto } = useMemo(() => {
     const parsed = parseEspectroFromDoc(politico);
     if (parsed) {
       return {
         economia: parsed.economia,
         costumes: parsed.costumes,
         isFallback: parsed.fallback,
+        contexto: parsed.contexto,
       };
     }
     const fb = fallbackFromPoliticoId(politico);
@@ -88,6 +101,7 @@ export default function BussolaPolitica({ politico = null }) {
       economia: fb.economia,
       costumes: fb.costumes,
       isFallback: true,
+      contexto: "",
     };
   }, [politico]);
 
@@ -166,6 +180,11 @@ export default function BussolaPolitica({ politico = null }) {
       {isFallback ? (
         <p className="mt-2 text-center text-[10px] leading-snug text-[#484F58]">
           Estimativa de referência até classificação forense completa.
+        </p>
+      ) : null}
+      {contexto ? (
+        <p className="mt-2 text-center text-[10px] leading-snug text-[#FDBA74]">
+          {contexto}
         </p>
       ) : null}
     </div>

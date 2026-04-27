@@ -177,7 +177,12 @@ function buildCeapQuery({ startYear, endYear, limit, targetId, targetName }) {
               numero_documento,
               tipo_despesa,
               cnpj_fornecedor,
-              valor_documento
+              valor_documento,
+              IF(
+                REGEXP_CONTAINS(CAST(numero_documento AS STRING), r'^[0-9]+$'),
+                CONCAT('https://www.camara.leg.br/cota-parlamentar/documentos/publ/', CAST(numero_documento AS STRING), '.pdf'),
+                NULL
+              ) AS url_documento
             )
             ORDER BY valor_documento DESC
             LIMIT 120
@@ -514,6 +519,7 @@ async function runCeapScan({ startYear, endYear, limit, targetId, targetName }) 
         foco: d.cnpj_fornecedor || "fornecedor nao identificado",
         valor: Number(d.valor_documento || 0),
         data_referencia: d.data_emissao || "",
+        url_documento: d.url_documento || "",
       })),
       historico_ceap: top.map((d, idx) => ({
         ref: d.numero_documento || `CEAP-${idx + 1}`,
