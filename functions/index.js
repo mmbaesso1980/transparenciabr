@@ -20,6 +20,8 @@ const {
   dossierDocId,
 } = require("./src/radar/diarioScanner");
 
+const grantRoleModule = require("./src/admin/grantRole");
+
 admin.initializeApp();
 
 const db = admin.firestore();
@@ -896,3 +898,6 @@ exports.onDiarioAtoCreated = functions
     console.log(`radar_dossiers/${docId} gerado a partir de diarios_atos/${atoId}`);
     return null;
   });
+
+exports.grantRole = grantRoleModule.grantRole;
+exports.listMyClaims = grantRoleModule.listMyClaims;

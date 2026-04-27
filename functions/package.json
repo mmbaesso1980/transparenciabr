@@ -6,7 +6,7 @@
   },
   "main": "index.js",
   "scripts": {
-    "build": "node --check index.js && node --check src/radar/diarioScanner.js",
+    "build": "node --check index.js && node --check src/radar/diarioScanner.js && node --check src/admin/grantRole.js",
     "serve": "firebase emulators:start --only functions",
     "deploy": "firebase deploy --only functions"
   },
