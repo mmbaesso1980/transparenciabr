@@ -1,7 +1,7 @@
 import { doc, getDoc } from "firebase/firestore";
 import { useQuery } from "@tanstack/react-query";
 
-import { getFirestoreDb } from "../lib/firebase.js";
+import { fetchPoliticoById, getFirestoreDb } from "../lib/firebase.js";
 import { ONE_DAY_MS } from "../lib/queryClient.js";
 
 export const TRANSPARENCY_REPORTS_COLLECTION = "transparency_reports";
@@ -201,7 +201,7 @@ export async function fetchTransparencyReportById(reportId) {
 }
 
 export function transparencyReportQueryKey(reportId) {
-  return [TRANSPARENCY_REPORTS_COLLECTION, String(reportId || "").trim()];
+  return ["dossie-record-v2", TRANSPARENCY_REPORTS_COLLECTION, String(reportId || "").trim()];
 }
 
 /**
@@ -213,7 +213,8 @@ export function useTransparencyReport(reportId) {
     queryKey: transparencyReportQueryKey(cleanId),
     queryFn: async () => {
       const report = await fetchTransparencyReportById(cleanId);
-      return mapTransparencyReportToDossieRecord(report);
+      if (report) return mapTransparencyReportToDossieRecord(report);
+      return fetchPoliticoById(cleanId);
     },
     enabled: Boolean(cleanId),
     staleTime: ONE_DAY_MS,
