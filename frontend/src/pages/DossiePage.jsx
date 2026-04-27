@@ -28,6 +28,7 @@ import Section4Placeholder from "../components/dossie/Section4Placeholder.jsx";
 import BrazilHeatmap from "../components/BrazilHeatmap.jsx";
 import NetworkGraph from "../components/dossie/NetworkGraph.jsx";
 import { useUserCredits } from "../hooks/useUserCredits.js";
+import { useUserClaims } from "../hooks/useUserClaims.js";
 import {
   deductCredits,
   fetchPoliticoById,
@@ -83,6 +84,7 @@ export default function DossiePage() {
   const politicoId = id ?? "";
 
   const creditsState = useUserCredits();
+  const userClaims = useUserClaims();
   const pdfRef = useRef(null);
 
   const [loading, setLoading] = useState(true);
@@ -240,10 +242,11 @@ export default function DossiePage() {
       ? `TransparênciaBR — ${nomeExibicao}. Índice de Risco ${Math.round(Number(riskValue))} (dados agregados).`
       : `Painel de transparência e fiscalização — ${nomeExibicao || "parlamentar"}.`;
 
-  const godMode = Boolean(creditsState?.godMode);
+  const godMode = Boolean(creditsState?.godMode) || Boolean(userClaims?.isGodMode);
+  const isPremiumTier = Boolean(userClaims?.isPremium);
   const credits = creditsState?.credits ?? null;
-  const oracleLocked = !godMode && !oracleUnlocked;
-  const creditsLoading = creditsState === null;
+  const oracleLocked = !godMode && !isPremiumTier && !oracleUnlocked;
+  const creditsLoading = creditsState === null || userClaims?.loading === true;
 
   if (loading) {
     return <PanelSkeleton />;

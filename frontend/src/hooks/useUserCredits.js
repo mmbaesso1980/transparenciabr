@@ -50,12 +50,12 @@ export function useUserCredits() {
       setUser(user);
       try {
         const token = await user.getIdTokenResult(true);
-        setGodMode(
-          token.claims?.godMode === true ||
-            String(user.email || "").toLowerCase() === "manusalt13@gmail.com",
-        );
+        const claims = token.claims || {};
+        const tierIsGod = claims.tier === "god_mode";
+        const legacyGod = claims.godMode === true;
+        setGodMode(tierIsGod || legacyGod);
       } catch {
-        setGodMode(String(user.email || "").toLowerCase() === "manusalt13@gmail.com");
+        setGodMode(false);
       }
 
       const db = getFirestoreDb();
