@@ -588,4 +588,188 @@ BIGQUERY_DATASET=projeto_codex_br
 
 ---
 
-*Gerado automaticamente em 2026-04-27. Consolida todos os documentos do chat: AUDITORIA_DRACULA.md, PLANO_MESTRE_v2, PROMPT_CURSOR_FISCALIZAPA.md, Arsenal Completo de APIs, Arsenal IDH/Social/Saúde, Arquitetura Espelho (concorrente), cursor-script-politicopage-definitivo-v4.md, CONSOLIDADO_JULES.txt.*
+## 📄 PROMPT COMPLETO — Cursor Agent Mode (FISCALIZAPA v2)
+
+> Fonte: `PROMPT_CURSOR_FISCALIZAPA.md` — Abril 2026
+
+### Contexto da Equipe de IA
+Você é uma equipe de engenheiros sênior responsável pela revisão completa e evolução do projeto **TransparênciaBR / FiscallizaPA**. Stack: React+Vite, Firebase Hosting (target `fiscallizapa`), Firestore, Cloud Functions, BigQuery (`codex-br/projeto-codex-br`), MapLibre, Tailwind, Firebase Auth.
+
+### Missão
+Revisão cirúrgica total do repositório + implementação das melhorias em ordem de prioridade. Trabalhe autonomamente, arquivo por arquivo, commit por commit. Não espere aprovação para cada passo.
+
+### FASE 0 — Auditoria Estrutural
+- Listar todos arquivos com: caminho, propósito, status `[OK|QUEBRADO|INCOMPLETO|DUPLICADO|MORTO]`, dependências críticas
+- Focar em: componentes React, rotas (App.jsx), Cloud Functions, scripts ETL, configs (firebase.json, .env, vite.config.js), coleções Firestore
+- **Entrega:** `AUDITORIA.md` na raiz antes de qualquer mudança de código
+
+### FASE 1 — Correções Críticas
+
+**Bug 1 — "Politician not found":**
+```javascript
+// scripts/fix-parlamentares-lookup.js
+const resp = await fetch('https://dadosabertos.camara.leg.br/api/v2/deputados?itens=513&ordem=ASC&ordenarPor=nome')
+const { dados } = await resp.json()
+const batch = db.batch()
+for (const dep of dados) {
+  const slug = dep.nome.toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+  const ref = db.collection('parlamentares').doc(String(dep.id))
+  batch.set(ref, { id: String(dep.id), casa: 'CAMARA', nome: dep.nome,
+    siglaPartido: dep.siglaPartido, siglaUf: dep.siglaUf,
+    urlFoto: dep.urlFoto, slug, _migradoEm: admin.firestore.FieldValue.serverTimestamp()
+  }, { merge: true })
+}
+await batch.commit()
+```
+
+**Bug 2 — Asmodeus score 100:**
+```javascript
+// Localizar em functions/src/calculateAsmodeusScore.js
+// Substituir: valor ?? 100 → valor ?? 0
+// Adicionar: console.log(`[Asmodeus] ${parlamentarId} | Eixo ${eixo}: ${valor}`)
+```
+
+**Bug 3 — Build auth intermitente:**
+- Verificar VITE_FIREBASE_MESSAGING_SENDER_ID = número 12 dígitos, NÃO email
+
+**Esquema canônico `src/types/parlamentar.js`:**
+```javascript
+// Campos a unificar no codebase inteiro:
+// deputado_id / idDeputado → id
+// partido_sigla → siglaPartido
+// foto_url / urlFoto → fotoUrl
+// estado / siglaUf / uf_eleicao → uf
+```
+
+### FASE 2 — SEO e Performance
+
+**Meta tags únicas (react-helmet-async):**
+```jsx
+// npm install react-helmet-async
+// Em DossieDeputado.jsx:
+<Helmet>
+  <title>{parlamentar.nome} ({parlamentar.siglaPartido}-{parlamentar.uf}) — Emendas, Gastos e Votações | TransparênciaBR</title>
+  <meta name="description" content={`${parlamentar.nome} enviou ${totalEmendas} em emendas e gastou ${totalCEAP}. Score: ${parlamentar.scoreAsmodeus ?? 'N/A'}/100.`} />
+  <meta property="og:image" content={parlamentar.fotoUrl} />
+  <link rel="canonical" href={`https://transparenciabr.com.br/dossie/${parlamentar.slug}`} />
+</Helmet>
+```
+
+**MapLibre GL JS — paleta ColorBrewer YlOrRd:**
+```javascript
+const getColor = (valor) => {
+  if (!valor || valor === 0) return '#cccccc'
+  if (valor < 500000)   return '#ffffb2'
+  if (valor < 2000000)  return '#fecc5c'
+  if (valor < 10000000) return '#fd8d3c'
+  if (valor < 50000000) return '#f03b20'
+  return '#bd0026'
+}
+// Simplificar GeoJSON: mapshaper municipios-br.geojson -simplify 5% -o municipios-br-simplificado.geojson
+// META: bundle inicial < 200KB gzipped
+```
+
+### FASE 3 — ETL Emendas RP6
+
+```javascript
+// scripts/ingest-emendas-rp6.js
+// Requer: PORTAL_API_KEY no .env.local
+const BASE = 'https://api.portaldatransparencia.gov.br/api-de-dados'
+const HEADERS = { 'chave-api-dados': process.env.PORTAL_API_KEY }
+// Endpoint: /emendas/parlamentar?ano={ANO}&codigoEmenda={cod}&pagina={p}
+// Salvar em BigQuery: fato_emenda_rp6 (particionado por ano, clusterizado por id_parlamentar)
+// Scripts npm:
+// "ingest:emendas-pix:2024": "ANO_ORCAMENTO=2024 node scripts/ingest-emendas-pix.js"
+// "ingest:emendas-rp6:2024": "ANO_ORCAMENTO=2024 node scripts/ingest-emendas-rp6.js"
+```
+
+---
+
+## 🏗️ PLANO MESTRE v2.0 — Arquitetura Forense
+
+> Fonte: `Plano-Mestre-TransparenciaBR-v2.0.docx` — Abril 2026
+
+### Protocolo A.S.M.O.D.E.U.S.
+**A**utomação de **S**istemas de **M**onitoramento e **D**etecção de **E**squemas no **U**so de **S**ubsídios
+
+### BigQuery — Estratégias de Otimização
+- **Particionamento por tempo:** todas as Fact Tables particionadas por `DATE(data_emissao)` ou `data_assinatura` → reduz fatura em até 90% em queries temporais
+- **Clusterização:** até 4 colunas de alta cardinalidade — ex: `fato_despesa_ceap` → `parlamentar_id, uf_fornecedor, cnpj_fornecedor`
+- **NUNCA fazer full table scan** — falha de engenharia inaceitável
+
+### Lei de Benford via SQL (detecção de fraude)
+```sql
+WITH ExtracaoDigito AS (
+  SELECT CAST(SUBSTR(CAST(ABS(valor_despesa) AS STRING), 1, 1) AS INT64) AS digito
+  FROM `fiscallizapa.ceap_despesas` WHERE parlamentar_id = @id
+),
+FreqObservada AS (
+  SELECT digito, COUNT(*) / SUM(COUNT(*)) OVER() AS pct_real FROM ExtracaoDigito GROUP BY 1
+),
+FreqEsperada AS (
+  SELECT digito, LOG10(1 + 1/digito) AS pct_esperado FROM UNNEST(GENERATE_ARRAY(1,9)) AS digito
+)
+SELECT o.digito, o.pct_real, e.pct_esperado,
+       ABS(o.pct_real - e.pct_esperado) / e.pct_esperado AS desvio_z
+FROM FreqObservada o JOIN FreqEsperada e USING(digito)
+ORDER BY desvio_z DESC
+-- Desvio > 30% → flag para modelos supervisionados
+```
+
+### BigQuery ML — Detecção de Anomalias
+```sql
+-- ARIMA_PLUS para séries temporais de gastos
+CREATE OR REPLACE MODEL `fiscallizapa.modelo_anomalia_gastos`
+OPTIONS(model_type='ARIMA_PLUS', time_series_timestamp_col='data',
+        time_series_data_col='valor_total', DECOMPOSE_TIME_SERIES=TRUE)
+AS SELECT data, SUM(valor_liquido) AS valor_total
+FROM `fiscallizapa.ceap_despesas` GROUP BY data;
+
+-- K-Means para detectar empresas de fachada (shell companies)
+-- Vetores: tempo_existencia_cnpj, capital_social, freq_contratos, dist_domicilio_eleitoral
+-- Fornecedores no percentil 95 da distância do centroide = risco crítico
+```
+
+### Gemini 1.5 Pro — Protocolo Oráculo
+- **Circuit Breaker** (`engines/07_gemini_translator.py`): batch de 10 docs, intervalo 1.5s, exponential backoff
+- **Output obrigatoriamente JSON** — nunca respostas livres
+- **Detecta:** cláusulas de reajuste automático, subcontratação irrestrita, dispensa de prestação de contas
+
+### Firestore — Design Desnormalizado
+```
+deputados_federais  → 1 Read por perfil (nome, partido, UF, votos TOP5, gastosCeapTotal)
+alertas_bodes       → paginado, indexado por UF+Data
+usuarios            → 1 Read inicial, cache no App State; saldo créditos via runTransaction
+diarios_atos        → paginado por cursor, textos truncados para reduzir payload
+```
+
+**Security Rules — isValidCreditDeduction():**
+```javascript
+// Créditos só decrementam pelo cliente, NUNCA incrementam
+// isAdmin jamais modificável pelo cliente
+// Adição de créditos: APENAS via Webhooks do backend de pagamento
+```
+
+### Protocolo SANGUE E PODER (engines 15–16)
+- `engines/15_family_oracle.py` — extrai cônjuges/dependentes declarados no TSE
+- `engines/16_contract_collision.py` — fuzzy matching Jaccard ≥ 80% entre QSA e árvore familiar → Nível 5
+
+### MapLibre + PMTiles (Gold Standard)
+```
+tippecanoe -o municipios.pmtiles -Z4 -z12 municipios-br.geojson
+→ Upload: gs://fiscallizapa.appspot.com/geo/municipios.pmtiles
+→ Requisições HTTP parciais = apenas geometrias visíveis na tela
+```
+
+### Monetização — Economia de Créditos
+| Tier | Créditos | Acesso |
+|---|---|---|
+| Free | 10 créditos boas-vindas + cotas diárias | Visão geral pública |
+| Paywall | Débito por uso | Laboratório Oráculo, Grafos 3D, PDF IA |
+| Admin | Ilimitado | Painel kill switch, logs, métricas |
+
+---
+
+*Última atualização: 2026-04-27. Consolida: MEMORIES original + PROMPT_CURSOR_FISCALIZAPA.md + Plano-Mestre-v2.0 + Arsenal-APIs + Arsenal-IDH-Social + Arquitetura-Espelho + COMPILADO_ASMODEUS.*
