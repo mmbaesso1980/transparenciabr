@@ -1,9 +1,12 @@
 import { initializeApp, getApps } from "firebase/app";
 import {
+  createUserWithEmailAndPassword,
   getAuth,
   GoogleAuthProvider,
   signInAnonymously,
+  signInWithEmailAndPassword,
   signInWithPopup,
+  signOut as firebaseSignOut,
 } from "firebase/auth";
 import {
   collection,
@@ -291,6 +294,35 @@ export async function signInWithGoogle() {
   provider.setCustomParameters({ prompt: "select_account" });
   await signInWithPopup(auth, provider);
   return auth.currentUser;
+}
+
+/**
+ * Login com e-mail e senha (Firebase Auth).
+ */
+export async function signInWithEmail(email, password) {
+  const auth = getFirebaseAuth();
+  if (!auth) throw new Error("firebase_auth_unavailable");
+  await signInWithEmailAndPassword(auth, email, password);
+  return auth.currentUser;
+}
+
+/**
+ * Cria conta com e-mail e senha (Firebase Auth).
+ */
+export async function signUpWithEmail(email, password) {
+  const auth = getFirebaseAuth();
+  if (!auth) throw new Error("firebase_auth_unavailable");
+  await createUserWithEmailAndPassword(auth, email, password);
+  return auth.currentUser;
+}
+
+/**
+ * Logout — encerra a sessão Firebase atual.
+ */
+export async function signOut() {
+  const auth = getFirebaseAuth();
+  if (!auth) return;
+  await firebaseSignOut(auth);
 }
 
 /**

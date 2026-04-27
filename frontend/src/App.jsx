@@ -1,7 +1,9 @@
 import { lazy, Suspense, useEffect } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
+import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import RouteFallback from "./components/RouteFallback.jsx";
+import { AuthProvider } from "./context/AuthContext.jsx";
 import { CameraFocusProvider } from "./context/CameraFocusContext.jsx";
 import { bootstrapAnonymousSession, getFirebaseApp } from "./lib/firebase.js";
 import HomePage from "./pages/HomePage.jsx";
@@ -24,30 +26,38 @@ const basename = import.meta.env.BASE_URL;
 export default function App() {
   useEffect(() => {
     if (!getFirebaseApp()) return undefined;
+    // Mantém o bootstrap anónimo apenas para garantir leituras de
+    // colecções públicas; rotas internas exigem autenticação real
+    // (Google ou email/senha) — controlado por <ProtectedRoute />.
     bootstrapAnonymousSession().catch(() => {});
     return undefined;
   }, []);
 
   return (
     <BrowserRouter basename={basename}>
-      <CameraFocusProvider>
-        <Suspense fallback={<RouteFallback />}>
-          <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route element={<DashboardLayout />}>
-              <Route path="/dashboard" element={<OperationsOverviewPage />} />
-              <Route path="/mapa" element={<MapaPage />} />
-              <Route path="/alertas" element={<AlertasPage />} />
-              <Route path="/ranking" element={<RankingPage />} />
+      <AuthProvider>
+        <CameraFocusProvider>
+          <Suspense fallback={<RouteFallback />}>
+            <Routes>
+              <Route path="/" element={<HomePage />} />
               <Route path="/login" element={<LoginPage />} />
-              <Route path="/dossie/:id" element={<DossiePage />} />
-              <Route path="/perfil" element={<PerfilPage />} />
-              <Route path="/creditos" element={<CreditosPage />} />
-              <Route path="/radar/dossiers" element={<RadarPage />} />
-            </Route>
-          </Routes>
-        </Suspense>
-      </CameraFocusProvider>
+
+              <Route element={<ProtectedRoute />}>
+                <Route element={<DashboardLayout />}>
+                  <Route path="/dashboard" element={<OperationsOverviewPage />} />
+                  <Route path="/mapa" element={<MapaPage />} />
+                  <Route path="/alertas" element={<AlertasPage />} />
+                  <Route path="/ranking" element={<RankingPage />} />
+                  <Route path="/dossie/:id" element={<DossiePage />} />
+                  <Route path="/perfil" element={<PerfilPage />} />
+                  <Route path="/creditos" element={<CreditosPage />} />
+                  <Route path="/radar/dossiers" element={<RadarPage />} />
+                </Route>
+              </Route>
+            </Routes>
+          </Suspense>
+        </CameraFocusProvider>
+      </AuthProvider>
     </BrowserRouter>
   );
 }
