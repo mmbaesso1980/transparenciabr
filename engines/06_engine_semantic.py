@@ -3,7 +3,8 @@
 Engine 06 - Analise semantica forense de contratos extraidos por OCR.
 
 Le arquivos .txt gerados pela Engine 05 em /extracted_texts, envia o conteudo
-ao Gemini 1.5 Pro com instrucoes de sistema restritas para auditoria forense
+ao Gemini 2.5 Pro (motor unico; Lider Supremo agent_1777236402725) com instrucoes
+de sistema restritas para auditoria forense
 em direito administrativo brasileiro, e salva somente JSONs locais em
 /semantic_results. Nao grava em Firestore, BigQuery ou qualquer banco.
 
@@ -503,7 +504,7 @@ async def run_async(args: argparse.Namespace) -> int:
 def build_parser() -> argparse.ArgumentParser:
     """Cria parser de CLI."""
 
-    parser = argparse.ArgumentParser(description="Engine 06: Gemini 1.5 Pro semantic audit -> local JSON.")
+    parser = argparse.ArgumentParser(description="Engine 06: Gemini 2.5 Pro semantic audit -> local JSON.")
     parser.add_argument("--input-dir", default=DEFAULT_INPUT_DIR, help="Diretorio com .txt da Engine 05.")
     parser.add_argument("--output-dir", default=DEFAULT_OUTPUT_DIR, help="Diretorio local para JSONs semanticos.")
     parser.add_argument("--model", default=DEFAULT_MODEL, choices=sorted(ALLOWED_MODELS))

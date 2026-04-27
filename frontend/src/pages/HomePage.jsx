@@ -37,7 +37,7 @@ const PIPELINE_STEPS = [
   {
     code: "06",
     title: "Oraculo semantico",
-    body: "Gemini 1.5 Pro analisa clausulas sob direito administrativo brasileiro e devolve JSON deterministico.",
+    body: "Gemini 2.5 Pro (Lider Supremo agent_1777236402725) analisa clausulas sob direito administrativo brasileiro e devolve JSON deterministico.",
   },
   {
     code: "15",

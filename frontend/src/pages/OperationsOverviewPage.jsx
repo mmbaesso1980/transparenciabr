@@ -33,7 +33,7 @@ const ENGINE_STEPS = [
   {
     id: "05-06",
     title: "OCR + Oraculo",
-    text: "Document AI OCR e Gemini 1.5 Pro em JSON estrito para auditoria semantica.",
+    text: "Document AI OCR e Gemini 2.5 Pro (Vertex, agent_1777236402725) em JSON estrito para auditoria semantica.",
     status: "implantado",
   },
   {
