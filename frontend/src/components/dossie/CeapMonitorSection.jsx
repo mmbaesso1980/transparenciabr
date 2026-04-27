@@ -25,13 +25,19 @@ function fmtBrl(n) {
  *   resumo?: Record<string, unknown> | null,
  * }} props
  */
-export default function CeapMonitorSection({ investigations = [], resumo = null }) {
+export default function CeapMonitorSection({
+  investigations = [],
+  resumo = null,
+  ceapResumo = null,
+  godMode = false,
+  onUnlockAll,
+}) {
   const [expanded, setExpanded] = useState(false);
-  const total = resumo?.total_ceap ?? resumo?.valor_total_contratos;
-  const documentos = resumo?.documentos ?? resumo?.total_contratos;
-  const fornecedores = resumo?.fornecedores_distintos;
-  const periodo = resumo?.periodo;
-  const godMode = Boolean(resumo?.godMode);
+  const summary = resumo ?? ceapResumo;
+  const total = summary?.total_ceap ?? summary?.valor_total_contratos;
+  const documentos = summary?.documentos ?? summary?.total_contratos;
+  const fornecedores = summary?.fornecedores_distintos;
+  const periodo = summary?.periodo;
   const visibleRows = expanded || godMode ? investigations : investigations.slice(0, 3);
   const hiddenCount = Math.max(0, investigations.length - visibleRows.length);
   const categorySlices = useMemo(() => {
@@ -78,7 +84,7 @@ export default function CeapMonitorSection({ investigations = [], resumo = null 
           </div>
         </div>
       </div>
-      {resumo ? (
+      {summary ? (
         <div className="grid grid-cols-3 gap-2 border-b border-[#21262D] px-4 py-3">
           <div>
             <p className="text-[10px] uppercase tracking-[0.18em] text-[#8B949E]">Total</p>
@@ -189,7 +195,13 @@ export default function CeapMonitorSection({ investigations = [], resumo = null 
         <div className="border-t border-[#21262D] px-4 py-3">
           <button
             type="button"
-            onClick={() => setExpanded(true)}
+            onClick={() => {
+              if (godMode) {
+                setExpanded(true);
+                return;
+              }
+              Promise.resolve(onUnlockAll?.()).then(() => setExpanded(true)).catch(() => {});
+            }}
             className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-[#a371f7]/45 bg-[#a371f7]/10 px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-[#F0F4FC] hover:bg-[#a371f7]/16"
           >
             {!godMode ? <Lock className="size-3.5" aria-hidden /> : null}

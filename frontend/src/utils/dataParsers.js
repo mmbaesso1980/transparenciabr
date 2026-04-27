@@ -185,6 +185,8 @@ export function normalizeInvestigationRow(row, idx) {
     ref: String(ref),
     titulo: String(titulo),
     foco: String(foco),
+    rawValue: Number.isFinite(valor) ? valor : 0,
+    urlDocumento: row.urlDocumento ?? row.url_documento ?? row.url ?? "",
     progressPct,
     valorLabel:
       Number.isFinite(valor) && valor > 0

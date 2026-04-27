@@ -153,6 +153,8 @@ function normalizeInvestigations(report) {
     titulo: contract?.objeto || "Contrato sem objeto resumido",
     foco: contract?.data_referencia || "PNCP",
     valor: asNumber(contract?.valor),
+    rawValue: asNumber(contract?.valor),
+    urlDocumento: contract?.url_documento || contract?.urlDocumento || "",
     score: Math.min(100, Math.max(5, Math.log10(asNumber(contract?.valor) + 1) * 8)),
   }));
 }
