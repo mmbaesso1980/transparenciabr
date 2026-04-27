@@ -13,6 +13,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
 
+import AuthNavButtons from "../components/AuthNavButtons.jsx";
 import BrandLogo from "../components/BrandLogo.jsx";
 import GlobalSearch from "../components/GlobalSearch.jsx";
 import UniverseGraph from "../components/UniverseGraph.jsx";
@@ -173,6 +174,7 @@ export default function HomePage() {
             Reports
           </Link>
         </nav>
+        <AuthNavButtons panelTo="/dashboard" />
       </header>
 
       <main className="relative z-10 mx-auto flex w-full max-w-[1480px] flex-col gap-8 px-5 py-8 sm:px-8 lg:px-10">

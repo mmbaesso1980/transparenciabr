@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { NavLink, Outlet } from "react-router-dom";
 
+import AuthNavButtons from "../components/AuthNavButtons.jsx";
 import BrandLogo from "../components/BrandLogo.jsx";
 import GlobalSearch from "../components/GlobalSearch.jsx";
 
@@ -129,6 +130,7 @@ export default function DashboardLayout() {
             <NavLink to="/dashboard" className={navTabClass}>
               Reports
             </NavLink>
+            <AuthNavButtons panelTo="/dashboard" />
           </nav>
         </header>
 
