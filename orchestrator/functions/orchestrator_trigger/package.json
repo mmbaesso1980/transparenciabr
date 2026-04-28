@@ -1,0 +1,25 @@
+{
+  "name": "orchestrator-trigger",
+  "version": "2.0.0",
+  "description": "HTTP Cloud Function that partitions the API catalog and fans out to Pub/Sub for Vertex agent workers.",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js"
+  },
+  "scripts": {
+    "start": "functions-framework --target=orchestratorTrigger --signature-type=http",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "@google-cloud/pubsub": "^4.3.3",
+    "@google-cloud/storage": "^7.12.0",
+    "ulid": "^2.3.0"
+  },
+  "devDependencies": {
+    "@google-cloud/functions-framework": "^3.4.2"
+  }
+}

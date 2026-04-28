@@ -1,0 +1,37 @@
+{
+  "name": "transparenciabr-orchestrator",
+  "version": "2.0.0",
+  "description": "Sprint 2 orchestrator workspace — Vertex Reasoning Engine brain, Pub/Sub fan-out, Cloud Run agent workers.",
+  "type": "module",
+  "private": true,
+  "engines": {
+    "node": ">=22"
+  },
+  "workspaces": [
+    "functions/orchestrator_trigger",
+    "workers/agent_worker"
+  ],
+  "scripts": {
+    "test": "vitest run --reporter=verbose",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint '**/*.js' --ignore-pattern 'node_modules/**' --ignore-pattern 'dist/**'",
+    "lint:fix": "eslint '**/*.js' --fix --ignore-pattern 'node_modules/**'",
+    "deploy:function": "gcloud functions deploy orchestrator-trigger --gen2 --runtime=nodejs22 --region=us-west1 --source=./functions/orchestrator_trigger --entry-point=orchestratorTrigger --trigger-http --set-env-vars ARSENAL_BUCKET=${ARSENAL_BUCKET},PUBSUB_TOPIC=ingest-fan,GCP_PROJECT_ID=${GCP_PROJECT_ID}",
+    "deploy:worker": "gcloud run deploy agent-worker --image=gcr.io/${GCP_PROJECT_ID}/agent-worker:latest --region=us-west1 --platform=managed --no-allow-unauthenticated --service-account=agent-worker-sa@${GCP_PROJECT_ID}.iam.gserviceaccount.com",
+    "deploy:infra": "cd infra && terraform init && terraform apply -auto-approve",
+    "deploy": "npm run deploy:infra && npm run deploy:function && npm run deploy:worker",
+    "build:zip": "cd functions/orchestrator_trigger && zip -r ../../dist/orchestrator-trigger.zip . && echo 'Built orchestrator-trigger.zip'"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "^1.6.0",
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1",
+    "eslint": "^9.13.0",
+    "vitest": "^1.6.0"
+  },
+  "dependencies": {
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1"
+  }
+}
