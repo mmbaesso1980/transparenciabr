@@ -16,26 +16,26 @@ const navTabClass = ({ isActive }) =>
   [
     "rounded-lg px-4 py-2 text-sm font-medium transition-colors",
     isActive
-      ? "bg-[#21262D] text-[#F0F4FC]"
-      : "text-[#8B949E] hover:bg-[#21262D]/60 hover:text-[#F0F4FC]",
+      ? "bg-[var(--bg-elevated)] text-[var(--text-primary)] ring-1 ring-[var(--border-subtle)]"
+      : "text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)]/80 hover:text-[var(--text-primary)]",
   ].join(" ");
 
 export default function DashboardLayout() {
   return (
-    <div className="flex min-h-dvh bg-[#0A0E17] text-[#F0F4FC]">
+    <div className="flex min-h-dvh bg-[var(--bg-void)] text-[var(--text-primary)]">
       <aside
-        className="fixed left-0 top-0 z-40 flex h-full w-14 shrink-0 flex-col items-center gap-3 border-r border-[#30363D] bg-[#0D1117]/95 py-6 backdrop-blur-md md:w-16"
+        className="fixed left-0 top-0 z-40 flex h-full w-14 shrink-0 flex-col items-center gap-3 border-r border-[var(--border-subtle)] bg-[var(--bg-deep)]/95 py-6 backdrop-blur-md md:w-16"
         aria-label="Navegação principal"
       >
         <NavLink
           to="/dashboard"
-          title="Overview — Centro de Operações"
+          title="Operações"
           className={({ isActive }) =>
             [
               "flex size-10 items-center justify-center rounded-xl border transition-colors",
               isActive
-                ? "border-[#30363D] bg-[#21262D] text-[#58A6FF]"
-                : "border-transparent text-[#8B949E] hover:bg-[#21262D] hover:text-[#F0F4FC]",
+                ? "border-[var(--border-subtle)] bg-[var(--bg-elevated)] text-[var(--accent-primary)]"
+                : "border-transparent text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)]",
             ].join(" ")
           }
           end={false}
@@ -44,13 +44,13 @@ export default function DashboardLayout() {
         </NavLink>
         <NavLink
           to="/creditos"
-          title="Créditos — Stripe"
+          title="Créditos"
           className={({ isActive }) =>
             [
               "flex size-10 items-center justify-center rounded-xl border transition-colors",
               isActive
-                ? "border-[#30363D] bg-[#21262D] text-[#FBD87F]"
-                : "border-transparent text-[#8B949E] hover:bg-[#21262D] hover:text-[#F0F4FC]",
+                ? "border-[var(--border-subtle)] bg-[var(--bg-elevated)] text-[var(--accent-primary)]"
+                : "border-transparent text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)]",
             ].join(" ")
           }
         >
@@ -58,13 +58,13 @@ export default function DashboardLayout() {
         </NavLink>
         <NavLink
           to="/ranking"
-          title="Entidades — ranking"
+          title="Entidades"
           className={({ isActive }) =>
             [
               "flex size-10 items-center justify-center rounded-xl border transition-colors",
               isActive
-                ? "border-[#30363D] bg-[#21262D] text-[#58A6FF]"
-                : "border-transparent text-[#8B949E] hover:bg-[#21262D] hover:text-[#F0F4FC]",
+                ? "border-[var(--border-subtle)] bg-[var(--bg-elevated)] text-[var(--accent-primary)]"
+                : "border-transparent text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)]",
             ].join(" ")
           }
         >
@@ -72,32 +72,38 @@ export default function DashboardLayout() {
         </NavLink>
         <NavLink
           to="/login"
-          title="Acesso / relatórios"
+          title="Sessão"
           className={({ isActive }) =>
             [
               "flex size-10 items-center justify-center rounded-xl border transition-colors",
               isActive
-                ? "border-[#30363D] bg-[#21262D] text-[#58A6FF]"
-                : "border-transparent text-[#8B949E] hover:bg-[#21262D] hover:text-[#F0F4FC]",
+                ? "border-[var(--border-subtle)] bg-[var(--bg-elevated)] text-[var(--accent-primary)]"
+                : "border-transparent text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)]",
             ].join(" ")
           }
         >
           <Shield className="size-[1.35rem]" strokeWidth={1.75} />
         </NavLink>
         <div className="mt-auto flex flex-col gap-3 opacity-80">
-          <span className="flex size-10 items-center justify-center rounded-xl text-[#484F58]">
+          <span className="flex size-10 items-center justify-center rounded-xl text-[var(--text-muted)]">
             <Hexagon className="size-[1.15rem]" strokeWidth={1.5} />
           </span>
-          <span className="flex size-10 items-center justify-center rounded-xl text-[#484F58]">
+          <span className="flex size-10 items-center justify-center rounded-xl text-[var(--text-muted)]">
             <Activity className="size-[1.15rem]" strokeWidth={1.5} />
           </span>
         </div>
       </aside>
 
       <div className="flex min-h-dvh min-w-0 flex-1 flex-col overflow-x-hidden pl-14 md:pl-16">
-        <header className="sticky top-0 z-30 flex min-h-14 shrink-0 flex-wrap items-center justify-between gap-4 border-b border-[#30363D] bg-[#0A0E17]/90 px-4 py-2 backdrop-blur-md sm:px-6">
+        <header className="sticky top-0 z-30 flex min-h-14 shrink-0 flex-wrap items-center justify-between gap-4 border-b border-[var(--border-subtle)] bg-[var(--bg-deep)]/92 px-4 py-2 backdrop-blur-md sm:px-6">
           <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center sm:gap-6">
-            <BrandLogo className="hidden md:flex" />
+            <BrandLogo
+              to="/dashboard"
+              variant="dark"
+              size="md"
+              withGlow
+              className="hidden md:flex"
+            />
             <div className="min-w-0 max-w-xl flex-1">
               <GlobalSearch />
             </div>
@@ -108,28 +114,25 @@ export default function DashboardLayout() {
           >
             <CreditosGOD />
             <NavLink to="/dashboard" className={navTabClass}>
-              Overview
+              Operações
             </NavLink>
             <NavLink to="/ranking" className={navTabClass}>
-              Entities
+              Entidades
             </NavLink>
             <NavLink to="/mapa" className={navTabClass}>
-              Map
+              Mapa
             </NavLink>
             <NavLink to="/alertas" className={navTabClass}>
-              Alerts
+              Alertas
             </NavLink>
             <NavLink to="/creditos" className={navTabClass}>
-              Créditos
+              Financeiro
             </NavLink>
-            <NavLink to="/ranking" className={navTabClass}>
-              Financials
-            </NavLink>
-            <NavLink to="/ranking" className={navTabClass}>
-              Risk Analysis
+            <NavLink to="/radar/dossiers" className={navTabClass}>
+              Análise de risco
             </NavLink>
             <NavLink to="/dashboard" className={navTabClass}>
-              Reports
+              Relatórios
             </NavLink>
           </nav>
         </header>

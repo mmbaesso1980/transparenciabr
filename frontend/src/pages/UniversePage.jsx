@@ -104,7 +104,7 @@ export default function UniversePage() {
       />
 
       <header className="relative z-20 flex flex-wrap items-center justify-between gap-3 border-b border-[#30363D]/60 bg-[#02040a]/75 px-4 py-3 backdrop-blur-md sm:px-8">
-        <BrandLogo to="/" />
+        <BrandLogo to="/" variant="full" size="md" />
         <nav
           className="flex flex-wrap items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8B949E] sm:gap-4"
           aria-label="Navegação universo"
