@@ -85,6 +85,8 @@ pre {
 
 /* Bentobox Cyber-Pristine — cartões principais */
 .glass-card {
+  min-width: 0;
+  max-width: 100%;
   background: rgb(16 21 36 / 0.6);
   backdrop-filter: blur(16px) saturate(160%);
   -webkit-backdrop-filter: blur(16px) saturate(160%);

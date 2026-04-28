@@ -335,7 +335,7 @@ export default function DossiePage() {
         <meta property="og:type" content="article" />
       </Helmet>
 
-      <div className="relative isolate min-h-full w-full overflow-x-hidden bg-[#0A0E17] pb-12 text-[#F0F4FC]">
+      <div className="relative isolate min-h-full w-full min-w-0 max-w-full overflow-x-hidden bg-[#0A0E17] pb-12 text-[#F0F4FC]">
         <div
           aria-hidden
           className="pointer-events-none fixed inset-0 overflow-hidden"
@@ -345,10 +345,10 @@ export default function DossiePage() {
           <div className="absolute bottom-[-14%] left-[22%] h-[30rem] w-[30rem] rounded-full bg-[radial-gradient(ellipse_at_center,rgba(125,211,252,0.42)_0%,transparent_68%)] blur-3xl opacity-10" />
         </div>
 
-        <div className="relative z-10">
+        <div className="relative z-10 min-w-0 w-full max-w-full">
           {/* Linha 1 — cabeçalho Bentobox fixo */}
           <header className="sticky top-0 z-50 border-b border-[#30363D] bg-[#0A0E17]/93 backdrop-blur-lg">
-            <div className="mx-auto flex max-w-[1600px] flex-wrap items-center gap-3 px-4 py-3 sm:gap-4 sm:px-6 sm:py-4">
+            <div className="mx-auto flex min-w-0 max-w-[1600px] flex-wrap items-center gap-3 px-4 py-3 sm:gap-4 sm:px-6 sm:py-4">
               <BrandLogo />
               {photoAbs ? (
                 <img
@@ -410,9 +410,9 @@ export default function DossiePage() {
             </div>
           </header>
 
-          <div className="dossie-page-body mx-auto max-w-[1600px] space-y-6 px-4 pt-6 sm:px-6 text-lg leading-relaxed text-[#C9D1D9]">
+          <div className="dossie-page-body mx-auto min-w-0 w-full max-w-[1600px] space-y-6 px-4 pt-6 sm:px-6 text-lg leading-relaxed text-[#C9D1D9]">
             {/* Linha 2 — índice forense + bússola */}
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid min-w-0 gap-4 md:grid-cols-2">
               <section className="glass-card flex min-h-[26rem] flex-col overflow-hidden p-0">
                 <div className="flex items-center justify-between border-b border-[#30363D] px-4 py-3">
                   <div className="flex items-center gap-2">
@@ -468,7 +468,7 @@ export default function DossiePage() {
             </section>
 
             {/* Linha 3 — CEAP · agenda · IBGE */}
-            <div className="grid gap-4 lg:grid-cols-3">
+            <div className="grid min-w-0 gap-4 lg:grid-cols-3">
               <CeapMonitorSection
                 investigations={investigations}
                 ceapResumo={displayRecord?.ceap_resumo}
