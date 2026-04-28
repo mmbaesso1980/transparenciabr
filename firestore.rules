@@ -132,10 +132,12 @@ service cloud.firestore {
       allow write: if false;
     }
 
-    match /transparency_reports/{reportId} {
-      allow get: if true;
-      allow list: if request.query.limit != null
-        && request.query.limit <= 50;
+    /**
+     * Vitrine pública: grafo na landing / universo — leitura anónima permitida.
+     * Escrita apenas Admin SDK / backend (motores Node). Cliente nunca escreve.
+     */
+    match /transparency_reports/{document=**} {
+      allow read: if true;
       allow write: if false;
     }
 

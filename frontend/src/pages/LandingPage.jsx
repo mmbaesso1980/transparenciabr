@@ -11,7 +11,7 @@ import { useTransparencyReportsUniverso } from "../hooks/useTransparencyReportsU
 
 /**
  * Vitrine pública (/) — grafo Firestore real, estética data.gov.uk / void neon,
- * barreira Modo GOD + redirect para dossiê após login.
+ * barreira de sessão + redirect para dossiê após login.
  */
 export default function LandingPage() {
   const navigate = useNavigate();
@@ -76,7 +76,7 @@ export default function LandingPage() {
         <title>Motor Forense TransparênciaBR — Fiscalização com IA e OSINT</title>
         <meta
           name="description"
-          content="Malha viva de transparência: partidos, parlamentares e fornecedores CEAP. Modo GOD para dossiê completo."
+          content="Malha viva de transparência: partidos, parlamentares e fornecedores CEAP. Conta para dossiê completo."
         />
         <meta property="og:title" content="Motor Forense TransparênciaBR" />
         <meta property="og:type" content="website" />
@@ -108,7 +108,7 @@ export default function LandingPage() {
             className="inline-flex h-9 items-center gap-2 rounded-lg border border-[#FDE047]/35 bg-[#FDE047]/10 px-3 text-xs font-semibold uppercase tracking-wide text-[#FDE047] transition hover:bg-[#FDE047]/18"
           >
             <Lock className="size-3.5" strokeWidth={2} aria-hidden />
-            <span className="hidden sm:inline">Modo GOD</span>
+            <span className="hidden sm:inline">Entrar</span>
           </Link>
         </div>
       </header>
@@ -196,7 +196,7 @@ export default function LandingPage() {
               </span>
               <div className="text-left">
                 <h2 id="gate-title" className="text-lg font-semibold text-[#F0F4FC]">
-                  Modo GOD necessário
+                  Inicie sessão
                 </h2>
                 <p className="mt-2 text-sm leading-relaxed text-[#C9D1D9]">
                   Faça login para abrir o dossiê investigativo de{" "}
