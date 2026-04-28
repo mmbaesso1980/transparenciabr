@@ -2,6 +2,12 @@
 
 @import "tailwindcss";
 
+/*
+ * Nota: html2canvas (html2pdf) não suporta oklch. O bloco DossiePDFContent usa
+ * apenas estilos inline hex/rgb. Se o build do Tailwind v4 emitir oklch nas
+ * utilities, manter componentes de captura PDF livres de classes Tailwind.
+ */
+
 /* ═══ Design System — TransparênciaBR · tema escuro operacional ═══ */
 
 :root {

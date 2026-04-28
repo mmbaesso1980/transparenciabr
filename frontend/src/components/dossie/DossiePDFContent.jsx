@@ -7,6 +7,15 @@ import {
   pickUf,
 } from "../../utils/dataParsers.js";
 
+/** Estilos só inline (hex/rgb) — html2canvas não interpreta oklch do Tailwind v4. */
+const C = {
+  ink: "#0d1117",
+  muted: "#57606a",
+  border: "#d0d7de",
+  softBg: "#f6f8fa",
+  white: "#ffffff",
+};
+
 function fmtBrl(n) {
   const x = Number(n);
   if (!Number.isFinite(x)) return "—";
@@ -132,7 +141,7 @@ function severityHigh(severidade) {
 }
 
 /**
- * Árvore React destinada exclusivamente à captura por html2pdf — mantida fora do fluxo visual.
+ * Captura html2pdf — sem classes Tailwind (evita oklch no canvas).
  */
 const DossiePDFContent = forwardRef(function DossiePDFContent(
   { politico, alertas },
@@ -160,68 +169,177 @@ const DossiePDFContent = forwardRef(function DossiePDFContent(
   const finance = useMemo(() => pickFinancialBlock(politico), [politico]);
   const listAlertas = Array.isArray(alertas) ? alertas : [];
 
+  const wrap = {
+    boxSizing: "border-box",
+    width: "210mm",
+    minHeight: "297mm",
+    padding: "14mm",
+    backgroundColor: C.white,
+    color: C.ink,
+    fontFamily: '"Inter", system-ui, sans-serif',
+    fontSize: "15px",
+    lineHeight: 1.55,
+    WebkitFontSmoothing: "antialiased",
+  };
+
   return (
     <div
       ref={ref}
-      className="fixed left-[-9999px] top-0 z-[-10] box-border w-[210mm] bg-[#FFFFFF] p-[12mm] text-[12px] leading-snug text-[#0D1117] antialiased"
+      style={{
+        ...wrap,
+        position: "fixed",
+        left: "-9999px",
+        top: 0,
+        zIndex: -10,
+      }}
       aria-hidden="true"
     >
-      <header className="border-b border-neutral-300 pb-4">
-        <div className="flex items-start justify-between gap-4">
+      <header style={{ borderBottom: `1px solid ${C.border}`, paddingBottom: "16px" }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "flex-start",
+            gap: "16px",
+          }}
+        >
           <div>
-            <p className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-[#0D1117]">
+            <p
+              style={{
+                fontFamily: "ui-monospace, monospace",
+                fontSize: "12px",
+                fontWeight: 700,
+                letterSpacing: "0.18em",
+                textTransform: "uppercase",
+                color: C.ink,
+                margin: 0,
+              }}
+            >
               Motor Forense TransparênciaBR
             </p>
-            <p className="text-[10px] text-neutral-600">TransparênciaBR · Dossiê forense</p>
+            <p style={{ fontSize: "13px", color: C.muted, margin: "4px 0 0" }}>
+              TransparênciaBR · Dossiê forense
+            </p>
           </div>
-          <div className="text-right text-[10px] text-neutral-600">
+          <div style={{ textAlign: "right", fontSize: "13px", color: C.muted }}>
             Emissão
             <br />
-            <span className="font-mono text-[#0D1117]">{geradoEm}</span>
+            <span style={{ fontFamily: "ui-monospace, monospace", color: C.ink }}>
+              {geradoEm}
+            </span>
           </div>
         </div>
-        <h1 className="mt-4 text-[20px] font-bold leading-tight text-[#0D1117]">{nome}</h1>
-        <p className="mt-1 text-[13px] text-neutral-800">
-          <span className="font-semibold">{cargo}</span>
-          <span className="text-neutral-400"> · </span>
+        <h1
+          style={{
+            marginTop: "20px",
+            fontSize: "28px",
+            fontWeight: 700,
+            lineHeight: 1.2,
+            color: C.ink,
+            letterSpacing: "-0.02em",
+          }}
+        >
+          {nome}
+        </h1>
+        <p style={{ marginTop: "8px", fontSize: "17px", color: "#24292f" }}>
+          <span style={{ fontWeight: 600 }}>{cargo}</span>
+          <span style={{ color: "#8c959f" }}> · </span>
           <span>{partido}</span>
-          <span className="text-neutral-400"> · </span>
-          <span className="font-mono">{uf}</span>
+          <span style={{ color: "#8c959f" }}> · </span>
+          <span style={{ fontFamily: "ui-monospace, monospace" }}>{uf}</span>
         </p>
       </header>
 
-      <section className="mt-5 border-b border-neutral-200 pb-4">
-        <h2 className="text-[11px] font-bold uppercase tracking-wider text-neutral-500">
+      <section style={{ marginTop: "22px", borderBottom: `1px solid ${C.border}`, paddingBottom: "18px" }}>
+        <h2
+          style={{
+            fontSize: "13px",
+            fontWeight: 700,
+            letterSpacing: "0.12em",
+            textTransform: "uppercase",
+            color: C.muted,
+            margin: 0,
+          }}
+        >
           Índice de exposição
         </h2>
-        <p className="mt-2 font-mono text-[28px] font-semibold tabular-nums text-[#0D1117]">
+        <p
+          style={{
+            marginTop: "12px",
+            fontFamily: "ui-monospace, monospace",
+            fontSize: "36px",
+            fontWeight: 600,
+            color: C.ink,
+          }}
+        >
           {risk != null && Number.isFinite(Number(risk))
             ? `${Math.round(Number(risk))} / 100`
             : "—"}
         </p>
-        <p className="mt-1 text-[11px] text-neutral-600">Risk score agregado (painel).</p>
+        <p style={{ marginTop: "6px", fontSize: "14px", color: C.muted }}>
+          Risk score agregado (painel).
+        </p>
       </section>
 
-      <section className="mt-5 border-b border-neutral-200 pb-4">
-        <h2 className="text-[11px] font-bold uppercase tracking-wider text-neutral-500">
+      <section style={{ marginTop: "22px", borderBottom: `1px solid ${C.border}`, paddingBottom: "18px" }}>
+        <h2
+          style={{
+            fontSize: "13px",
+            fontWeight: 700,
+            letterSpacing: "0.12em",
+            textTransform: "uppercase",
+            color: C.muted,
+            margin: 0,
+          }}
+        >
           Seção 1 · Resumo financeiro
         </h2>
-        <ul className="mt-3 grid gap-2 font-mono text-[12px] tabular-nums">
-          <li className="flex justify-between gap-4 border-b border-neutral-100 pb-2">
-            <span className="text-neutral-600">Total de emendas (agreg.)</span>
-            <span className="font-semibold text-[#0D1117]">
+        <ul style={{ marginTop: "14px", padding: 0, listStyle: "none" }}>
+          <li
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              gap: "16px",
+              borderBottom: `1px solid #eaeef2`,
+              paddingBottom: "10px",
+              marginBottom: "10px",
+              fontFamily: "ui-monospace, monospace",
+              fontSize: "15px",
+            }}
+          >
+            <span style={{ color: C.muted }}>Total de emendas (agreg.)</span>
+            <span style={{ fontWeight: 600, color: C.ink }}>
               {finance.totalEmendas != null ? fmtBrl(finance.totalEmendas) : "—"}
             </span>
           </li>
-          <li className="flex justify-between gap-4 border-b border-neutral-100 pb-2">
-            <span className="text-neutral-600">Total CEAP</span>
-            <span className="font-semibold text-[#0D1117]">
+          <li
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              gap: "16px",
+              borderBottom: `1px solid #eaeef2`,
+              paddingBottom: "10px",
+              marginBottom: "10px",
+              fontFamily: "ui-monospace, monospace",
+              fontSize: "15px",
+            }}
+          >
+            <span style={{ color: C.muted }}>Total CEAP</span>
+            <span style={{ fontWeight: 600, color: C.ink }}>
               {finance.totalCeap != null ? fmtBrl(finance.totalCeap) : "—"}
             </span>
           </li>
-          <li className="flex justify-between gap-4">
-            <span className="text-neutral-600">Custo médio mensal (CEAP)</span>
-            <span className="font-semibold text-[#0D1117]">
+          <li
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              gap: "16px",
+              fontFamily: "ui-monospace, monospace",
+              fontSize: "15px",
+            }}
+          >
+            <span style={{ color: C.muted }}>Custo médio mensal (CEAP)</span>
+            <span style={{ fontWeight: 600, color: C.ink }}>
               {finance.custoMedioMensal != null
                 ? fmtBrl(finance.custoMedioMensal)
                 : "—"}
@@ -230,34 +348,55 @@ const DossiePDFContent = forwardRef(function DossiePDFContent(
         </ul>
       </section>
 
-      <section className="mt-5 border-b border-neutral-200 pb-4">
-        <h2 className="text-[11px] font-bold uppercase tracking-wider text-neutral-500">
+      <section style={{ marginTop: "22px", borderBottom: `1px solid ${C.border}`, paddingBottom: "18px" }}>
+        <h2
+          style={{
+            fontSize: "13px",
+            fontWeight: 700,
+            letterSpacing: "0.12em",
+            textTransform: "uppercase",
+            color: C.muted,
+            margin: 0,
+          }}
+        >
           Seção 2 · Base eleitoral crítica (top 3)
         </h2>
         {top3.length === 0 ? (
-          <p className="mt-3 text-[11px] text-neutral-600">
+          <p style={{ marginTop: "12px", fontSize: "14px", color: C.muted }}>
             Sem municípios rankeados neste documento.
           </p>
         ) : (
-          <ol className="mt-3 list-decimal space-y-3 pl-5">
+          <ol style={{ marginTop: "14px", paddingLeft: "22px" }}>
             {top3.map((m) => (
-              <li key={m.codigo_ibge_municipio} className="pl-1">
-                <p className="font-semibold text-[#0D1117]">
+              <li key={m.codigo_ibge_municipio} style={{ marginBottom: "14px" }}>
+                <p style={{ fontWeight: 600, fontSize: "16px", color: C.ink, margin: 0 }}>
                   {m.nome_municipio}{" "}
-                  <span className="font-mono text-[11px] font-normal text-neutral-600">
+                  <span
+                    style={{
+                      fontFamily: "ui-monospace, monospace",
+                      fontSize: "14px",
+                      fontWeight: 400,
+                      color: C.muted,
+                    }}
+                  >
                     ({m.uf})
                   </span>
                 </p>
-                <div className="mt-1 grid gap-0.5 font-mono text-[11px] text-neutral-800 tabular-nums">
-                  <p>
+                <div
+                  style={{
+                    marginTop: "6px",
+                    fontFamily: "ui-monospace, monospace",
+                    fontSize: "14px",
+                    color: "#24292f",
+                  }}
+                >
+                  <p style={{ margin: "2px 0" }}>
                     Emendas:{" "}
-                    <span className="font-semibold">
-                      {fmtBrl(m.total_emendas_valor)}
-                    </span>
+                    <span style={{ fontWeight: 600 }}>{fmtBrl(m.total_emendas_valor)}</span>
                   </p>
-                  <p>
-                    IDH: <span className="font-semibold">{fmtIdh(m.idh_municipal)}</span> ·
-                    Pop.: {fmtInt(m.populacao)}
+                  <p style={{ margin: "2px 0" }}>
+                    IDH: <span style={{ fontWeight: 600 }}>{fmtIdh(m.idh_municipal)}</span> · Pop.:{" "}
+                    {fmtInt(m.populacao)}
                   </p>
                 </div>
               </li>
@@ -266,39 +405,77 @@ const DossiePDFContent = forwardRef(function DossiePDFContent(
         )}
       </section>
 
-      <section className="mt-5 border-b border-neutral-200 pb-4">
-        <h2 className="text-[11px] font-bold uppercase tracking-wider text-neutral-500">
+      <section style={{ marginTop: "22px", borderBottom: `1px solid ${C.border}`, paddingBottom: "18px" }}>
+        <h2
+          style={{
+            fontSize: "13px",
+            fontWeight: 700,
+            letterSpacing: "0.12em",
+            textTransform: "uppercase",
+            color: C.muted,
+            margin: 0,
+          }}
+        >
           Seção 3 · Alertas forenses (motor preditivo)
         </h2>
         {listAlertas.length === 0 ? (
-          <p className="mt-3 text-[11px] text-neutral-600">
+          <p style={{ marginTop: "12px", fontSize: "14px", color: C.muted }}>
             Nenhum alerta incorporado neste relatório.
           </p>
         ) : (
-          <ul className="mt-3 space-y-3">
+          <ul style={{ marginTop: "14px", padding: 0, listStyle: "none" }}>
             {listAlertas.map((a, idx) => {
               const warn = severityHigh(a.severidade);
               return (
                 <li
                   key={`${a.tipo}-${idx}`}
-                  className="rounded-md border border-neutral-200 bg-neutral-50 p-3"
+                  style={{
+                    borderRadius: "8px",
+                    border: `1px solid ${C.border}`,
+                    backgroundColor: C.softBg,
+                    padding: "14px",
+                    marginBottom: "12px",
+                  }}
                 >
-                  <div className="flex flex-wrap items-baseline gap-2">
-                    {warn ? (
-                      <span className="select-none" aria-hidden="true">
-                        ⚠️
-                      </span>
-                    ) : null}
-                    <span className="font-mono text-[10px] font-semibold uppercase tracking-wide text-[#0D1117]">
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", alignItems: "baseline" }}>
+                    {warn ? <span aria-hidden="true">⚠️</span> : null}
+                    <span
+                      style={{
+                        fontFamily: "ui-monospace, monospace",
+                        fontSize: "12px",
+                        fontWeight: 600,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.06em",
+                        color: C.ink,
+                      }}
+                    >
                       {a.tipo}
                     </span>
                     {a.severidade ? (
-                      <span className="rounded bg-white px-1.5 py-0.5 font-mono text-[10px] uppercase text-neutral-700">
+                      <span
+                        style={{
+                          fontFamily: "ui-monospace, monospace",
+                          fontSize: "11px",
+                          textTransform: "uppercase",
+                          backgroundColor: C.white,
+                          padding: "2px 8px",
+                          borderRadius: "4px",
+                          color: "#424a53",
+                        }}
+                      >
                         {a.severidade}
                       </span>
                     ) : null}
                   </div>
-                  <p className="mt-2 whitespace-pre-wrap text-[11px] leading-relaxed text-neutral-900">
+                  <p
+                    style={{
+                      marginTop: "10px",
+                      whiteSpace: "pre-wrap",
+                      fontSize: "15px",
+                      lineHeight: 1.55,
+                      color: "#1f2328",
+                    }}
+                  >
                     {a.trecho}
                   </p>
                 </li>
@@ -308,12 +485,12 @@ const DossiePDFContent = forwardRef(function DossiePDFContent(
         )}
       </section>
 
-      <footer className="mt-8 border-t border-neutral-200 pt-3">
-        <p className="text-[10px] leading-relaxed text-gray-500">
+      <footer style={{ marginTop: "28px", borderTop: `1px solid ${C.border}`, paddingTop: "14px" }}>
+        <p style={{ fontSize: "12px", lineHeight: 1.5, color: "#6e7781", margin: 0 }}>
           Documento gerado automaticamente a partir de dados públicos (Câmara dos Deputados, Senado
-          Federal, Portal da Transparência, TCU e outras fontes oficiais agregadas pela
-          plataforma). Não substitui procedimentos jurídicos nem possui valor legal punitivo; trata-se
-          de síntese informativa para análise.
+          Federal, Portal da Transparência, TCU e outras fontes oficiais agregadas pela plataforma).
+          Não substitui procedimentos jurídicos nem possui valor legal punitivo; trata-se de síntese
+          informativa para análise.
         </p>
       </footer>
     </div>

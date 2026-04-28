@@ -23,17 +23,17 @@ function AgenteCard({ label, subtitle, children, alertPulse }) {
   return (
     <div
       className={[
-        "flex min-h-[7.5rem] flex-col rounded-lg border bg-[#050608] p-3 shadow-inner",
+        "flex min-h-[11rem] flex-col rounded-xl border bg-[#050608] p-5 shadow-inner sm:min-h-[12rem]",
         alertPulse
           ? "animate-[prisma-pulse_1.4s_ease-in-out_infinite] border-[#f85149]"
           : "border-[#2d0808]",
       ].join(" ")}
     >
-      <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#f85149]">
+      <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#f85149] md:text-sm">
         {label}
       </p>
-      <p className="mt-0.5 text-[9px] uppercase tracking-wider text-[#6e7681]">{subtitle}</p>
-      <div className="mt-2 flex-1 text-[11px] leading-snug text-[#C9D1D9]">{children}</div>
+      <p className="mt-1 text-xs uppercase tracking-wider text-[#6e7681] md:text-sm">{subtitle}</p>
+      <div className="mt-4 flex-1 text-lg leading-relaxed text-[#C9D1D9]">{children}</div>
     </div>
   );
 }
@@ -56,19 +56,32 @@ export default function PrismaCeapSection({ record }) {
           Boolean(prismas?.BENFORD?.resultado?.anomaly_detected);
         const mad = r?.mad ?? prismas?.BENFORD?.resultado?.mad;
         const ok = r?.amostra_suficiente ?? prismas?.BENFORD?.resultado?.amostra_suficiente;
+        const chi = r?.chi2_pearson_aprox ?? prismas?.BENFORD?.resultado?.chi2_pearson_aprox;
         return (
           <AgenteCard key={key} label={label} subtitle={subtitle} alertPulse={anomaly}>
-            {anomaly ? (
-              <p className="font-semibold uppercase tracking-wide text-[#f85149]">
-                ALERTA FORENSE
+            <div className="flex flex-col gap-3">
+              {anomaly ? (
+                <p className="text-xl font-bold uppercase tracking-wide text-[#f85149] md:text-2xl">
+                  ALERTA FORENSE
+                </p>
+              ) : (
+                <p className="text-lg text-[#8B949E] md:text-xl">
+                  Sem anomalia Benford destacada nesta amostra (MAD).
+                </p>
+              )}
+              <div className="rounded-lg border border-[#30363D] bg-[#0d1117]/90 px-4 py-3">
+                <p className="font-data text-[10px] font-semibold uppercase tracking-widest text-[#8B949E]">
+                  MAD (1.º dígito)
+                </p>
+                <p className="font-data mt-1 text-4xl font-bold tabular-nums text-[#7DD3FC] md:text-5xl">
+                  {mad != null ? String(mad) : "—"}
+                </p>
+              </div>
+              <p className="font-data text-sm text-[#8B949E] md:text-base">
+                χ² ≈ {chi != null ? String(chi) : "—"} · Amostra:{" "}
+                {ok === false ? "insuficiente" : ok === true ? "ok" : "—"}
               </p>
-            ) : (
-              <p className="text-[#8B949E]">Sem anomalia Benford flagrada (MAD).</p>
-            )}
-            <p className="mt-2 font-mono text-[10px] text-[#8B949E]">
-              MAD: {mad != null ? String(mad) : "—"} · Amostra:{" "}
-              {ok === false ? "insuficiente" : ok === true ? "ok" : "—"}
-            </p>
+            </div>
           </AgenteCard>
         );
       }
@@ -81,7 +94,7 @@ export default function PrismaCeapSection({ record }) {
         String(payload?.nota || "").includes("AGUARDANDO");
       return (
         <AgenteCard key={key} label={label} subtitle={subtitle}>
-          <p className="text-[#8B949E]">
+          <p className="text-lg text-[#8B949E] md:text-xl">
             {waiting
               ? "[AGUARDANDO VARREDURA PROFUNDA]"
               : String(payload?.nota || status || "—")}
@@ -92,18 +105,18 @@ export default function PrismaCeapSection({ record }) {
   }, [bundle, benfordAgent, prismas]);
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-5">
       <style>{`
         @keyframes prisma-pulse {
           0%, 100% { box-shadow: 0 0 0 0 rgba(248, 81, 73, 0.35); }
           50% { box-shadow: 0 0 14px 2px rgba(248, 81, 73, 0.55); }
         }
       `}</style>
-      <div className="border-b border-[#2d0808] pb-2">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[#f85149]">
+      <div className="border-b border-[#2d0808] pb-4">
+        <h2 className="text-2xl font-bold tracking-tight text-[#f85149] md:text-3xl">
           A.S.M.O.D.E.U.S. · 12 Prismas
-        </p>
-        <p className="text-[10px] text-[#6e7681]">
+        </h2>
+        <p className="mt-2 text-lg leading-relaxed text-[#8B949E]">
           Motor CEAP Node —{" "}
           <span className="font-mono text-[#C9D1D9]">
             {bundle?.gerado_em ? String(bundle.gerado_em).slice(0, 19) : "—"}
@@ -111,12 +124,12 @@ export default function PrismaCeapSection({ record }) {
         </p>
       </div>
       {!bundle ? (
-        <p className="rounded-lg border border-[#2d0808] bg-[#050608] p-4 text-sm text-[#8B949E]">
+        <p className="rounded-xl border border-[#2d0808] bg-[#050608] p-6 text-lg leading-relaxed text-[#8B949E]">
           Execute <span className="font-mono text-[#f85149]">node engines/ceap_motor.js</span> para
           popular os prismas.
         </p>
       ) : (
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {cards}
         </div>
       )}
