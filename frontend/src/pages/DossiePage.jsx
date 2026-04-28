@@ -30,6 +30,7 @@ import DespesasCeapAudit from "../components/dossie/DespesasCeapAudit.jsx";
 import PrismaCeapSection from "../components/dossie/PrismaCeapSection.jsx";
 import BrazilHeatmap from "../components/BrazilHeatmap.jsx";
 import NetworkGraph from "../components/dossie/NetworkGraph.jsx";
+import DossierPremiumInsights from "../components/dossie/DossierPremiumInsights.jsx";
 import { useUserCredits } from "../hooks/useUserCredits.js";
 import { useUserClaims } from "../hooks/useUserClaims.js";
 import {
@@ -465,6 +466,21 @@ export default function DossiePage() {
 
             <section className="glass-card overflow-hidden bg-[#050608] p-4 ring-1 ring-[#2d0808]/80 sm:p-5">
               <PrismaCeapSection record={displayRecord} politicoId={politicoId} />
+            </section>
+
+            <section className="mx-auto min-w-0 max-w-[1600px] px-0">
+              <div className="mb-4 flex flex-wrap items-center gap-2">
+                <Sparkles className="size-5 text-[#FDE047]" strokeWidth={1.75} />
+                <div>
+                  <h2 className="text-2xl font-bold tracking-tight text-[#F0F4FC] md:text-3xl">
+                    Painel premium — inteligência consolidada
+                  </h2>
+                  <p className="mt-1 text-lg leading-relaxed text-[#8B949E]">
+                    Resumo de riscos, fornecedores CEAP e hipóteses de cruzamento (OSS × CNES).
+                  </p>
+                </div>
+              </div>
+              <DossierPremiumInsights record={displayRecord} />
             </section>
 
             {/* Linha 3 — CEAP · agenda · IBGE */}

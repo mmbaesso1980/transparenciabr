@@ -1,7 +1,6 @@
-import { useMemo, useRef } from "react";
-import ForceGraph2D from "react-force-graph-2d";
+import { useMemo } from "react";
 
-import { getRiskColor, getRiskGlow } from "../../utils/colorUtils.js";
+import { getRiskColor } from "../../utils/colorUtils.js";
 
 const FALLBACK_POLITICO = "#6ea8ff";
 const LINK_COLOR = "rgba(148, 163, 184, 0.45)";
@@ -102,9 +101,21 @@ function nodeRadius(node) {
   }
 }
 
+function layoutCircle(nodes, cx, cy, R) {
+  const n = nodes.length;
+  const map = new Map();
+  for (let i = 0; i < n; i++) {
+    const ang = (2 * Math.PI * i) / Math.max(n, 1) - Math.PI / 2;
+    map.set(nodes[i].id, {
+      x: cx + R * Math.cos(ang),
+      y: cy + R * Math.sin(ang),
+    });
+  }
+  return map;
+}
+
 /**
- * Teia interativa — dados reais do Firestore quando existem; caso contrário, grafo simulado.
- * Container com glassmorphism para o Motor Forense TransparênciaBR.
+ * Teia — SVG (sem workers / MIME). Dados reais do Firestore quando existem.
  */
 export default function NetworkGraph({
   politicianId,
@@ -112,8 +123,6 @@ export default function NetworkGraph({
   graphPayload = null,
   centralLabel = "",
 }) {
-  const fgRef = useRef(null);
-
   const normalizedReal = useMemo(
     () => normalizeFirestoreGraph(graphPayload),
     [graphPayload],
@@ -125,6 +134,22 @@ export default function NetworkGraph({
   }, [normalizedReal, centralLabel]);
 
   const isPersisted = !!normalizedReal?.nodes?.length;
+
+  const { positions, edgePaths, vbW, vbH } = useMemo(() => {
+    const w = 520;
+    const h = embedded ? 260 : 420;
+    const cx = w / 2;
+    const cy = h / 2;
+    const R = Math.min(w, h) * 0.32;
+    const pos = layoutCircle(graphData.nodes, cx, cy, R);
+    const edges = [];
+    for (const L of graphData.links) {
+      const a = pos.get(String(L.source));
+      const b = pos.get(String(L.target));
+      if (a && b) edges.push({ x1: a.x, y1: a.y, x2: b.x, y2: b.y });
+    }
+    return { positions: pos, edgePaths: edges, vbW: w, vbH: h };
+  }, [graphData, embedded]);
 
   const outerClass = embedded
     ? "relative flex min-h-[280px] min-h-0 w-full max-w-full min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-[#30363D] bg-[#0D1117]/70 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] backdrop-blur-md"
@@ -147,50 +172,57 @@ export default function NetworkGraph({
   return (
     <div className={outerClass} style={outerStyle} key={politicianId}>
       {hint}
-      <div className="relative min-h-0 flex-1 w-full" style={{ flex: embedded ? "1 1 auto" : undefined }}>
-        <ForceGraph2D
-          ref={fgRef}
-          graphData={graphData}
-          backgroundColor="rgba(8,11,20,0.92)"
-          linkColor={() => LINK_COLOR}
-          linkWidth={1.35}
-          nodeLabel="label"
-          nodeCanvasObject={(node, ctx, globalScale) => {
-            const label = node.label || node.id;
+      <div
+        className="relative min-h-0 flex-1 w-full"
+        style={{ flex: embedded ? "1 1 auto" : undefined }}
+      >
+        <svg
+          className="block h-full w-full"
+          viewBox={`0 0 ${vbW} ${vbH}`}
+          preserveAspectRatio="xMidYMid meet"
+          role="img"
+          aria-label="Grafo de rede"
+        >
+          <rect
+            width="100%"
+            height="100%"
+            fill="rgba(8,11,20,0.92)"
+          />
+          {edgePaths.map((e, i) => (
+            <line
+              key={`e-${i}`}
+              x1={e.x1}
+              y1={e.y1}
+              x2={e.x2}
+              y2={e.y2}
+              stroke={LINK_COLOR}
+              strokeWidth={1.35}
+            />
+          ))}
+          {graphData.nodes.map((node) => {
+            const p = positions.get(node.id);
+            if (!p) return null;
             const r = nodeRadius(node);
             const score =
               typeof node.riskScore === "number" ? node.riskScore : 50;
             const fill = node.color || getRiskColor(score) || FALLBACK_POLITICO;
-            const glow = getRiskGlow(score);
-
-            ctx.save();
-            ctx.shadowColor = fill;
-            ctx.shadowBlur = 12 * glow;
-            ctx.beginPath();
-            ctx.arc(node.x, node.y, r, 0, 2 * Math.PI, false);
-            ctx.fillStyle = fill;
-            ctx.fill();
-            ctx.restore();
-
-            if (globalScale > 0.55) {
-              ctx.font = `${10 / globalScale}px var(--font-sans), sans-serif`;
-              ctx.textAlign = "center";
-              ctx.textBaseline = "top";
-              ctx.fillStyle = "rgba(240,244,252,0.92)";
-              ctx.fillText(label, node.x, node.y + r + 2 / globalScale);
-            }
-          }}
-          nodePointerAreaPaint={(node, color, ctx) => {
-            const r = nodeRadius(node) + 3;
-            ctx.fillStyle = color;
-            ctx.beginPath();
-            ctx.arc(node.x, node.y, r, 0, 2 * Math.PI, false);
-            ctx.fill();
-          }}
-          enableNodeDrag
-          cooldownTicks={120}
-          onEngineStop={() => fgRef.current?.zoomToFit?.(400, 90)}
-        />
+            return (
+              <g key={node.id}>
+                <circle cx={p.x} cy={p.y} r={r} fill={fill} opacity={0.95} />
+                <text
+                  x={p.x}
+                  y={p.y + r + 12}
+                  textAnchor="middle"
+                  fill="rgba(240,244,252,0.92)"
+                  fontSize={10}
+                  fontFamily="system-ui, sans-serif"
+                >
+                  {String(node.label || node.id).slice(0, 22)}
+                </text>
+              </g>
+            );
+          })}
+        </svg>
       </div>
     </div>
   );

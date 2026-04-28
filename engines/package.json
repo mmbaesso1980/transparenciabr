@@ -9,7 +9,8 @@
     "ceap": "node ceap_motor.js",
     "perfil": "node perfil_base_sync.js",
     "test-bucket": "node test_bucket.js",
-    "ingest:cnes": "node ingestors/cnes_ingestor.js"
+    "ingest:cnes": "node ingestors/cnes_ingestor.js",
+    "dracula": "python3 17_health_scanner.py"
   },
   "dependencies": {
     "@google-cloud/storage": "^7.19.0",
