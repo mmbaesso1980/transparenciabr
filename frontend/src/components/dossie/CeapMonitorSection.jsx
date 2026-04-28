@@ -32,13 +32,16 @@ export default function CeapMonitorSection({
   resumo = null,
   ceapResumo = null,
   godMode = false,
+  oracleUnlocked = false,
   onUnlockAll,
 }) {
   const [expanded, setExpanded] = useState(false);
 
+  const unlocked = godMode || oracleUnlocked;
+
   useEffect(() => {
-    if (godMode) setExpanded(true);
-  }, [godMode]);
+    if (unlocked) setExpanded(true);
+  }, [unlocked]);
 
   const summary = resumo ?? ceapResumo;
   const total = summary?.total_ceap ?? summary?.valor_total_contratos;
@@ -46,10 +49,11 @@ export default function CeapMonitorSection({
   const fornecedores = summary?.fornecedores_distintos;
   const periodo = summary?.periodo;
 
+  const previewN = 4;
   const visibleRows =
-    expanded || godMode ? investigations : investigations.slice(0, 3);
+    expanded || unlocked ? investigations : investigations.slice(0, previewN);
   const showLoadMore =
-    investigations.length > 3 && !(expanded || godMode);
+    investigations.length > previewN && !(expanded || unlocked);
 
   const categorySlices = useMemo(() => {
     const totals = new Map();
@@ -87,7 +91,7 @@ export default function CeapMonitorSection({
               Monitor CEAP — linhas prioritárias
             </h2>
             <p className="text-[11px] text-[#8B949E]">
-              O que movimenta o mandato hoje (despesas / linhas estruturadas no documento)
+              Despesas reais da CEAP (API Câmara) quando o motor Node sincronizou o catálogo
             </p>
           </div>
         </div>
@@ -195,7 +199,7 @@ export default function CeapMonitorSection({
                   className="mt-2 inline-flex items-center gap-1 rounded-lg border border-[#30363D] bg-[#21262D]/80 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[#58A6FF] hover:border-[#58A6FF]/50"
                 >
                   <ExternalLink className="size-3" aria-hidden />
-                  Ver nota oficial (Câmara)
+                  Ver Nota Fiscal Oficial
                 </a>
               ) : null}
               {row.progressPct != null ? (
@@ -222,11 +226,11 @@ export default function CeapMonitorSection({
             className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-[#a371f7]/45 bg-[#a371f7]/10 px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-[#F0F4FC] hover:bg-[#a371f7]/16"
           >
             <Lock className="size-3.5" aria-hidden />
-            Clique aqui para carregar todas as notas
+            Desbloquear Dossiê Completo
           </button>
         </div>
       ) : null}
-      {!showLoadMore && !godMode && investigations.length > 3 && expanded ? (
+      {!showLoadMore && !unlocked && investigations.length > previewN && expanded ? (
         <div className="border-t border-[#21262D] px-4 py-2">
           <p className="text-center text-[10px] text-[#484F58]">
             Lista completa carregada ({investigations.length} notas).

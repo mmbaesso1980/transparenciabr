@@ -1,16 +1,53 @@
-import { ChevronDown, ExternalLink, FileWarning } from "lucide-react";
+import { ChevronDown, ExternalLink, FileWarning, Lock } from "lucide-react";
 import { useMemo, useState } from "react";
 
-const PREVIEW_COUNT = 3;
+const PREVIEW_COUNT = 4;
 
 function fmtBrl(v) {
   const n = Number(v);
   if (!Number.isFinite(n)) return "—";
-  return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  return n.toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
+function pickFornecedor(row) {
+  return String(
+    row.txtFornecedor ?? row.nomeFornecedor ?? row.nome_fornecedor ?? "",
+  ).trim();
+}
+
+function pickValor(row) {
+  const v = row.vlrLiquido ?? row.valor_liquido ?? row.valor;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
+function pickDataEmissao(row) {
+  const raw =
+    row.dataEmissao ??
+    row.data_emissao ??
+    row.data_documento ??
+    row.dataDocumento ??
+    "";
+  return String(raw ?? "").slice(0, 10);
+}
+
+function pickUrlDocumento(row) {
+  const u =
+    row.urlDocumento ??
+      row.url_documento_oficial ??
+      row.url_documento ??
+      row.url ??
+      "";
+  return typeof u === "string" ? u.trim() : "";
 }
 
 /**
- * Auditoria CEAP: 3 despesas em destaque + lista completa atrás de GOD / créditos (oracle unlock).
+ * Auditoria CEAP: 4 despesas em destaque (mais recentes; empate por valor) + paywall GOD/créditos.
  *
  * @param {{
  *   record: Record<string, unknown> | null;
@@ -34,53 +71,61 @@ export default function DespesasCeapAudit({
 
   const sorted = useMemo(() => {
     return [...catalogo].sort((a, b) => {
-      const ga = a.descricao_generica === true ? 0 : 1;
-      const gb = b.descricao_generica === true ? 0 : 1;
-      if (ga !== gb) return ga - gb;
-      const da = String(a.data_documento || "");
-      const db = String(b.data_documento || "");
-      return db.localeCompare(da);
+      const db = pickDataEmissao(b);
+      const da = pickDataEmissao(a);
+      if (db !== da) return db.localeCompare(da);
+      const vb = pickValor(b) ?? -Infinity;
+      const va = pickValor(a) ?? -Infinity;
+      return vb - va;
     });
   }, [catalogo]);
 
   const preview = sorted.slice(0, PREVIEW_COUNT);
+  const hiddenCount = Math.max(0, sorted.length - PREVIEW_COUNT);
   const canSeeAll = godMode || oracleUnlocked;
 
   if (catalogo.length === 0) {
     return (
-      <div className="rounded-xl border border-[#30363D] bg-[#0D1117]/90 p-6">
+      <div className="rounded-xl border border-[#30363D] bg-[#0D1117]/90 p-6 sm:p-8">
         <h2 className="text-2xl font-bold tracking-tight text-[#F0F4FC] md:text-3xl">
-          Auditoria CEAP (notas)
+          Monitor CEAP — auditoria de notas
         </h2>
         <p className="mt-3 text-lg leading-relaxed text-[#8B949E]">
           Sem catálogo CEAP neste registo. Rode o motor{" "}
-          <span className="font-mono text-[#58A6FF]">node ceap_motor.js</span> para sincronizar.
+          <span className="font-mono text-[#58A6FF]">node ceap_motor.js</span> para sincronizar o
+          documento <span className="font-mono text-[#58A6FF]">transparency_reports</span>.
         </p>
       </div>
     );
   }
+
+  const rowsToShow = canSeeAll && expanded ? sorted : preview;
 
   return (
     <div className="rounded-xl border border-[#30363D] bg-[#0D1117]/95 p-6 sm:p-8">
       <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-2xl font-bold tracking-tight text-[#F0F4FC] md:text-3xl">
-            Auditoria CEAP — amostra prioritária
+            Monitor CEAP — amostra prioritária
           </h2>
           <p className="mt-2 text-lg leading-relaxed text-[#8B949E]">
-            Destaque para descrições genéricas (heurística). Links para o PDF oficial da Câmara quando o
-            número do documento é numérico.
+            Dados da API da Câmara (catálogo sincronizado). Quatro despesas mais recentes; nota fiscal
+            oficial em PDF quando disponível.
           </p>
         </div>
       </div>
 
       <ul className="space-y-3">
-        {(canSeeAll && expanded ? sorted : preview).map((row, idx) => {
+        {rowsToShow.map((row, idx) => {
           const gen = row.descricao_generica === true;
-          const url = row.url_documento_oficial;
+          const url = pickUrlDocumento(row);
+          const fornecedor = pickFornecedor(row);
+          const dataEmissao = pickDataEmissao(row);
+          const tipo =
+            String(row.tipoDespesa ?? row.tipo_despesa ?? row.descricao ?? "").trim() || "—";
           return (
             <li
-              key={`${row.numero_documento}-${idx}`}
+              key={`${pickUrlDocumento(row) || fornecedor}-${dataEmissao}-${idx}`}
               className={[
                 "rounded-lg border px-3 py-3 sm:px-4",
                 gen
@@ -97,20 +142,18 @@ export default function DespesasCeapAudit({
                         Descrição genérica
                       </span>
                     ) : null}
-                    <span className="font-data text-[10px] text-[#484F58]">
-                      {row.data_documento || "—"}
+                    <span className="font-data text-sm text-[#8B949E]">
+                      Emissão: {dataEmissao || "—"}
                     </span>
                   </div>
                   <p className="mt-1 text-lg font-semibold leading-snug text-[#F0F4FC] md:text-xl">
-                    {row.tipo_despesa || "—"}
+                    {fornecedor || "Fornecedor não informado"}
                   </p>
-                  <p className="mt-1 text-lg leading-relaxed text-[#8B949E]">
-                    {row.nome_fornecedor || "Fornecedor não informado"}
-                  </p>
+                  <p className="mt-1 text-base leading-relaxed text-[#8B949E]">{tipo}</p>
                 </div>
                 <div className="text-right">
                   <p className="font-data text-xl font-bold tabular-nums text-[#7DD3FC] md:text-2xl">
-                    {fmtBrl(row.valor_liquido)}
+                    {fmtBrl(pickValor(row))}
                   </p>
                   {url ? (
                     <a
@@ -119,11 +162,11 @@ export default function DespesasCeapAudit({
                       rel="noopener noreferrer"
                       className="mt-2 inline-flex items-center gap-1 text-base font-semibold text-[#58A6FF] hover:underline"
                     >
-                      Nota oficial (PDF)
+                      Ver Nota Fiscal Oficial
                       <ExternalLink className="size-3.5" strokeWidth={2} aria-hidden />
                     </a>
                   ) : (
-                    <p className="mt-2 text-sm text-[#484F58]">Sem link PDF automático</p>
+                    <p className="mt-2 text-sm text-[#484F58]">URL da nota indisponível</p>
                   )}
                 </div>
               </div>
@@ -133,38 +176,46 @@ export default function DespesasCeapAudit({
       </ul>
 
       <div className="mt-5 border-t border-[#21262D] pt-4">
-        {!canSeeAll ? (
-          <div className="rounded-lg border border-[#7DD3FC]/25 bg-[#7DD3FC]/5 p-4 text-center">
-            <p className="text-lg leading-relaxed text-[#C9D1D9]">
-              Lista completa das notas CEAP (catálogo sincronizado) disponível com{" "}
-              <span className="font-semibold text-[#FDE047]">Modo GOD</span> ou após desbloqueio do
-              laboratório (créditos).
+        {!canSeeAll && hiddenCount > 0 ? (
+          <div className="rounded-lg border border-[#f85149]/35 bg-[#0d1117] p-6 text-center">
+            <Lock
+              className="mx-auto size-10 text-[#f85149]"
+              strokeWidth={1.75}
+              aria-hidden
+            />
+            <p className="mt-4 text-lg font-bold tracking-tight text-[#F0F4FC] md:text-xl">
+              ACESSO RESTRITO: {hiddenCount} notas ocultas
+            </p>
+            <p className="mt-2 text-lg leading-relaxed text-[#8B949E]">
+              Catálogo completo da CEAP sincronizado no relatório. Desbloqueie com Modo GOD ou créditos
+              do laboratório.
             </p>
             {onRequestUnlock ? (
               <button
                 type="button"
                 onClick={() => onRequestUnlock()}
-                className="mt-4 inline-flex items-center justify-center gap-2 rounded-full border border-[#FDE047]/50 bg-[#FDE047]/10 px-6 py-3 text-base font-semibold text-[#FDE047] transition hover:bg-[#FDE047]/20"
+                className="mt-5 inline-flex items-center justify-center gap-2 rounded-full border border-[#FDE047]/50 bg-[#FDE047]/10 px-8 py-3.5 text-base font-semibold text-[#FDE047] transition hover:bg-[#FDE047]/20"
               >
-                Carregar Todas as Notas
-                <ChevronDown className="size-4" strokeWidth={2} aria-hidden />
+                Desbloquear Dossiê Completo
               </button>
             ) : null}
           </div>
-        ) : (
+        ) : canSeeAll ? (
           <button
             type="button"
             onClick={() => setExpanded(!expanded)}
             className="flex w-full items-center justify-center gap-2 rounded-full border border-[#30363D] bg-[#161B22] px-5 py-3.5 text-base font-semibold text-[#F0F4FC] transition hover:border-[#58A6FF]/45 hover:bg-[#21262D]"
           >
-            {expanded ? "Mostrar só as 3 prioritárias" : "Carregar Todas as Notas"}
+            {expanded
+              ? `Mostrar só as ${PREVIEW_COUNT} prioritárias`
+              : `Ver todas as ${sorted.length} notas`}
             <ChevronDown
               className={["size-4 transition", expanded ? "rotate-180" : ""].join(" ")}
               strokeWidth={2}
               aria-hidden
             />
           </button>
-        )}
+        ) : null}
       </div>
     </div>
   );

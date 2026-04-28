@@ -278,6 +278,64 @@ export function normalizeInvestigationRow(row, idx) {
   };
 }
 
+/**
+ * Linhas do motor Node (`despesas_ceap_catalogo` em `investigacao_prisma_ceap`).
+ * Alinha-se aos campos da API da Câmara e aos aliases gravados pelo ceap_motor.js.
+ */
+export function normalizeDespesaCatalogoRow(row, idx) {
+  if (!row || typeof row !== "object") return null;
+  const num = String(
+    row.numero_documento ?? row.numeroDocumento ?? "",
+  ).trim();
+  const ordem = row.ordem_api;
+  const ref =
+    num ||
+    (ordem != null && String(ordem) !== ""
+      ? `CEAP-${ordem}`
+      : `CEAP-CAT-${idx + 1}`);
+  const nome = String(
+    row.nome_fornecedor ?? row.nomeFornecedor ?? row.txtFornecedor ?? "",
+  ).trim();
+  const titulo = nome || "Fornecedor não informado";
+  const data = String(
+    row.data_documento ?? row.dataEmissao ?? row.data_emissao ?? "",
+  ).slice(0, 10);
+  const tipo = String(row.tipo_despesa ?? row.tipoDespesa ?? "").trim();
+  const foco = [data, tipo].filter(Boolean).join(" · ");
+  const valor = Number(
+    row.valor_liquido ?? row.vlrLiquido ?? row.valor ?? 0,
+  );
+  const rawValue = Number.isFinite(valor) ? valor : 0;
+  const urlRaw =
+    row.url_documento_oficial ??
+    row.urlDocumento ??
+    row.url_documento ??
+    row.url ??
+    "";
+  const urlDocumento = typeof urlRaw === "string" ? urlRaw.trim() : "";
+
+  return {
+    ref: String(ref),
+    titulo,
+    foco,
+    rawValue,
+    suspicionScore: suspicionScoreFromRow(row, rawValue),
+    urlDocumento,
+    progressPct: null,
+    valorLabel:
+      rawValue > 0
+        ? rawValue.toLocaleString("pt-BR", {
+            style: "currency",
+            currency: "BRL",
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })
+        : null,
+    /** Ordenação: mais recente primeiro, depois maior valor (uso interno; removido no merge). */
+    catalogSortDate: data || "0000-00-00",
+  };
+}
+
 /** Linhas agregadas em `historico_ceap` (BigQuery → Firestore). */
 export function normalizeCeapHistoricoRow(row, idx) {
   if (!row || typeof row !== "object") return null;
@@ -330,6 +388,16 @@ function byRefDedupeMerge(rows) {
         ? r
         : prev;
     const drop = keep === r ? prev : r;
+    const hasDateKeep = keep.catalogSortDate != null && keep.catalogSortDate !== "";
+    const hasDateDrop = drop.catalogSortDate != null && drop.catalogSortDate !== "";
+    let cs = undefined;
+    if (hasDateKeep && hasDateDrop) {
+      cs =
+        String(keep.catalogSortDate) >= String(drop.catalogSortDate)
+          ? keep.catalogSortDate
+          : drop.catalogSortDate;
+    } else if (hasDateKeep) cs = keep.catalogSortDate;
+    else if (hasDateDrop) cs = drop.catalogSortDate;
     map.set(r.ref, {
       ...drop,
       ...keep,
@@ -339,6 +407,7 @@ function byRefDedupeMerge(rows) {
       valorLabel:
         keep.rawValue >= drop.rawValue ? keep.valorLabel : drop.valorLabel,
       foco: String(keep.foco).length >= String(drop.foco).length ? keep.foco : drop.foco,
+      ...(cs !== undefined ? { catalogSortDate: cs } : {}),
     });
   }
   return [...map.values()];
@@ -358,6 +427,23 @@ export function mergeCeapInvestigationRows(record) {
   const fromHist = hist
     .map((r, i) => normalizeCeapHistoricoRow(r, i))
     .filter(Boolean);
+
+  const rawCat = record.investigacao_prisma_ceap?.despesas_ceap_catalogo;
+  const fromCatalog = Array.isArray(rawCat)
+    ? rawCat.map((r, i) => normalizeDespesaCatalogoRow(r, i)).filter(Boolean)
+    : [];
+
+  /** Com catálogo real do motor CEAP, substitui linhas legadas / mocks do painel Monitor. */
+  if (fromCatalog.length > 0) {
+    const merged = byRefDedupeMerge(fromCatalog);
+    merged.sort((a, b) => {
+      const db = String(b.catalogSortDate ?? "");
+      const da = String(a.catalogSortDate ?? "");
+      if (db !== da) return db.localeCompare(da);
+      return b.rawValue - a.rawValue;
+    });
+    return merged.map(({ catalogSortDate: _d, ...rest }) => rest);
+  }
 
   const merged = byRefDedupeMerge([...fromHist, ...fromTop]);
   merged.sort((a, b) => {
