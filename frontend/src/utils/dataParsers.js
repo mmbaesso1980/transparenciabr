@@ -285,7 +285,10 @@ export function normalizeInvestigationRow(row, idx) {
 export function normalizeDespesaCatalogoRow(row, idx) {
   if (!row || typeof row !== "object") return null;
   const num = String(
-    row.numero_documento ?? row.numeroDocumento ?? "",
+    row.numero_documento ??
+      row.numeroDocumento ??
+      row.numDocumento ??
+      "",
   ).trim();
   const ordem = row.ordem_api;
   const ref =
@@ -298,12 +301,21 @@ export function normalizeDespesaCatalogoRow(row, idx) {
   ).trim();
   const titulo = nome || "Fornecedor não informado";
   const data = String(
-    row.data_documento ?? row.dataEmissao ?? row.data_emissao ?? "",
+    row.data_documento ??
+      row.dataDocumento ??
+      row.dataEmissao ??
+      row.data_emissao ??
+      "",
   ).slice(0, 10);
   const tipo = String(row.tipo_despesa ?? row.tipoDespesa ?? "").trim();
   const foco = [data, tipo].filter(Boolean).join(" · ");
   const valor = Number(
-    row.valor_liquido ?? row.vlrLiquido ?? row.valor ?? 0,
+    row.valor_liquido ??
+      row.vlrLiquido ??
+      row.valorLiquido ??
+      row.valorDocumento ??
+      row.valor ??
+      0,
   );
   const rawValue = Number.isFinite(valor) ? valor : 0;
   const urlRaw =

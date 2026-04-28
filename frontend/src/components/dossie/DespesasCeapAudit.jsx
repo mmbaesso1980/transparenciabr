@@ -21,7 +21,11 @@ function pickFornecedor(row) {
 }
 
 function pickValor(row) {
-  const v = row.vlrLiquido ?? row.valor_liquido ?? row.valor;
+  const v =
+    row.valorLiquido ??
+    row.vlrLiquido ??
+    row.valor_liquido ??
+    row.valor;
   const n = Number(v);
   return Number.isFinite(n) ? n : null;
 }

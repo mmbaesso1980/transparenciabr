@@ -1,28 +1,34 @@
 #!/usr/bin/env node
 /**
- * Motor CEAP (Node.js) — ingestão API Câmara + Benford + merge Firestore.
+ * Motor CEAP (Node.js) — Deep fetch multi-ano (API Câmara) + Benford + Firestore.
  *
  * Pré-requisitos:
  *   npm install   (na pasta engines/)
- *   GOOGLE_APPLICATION_CREDENTIALS ou ADC no Cloud Shell
- *   GOOGLE_CLOUD_PROJECT ou GCP_PROJECT_ID (opcional se inferido pelo ADC)
+ *   GOOGLE_APPLICATION_CREDENTIALS ou ADC
+ *   GOOGLE_CLOUD_PROJECT ou GCP_PROJECT_ID (opcional)
  *
  * Uso:
  *   node ceap_motor.js
  *   CEAP_DEPUTADO_ID=220645 node ceap_motor.js
  *
- * Escreve em: transparency_reports/{deputadoId}
- *   - investigacao_prisma_ceap (bundle completo; sobrescreve apenas este campo via merge)
- *   - ceap_motor_ultima_execucao (timestamp)
+ * Fetch: todos os anos em simultâneo (query string fixa), paginação até `dados` vazio.
+ * Grava em transparency_reports/{deputadoId} com merge de `investigacao_prisma_ceap`
+ * (preserva prismas/benford anteriores; atualiza catálogo e metadados do motor).
  */
 
 import axios from "axios";
 import admin from "firebase-admin";
 import { createHash } from "crypto";
 
-const BASE = "https://dadosabertos.camara.leg.br/api/v2/deputados";
+const ANOS_QUERY = "ano=2023&ano=2024&ano=2025&ano=2026";
+const ITENS = 100;
+
+function deepFetchUrl(deputadoId, pagina) {
+  return `https://dadosabertos.camara.leg.br/api/v2/deputados/${deputadoId}/despesas?${ANOS_QUERY}&itens=${ITENS}&pagina=${pagina}`;
+}
+
 const USER_AGENT =
-  "TransparenciaBR-ceap_motor/1.0 (+https://github.com/mmbaesso1980/transparenciabr)";
+  "TransparenciaBR-ceap_motor/2.0 (+https://github.com/mmbaesso1980/transparenciabr)";
 const LEGAL_DISCLAIMER =
   "Indícios quantitativos derivados de dados públicos — não configuram ilícito nem substituem apuração oficial.";
 
@@ -98,7 +104,14 @@ function benfordStats(values) {
 }
 
 function parseValor(row) {
-  const keys = ["valorLiquido", "valorDocumento", "valor_documento", "valor"];
+  const keys = [
+    "valorLiquido",
+    "valor_liquido",
+    "vlrLiquido",
+    "valorDocumento",
+    "valor_documento",
+    "valor",
+  ];
   for (const k of keys) {
     if (row[k] != null && row[k] !== "") {
       const n = Number(row[k]);
@@ -108,12 +121,13 @@ function parseValor(row) {
   return null;
 }
 
-/** URL oficial do PDF da nota quando o número é numérico (portal CEAP). */
+/** URL oficial do PDF quando a API não devolve link direto. */
 function urlDocumentoOficial(row) {
   const u = row.urlDocumento || row.url_documento;
-  if (typeof u === "string" && u.startsWith("http")) return u;
+  if (typeof u === "string" && u.trim().startsWith("http")) return u.trim();
   const num =
     row.numeroDocumento ??
+    row.numDocumento ??
     row.numero_documento ??
     row.codigoDocumento ??
     "";
@@ -121,7 +135,7 @@ function urlDocumentoOficial(row) {
   if (/^[0-9]+$/.test(s)) {
     return `https://www.camara.leg.br/cota-parlamentar/documentos/publ/${s}.pdf`;
   }
-  return "";
+  return typeof u === "string" ? u.trim() : "";
 }
 
 function parseDataDoc(row) {
@@ -134,7 +148,6 @@ function parseDataDoc(row) {
   return String(raw ?? "").slice(0, 10);
 }
 
-/** Heurística: descrição pouco específica (auditoria humana obrigatória). */
 function isDescricaoGenerica(row) {
   const tipo = String(
     row.tipoDespesa ?? row.descricao ?? row.tipo_despesa ?? "",
@@ -149,47 +162,78 @@ function isDescricaoGenerica(row) {
 function normalizeDespesa(row, idx) {
   const valor = parseValor(row);
   const dataDoc = parseDataDoc(row);
-  const tipoDespesa = String(
-    row.tipoDespesa ?? row.descricao ?? "",
-  ).trim();
+  const tipoDespesa = String(row.tipoDespesa ?? row.descricao ?? "").trim();
   const nomeFornecedor = String(
     row.nomeFornecedor ?? row.nome_fornecedor ?? "",
   ).trim();
   const numeroDocumento = String(
-    row.numeroDocumento ?? row.numero_documento ?? "",
+    row.numeroDocumento ?? row.numDocumento ?? row.numero_documento ?? "",
   ).trim();
   const url = urlDocumentoOficial(row);
   return {
     ordem_api: idx,
     valor_liquido: valor,
+    vlrLiquido: valor,
     data_documento: dataDoc,
+    dataDocumento: row.dataDocumento ?? dataDoc,
+    dataEmissao: dataDoc,
     tipo_despesa: tipoDespesa,
+    tipoDespesa: row.tipoDespesa ?? tipoDespesa,
     nome_fornecedor: nomeFornecedor,
+    nomeFornecedor: row.nomeFornecedor ?? nomeFornecedor,
     numero_documento: numeroDocumento,
+    numDocumento: row.numDocumento ?? numeroDocumento,
     url_documento_oficial: url,
+    urlDocumento: url || row.urlDocumento || "",
     descricao_generica: isDescricaoGenerica(row),
+    /** preserva identificadores da API para dedupe / auditoria */
+    codDocumento: row.codDocumento ?? row.cod_documento,
+    ano: row.ano,
+    mes: row.mes,
   };
 }
 
-async function fetchAllDespesas(deputadoId) {
+/**
+ * Deep fetch: URL com todos os anos; pagina 1..n até res.data.dados vir vazio.
+ */
+async function fetchTodasAsNotas(deputadoId) {
+  const todasAsNotas = [];
   let pagina = 1;
-  const itens = 100;
-  const todas = [];
   for (;;) {
-    const { data } = await axios.get(`${BASE}/${deputadoId}/despesas`, {
-      params: { pagina, itens },
+    const url = deepFetchUrl(deputadoId, pagina);
+    const { data } = await axios.get(url, {
       headers: { "User-Agent": USER_AGENT },
-      timeout: 90000,
+      timeout: 120000,
       validateStatus: (s) => s === 200,
     });
-    const dados = data.dados || [];
-    if (!dados.length) break;
-    todas.push(...dados);
-    if (dados.length < itens) break;
+    const dados = Array.isArray(data?.dados) ? data.dados : [];
+    if (dados.length === 0) break;
+    todasAsNotas.push(...dados);
     pagina += 1;
     await new Promise((r) => setTimeout(r, 250));
   }
-  return todas;
+  return todasAsNotas;
+}
+
+/** Remove duplicados por codDocumento (preferência) ou chave composta. */
+function dedupeNotas(rows) {
+  const seen = new Set();
+  const out = [];
+  for (const row of rows) {
+    const cod = row.codDocumento != null ? String(row.codDocumento) : "";
+    const key =
+      cod ||
+      [
+        row.numDocumento,
+        row.dataDocumento,
+        row.valorLiquido,
+        row.nomeFornecedor,
+      ].join("|");
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(row);
+  }
+  return out;
 }
 
 function sortDespesasRecentFirst(rows) {
@@ -200,7 +244,7 @@ function sortDespesasRecentFirst(rows) {
   });
 }
 
-function buildPrismasBundle(benford, nDocs) {
+function buildPrismasBundle(benford) {
   return {
     BENFORD: { status: "calculado", resultado: benford },
     ORACULO: {
@@ -254,8 +298,7 @@ async function gravarAlertasResumo(db, deputadoId, bundle, benford) {
   const col = db.collection("alertas_bodes");
   const batch = db.batch();
   const ts = admin.firestore.Timestamp.now();
-  const hash = (s) =>
-    createHash("sha256").update(s).digest("hex");
+  const hash = (s) => createHash("sha256").update(s).digest("hex");
 
   const msgResumo = `CEAP motor Node: ${bundle.n_documentos_api} documentos API; ${bundle.n_valores_numericos} valores numéricos. ${LEGAL_DISCLAIMER}`;
   batch.set(
@@ -295,6 +338,15 @@ async function gravarAlertasResumo(db, deputadoId, bundle, benford) {
   await batch.commit();
 }
 
+function logMilharesNotas(n) {
+  const mil = n / 1000;
+  const label =
+    mil >= 1
+      ? `~${mil.toFixed(2)} mil notas (${n} documentos brutos da API)`
+      : `${n} notas (abaixo de 1 mil)`;
+  console.info(`[CEAP] Download concluído: ${label}`);
+}
+
 async function main() {
   const pid = projectId();
   if (!admin.apps.length) {
@@ -302,31 +354,55 @@ async function main() {
   }
   const db = admin.firestore();
 
-  console.info(`ceap_motor.js — deputado=${DEP_ID} project=${pid || "(ADC)"}`);
+  console.info(
+    `ceap_motor.js v2 — deputado=${DEP_ID} project=${pid || "(ADC)"} deep_fetch multi-ano ${ANOS_QUERY.replace(/&/g, " ")}`,
+  );
 
-  const rawRows = await fetchAllDespesas(DEP_ID);
+  const rawRows = await fetchTodasAsNotas(DEP_ID);
+  logMilharesNotas(rawRows.length);
+
+  const unicas = dedupeNotas(rawRows);
+  if (unicas.length !== rawRows.length) {
+    console.info(
+      `[CEAP] Dedupe: ${rawRows.length} → ${unicas.length} (codDocumento / chave composta)`,
+    );
+  }
+
+  const normalized = unicas.map((r, i) => normalizeDespesa(r, i));
+  const sorted = sortDespesasRecentFirst(normalized);
+
   const valores = [];
-  const normalized = rawRows.map((r, i) => normalizeDespesa(r, i));
   for (const n of normalized) {
     if (n.valor_liquido != null && Number.isFinite(n.valor_liquido)) {
       valores.push(n.valor_liquido);
     }
   }
-  const sorted = sortDespesasRecentFirst(normalized);
   const benford = benfordStats(valores);
-
   const geradoEm = new Date().toISOString();
-  const prismas = buildPrismasBundle(benford, rawRows.length);
+  const prismasNovos = buildPrismasBundle(benford);
+
+  const ref = db.collection("transparency_reports").doc(DEP_ID);
+  const snap = await ref.get();
+  const prevInv =
+    snap.exists && snap.data()?.investigacao_prisma_ceap &&
+    typeof snap.data().investigacao_prisma_ceap === "object"
+      ? snap.data().investigacao_prisma_ceap
+      : {};
 
   const bundle = {
+    ...prevInv,
     deputado_id: DEP_ID,
     gerado_em: geradoEm,
-    n_documentos_api: rawRows.length,
+    n_documentos_api: unicas.length,
+    n_documentos_raw_fetch: rawRows.length,
     n_valores_numericos: valores.length,
-    fonte: "camara_api_v2_node_ceap_motor",
-    motor: "node_ceap_motor_v1",
-    prismas,
-    avisos: [LEGAL_DISCLAIMER],
+    fonte: "camara_api_v2_node_ceap_motor_deep",
+    motor: "node_ceap_motor_v2_deep_fetch",
+    fetch_url_pattern: `.../deputados/{id}/despesas?${ANOS_QUERY}&itens=${ITENS}&pagina={pagina}`,
+    prismas: { ...(prevInv.prismas || {}), ...prismasNovos },
+    avisos: Array.isArray(prevInv.avisos)
+      ? [...new Set([...(prevInv.avisos || []), LEGAL_DISCLAIMER])]
+      : [LEGAL_DISCLAIMER],
     despesas_ceap_catalogo: sorted,
     benford_agente: {
       ...benford,
@@ -334,14 +410,15 @@ async function main() {
     },
   };
 
-  const ref = db.collection("transparency_reports").doc(DEP_ID);
   await ref.set(
     {
       investigacao_prisma_ceap: bundle,
       ceap_motor_ultima_execucao: admin.firestore.FieldValue.serverTimestamp(),
       ceap_motor_meta: {
-        versao: "node-1",
-        n_documentos: rawRows.length,
+        versao: "node-2-deep-fetch",
+        n_documentos: unicas.length,
+        n_documentos_raw: rawRows.length,
+        anos: [2023, 2024, 2025, 2026],
       },
     },
     { merge: true },
@@ -350,7 +427,7 @@ async function main() {
   await gravarAlertasResumo(db, DEP_ID, bundle, benford);
 
   console.info(
-    `OK Firestore transparency_reports/${DEP_ID} merge; documentos=${rawRows.length} benford_anomaly=${benford.anomaly_detected === true}`,
+    `OK Firestore transparency_reports/${DEP_ID} merge; catalogo=${sorted.length} benford_anomaly=${benford.anomaly_detected === true}`,
   );
 }
 
