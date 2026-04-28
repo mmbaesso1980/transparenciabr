@@ -8,6 +8,60 @@
  *   fontes/camara/deputados/ano=2026/mes=04/dia=28/payload_completo.json
  */
 
+import { Readable } from "node:stream";
+import { pipeline } from "node:stream/promises";
+import { createGzip } from "node:zlib";
+import { uploadJSONToBucket as uploadJSONToBucketImpl } from "../gcp_storage.js";
+
+export { BUCKET_RAW } from "../gcp_storage.js";
+
+/** @param {string} bucket @param {string} key @param {unknown} payload */
+export async function uploadJSONToBucket(bucket, key, payload) {
+  return uploadJSONToBucketImpl(key, payload, { bucket });
+}
+
+/**
+ * Stream NDJSON lines (gzip) to GCS — uma linha JSON por chunk do iterable.
+ *
+ * @param {string} bucket
+ * @param {string} key - objeto destino (.ndjson.gz)
+ * @param {AsyncIterable<string>} lineIterable - cada item já JSON.stringify ou linha NDJSON
+ */
+export async function uploadNDJSONStream(bucket, key, lineIterable) {
+  const { Storage } = await import("@google-cloud/storage");
+  const storage = new Storage(
+    process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT
+      ? { projectId: process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT }
+      : {},
+  );
+  const file = storage.bucket(bucket).file(String(key).replace(/^\/+/, ""));
+  const gzip = createGzip({ level: 6 });
+  const upload = file.createWriteStream({
+    contentType: "application/gzip",
+    resumable: true,
+    metadata: { cacheControl: "no-cache" },
+  });
+  const pump = pipeline(Readable.from(lineIterable), gzip, upload);
+  await pump;
+}
+
+/**
+ * DDL para External Table JSON sobre Hive partitions no lake raw/.
+ */
+export function buildExternalTableDDL({ projectId, dominio, apiId, bucket, fonte }) {
+  const safeDom = String(dominio).replace(/[^a-z0-9_]/gi, "_");
+  const uriPrefix = `gs://${bucket}/raw/source=${fonte}/dataset=${apiId}/`;
+  return `-- ${apiId}
+CREATE OR REPLACE EXTERNAL TABLE \`${projectId}.raw_${safeDom}.${apiId}\`
+WITH PARTITION COLUMNS (ingestion_date DATE)
+OPTIONS (
+  format = 'NEWLINE_DELIMITED_JSON',
+  uris = ['${uriPrefix}ingestion_date=*/run_id=*/part-*.ndjson.gz'],
+  hive_partition_uri_prefix = '${uriPrefix}',
+  require_hive_partition_filter = FALSE
+);`;
+}
+
 function pad2(n) {
   return String(n).padStart(2, "0");
 }

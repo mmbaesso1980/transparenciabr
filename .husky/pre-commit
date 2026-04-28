@@ -1,0 +1,1 @@
+cd engines && npm run validate:catalog

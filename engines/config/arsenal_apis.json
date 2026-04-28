@@ -1,0 +1,3254 @@
+{
+  "$schema": "./arsenal.schema.json",
+  "version": "1.0.0",
+  "updated_at": "2026-04-28",
+  "defaults": {
+    "rate_limit": {
+      "rpm": 60,
+      "rph": 1000,
+      "concurrent": 4
+    },
+    "retry": {
+      "max_attempts": 6,
+      "base_ms": 1000,
+      "max_ms": 60000
+    },
+    "timeout_ms": 30000,
+    "user_agent": "TransparenciaBR/2.0 (+https://transparenciabr.org/bot)"
+  },
+  "apis": [
+    {
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "senado_agenda_dia",
+      "dominio": "legislativo",
+      "fonte": "Senado Federal",
+      "base_url": "https://legis.senado.leg.br/dadosabertos",
+      "endpoint": "/agendareuniao/{AAAAMMDD}.json",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "date_window"
+      },
+      "format": "json",
+      "gcs_prefix": "legislativo/senado/agenda_dia",
+      "bigquery": {
+        "external_table_name": "senado_agenda_dia",
+        "schema_inferable": true
+      },
+      "prioridade": "imediata"
+    },
+    {
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "senado_agenda_30d",
+      "dominio": "legislativo",
+      "fonte": "Senado Federal",
+      "base_url": "https://legis.senado.leg.br/dadosabertos",
+      "endpoint": "/agendareuniao/atual",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "none"
+      },
+      "format": "json",
+      "gcs_prefix": "legislativo/senado/agenda_30d",
+      "bigquery": {
+        "external_table_name": "senado_agenda_30d",
+        "schema_inferable": true
+      },
+      "prioridade": "imediata"
+    },
+    {
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "senado_lista_atual",
+      "dominio": "legislativo",
+      "fonte": "Senado Federal",
+      "base_url": "https://legis.senado.leg.br/dadosabertos",
+      "endpoint": "/senador/lista/atual",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "none"
+      },
+      "format": "json",
+      "gcs_prefix": "legislativo/senado/senadores_lista",
+      "bigquery": {
+        "external_table_name": "senado_lista_atual",
+        "schema_inferable": true
+      },
+      "prioridade": "imediata"
+    },
+    {
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "senado_perfil",
+      "dominio": "legislativo",
+      "fonte": "Senado Federal",
+      "base_url": "https://legis.senado.leg.br/dadosabertos",
+      "endpoint": "/senador/{codigo}",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "iter_ids"
+      },
+      "format": "json",
+      "gcs_prefix": "legislativo/senado/senador_perfil",
+      "bigquery": {
+        "external_table_name": "senado_perfil",
+        "schema_inferable": true
+      },
+      "prioridade": "imediata"
+    },
+    {
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "senado_votacoes_senador",
+      "dominio": "legislativo",
+      "fonte": "Senado Federal",
+      "base_url": "https://legis.senado.leg.br/dadosabertos",
+      "endpoint": "/senador/{codigo}/votacoes",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "iter_ids"
+      },
+      "format": "json",
+      "gcs_prefix": "legislativo/senado/senador_votacoes",
+      "bigquery": {
+        "external_table_name": "senado_votacoes_senador",
+        "schema_inferable": true
+      },
+      "prioridade": "imediata"
+    },
+    {
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "senado_autorias_senador",
+      "dominio": "legislativo",
+      "fonte": "Senado Federal",
+      "base_url": "https://legis.senado.leg.br/dadosabertos",
+      "endpoint": "/senador/{codigo}/autorias",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "iter_ids"
+      },
+      "format": "json",
+      "gcs_prefix": "legislativo/senado/senador_autorias",
+      "bigquery": {
+        "external_table_name": "senado_autorias_senador",
+        "schema_inferable": true
+      },
+      "prioridade": "imediata"
+    },
+    {
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "senado_despesas_senador",
+      "dominio": "legislativo",
+      "fonte": "Senado Federal",
+      "base_url": "https://legis.senado.leg.br/dadosabertos",
+      "endpoint": "/senador/{codigo}/despesas",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "iter_ids"
+      },
+      "format": "json",
+      "gcs_prefix": "legislativo/senado/senador_despesas",
+      "bigquery": {
+        "external_table_name": "senado_despesas_senador",
+        "schema_inferable": true
+      },
+      "prioridade": "imediata"
+    },
+    {
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "senado_votacoes_ano",
+      "dominio": "legislativo",
+      "fonte": "Senado Federal",
+      "base_url": "https://legis.senado.leg.br/dadosabertos",
+      "endpoint": "/plenario/votacoes/{ano}",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "year_loop"
+      },
+      "format": "json",
+      "gcs_prefix": "legislativo/senado/plenario_votacoes_ano",
+      "bigquery": {
+        "external_table_name": "senado_votacoes_ano",
+        "schema_inferable": true
+      },
+      "prioridade": "imediata"
+    },
+    {
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "senado_votacao_detalhe",
+      "dominio": "legislativo",
+      "fonte": "Senado Federal",
+      "base_url": "https://legis.senado.leg.br/dadosabertos",
+      "endpoint": "/plenario/votacao/{codigo}",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "iter_ids"
+      },
+      "format": "json",
+      "gcs_prefix": "legislativo/senado/plenario_votacao_detalhe",
+      "bigquery": {
+        "external_table_name": "senado_votacao_detalhe",
+        "schema_inferable": true
+      },
+      "prioridade": "imediata"
+    },
+    {
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "senado_agenda_plenario",
+      "dominio": "legislativo",
+      "fonte": "Senado Federal",
+      "base_url": "https://legis.senado.leg.br/dadosabertos",
+      "endpoint": "/agenda/{data}",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "date_window"
+      },
+      "format": "json",
+      "gcs_prefix": "legislativo/senado/agenda_plenario",
+      "bigquery": {
+        "external_table_name": "senado_agenda_plenario",
+        "schema_inferable": true
+      },
+      "prioridade": "imediata"
+    },
+    {
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "tcu_acordaos",
+      "dominio": "controle_externo",
+      "fonte": "TCU",
+      "base_url": "https://dados-abertos.apps.tcu.gov.br",
+      "endpoint": "/api/acordao/recupera-acordaos",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "page"
+      },
+      "format": "json",
+      "gcs_prefix": "controle_externo/tcu/acordaos",
+      "bigquery": {
+        "external_table_name": "tcu_acordaos",
+        "schema_inferable": true
+      },
+      "prioridade": "imediata"
+    },
+    {
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "tcu_pj",
+      "dominio": "controle_externo",
+      "fonte": "TCU",
+      "base_url": "https://contas.tcu.gov.br/ords/api",
+      "endpoint": "/publica/pj/",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "offset"
+      },
+      "format": "json",
+      "gcs_prefix": "controle_externo/tcu/processos_judiciais",
+      "bigquery": {
+        "external_table_name": "tcu_pj",
+        "schema_inferable": true
+      },
+      "prioridade": "imediata"
+    },
+    {
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "tcu_sancoes",
+      "dominio": "controle_externo",
+      "fonte": "TCU",
+      "base_url": "https://contas.tcu.gov.br/ords/api",
+      "endpoint": "/publica/sancoes/",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "offset"
+      },
+      "format": "json",
+      "gcs_prefix": "controle_externo/tcu/sancoes",
+      "bigquery": {
+        "external_table_name": "tcu_sancoes",
+        "schema_inferable": true
+      },
+      "prioridade": "imediata"
+    },
+    {
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "tcu_cadirreg",
+      "dominio": "controle_externo",
+      "fonte": "TCU",
+      "base_url": "https://contas.tcu.gov.br/ords/api",
+      "endpoint": "/publica/cadirreg/",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "offset"
+      },
+      "format": "json",
+      "gcs_prefix": "controle_externo/tcu/cadirreg",
+      "bigquery": {
+        "external_table_name": "tcu_cadirreg",
+        "schema_inferable": true
+      },
+      "prioridade": "imediata"
+    },
+    {
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "tcu_pedidos_congresso",
+      "dominio": "controle_externo",
+      "fonte": "TCU",
+      "base_url": "https://contas.tcu.gov.br/ords/api",
+      "endpoint": "/publica/scn/pedidos_congresso/{processo}",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "iter_ids"
+      },
+      "format": "json",
+      "gcs_prefix": "controle_externo/tcu/pedidos_congresso",
+      "bigquery": {
+        "external_table_name": "tcu_pedidos_congresso",
+        "schema_inferable": true
+      },
+      "prioridade": "imediata"
+    },
+    {
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "tcu_sessoes",
+      "dominio": "controle_externo",
+      "fonte": "TCU",
+      "base_url": "https://contas.tcu.gov.br/ords/api",
+      "endpoint": "/publica/sessoes/",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "date_window"
+      },
+      "format": "json",
+      "gcs_prefix": "controle_externo/tcu/sessoes",
+      "bigquery": {
+        "external_table_name": "tcu_sessoes",
+        "schema_inferable": true
+      },
+      "prioridade": "imediata"
+    },
+    {
+      "rate_limit": {
+        "rpm": 8,
+        "rph": 500,
+        "concurrent": 2
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "cgu_servidores",
+      "dominio": "controle_interno",
+      "fonte": "CGU Portal da Transparencia",
+      "base_url": "https://api.portaldatransparencia.gov.br",
+      "endpoint": "/api-de-dados/servidores",
+      "auth": {
+        "type": "api_key_header",
+        "header": "chave-api-dados",
+        "env_var": "CGU_API_KEY"
+      },
+      "pagination": {
+        "type": "page"
+      },
+      "format": "json",
+      "gcs_prefix": "controle_interno/cgu/servidores",
+      "bigquery": {
+        "external_table_name": "cgu_servidores",
+        "schema_inferable": true
+      },
+      "prioridade": "imediata"
+    },
+    {
+      "rate_limit": {
+        "rpm": 8,
+        "rph": 500,
+        "concurrent": 2
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "cgu_viagens",
+      "dominio": "controle_interno",
+      "fonte": "CGU Portal da Transparencia",
+      "base_url": "https://api.portaldatransparencia.gov.br",
+      "endpoint": "/api-de-dados/viagens",
+      "auth": {
+        "type": "api_key_header",
+        "header": "chave-api-dados",
+        "env_var": "CGU_API_KEY"
+      },
+      "pagination": {
+        "type": "page"
+      },
+      "format": "json",
+      "gcs_prefix": "controle_interno/cgu/viagens",
+      "bigquery": {
+        "external_table_name": "cgu_viagens",
+        "schema_inferable": true
+      },
+      "prioridade": "imediata"
+    },
+    {
+      "rate_limit": {
+        "rpm": 8,
+        "rph": 500,
+        "concurrent": 2
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "cgu_emendas_parlamentar",
+      "dominio": "controle_interno",
+      "fonte": "CGU Portal da Transparencia",
+      "base_url": "https://api.portaldatransparencia.gov.br",
+      "endpoint": "/api-de-dados/emendas/parlamentar",
+      "auth": {
+        "type": "api_key_header",
+        "header": "chave-api-dados",
+        "env_var": "CGU_API_KEY"
+      },
+      "pagination": {
+        "type": "page"
+      },
+      "format": "json",
+      "gcs_prefix": "controle_interno/cgu/emendas_parlamentar",
+      "bigquery": {
+        "external_table_name": "cgu_emendas_parlamentar",
+        "schema_inferable": true
+      },
+      "prioridade": "imediata"
+    },
+    {
+      "rate_limit": {
+        "rpm": 8,
+        "rph": 500,
+        "concurrent": 2
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "cgu_emendas_localidade",
+      "dominio": "controle_interno",
+      "fonte": "CGU Portal da Transparencia",
+      "base_url": "https://api.portaldatransparencia.gov.br",
+      "endpoint": "/api-de-dados/emendas/localidade",
+      "auth": {
+        "type": "api_key_header",
+        "header": "chave-api-dados",
+        "env_var": "CGU_API_KEY"
+      },
+      "pagination": {
+        "type": "page"
+      },
+      "format": "json",
+      "gcs_prefix": "controle_interno/cgu/emendas_localidade",
+      "bigquery": {
+        "external_table_name": "cgu_emendas_localidade",
+        "schema_inferable": true
+      },
+      "prioridade": "imediata"
+    },
+    {
+      "rate_limit": {
+        "rpm": 8,
+        "rph": 500,
+        "concurrent": 2
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "cgu_contratos",
+      "dominio": "controle_interno",
+      "fonte": "CGU Portal da Transparencia",
+      "base_url": "https://api.portaldatransparencia.gov.br",
+      "endpoint": "/api-de-dados/contratos",
+      "auth": {
+        "type": "api_key_header",
+        "header": "chave-api-dados",
+        "env_var": "CGU_API_KEY"
+      },
+      "pagination": {
+        "type": "page"
+      },
+      "format": "json",
+      "gcs_prefix": "controle_interno/cgu/contratos",
+      "bigquery": {
+        "external_table_name": "cgu_contratos",
+        "schema_inferable": true
+      },
+      "prioridade": "imediata"
+    },
+    {
+      "rate_limit": {
+        "rpm": 8,
+        "rph": 500,
+        "concurrent": 2
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "cgu_convenios",
+      "dominio": "controle_interno",
+      "fonte": "CGU Portal da Transparencia",
+      "base_url": "https://api.portaldatransparencia.gov.br",
+      "endpoint": "/api-de-dados/convenios",
+      "auth": {
+        "type": "api_key_header",
+        "header": "chave-api-dados",
+        "env_var": "CGU_API_KEY"
+      },
+      "pagination": {
+        "type": "page"
+      },
+      "format": "json",
+      "gcs_prefix": "controle_interno/cgu/convenios",
+      "bigquery": {
+        "external_table_name": "cgu_convenios",
+        "schema_inferable": true
+      },
+      "prioridade": "imediata"
+    },
+    {
+      "rate_limit": {
+        "rpm": 8,
+        "rph": 500,
+        "concurrent": 2
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "cgu_gastos_diretos",
+      "dominio": "controle_interno",
+      "fonte": "CGU Portal da Transparencia",
+      "base_url": "https://api.portaldatransparencia.gov.br",
+      "endpoint": "/api-de-dados/gastos-diretos",
+      "auth": {
+        "type": "api_key_header",
+        "header": "chave-api-dados",
+        "env_var": "CGU_API_KEY"
+      },
+      "pagination": {
+        "type": "page"
+      },
+      "format": "json",
+      "gcs_prefix": "controle_interno/cgu/gastos_diretos",
+      "bigquery": {
+        "external_table_name": "cgu_gastos_diretos",
+        "schema_inferable": true
+      },
+      "prioridade": "imediata"
+    },
+    {
+      "rate_limit": {
+        "rpm": 8,
+        "rph": 500,
+        "concurrent": 2
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "cgu_licitacoes",
+      "dominio": "controle_interno",
+      "fonte": "CGU Portal da Transparencia",
+      "base_url": "https://api.portaldatransparencia.gov.br",
+      "endpoint": "/api-de-dados/licitacoes",
+      "auth": {
+        "type": "api_key_header",
+        "header": "chave-api-dados",
+        "env_var": "CGU_API_KEY"
+      },
+      "pagination": {
+        "type": "page"
+      },
+      "format": "json",
+      "gcs_prefix": "controle_interno/cgu/licitacoes",
+      "bigquery": {
+        "external_table_name": "cgu_licitacoes",
+        "schema_inferable": true
+      },
+      "prioridade": "imediata"
+    },
+    {
+      "rate_limit": {
+        "rpm": 8,
+        "rph": 500,
+        "concurrent": 2
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "cgu_ceis",
+      "dominio": "controle_interno",
+      "fonte": "CGU Portal da Transparencia",
+      "base_url": "https://api.portaldatransparencia.gov.br",
+      "endpoint": "/api-de-dados/ceis",
+      "auth": {
+        "type": "api_key_header",
+        "header": "chave-api-dados",
+        "env_var": "CGU_API_KEY"
+      },
+      "pagination": {
+        "type": "page"
+      },
+      "format": "json",
+      "gcs_prefix": "controle_interno/cgu/ceis",
+      "bigquery": {
+        "external_table_name": "cgu_ceis",
+        "schema_inferable": true
+      },
+      "prioridade": "imediata"
+    },
+    {
+      "rate_limit": {
+        "rpm": 8,
+        "rph": 500,
+        "concurrent": 2
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "cgu_cnep",
+      "dominio": "controle_interno",
+      "fonte": "CGU Portal da Transparencia",
+      "base_url": "https://api.portaldatransparencia.gov.br",
+      "endpoint": "/api-de-dados/cnep",
+      "auth": {
+        "type": "api_key_header",
+        "header": "chave-api-dados",
+        "env_var": "CGU_API_KEY"
+      },
+      "pagination": {
+        "type": "page"
+      },
+      "format": "json",
+      "gcs_prefix": "controle_interno/cgu/cnep",
+      "bigquery": {
+        "external_table_name": "cgu_cnep",
+        "schema_inferable": true
+      },
+      "prioridade": "imediata"
+    },
+    {
+      "rate_limit": {
+        "rpm": 8,
+        "rph": 500,
+        "concurrent": 2
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "cgu_cepim",
+      "dominio": "controle_interno",
+      "fonte": "CGU Portal da Transparencia",
+      "base_url": "https://api.portaldatransparencia.gov.br",
+      "endpoint": "/api-de-dados/cepim",
+      "auth": {
+        "type": "api_key_header",
+        "header": "chave-api-dados",
+        "env_var": "CGU_API_KEY"
+      },
+      "pagination": {
+        "type": "page"
+      },
+      "format": "json",
+      "gcs_prefix": "controle_interno/cgu/cepim",
+      "bigquery": {
+        "external_table_name": "cgu_cepim",
+        "schema_inferable": true
+      },
+      "prioridade": "imediata"
+    },
+    {
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "pncp_contratos",
+      "dominio": "compras",
+      "fonte": "PNCP",
+      "base_url": "https://pncp.gov.br/api/pncp/v1",
+      "endpoint": "/contratos",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "date_window"
+      },
+      "format": "json",
+      "gcs_prefix": "compras/pncp/contratos",
+      "bigquery": {
+        "external_table_name": "pncp_contratos",
+        "schema_inferable": true
+      },
+      "prioridade": "imediata"
+    },
+    {
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "pncp_contratacoes",
+      "dominio": "compras",
+      "fonte": "PNCP",
+      "base_url": "https://pncp.gov.br/api/pncp/v1",
+      "endpoint": "/contratacoes/publicacao",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "date_window"
+      },
+      "format": "json",
+      "gcs_prefix": "compras/pncp/contratacoes",
+      "bigquery": {
+        "external_table_name": "pncp_contratacoes",
+        "schema_inferable": true
+      },
+      "prioridade": "imediata"
+    },
+    {
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "pncp_pca",
+      "dominio": "compras",
+      "fonte": "PNCP",
+      "base_url": "https://pncp.gov.br/api/pncp/v1",
+      "endpoint": "/planos-contratacao",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "page"
+      },
+      "format": "json",
+      "gcs_prefix": "compras/pncp/pca",
+      "bigquery": {
+        "external_table_name": "pncp_pca",
+        "schema_inferable": true
+      },
+      "prioridade": "imediata"
+    },
+    {
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "pncp_pca_itens",
+      "dominio": "compras",
+      "fonte": "PNCP",
+      "base_url": "https://pncp.gov.br/api/pncp/v1",
+      "endpoint": "/planos-contratacao/{id}/itens",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "iter_ids"
+      },
+      "format": "json",
+      "gcs_prefix": "compras/pncp/pca_itens",
+      "bigquery": {
+        "external_table_name": "pncp_pca_itens",
+        "schema_inferable": true
+      },
+      "prioridade": "imediata"
+    },
+    {
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "pncp_atas",
+      "dominio": "compras",
+      "fonte": "PNCP",
+      "base_url": "https://pncp.gov.br/api/pncp/v1",
+      "endpoint": "/atas",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "page"
+      },
+      "format": "json",
+      "gcs_prefix": "compras/pncp/atas",
+      "bigquery": {
+        "external_table_name": "pncp_atas",
+        "schema_inferable": true
+      },
+      "prioridade": "imediata"
+    },
+    {
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "ocds_compras_br",
+      "dominio": "compras",
+      "fonte": "Open Contracting",
+      "base_url": "https://data.open-contracting.org",
+      "endpoint": "/en/search/",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "page"
+      },
+      "format": "json",
+      "gcs_prefix": "compras/ocds/search",
+      "bigquery": {
+        "external_table_name": "ocds_compras_br",
+        "schema_inferable": true
+      },
+      "prioridade": "imediata"
+    },
+    {
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      },
+      "incremental": null,
+      "method": "GET",
+      "notes": "Query params ano, autor, municipio",
+      "id": "transferegov_emendas",
+      "dominio": "orcamento",
+      "fonte": "Transferegov",
+      "base_url": "https://api.transferegov.gestao.gov.br/transferenciasespeciais",
+      "endpoint": "/emendas",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "offset"
+      },
+      "format": "json",
+      "gcs_prefix": "orcamento/transferegov/emendas",
+      "bigquery": {
+        "external_table_name": "transferegov_emendas",
+        "schema_inferable": true
+      },
+      "prioridade": "imediata"
+    },
+    {
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "transferegov_emenda_detalhe",
+      "dominio": "orcamento",
+      "fonte": "Transferegov",
+      "base_url": "https://api.transferegov.gestao.gov.br/transferenciasespeciais",
+      "endpoint": "/emendas/{id}",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "iter_ids"
+      },
+      "format": "json",
+      "gcs_prefix": "orcamento/transferegov/emenda_detalhe",
+      "bigquery": {
+        "external_table_name": "transferegov_emenda_detalhe",
+        "schema_inferable": true
+      },
+      "prioridade": "imediata"
+    },
+    {
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "transferegov_planos_acao",
+      "dominio": "orcamento",
+      "fonte": "Transferegov",
+      "base_url": "https://api.transferegov.gestao.gov.br/transferenciasespeciais",
+      "endpoint": "/emendas/{id}/planos-acao",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "iter_ids"
+      },
+      "format": "json",
+      "gcs_prefix": "orcamento/transferegov/planos_acao",
+      "bigquery": {
+        "external_table_name": "transferegov_planos_acao",
+        "schema_inferable": true
+      },
+      "prioridade": "imediata"
+    },
+    {
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "transferegov_executor_especial",
+      "dominio": "orcamento",
+      "fonte": "Transferegov",
+      "base_url": "https://api.transferegov.gestao.gov.br/transferenciasespeciais",
+      "endpoint": "/executor_especial",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "offset"
+      },
+      "format": "json",
+      "gcs_prefix": "orcamento/transferegov/executor_especial",
+      "bigquery": {
+        "external_table_name": "transferegov_executor_especial",
+        "schema_inferable": true
+      },
+      "prioridade": "imediata"
+    },
+    {
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "transferegov_relatorio_gestao",
+      "dominio": "orcamento",
+      "fonte": "Transferegov",
+      "base_url": "https://api.transferegov.gestao.gov.br/transferenciasespeciais",
+      "endpoint": "/relatorio_gestao_novo_especial",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "offset"
+      },
+      "format": "json",
+      "gcs_prefix": "orcamento/transferegov/relatorio_gestao",
+      "bigquery": {
+        "external_table_name": "transferegov_relatorio_gestao",
+        "schema_inferable": true
+      },
+      "prioridade": "imediata"
+    },
+    {
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "transferegov_municipios",
+      "dominio": "orcamento",
+      "fonte": "Transferegov",
+      "base_url": "https://api.transferegov.gestao.gov.br/transferenciasespeciais",
+      "endpoint": "/municipios",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "uf_loop"
+      },
+      "format": "json",
+      "gcs_prefix": "orcamento/transferegov/municipios",
+      "bigquery": {
+        "external_table_name": "transferegov_municipios",
+        "schema_inferable": true
+      },
+      "prioridade": "imediata"
+    },
+    {
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      },
+      "incremental": null,
+      "method": "POST",
+      "notes": "SPARQL POST opcional",
+      "id": "siop_sparql",
+      "dominio": "orcamento",
+      "fonte": "SIOP",
+      "base_url": "https://www1.siop.planejamento.gov.br",
+      "endpoint": "/sparql/",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "none"
+      },
+      "format": "json",
+      "gcs_prefix": "orcamento/siop/sparql",
+      "bigquery": {
+        "external_table_name": "siop_sparql",
+        "schema_inferable": true
+      },
+      "prioridade": "sprint_2"
+    },
+    {
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "siaifi_thot",
+      "dominio": "orcamento",
+      "fonte": "SIAIFI",
+      "base_url": "https://thot-arquivos.tesouro.gov.br",
+      "endpoint": "/publicacao-anexo/15346",
+      "auth": {
+        "type": "certificate",
+        "env_var": "SIAIFI_PFX_PATH"
+      },
+      "pagination": {
+        "type": "bulk_download",
+        "index_url": "/publicacao-anexo/15346"
+      },
+      "format": "csv",
+      "gcs_prefix": "orcamento/tesouro/siaifi_thot",
+      "bigquery": {
+        "external_table_name": "siaifi_thot",
+        "schema_inferable": false
+      },
+      "prioridade": "sprint_2"
+    },
+    {
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "tesouro_apis",
+      "dominio": "orcamento",
+      "fonte": "Tesouro Nacional",
+      "base_url": "https://www.gov.br",
+      "endpoint": "/tesouronacional/pt-br/central-de-conteudo/apis",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "catalog_scrape"
+      },
+      "format": "json",
+      "gcs_prefix": "orcamento/tesouro/catalogo_apis",
+      "bigquery": {
+        "external_table_name": "tesouro_apis",
+        "schema_inferable": false
+      },
+      "prioridade": "sprint_2"
+    },
+    {
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "tesouro_custos",
+      "dominio": "orcamento",
+      "fonte": "Tesouro Transparente",
+      "base_url": "https://www.tesourotransparente.gov.br",
+      "endpoint": "/consultas/custos-api-de-dados-abertos",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "none"
+      },
+      "format": "json",
+      "gcs_prefix": "orcamento/tesouro/custos_api",
+      "bigquery": {
+        "external_table_name": "tesouro_custos",
+        "schema_inferable": true
+      },
+      "prioridade": "sprint_2"
+    },
+    {
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "siconfi",
+      "dominio": "orcamento",
+      "fonte": "SICONFI",
+      "base_url": "https://siconfi.tesouro.gov.br",
+      "endpoint": "/",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "page"
+      },
+      "format": "json",
+      "gcs_prefix": "orcamento/siconfi/api",
+      "bigquery": {
+        "external_table_name": "siconfi",
+        "schema_inferable": true
+      },
+      "prioridade": "sprint_2"
+    },
+    {
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "tse_votacao_munzona",
+      "dominio": "eleicoes",
+      "fonte": "TSE",
+      "base_url": "https://dadosabertos.tse.jus.br/dataset",
+      "endpoint": "/votacao_candidato_munzona_{ano}.zip",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "year_zip",
+        "start_year": 2018,
+        "end_year": 2026
+      },
+      "format": "zip_csv",
+      "gcs_prefix": "eleicoes/tse/tse_votacao_munzona",
+      "bigquery": {
+        "external_table_name": "tse_votacao_munzona",
+        "schema_inferable": true
+      },
+      "prioridade": "sprint_2"
+    },
+    {
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "tse_candidatos",
+      "dominio": "eleicoes",
+      "fonte": "TSE",
+      "base_url": "https://dadosabertos.tse.jus.br/dataset",
+      "endpoint": "/candidatos_{ano}.zip",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "year_zip",
+        "start_year": 2018,
+        "end_year": 2026
+      },
+      "format": "zip_csv",
+      "gcs_prefix": "eleicoes/tse/tse_candidatos",
+      "bigquery": {
+        "external_table_name": "tse_candidatos",
+        "schema_inferable": true
+      },
+      "prioridade": "sprint_2"
+    },
+    {
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "tse_prestacao_contas",
+      "dominio": "eleicoes",
+      "fonte": "TSE",
+      "base_url": "https://dadosabertos.tse.jus.br/dataset",
+      "endpoint": "/prestacao_contas_{ano}.zip",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "year_zip",
+        "start_year": 2018,
+        "end_year": 2026
+      },
+      "format": "zip_csv",
+      "gcs_prefix": "eleicoes/tse/tse_prestacao_contas",
+      "bigquery": {
+        "external_table_name": "tse_prestacao_contas",
+        "schema_inferable": true
+      },
+      "prioridade": "sprint_2"
+    },
+    {
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "tse_resultados",
+      "dominio": "eleicoes",
+      "fonte": "TSE",
+      "base_url": "https://dadosabertos.tse.jus.br/dataset",
+      "endpoint": "/resultados_{ano}.zip",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "year_zip",
+        "start_year": 2018,
+        "end_year": 2026
+      },
+      "format": "zip_csv",
+      "gcs_prefix": "eleicoes/tse/tse_resultados",
+      "bigquery": {
+        "external_table_name": "tse_resultados",
+        "schema_inferable": true
+      },
+      "prioridade": "sprint_2"
+    },
+    {
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "tse_bens",
+      "dominio": "eleicoes",
+      "fonte": "TSE",
+      "base_url": "https://dadosabertos.tse.jus.br/dataset",
+      "endpoint": "/bem_candidato_{ano}.zip",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "year_zip",
+        "start_year": 2018,
+        "end_year": 2026
+      },
+      "format": "zip_csv",
+      "gcs_prefix": "eleicoes/tse/tse_bens",
+      "bigquery": {
+        "external_table_name": "tse_bens",
+        "schema_inferable": true
+      },
+      "prioridade": "sprint_2"
+    },
+    {
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "tse_doadores",
+      "dominio": "eleicoes",
+      "fonte": "TSE Divulgacao",
+      "base_url": "https://divulgacandcontas.tse.jus.br",
+      "endpoint": "/",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "cursor",
+        "cursor_field": "meta.next"
+      },
+      "format": "json",
+      "gcs_prefix": "eleicoes/tse/doadores",
+      "bigquery": {
+        "external_table_name": "tse_doadores",
+        "schema_inferable": true
+      },
+      "prioridade": "sprint_2"
+    },
+    {
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "receita_cnpj_dump",
+      "dominio": "cadastros",
+      "fonte": "Receita Federal",
+      "base_url": "https://arquivos.receitafederal.gov.br/dados/cnpj/dados_abertos_cnpj/",
+      "endpoint": "/",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "bulk_download",
+        "index_url": "https://arquivos.receitafederal.gov.br/dados/cnpj/dados_abertos_cnpj/"
+      },
+      "format": "csv",
+      "gcs_prefix": "cadastros/receita_cnpj_dump",
+      "bigquery": {
+        "external_table_name": "receita_cnpj_dump",
+        "schema_inferable": true
+      },
+      "prioridade": "sprint_2"
+    },
+    {
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "opencnpj",
+      "dominio": "cadastros",
+      "fonte": "Terceiros",
+      "base_url": "https://api.opencnpj.org",
+      "endpoint": "/{cnpj}",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "iter_ids"
+      },
+      "format": "json",
+      "gcs_prefix": "cadastros/opencnpj",
+      "bigquery": {
+        "external_table_name": "opencnpj",
+        "schema_inferable": true
+      },
+      "prioridade": "sprint_2"
+    },
+    {
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "brasilapi_cnpj",
+      "dominio": "cadastros",
+      "fonte": "Brasil.IO/BrasilAPI",
+      "base_url": "https://brasilapi.com.br/api/cnpj/v1",
+      "endpoint": "/{cnpj}",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "iter_ids"
+      },
+      "format": "json",
+      "gcs_prefix": "cadastros/brasilapi_cnpj",
+      "bigquery": {
+        "external_table_name": "brasilapi_cnpj",
+        "schema_inferable": true
+      },
+      "prioridade": "sprint_2"
+    },
+    {
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "minhareceita",
+      "dominio": "cadastros",
+      "fonte": "Receita Federal",
+      "base_url": "https://minhareceita.org",
+      "endpoint": "/{cnpj}",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "iter_ids"
+      },
+      "format": "json",
+      "gcs_prefix": "cadastros/minhareceita",
+      "bigquery": {
+        "external_table_name": "minhareceita",
+        "schema_inferable": true
+      },
+      "prioridade": "sprint_2"
+    },
+    {
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "brasilio_socios",
+      "dominio": "cadastros",
+      "fonte": "Brasil.IO/BrasilAPI",
+      "base_url": "https://brasil.io/api/dataset/socios-brasil/empresas/data/",
+      "endpoint": "/",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "page"
+      },
+      "format": "json",
+      "gcs_prefix": "cadastros/brasilio_socios",
+      "bigquery": {
+        "external_table_name": "brasilio_socios",
+        "schema_inferable": true
+      },
+      "prioridade": "sprint_2"
+    },
+    {
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "inlabs_dou",
+      "dominio": "diarios",
+      "fonte": "INLABS",
+      "base_url": "https://inlabs.in.gov.br",
+      "endpoint": "/",
+      "auth": {
+        "type": "inlabs_login",
+        "login_url": "https://inlabs.in.gov.br/login",
+        "env_var": "INLABS_USER"
+      },
+      "pagination": {
+        "type": "inlabs_daily",
+        "daily_path": "/secao/dou"
+      },
+      "format": "xml",
+      "gcs_prefix": "diarios/inlabs/dou",
+      "bigquery": {
+        "external_table_name": "inlabs_dou",
+        "schema_inferable": false
+      },
+      "prioridade": "sprint_2"
+    },
+    {
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "bd_dou",
+      "dominio": "diarios",
+      "fonte": "Base dos Dados",
+      "base_url": "basedosdados",
+      "endpoint": "basedosdados.br_dou",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "bigquery_query",
+        "dataset": "basedosdados.br_dou"
+      },
+      "format": "ndjson",
+      "gcs_prefix": "diarios/basedosdados/dou",
+      "bigquery": {
+        "external_table_name": "bd_dou",
+        "schema_inferable": true
+      },
+      "prioridade": "sprint_2"
+    },
+    {
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "querido_diario_territorios",
+      "dominio": "diarios",
+      "fonte": "Querido Diario",
+      "base_url": "https://queridodiario.ok.org.br/api",
+      "endpoint": "/territories/",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "page"
+      },
+      "format": "json",
+      "gcs_prefix": "diarios/queridodiario/territorios",
+      "bigquery": {
+        "external_table_name": "querido_diario_territorios",
+        "schema_inferable": true
+      },
+      "prioridade": "sprint_2"
+    },
+    {
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "querido_diario_gazettes",
+      "dominio": "diarios",
+      "fonte": "Querido Diario",
+      "base_url": "https://queridodiario.ok.org.br/api",
+      "endpoint": "/gazettes",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "date_window",
+        "start_param": "since",
+        "end_param": "until",
+        "window_days": 7
+      },
+      "format": "json",
+      "gcs_prefix": "diarios/queridodiario/gazettes",
+      "bigquery": {
+        "external_table_name": "querido_diario_gazettes",
+        "schema_inferable": true
+      },
+      "prioridade": "sprint_2"
+    },
+    {
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "ibge_municipios",
+      "dominio": "geo",
+      "fonte": "IBGE",
+      "base_url": "https://servicodados.ibge.gov.br/api/v1",
+      "endpoint": "/localidades/municipios",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "none"
+      },
+      "format": "json",
+      "gcs_prefix": "geo/ibge/ibge_municipios",
+      "bigquery": {
+        "external_table_name": "ibge_municipios",
+        "schema_inferable": true
+      },
+      "prioridade": "sprint_3"
+    },
+    {
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "ibge_malhas_br",
+      "dominio": "geo",
+      "fonte": "IBGE",
+      "base_url": "https://servicodados.ibge.gov.br/api/v3",
+      "endpoint": "/malhas/paises/BR",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "none"
+      },
+      "format": "json",
+      "gcs_prefix": "geo/ibge/ibge_malhas_br",
+      "bigquery": {
+        "external_table_name": "ibge_malhas_br",
+        "schema_inferable": true
+      },
+      "prioridade": "sprint_3"
+    },
+    {
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "ibge_malhas_uf",
+      "dominio": "geo",
+      "fonte": "IBGE",
+      "base_url": "https://servicodados.ibge.gov.br/api/v3",
+      "endpoint": "/malhas/estados/{UF}",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "uf_loop"
+      },
+      "format": "json",
+      "gcs_prefix": "geo/ibge/ibge_malhas_uf",
+      "bigquery": {
+        "external_table_name": "ibge_malhas_uf",
+        "schema_inferable": true
+      },
+      "prioridade": "sprint_3"
+    },
+    {
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "ibge_malhas_municipio",
+      "dominio": "geo",
+      "fonte": "IBGE",
+      "base_url": "https://servicodados.ibge.gov.br/api/v3",
+      "endpoint": "/malhas/municipios/{codIbge}",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "iter_ids"
+      },
+      "format": "json",
+      "gcs_prefix": "geo/ibge/ibge_malhas_municipio",
+      "bigquery": {
+        "external_table_name": "ibge_malhas_municipio",
+        "schema_inferable": true
+      },
+      "prioridade": "sprint_3"
+    },
+    {
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "ibge_sidra_t9514",
+      "dominio": "geo",
+      "fonte": "IBGE",
+      "base_url": "https://apisidra.ibge.gov.br",
+      "endpoint": "/values/t/9514/n6/all/v/93/p/2022/c2/6794",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "none"
+      },
+      "format": "json",
+      "gcs_prefix": "geo/ibge/ibge_sidra_t9514",
+      "bigquery": {
+        "external_table_name": "ibge_sidra_t9514",
+        "schema_inferable": true
+      },
+      "prioridade": "sprint_3"
+    },
+    {
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "ibge_sidra_t6579",
+      "dominio": "geo",
+      "fonte": "IBGE",
+      "base_url": "https://apisidra.ibge.gov.br",
+      "endpoint": "/values/t/6579/n6/all/v/9324/p/last",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "none"
+      },
+      "format": "json",
+      "gcs_prefix": "geo/ibge/ibge_sidra_t6579",
+      "bigquery": {
+        "external_table_name": "ibge_sidra_t6579",
+        "schema_inferable": true
+      },
+      "prioridade": "sprint_3"
+    },
+    {
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "ibge_sidra_t9605",
+      "dominio": "geo",
+      "fonte": "IBGE",
+      "base_url": "https://apisidra.ibge.gov.br",
+      "endpoint": "/values/t/9605/n6/all",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "none"
+      },
+      "format": "json",
+      "gcs_prefix": "geo/ibge/ibge_sidra_t9605",
+      "bigquery": {
+        "external_table_name": "ibge_sidra_t9605",
+        "schema_inferable": true
+      },
+      "prioridade": "sprint_3"
+    },
+    {
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "ibge_sidra_t7358",
+      "dominio": "geo",
+      "fonte": "IBGE",
+      "base_url": "https://apisidra.ibge.gov.br",
+      "endpoint": "/values/t/7358",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "none"
+      },
+      "format": "json",
+      "gcs_prefix": "geo/ibge/ibge_sidra_t7358",
+      "bigquery": {
+        "external_table_name": "ibge_sidra_t7358",
+        "schema_inferable": true
+      },
+      "prioridade": "sprint_3"
+    },
+    {
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "ibge_sidra_t6691",
+      "dominio": "geo",
+      "fonte": "IBGE",
+      "base_url": "https://apisidra.ibge.gov.br",
+      "endpoint": "/values/t/6691",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "none"
+      },
+      "format": "json",
+      "gcs_prefix": "geo/ibge/ibge_sidra_t6691",
+      "bigquery": {
+        "external_table_name": "ibge_sidra_t6691",
+        "schema_inferable": true
+      },
+      "prioridade": "sprint_3"
+    },
+    {
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "ibge_projecoes_pop",
+      "dominio": "geo",
+      "fonte": "IBGE",
+      "base_url": "https://servicodados.ibge.gov.br/api/v1",
+      "endpoint": "/projecoes/populacao/{localidade}",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "iter_ids"
+      },
+      "format": "json",
+      "gcs_prefix": "geo/ibge/ibge_projecoes_pop",
+      "bigquery": {
+        "external_table_name": "ibge_projecoes_pop",
+        "schema_inferable": true
+      },
+      "prioridade": "sprint_3"
+    },
+    {
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      },
+      "incremental": null,
+      "method": "GET",
+      "notes": "Paginação via API descoberta no site",
+      "id": "cnes_estabelecimentos",
+      "dominio": "saude",
+      "fonte": "DATASUS CNES",
+      "base_url": "https://cnes.datasus.gov.br",
+      "endpoint": "/",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "page"
+      },
+      "format": "json",
+      "gcs_prefix": "saude/cnes/estabelecimentos",
+      "bigquery": {
+        "external_table_name": "cnes_estabelecimentos",
+        "schema_inferable": true
+      },
+      "prioridade": "sprint_3"
+    },
+    {
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "elasticnes",
+      "dominio": "saude",
+      "fonte": "ElasticNES",
+      "base_url": "https://elasticnes.saude.gov.br",
+      "endpoint": "/",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "page"
+      },
+      "format": "json",
+      "gcs_prefix": "saude/elasticnes",
+      "bigquery": {
+        "external_table_name": "elasticnes",
+        "schema_inferable": true
+      },
+      "prioridade": "sprint_3"
+    },
+    {
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "datasus_ftp_dbc",
+      "dominio": "saude",
+      "fonte": "DATASUS FTP",
+      "base_url": "ftp://ftp.datasus.gov.br",
+      "endpoint": "/dissemin/publicos/CNES/",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "ftp_dbc",
+        "pattern": "**/*.dbc",
+        "lookback_months": 3
+      },
+      "format": "ftp_dbc",
+      "gcs_prefix": "saude/datasus/cnes_dbc",
+      "bigquery": {
+        "external_table_name": "datasus_ftp_dbc",
+        "schema_inferable": false
+      },
+      "prioridade": "sprint_3"
+    },
+    {
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "opendatasus",
+      "dominio": "saude",
+      "fonte": "OpenDataSUS",
+      "base_url": "https://opendatasus.saude.gov.br",
+      "endpoint": "/api/3/",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "page"
+      },
+      "format": "json",
+      "gcs_prefix": "saude/opendatasus/ckan",
+      "bigquery": {
+        "external_table_name": "opendatasus",
+        "schema_inferable": true
+      },
+      "prioridade": "sprint_3"
+    },
+    {
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      },
+      "incremental": null,
+      "method": "GET",
+      "notes": "URL exemplo — ajustar conforme ambiente autorizado",
+      "id": "rnds_saude",
+      "dominio": "saude",
+      "fonte": "RNDS",
+      "base_url": "https://rnds.saude.gov.br",
+      "endpoint": "/api/fhir/r4/",
+      "auth": {
+        "type": "bearer",
+        "env_var": "RNDS_BEARER_TOKEN"
+      },
+      "pagination": {
+        "type": "none"
+      },
+      "format": "json",
+      "gcs_prefix": "saude/rnds/fhir",
+      "bigquery": {
+        "external_table_name": "rnds_saude",
+        "schema_inferable": false
+      },
+      "prioridade": "sprint_3"
+    },
+    {
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "inep_catalogo_escolas",
+      "dominio": "educacao",
+      "fonte": "INEP",
+      "base_url": "https://www.gov.br/inep",
+      "endpoint": "/inep/pt-br/areas-de-atuacao/pesquisas-e-estatisticas/catalogo-de-escolas",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "bulk_download",
+        "index_url": "https://www.gov.br/inep/pt-br/areas-de-atuacao/pesquisas-e-estatisticas/catalogo-de-escolas"
+      },
+      "format": "csv",
+      "gcs_prefix": "educacao/inep/inep_catalogo_escolas",
+      "bigquery": {
+        "external_table_name": "inep_catalogo_escolas",
+        "schema_inferable": false
+      },
+      "prioridade": "sprint_3"
+    },
+    {
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "inep_censo_escolar",
+      "dominio": "educacao",
+      "fonte": "INEP",
+      "base_url": "https://www.gov.br/inep",
+      "endpoint": "/inep/pt-br/areas-de-atuacao/pesquisas-e-estatisticas/censo-escolar",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "bulk_download",
+        "index_url": "https://www.gov.br/inep/pt-br/areas-de-atuacao/pesquisas-e-estatisticas/censo-escolar"
+      },
+      "format": "csv",
+      "gcs_prefix": "educacao/inep/inep_censo_escolar",
+      "bigquery": {
+        "external_table_name": "inep_censo_escolar",
+        "schema_inferable": false
+      },
+      "prioridade": "sprint_3"
+    },
+    {
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "inep_ideb",
+      "dominio": "educacao",
+      "fonte": "INEP",
+      "base_url": "https://www.gov.br/inep",
+      "endpoint": "/inep/pt-br/areas-de-atuacao/pesquisas-e-estatisticas/ideb",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "bulk_download",
+        "index_url": "https://www.gov.br/inep/pt-br/areas-de-atuacao/pesquisas-e-estatisticas/ideb"
+      },
+      "format": "csv",
+      "gcs_prefix": "educacao/inep/inep_ideb",
+      "bigquery": {
+        "external_table_name": "inep_ideb",
+        "schema_inferable": false
+      },
+      "prioridade": "sprint_3"
+    },
+    {
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "saeb_municipios",
+      "dominio": "educacao",
+      "fonte": "INEP",
+      "base_url": "https://www.gov.br/inep",
+      "endpoint": "/inep/pt-br/areas-de-atuacao/pesquisas-e-estatisticas/saeb",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "bulk_download",
+        "index_url": "https://www.gov.br/inep/pt-br/areas-de-atuacao/pesquisas-e-estatisticas/saeb"
+      },
+      "format": "csv",
+      "gcs_prefix": "educacao/inep/saeb_municipios",
+      "bigquery": {
+        "external_table_name": "saeb_municipios",
+        "schema_inferable": false
+      },
+      "prioridade": "sprint_3"
+    },
+    {
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "educacao_inteligente",
+      "dominio": "educacao",
+      "fonte": "Educacao Inteligente",
+      "base_url": "http://educacao.dadosabertosbr.org",
+      "endpoint": "/api/escolas",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "page"
+      },
+      "format": "json",
+      "gcs_prefix": "educacao/educacaointeligente/escolas",
+      "bigquery": {
+        "external_table_name": "educacao_inteligente",
+        "schema_inferable": true
+      },
+      "prioridade": "sprint_3"
+    },
+    {
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "educacao_inteligente_estatisticas",
+      "dominio": "educacao",
+      "fonte": "Educacao Inteligente",
+      "base_url": "http://educacao.dadosabertosbr.org",
+      "endpoint": "/api/estatisticas/{indice}/{cod}",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "iter_ids"
+      },
+      "format": "json",
+      "gcs_prefix": "educacao/educacaointeligente/estatisticas",
+      "bigquery": {
+        "external_table_name": "educacao_inteligente_estatisticas",
+        "schema_inferable": true
+      },
+      "prioridade": "sprint_3"
+    },
+    {
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "bd_inep_ideb",
+      "dominio": "educacao",
+      "fonte": "Base dos Dados",
+      "base_url": "basedosdados",
+      "endpoint": "basedosdados.br_inep_ideb",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "bigquery_query",
+        "dataset": "basedosdados.br_inep_ideb"
+      },
+      "format": "ndjson",
+      "gcs_prefix": "educacao/basedosdados/inep_ideb",
+      "bigquery": {
+        "external_table_name": "bd_inep_ideb",
+        "schema_inferable": true
+      },
+      "prioridade": "sprint_3"
+    },
+    {
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "snis_serie_historica",
+      "dominio": "saneamento",
+      "fonte": "MDR",
+      "base_url": "https://app4.mdr.gov.br",
+      "endpoint": "/serieHistorica/",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "bulk_download",
+        "index_url": "https://app4.mdr.gov.br/serieHistorica/"
+      },
+      "format": "csv",
+      "gcs_prefix": "saneamento/snis_serie_historica",
+      "bigquery": {
+        "external_table_name": "snis_serie_historica",
+        "schema_inferable": true
+      },
+      "prioridade": "sprint_3"
+    },
+    {
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "sinisa_2024",
+      "dominio": "saneamento",
+      "fonte": "MDR",
+      "base_url": "https://www.gov.br",
+      "endpoint": "/cidades/pt-br/acesso-a-informacao/snis",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "bulk_download",
+        "index_url": "https://www.gov.br/cidades/pt-br/acesso-a-informacao/snis"
+      },
+      "format": "csv",
+      "gcs_prefix": "saneamento/sinisa_2024",
+      "bigquery": {
+        "external_table_name": "sinisa_2024",
+        "schema_inferable": true
+      },
+      "prioridade": "sprint_3"
+    },
+    {
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "bd_snis",
+      "dominio": "saneamento",
+      "fonte": "Base dos Dados",
+      "base_url": "basedosdados",
+      "endpoint": "basedosdados.br_mdr_snis",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "bigquery_query",
+        "dataset": "basedosdados.br_mdr_snis"
+      },
+      "format": "ndjson",
+      "gcs_prefix": "saneamento/bd_snis",
+      "bigquery": {
+        "external_table_name": "bd_snis",
+        "schema_inferable": false
+      },
+      "prioridade": "sprint_3"
+    },
+    {
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "ana_hidroweb",
+      "dominio": "saneamento",
+      "fonte": "ANA",
+      "base_url": "https://www.snirh.gov.br",
+      "endpoint": "/hidroweb/serieshistoricas",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "page"
+      },
+      "format": "json",
+      "gcs_prefix": "saneamento/ana_hidroweb",
+      "bigquery": {
+        "external_table_name": "ana_hidroweb",
+        "schema_inferable": true
+      },
+      "prioridade": "sprint_3"
+    },
+    {
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "atlas_brasil",
+      "dominio": "social",
+      "fonte": "Atlas Brasil",
+      "base_url": "http://www.atlasbrasil.org.br",
+      "endpoint": "/acervo/atlas",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "bulk_download",
+        "index_url": "http://www.atlasbrasil.org.br/acervo/atlas"
+      },
+      "format": "csv",
+      "gcs_prefix": "social/atlas_brasil",
+      "bigquery": {
+        "external_table_name": "atlas_brasil",
+        "schema_inferable": false
+      },
+      "prioridade": "sprint_3"
+    },
+    {
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "ipea_data",
+      "dominio": "social",
+      "fonte": "IPEA",
+      "base_url": "https://www.ipeadata.gov.br",
+      "endpoint": "/api/",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "page"
+      },
+      "format": "json",
+      "gcs_prefix": "social/ipea_data",
+      "bigquery": {
+        "external_table_name": "ipea_data",
+        "schema_inferable": false
+      },
+      "prioridade": "sprint_3"
+    },
+    {
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "ivs_ipea",
+      "dominio": "social",
+      "fonte": "IPEA",
+      "base_url": "https://ivs.ipea.gov.br",
+      "endpoint": "/",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "bulk_download",
+        "index_url": "https://ivs.ipea.gov.br/"
+      },
+      "format": "csv",
+      "gcs_prefix": "social/ivs_ipea",
+      "bigquery": {
+        "external_table_name": "ivs_ipea",
+        "schema_inferable": false
+      },
+      "prioridade": "sprint_3"
+    },
+    {
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "cadunico",
+      "dominio": "social",
+      "fonte": "MDS",
+      "base_url": "https://www.gov.br",
+      "endpoint": "/mds/pt-br/acesso-a-informacao/cadastro-unico",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "bulk_download",
+        "index_url": "https://www.gov.br/mds/pt-br/acesso-a-informacao/cadastro-unico"
+      },
+      "format": "csv",
+      "gcs_prefix": "social/cadunico",
+      "bigquery": {
+        "external_table_name": "cadunico",
+        "schema_inferable": false
+      },
+      "prioridade": "sprint_3"
+    },
+    {
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "suas_censo",
+      "dominio": "social",
+      "fonte": "MDS",
+      "base_url": "https://www.gov.br",
+      "endpoint": "/mds/pt-br/acesso-a-informacao/dados-abertos",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "bulk_download",
+        "index_url": "https://www.gov.br/mds/pt-br/acesso-a-informacao/dados-abertos"
+      },
+      "format": "csv",
+      "gcs_prefix": "social/suas_censo",
+      "bigquery": {
+        "external_table_name": "suas_censo",
+        "schema_inferable": false
+      },
+      "prioridade": "sprint_3"
+    },
+    {
+      "incremental": null,
+      "method": "GET",
+      "id": "rais_dados_abertos",
+      "dominio": "economia",
+      "fonte": "RAIS",
+      "base_url": "https://www.gov.br/trabalho-e-emprego/",
+      "endpoint": "/pt-br/assuntos/estatisticas-trabalho/rais",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "bulk_download",
+        "index_url": "https://www.gov.br/trabalho-e-emprego//pt-br/assuntos/estatisticas-trabalho/rais"
+      },
+      "format": "csv",
+      "gcs_prefix": "economia/rais_dados_abertos",
+      "bigquery": {
+        "external_table_name": "rais_dados_abertos",
+        "schema_inferable": false
+      },
+      "prioridade": "futuro",
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      }
+    },
+    {
+      "incremental": null,
+      "method": "GET",
+      "id": "caged",
+      "dominio": "economia",
+      "fonte": "CAGED",
+      "base_url": "https://www.gov.br/trabalho-e-emprego/",
+      "endpoint": "/pt-br/assuntos/estatisticas-trabalho/caged",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "bulk_download",
+        "index_url": "https://www.gov.br/trabalho-e-emprego//pt-br/assuntos/estatisticas-trabalho/caged"
+      },
+      "format": "csv",
+      "gcs_prefix": "economia/caged",
+      "bigquery": {
+        "external_table_name": "caged",
+        "schema_inferable": false
+      },
+      "prioridade": "futuro",
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      }
+    },
+    {
+      "incremental": null,
+      "method": "GET",
+      "id": "bd_rais",
+      "dominio": "economia",
+      "fonte": "BD",
+      "base_url": "basedosdados",
+      "endpoint": "basedosdados.br_me_rais",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "bigquery_query",
+        "dataset": "basedosdados.br_me_rais"
+      },
+      "format": "ndjson",
+      "gcs_prefix": "economia/bd_rais",
+      "bigquery": {
+        "external_table_name": "bd_rais",
+        "schema_inferable": false
+      },
+      "prioridade": "futuro",
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      }
+    },
+    {
+      "incremental": null,
+      "method": "GET",
+      "id": "bd_caged",
+      "dominio": "economia",
+      "fonte": "BD",
+      "base_url": "basedosdados",
+      "endpoint": "basedosdados.br_me_caged",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "bigquery_query",
+        "dataset": "basedosdados.br_me_caged"
+      },
+      "format": "ndjson",
+      "gcs_prefix": "economia/bd_caged",
+      "bigquery": {
+        "external_table_name": "bd_caged",
+        "schema_inferable": false
+      },
+      "prioridade": "futuro",
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      }
+    },
+    {
+      "incremental": null,
+      "method": "GET",
+      "id": "pnad_continua_t6318",
+      "dominio": "economia",
+      "fonte": "PNAD",
+      "base_url": "https://apisidra.ibge.gov.br",
+      "endpoint": "/values/t/6318",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "none"
+      },
+      "format": "json",
+      "gcs_prefix": "economia/pnad_continua_t6318",
+      "bigquery": {
+        "external_table_name": "pnad_continua_t6318",
+        "schema_inferable": true
+      },
+      "prioridade": "futuro",
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      }
+    },
+    {
+      "incremental": null,
+      "method": "GET",
+      "id": "pnad_continua_t7444",
+      "dominio": "economia",
+      "fonte": "PNAD",
+      "base_url": "https://apisidra.ibge.gov.br",
+      "endpoint": "/values/t/7444",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "none"
+      },
+      "format": "json",
+      "gcs_prefix": "economia/pnad_continua_t7444",
+      "bigquery": {
+        "external_table_name": "pnad_continua_t7444",
+        "schema_inferable": true
+      },
+      "prioridade": "futuro",
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      }
+    },
+    {
+      "incremental": null,
+      "method": "GET",
+      "id": "ibama_dados_abertos",
+      "dominio": "ambiente",
+      "fonte": "IBAMA",
+      "base_url": "https://dadosabertos.ibama.gov.br",
+      "endpoint": "/",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "page"
+      },
+      "format": "json",
+      "gcs_prefix": "ambiente/ibama_dados_abertos",
+      "bigquery": {
+        "external_table_name": "ibama_dados_abertos",
+        "schema_inferable": true
+      },
+      "prioridade": "futuro",
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      }
+    },
+    {
+      "incremental": null,
+      "method": "GET",
+      "id": "inpe_prodes",
+      "dominio": "ambiente",
+      "fonte": "INPE",
+      "base_url": "http://www.obt.inpe.br",
+      "endpoint": "/OBT/assunto/prodes",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "bulk_download",
+        "index_url": "http://www.obt.inpe.br/OBT/assunto/prodes"
+      },
+      "format": "csv",
+      "gcs_prefix": "ambiente/inpe_prodes",
+      "bigquery": {
+        "external_table_name": "inpe_prodes",
+        "schema_inferable": false
+      },
+      "prioridade": "futuro",
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      }
+    },
+    {
+      "incremental": null,
+      "method": "GET",
+      "id": "inpe_deter",
+      "dominio": "ambiente",
+      "fonte": "INPE",
+      "base_url": "https://terrabrasilis.dpi.inpe.br",
+      "endpoint": "/app/api/",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "date_window"
+      },
+      "format": "json",
+      "gcs_prefix": "ambiente/inpe_deter",
+      "bigquery": {
+        "external_table_name": "inpe_deter",
+        "schema_inferable": true
+      },
+      "prioridade": "futuro",
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      }
+    },
+    {
+      "incremental": null,
+      "method": "GET",
+      "id": "mapbiomas",
+      "dominio": "ambiente",
+      "fonte": "MAPBIOMAS",
+      "base_url": "https://plataforma.mapbiomas.org/",
+      "endpoint": "/",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "bulk_download",
+        "index_url": "https://plataforma.mapbiomas.org//"
+      },
+      "format": "csv",
+      "gcs_prefix": "ambiente/mapbiomas",
+      "bigquery": {
+        "external_table_name": "mapbiomas",
+        "schema_inferable": false
+      },
+      "prioridade": "futuro",
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      }
+    },
+    {
+      "incremental": null,
+      "method": "GET",
+      "id": "sicar",
+      "dominio": "ambiente",
+      "fonte": "SICAR",
+      "base_url": "https://www.car.gov.br",
+      "endpoint": "/publico/imoveis/index",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "page"
+      },
+      "format": "json",
+      "gcs_prefix": "ambiente/sicar",
+      "bigquery": {
+        "external_table_name": "sicar",
+        "schema_inferable": true
+      },
+      "prioridade": "futuro",
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      }
+    },
+    {
+      "incremental": null,
+      "method": "GET",
+      "id": "ana_qualidade_agua",
+      "dominio": "ambiente",
+      "fonte": "ANA",
+      "base_url": "https://www.snirh.gov.br",
+      "endpoint": "/hidroweb/",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "page"
+      },
+      "format": "json",
+      "gcs_prefix": "ambiente/ana_qualidade_agua",
+      "bigquery": {
+        "external_table_name": "ana_qualidade_agua",
+        "schema_inferable": true
+      },
+      "prioridade": "futuro",
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      }
+    },
+    {
+      "incremental": null,
+      "method": "GET",
+      "id": "dadosgovbr",
+      "dominio": "economia",
+      "fonte": "DADOSGOVBR",
+      "base_url": "https://dados.gov.br",
+      "endpoint": "/api/3/action/package_search",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "page"
+      },
+      "format": "json",
+      "gcs_prefix": "economia/dadosgovbr",
+      "bigquery": {
+        "external_table_name": "dadosgovbr",
+        "schema_inferable": true
+      },
+      "prioridade": "futuro",
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      }
+    },
+    {
+      "incremental": null,
+      "method": "GET",
+      "id": "conecta_gov",
+      "dominio": "economia",
+      "fonte": "CONECTA",
+      "base_url": "https://www.gov.br",
+      "endpoint": "/conecta/catalogo/apis",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "catalog_scrape"
+      },
+      "format": "json",
+      "gcs_prefix": "economia/conecta_gov",
+      "bigquery": {
+        "external_table_name": "conecta_gov",
+        "schema_inferable": true
+      },
+      "prioridade": "futuro",
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      }
+    },
+    {
+      "incremental": null,
+      "method": "GET",
+      "id": "basedosdados_meta",
+      "dominio": "economia",
+      "fonte": "BASEDOSDADOS",
+      "base_url": "https://basedosdados.org",
+      "endpoint": "/api/",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "page"
+      },
+      "format": "json",
+      "gcs_prefix": "economia/basedosdados_meta",
+      "bigquery": {
+        "external_table_name": "basedosdados_meta",
+        "schema_inferable": true
+      },
+      "prioridade": "futuro",
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      }
+    },
+    {
+      "incremental": null,
+      "method": "GET",
+      "id": "worldbank_indicators",
+      "dominio": "internacional",
+      "fonte": "WORLDBANK",
+      "base_url": "https://api.worldbank.org/v2",
+      "endpoint": "/country/BR/indicator",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "page"
+      },
+      "format": "json",
+      "gcs_prefix": "internacional/worldbank_indicators",
+      "bigquery": {
+        "external_table_name": "worldbank_indicators",
+        "schema_inferable": true
+      },
+      "prioridade": "futuro",
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      }
+    },
+    {
+      "incremental": null,
+      "method": "GET",
+      "id": "worldbank_documents",
+      "dominio": "internacional",
+      "fonte": "WORLDBANK",
+      "base_url": "https://documents.worldbank.org",
+      "endpoint": "/en/publication/documents-reports/api",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "page"
+      },
+      "format": "json",
+      "gcs_prefix": "internacional/worldbank_documents",
+      "bigquery": {
+        "external_table_name": "worldbank_documents",
+        "schema_inferable": true
+      },
+      "prioridade": "futuro",
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      }
+    },
+    {
+      "incremental": null,
+      "method": "GET",
+      "id": "un_comtrade",
+      "dominio": "internacional",
+      "fonte": "UN",
+      "base_url": "https://comtradeapi.un.org",
+      "endpoint": "/",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "page"
+      },
+      "format": "json",
+      "gcs_prefix": "internacional/un_comtrade",
+      "bigquery": {
+        "external_table_name": "un_comtrade",
+        "schema_inferable": true
+      },
+      "prioridade": "futuro",
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      }
+    },
+    {
+      "incremental": null,
+      "method": "GET",
+      "id": "imf_data",
+      "dominio": "internacional",
+      "fonte": "IMF",
+      "base_url": "https://data.imf.org",
+      "endpoint": "/api/",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "page"
+      },
+      "format": "json",
+      "gcs_prefix": "internacional/imf_data",
+      "bigquery": {
+        "external_table_name": "imf_data",
+        "schema_inferable": true
+      },
+      "prioridade": "futuro",
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      }
+    },
+    {
+      "incremental": null,
+      "method": "GET",
+      "id": "oecd_sdmx",
+      "dominio": "internacional",
+      "fonte": "OECD",
+      "base_url": "https://stats.oecd.org",
+      "endpoint": "/SDMX-JSON/data/",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "page"
+      },
+      "format": "json",
+      "gcs_prefix": "internacional/oecd_sdmx",
+      "bigquery": {
+        "external_table_name": "oecd_sdmx",
+        "schema_inferable": true
+      },
+      "prioridade": "futuro",
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      }
+    },
+    {
+      "incremental": null,
+      "method": "GET",
+      "id": "sinesp",
+      "dominio": "social",
+      "fonte": "SINESP",
+      "base_url": "https://www.gov.br/mj/pt-br/seguranca-publica/estatisticas",
+      "endpoint": "/",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "bulk_download",
+        "index_url": "https://www.gov.br/mj/pt-br/seguranca-publica/estatisticas"
+      },
+      "format": "csv",
+      "gcs_prefix": "social/sinesp",
+      "bigquery": {
+        "external_table_name": "sinesp",
+        "schema_inferable": true
+      },
+      "prioridade": "futuro",
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      }
+    },
+    {
+      "incremental": null,
+      "method": "GET",
+      "id": "forum_seguranca",
+      "dominio": "social",
+      "fonte": "FORUM",
+      "base_url": "https://forumseguranca.org.br",
+      "endpoint": "/estatisticas/",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "bulk_download",
+        "index_url": "https://forumseguranca.org.br/estatisticas/"
+      },
+      "format": "csv",
+      "gcs_prefix": "social/forum_seguranca",
+      "bigquery": {
+        "external_table_name": "forum_seguranca",
+        "schema_inferable": false
+      },
+      "prioridade": "futuro",
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      }
+    },
+    {
+      "rate_limit": {
+        "rpm": 10,
+        "rph": 100,
+        "concurrent": 1
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "newsapi_br",
+      "dominio": "noticias",
+      "fonte": "NEWSAPI",
+      "base_url": "https://newsapi.org/v2",
+      "endpoint": "/top-headlines",
+      "auth": {
+        "type": "api_key_query",
+        "query_param": "apiKey",
+        "env_var": "NEWSAPI_KEY"
+      },
+      "pagination": {
+        "type": "page"
+      },
+      "format": "json",
+      "gcs_prefix": "noticias/newsapi_br",
+      "bigquery": {
+        "external_table_name": "newsapi_br",
+        "schema_inferable": true
+      },
+      "prioridade": "futuro"
+    },
+    {
+      "rate_limit": {
+        "rpm": 10,
+        "rph": 100,
+        "concurrent": 1
+      },
+      "incremental": null,
+      "method": "GET",
+      "id": "gnews_br",
+      "dominio": "noticias",
+      "fonte": "GNEWS",
+      "base_url": "https://gnews.io/api/v4",
+      "endpoint": "/",
+      "auth": {
+        "type": "api_key_query",
+        "query_param": "token",
+        "env_var": "GNEWS_KEY"
+      },
+      "pagination": {
+        "type": "page"
+      },
+      "format": "json",
+      "gcs_prefix": "noticias/gnews_br",
+      "bigquery": {
+        "external_table_name": "gnews_br",
+        "schema_inferable": true
+      },
+      "prioridade": "futuro"
+    },
+    {
+      "incremental": null,
+      "method": "GET",
+      "id": "brasilapi_bancos",
+      "dominio": "cadastros",
+      "fonte": "BRASILAPI",
+      "base_url": "https://brasilapi.com.br/api/banks/v1",
+      "endpoint": "/",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "none"
+      },
+      "format": "json",
+      "gcs_prefix": "cadastros/brasilapi_bancos",
+      "bigquery": {
+        "external_table_name": "brasilapi_bancos",
+        "schema_inferable": true
+      },
+      "prioridade": "futuro",
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      }
+    },
+    {
+      "incremental": null,
+      "method": "GET",
+      "id": "brasilapi_pix",
+      "dominio": "cadastros",
+      "fonte": "BRASILAPI",
+      "base_url": "https://brasilapi.com.br/api/pix/participants/v1",
+      "endpoint": "/",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "none"
+      },
+      "format": "json",
+      "gcs_prefix": "cadastros/brasilapi_pix",
+      "bigquery": {
+        "external_table_name": "brasilapi_pix",
+        "schema_inferable": true
+      },
+      "prioridade": "futuro",
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      }
+    },
+    {
+      "incremental": null,
+      "method": "GET",
+      "id": "brasilapi_municipios",
+      "dominio": "cadastros",
+      "fonte": "BRASILAPI",
+      "base_url": "https://brasilapi.com.br/api/ibge/municipios/v1",
+      "endpoint": "/{uf}",
+      "auth": {
+        "type": "none"
+      },
+      "pagination": {
+        "type": "uf_loop"
+      },
+      "format": "json",
+      "gcs_prefix": "cadastros/brasilapi_municipios",
+      "bigquery": {
+        "external_table_name": "brasilapi_municipios",
+        "schema_inferable": true
+      },
+      "prioridade": "futuro",
+      "rate_limit": {
+        "rpm": 60,
+        "rph": 1000,
+        "concurrent": 4
+      }
+    }
+  ]
+}
