@@ -46,13 +46,29 @@ export default function LoginPage() {
   const [busyProvider, setBusyProvider] = useState(null);
   const [error, setError] = useState(null);
 
-  const fromState = location.state && typeof location.state === "object"
-    ? location.state.from
-    : null;
-  const redirectTarget =
-    typeof fromState === "string" && fromState.startsWith("/") && fromState !== "/login"
-      ? fromState
-      : REDIRECT_AFTER_LOGIN;
+  const searchParams = new URLSearchParams(location.search);
+  const redirectQuery = searchParams.get("redirect");
+
+  const fromState =
+    location.state && typeof location.state === "object" ? location.state.from : null;
+
+  const redirectTarget = (() => {
+    if (
+      typeof redirectQuery === "string" &&
+      redirectQuery.startsWith("/") &&
+      redirectQuery !== "/login"
+    ) {
+      return redirectQuery;
+    }
+    if (
+      typeof fromState === "string" &&
+      fromState.startsWith("/") &&
+      fromState !== "/login"
+    ) {
+      return fromState;
+    }
+    return REDIRECT_AFTER_LOGIN;
+  })();
 
   useEffect(() => {
     if (isAuthenticated) {
