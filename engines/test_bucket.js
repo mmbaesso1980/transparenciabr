@@ -1,28 +1,37 @@
 #!/usr/bin/env node
 /**
- * Bala traçadora: grava JSON de teste no bucket RAW (Hive partition).
+ * Bala traçadora: grava JSON de teste no bucket RAW (partição Hive por ano).
  *
- * Requer: ADC ou GOOGLE_APPLICATION_CREDENTIALS, permissão storage.objects.create no bucket.
+ * Path canónico (Round 2): `testes/ignicao/ano=2026/teste.json`
  *
- * Uso: node test_bucket.js
+ * Requer: ADC ou GOOGLE_APPLICATION_CREDENTIALS, permissão storage.objects.create.
+ *
+ * Uso:
+ *   node test_bucket.js
+ *   IGNICAO_ANO=2026 node test_bucket.js
  */
 
-import { hivePartitionPath, hivePartitionFromDate } from "./ingestors/base_ingestor.js";
+import { buildHiveDestinationYearOnly } from "./ingestors/base_ingestor.js";
 import { uploadJSONToBucket } from "./gcp_storage.js";
 
-const COMANDANTE = process.env.COMANDANTE_DATA_LAKE || "Baesso";
+const IGNICAO_ANO =
+  process.env.IGNICAO_ANO != null && String(process.env.IGNICAO_ANO).trim() !== ""
+    ? process.env.IGNICAO_ANO
+    : new Date().getUTCFullYear();
 
 async function main() {
-  const part = hivePartitionFromDate();
-  const partitionSegment = hivePartitionPath(part);
-  const pathDestino = `testes/sistema/${partitionSegment}/ignicao.json`;
+  const pathDestino = buildHiveDestinationYearOnly(
+    "testes/ignicao",
+    "teste.json",
+    IGNICAO_ANO,
+  );
 
   const payload = {
     status: "Data Lake Operacional",
-    comandante: COMANDANTE,
+    motor: "A.S.M.O.D.E.U.S.",
     timestamp_utc: new Date().toISOString(),
-    esquema_particao: "hive (ano/mes/dia)",
     regiao: "us-central1",
+    particao: `ano=${IGNICAO_ANO}`,
   };
 
   const uri = await uploadJSONToBucket(pathDestino, payload);
@@ -36,7 +45,7 @@ main().catch((err) => {
     String(err.code) === "404"
   ) {
     console.error(
-      "[test_bucket] Crie o bucket na região us-central1 (ex.: gcloud storage buckets create gs://transparenciabr-datalake-raw --location=us-central1 --uniform-bucket-level-access)",
+      "[test_bucket] Crie o bucket em us-central1, ex.: gcloud storage buckets create gs://transparenciabr-datalake-raw --location=us-central1 --uniform-bucket-level-access",
     );
   }
   process.exit(1);

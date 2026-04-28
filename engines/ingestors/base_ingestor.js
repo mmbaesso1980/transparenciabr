@@ -41,6 +41,18 @@ export function hivePartitionPath(part = hivePartitionFromDate()) {
 }
 
 /**
+ * Particionamento mínimo só por ano (diretiva de teste / agregados anuais).
+ * @param {string|number} [ano] - ex: 2026; default: ano civil UTC corrente
+ */
+export function hiveYearOnlyPath(ano) {
+  const y =
+    ano != null && String(ano).length
+      ? String(ano)
+      : String(new Date().getUTCFullYear());
+  return `ano=${y}`;
+}
+
+/**
  * Path completo Hive sob um prefixo de fonte (sem barra inicial/final).
  *
  * @param {string} prefixoExemplo - ex: `fontes/camara/deputados`
@@ -51,6 +63,16 @@ export function buildHiveDestination(prefixoExemplo, nomeFicheiro, dataRef) {
   const pre = String(prefixoExemplo).replace(/^\/+|\/+$/g, "");
   const name = String(nomeFicheiro).replace(/^\/+/, "");
   const part = hivePartitionPath(hivePartitionFromDate(dataRef));
+  return `${pre}/${part}/${name}`;
+}
+
+/**
+ * Path Hive apenas com `ano=` (ex.: `testes/ignicao/ano=2026/teste.json`).
+ */
+export function buildHiveDestinationYearOnly(prefixoExemplo, nomeFicheiro, anoRef) {
+  const pre = String(prefixoExemplo).replace(/^\/+|\/+$/g, "");
+  const name = String(nomeFicheiro).replace(/^\/+/, "");
+  const part = hiveYearOnlyPath(anoRef);
   return `${pre}/${part}/${name}`;
 }
 
