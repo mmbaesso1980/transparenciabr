@@ -295,9 +295,12 @@ export function normalizeDespesaCatalogoRow(row, idx) {
     num ||
     (ordem != null && String(ordem) !== ""
       ? `CEAP-${ordem}`
-      : `CEAP-CAT-${idx + 1}`);
+      : `CEAP-MINI-${idx + 1}`);
   const nome = String(
-    row.nome_fornecedor ?? row.nomeFornecedor ?? row.txtFornecedor ?? "",
+    row.txtFornecedor ??
+      row.nome_fornecedor ??
+      row.nomeFornecedor ??
+      "",
   ).trim();
   const titulo = nome || "Fornecedor não informado";
   const data = String(
@@ -308,7 +311,10 @@ export function normalizeDespesaCatalogoRow(row, idx) {
       "",
   ).slice(0, 10);
   const tipo = String(row.tipo_despesa ?? row.tipoDespesa ?? "").trim();
-  const foco = [data, tipo].filter(Boolean).join(" · ");
+  const cnpj = String(row.cnpjCpf ?? row.cnpjCpfFornecedor ?? "").trim();
+  const foco = [data, cnpj ? `CNPJ/CPF ${cnpj}` : "", tipo]
+    .filter(Boolean)
+    .join(" · ");
   const valor = Number(
     row.valor_liquido ??
       row.vlrLiquido ??

@@ -14,6 +14,9 @@
  * Fetch: todos os anos em simultâneo (query string fixa), paginação até `dados` vazio.
  * Grava em transparency_reports/{deputadoId} com merge de `investigacao_prisma_ceap`
  * (preserva prismas/benford anteriores; atualiza catálogo e metadados do motor).
+ *
+ * Benford: sempre sobre 100% das notas deduplicadas (memória).
+ * Firestore: catálogo minificado (5 campos) + Top 300 após ordenação data↓ valor↓.
  */
 
 import axios from "axios";
@@ -33,6 +36,7 @@ const LEGAL_DISCLAIMER =
   "Indícios quantitativos derivados de dados públicos — não configuram ilícito nem substituem apuração oficial.";
 
 const DEP_ID = (process.env.CEAP_DEPUTADO_ID || "220645").trim();
+const CATALOGO_MAX_SALVO = 300;
 
 const BENFORD_EXPECTED = Array.from({ length: 9 }, (_, i) =>
   Math.log10(1 + 1 / (i + 1)),
@@ -148,49 +152,33 @@ function parseDataDoc(row) {
   return String(raw ?? "").slice(0, 10);
 }
 
-function isDescricaoGenerica(row) {
-  const tipo = String(
-    row.tipoDespesa ?? row.descricao ?? row.tipo_despesa ?? "",
-  ).trim();
-  if (!tipo) return true;
-  if (tipo.length <= 24) return true;
-  const generic =
-    /^(consultoria|servi[cç]os?\s|passagens?|material|loca[cç][aã]o|combust[ií]vel)/i;
-  return generic.test(tipo);
+/** Payload Firestore: apenas estes campos (compressão). */
+function minificarNotaParaFirestore(row) {
+  const v = parseValor(row);
+  const dataDoc = parseDataDoc(row);
+  const url = urlDocumentoOficial(row);
+  const nome = String(row.nomeFornecedor ?? row.nome_fornecedor ?? "").trim();
+  const cnpj = String(row.cnpjCpfFornecedor ?? row.cnpjCpf ?? "").trim();
+  return {
+    txtFornecedor: nome,
+    vlrLiquido: v != null && Number.isFinite(v) ? v : null,
+    dataDocumento: dataDoc,
+    urlDocumento: url || (typeof row.urlDocumento === "string" ? row.urlDocumento.trim() : ""),
+    cnpjCpf: cnpj,
+  };
 }
 
-function normalizeDespesa(row, idx) {
-  const valor = parseValor(row);
-  const dataDoc = parseDataDoc(row);
-  const tipoDespesa = String(row.tipoDespesa ?? row.descricao ?? "").trim();
-  const nomeFornecedor = String(
-    row.nomeFornecedor ?? row.nome_fornecedor ?? "",
-  ).trim();
-  const numeroDocumento = String(
-    row.numeroDocumento ?? row.numDocumento ?? row.numero_documento ?? "",
-  ).trim();
-  const url = urlDocumentoOficial(row);
-  return {
-    ordem_api: idx,
-    valor_liquido: valor,
-    vlrLiquido: valor,
-    data_documento: dataDoc,
-    dataDocumento: row.dataDocumento ?? dataDoc,
-    dataEmissao: dataDoc,
-    tipo_despesa: tipoDespesa,
-    tipoDespesa: row.tipoDespesa ?? tipoDespesa,
-    nome_fornecedor: nomeFornecedor,
-    nomeFornecedor: row.nomeFornecedor ?? nomeFornecedor,
-    numero_documento: numeroDocumento,
-    numDocumento: row.numDocumento ?? numeroDocumento,
-    url_documento_oficial: url,
-    urlDocumento: url || row.urlDocumento || "",
-    descricao_generica: isDescricaoGenerica(row),
-    /** preserva identificadores da API para dedupe / auditoria */
-    codDocumento: row.codDocumento ?? row.cod_documento,
-    ano: row.ano,
-    mes: row.mes,
-  };
+function ordenarTopCatalogo(minificadas) {
+  return [...minificadas].sort((a, b) => {
+    const db = String(b.dataDocumento || "");
+    const da = String(a.dataDocumento || "");
+    if (db !== da) return db.localeCompare(da);
+    const vb = Number(b.vlrLiquido);
+    const va = Number(a.vlrLiquido);
+    const nb = Number.isFinite(vb) ? vb : -Infinity;
+    const na = Number.isFinite(va) ? va : -Infinity;
+    return nb - na;
+  });
 }
 
 /**
@@ -234,14 +222,6 @@ function dedupeNotas(rows) {
     out.push(row);
   }
   return out;
-}
-
-function sortDespesasRecentFirst(rows) {
-  return [...rows].sort((a, b) => {
-    const da = a.data_documento || "";
-    const db = b.data_documento || "";
-    return db.localeCompare(da);
-  });
 }
 
 function buildPrismasBundle(benford) {
@@ -300,7 +280,7 @@ async function gravarAlertasResumo(db, deputadoId, bundle, benford) {
   const ts = admin.firestore.Timestamp.now();
   const hash = (s) => createHash("sha256").update(s).digest("hex");
 
-  const msgResumo = `CEAP motor Node: ${bundle.n_documentos_api} documentos API; ${bundle.n_valores_numericos} valores numéricos. ${LEGAL_DISCLAIMER}`;
+  const msgResumo = `CEAP motor Node: ${bundle.total_notas_analisadas ?? bundle.n_documentos_api} notas analisadas (Benford 100%); catálogo Firestore Top ${CATALOGO_MAX_SALVO}. ${LEGAL_DISCLAIMER}`;
   batch.set(
     col.doc(hash(`${deputadoId}|PRISMA_RESUMO_NODE|${bundle.gerado_em}`)),
     {
@@ -355,7 +335,7 @@ async function main() {
   const db = admin.firestore();
 
   console.info(
-    `ceap_motor.js v2 — deputado=${DEP_ID} project=${pid || "(ADC)"} deep_fetch multi-ano ${ANOS_QUERY.replace(/&/g, " ")}`,
+    `ceap_motor.js v3 — deputado=${DEP_ID} project=${pid || "(ADC)"} deep_fetch multi-ano ${ANOS_QUERY.replace(/&/g, " ")}`,
   );
 
   const rawRows = await fetchTodasAsNotas(DEP_ID);
@@ -368,18 +348,25 @@ async function main() {
     );
   }
 
-  const normalized = unicas.map((r, i) => normalizeDespesa(r, i));
-  const sorted = sortDespesasRecentFirst(normalized);
+  const totalNotasAnalisadas = unicas.length;
 
+  /** Benford: 100% dos valores líquidos válidos na memória */
   const valores = [];
-  for (const n of normalized) {
-    if (n.valor_liquido != null && Number.isFinite(n.valor_liquido)) {
-      valores.push(n.valor_liquido);
-    }
+  for (const row of unicas) {
+    const v = parseValor(row);
+    if (v != null && Number.isFinite(v)) valores.push(v);
   }
   const benford = benfordStats(valores);
   const geradoEm = new Date().toISOString();
   const prismasNovos = buildPrismasBundle(benford);
+
+  const minificadas = unicas.map((r) => minificarNotaParaFirestore(r));
+  const ordenadas = ordenarTopCatalogo(minificadas);
+  const catalogoSalvo = ordenadas.slice(0, CATALOGO_MAX_SALVO);
+
+  console.info(
+    `[CEAP] Payload: ${totalNotasAnalisadas} notas analisadas (Benford); gravando Top ${catalogoSalvo.length}/${CATALOGO_MAX_SALVO} no Firestore (minificado).`,
+  );
 
   const ref = db.collection("transparency_reports").doc(DEP_ID);
   const snap = await ref.get();
@@ -393,17 +380,20 @@ async function main() {
     ...prevInv,
     deputado_id: DEP_ID,
     gerado_em: geradoEm,
-    n_documentos_api: unicas.length,
+    total_notas_analisadas: totalNotasAnalisadas,
+    n_documentos_api: totalNotasAnalisadas,
     n_documentos_raw_fetch: rawRows.length,
+    catalogo_salvo_n: catalogoSalvo.length,
+    catalogo_max_salvo: CATALOGO_MAX_SALVO,
     n_valores_numericos: valores.length,
     fonte: "camara_api_v2_node_ceap_motor_deep",
-    motor: "node_ceap_motor_v2_deep_fetch",
+    motor: "node_ceap_motor_v3_payload_compressed",
     fetch_url_pattern: `.../deputados/{id}/despesas?${ANOS_QUERY}&itens=${ITENS}&pagina={pagina}`,
     prismas: { ...(prevInv.prismas || {}), ...prismasNovos },
     avisos: Array.isArray(prevInv.avisos)
       ? [...new Set([...(prevInv.avisos || []), LEGAL_DISCLAIMER])]
       : [LEGAL_DISCLAIMER],
-    despesas_ceap_catalogo: sorted,
+    despesas_ceap_catalogo: catalogoSalvo,
     benford_agente: {
       ...benford,
       alerta_forense: benford.anomaly_detected === true,
@@ -415,9 +405,10 @@ async function main() {
       investigacao_prisma_ceap: bundle,
       ceap_motor_ultima_execucao: admin.firestore.FieldValue.serverTimestamp(),
       ceap_motor_meta: {
-        versao: "node-2-deep-fetch",
-        n_documentos: unicas.length,
+        versao: "node-3-payload-compressed",
+        n_documentos: totalNotasAnalisadas,
         n_documentos_raw: rawRows.length,
+        catalogo_top_n: catalogoSalvo.length,
         anos: [2023, 2024, 2025, 2026],
       },
     },
@@ -427,7 +418,7 @@ async function main() {
   await gravarAlertasResumo(db, DEP_ID, bundle, benford);
 
   console.info(
-    `OK Firestore transparency_reports/${DEP_ID} merge; catalogo=${sorted.length} benford_anomaly=${benford.anomaly_detected === true}`,
+    `OK Firestore transparency_reports/${DEP_ID} merge; total_notas_analisadas=${totalNotasAnalisadas} catalogo_salvo=${catalogoSalvo.length} benford_anomaly=${benford.anomaly_detected === true}`,
   );
 }
 

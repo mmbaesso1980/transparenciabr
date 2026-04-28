@@ -20,6 +20,12 @@ function pickFornecedor(row) {
   ).trim();
 }
 
+function pickCnpj(row) {
+  const raw = row.cnpjCpf ?? row.cnpjCpfFornecedor;
+  if (raw == null || raw === "") return "";
+  return String(raw).replace(/\D/g, "");
+}
+
 function pickValor(row) {
   const v =
     row.valorLiquido ??
@@ -73,6 +79,11 @@ export default function DespesasCeapAudit({
     return Array.isArray(raw) ? raw : [];
   }, [record]);
 
+  const totalNotasAnalisadas = useMemo(() => {
+    const n = record?.investigacao_prisma_ceap?.total_notas_analisadas;
+    return typeof n === "number" && Number.isFinite(n) && n >= 0 ? n : null;
+  }, [record]);
+
   const sorted = useMemo(() => {
     return [...catalogo].sort((a, b) => {
       const db = pickDataEmissao(b);
@@ -85,7 +96,10 @@ export default function DespesasCeapAudit({
   }, [catalogo]);
 
   const preview = sorted.slice(0, PREVIEW_COUNT);
-  const hiddenCount = Math.max(0, sorted.length - PREVIEW_COUNT);
+  const hiddenCount =
+    totalNotasAnalisadas != null
+      ? Math.max(0, totalNotasAnalisadas - PREVIEW_COUNT)
+      : Math.max(0, sorted.length - PREVIEW_COUNT);
   const canSeeAll = godMode || oracleUnlocked;
 
   if (catalogo.length === 0) {
@@ -113,8 +127,18 @@ export default function DespesasCeapAudit({
             Monitor CEAP — amostra prioritária
           </h2>
           <p className="mt-2 text-lg leading-relaxed text-[#8B949E]">
-            Dados da API da Câmara (catálogo sincronizado). Quatro despesas mais recentes; nota fiscal
-            oficial em PDF quando disponível.
+            Dados da API da Câmara (Top 300 persistido). Quatro despesas prioritárias; nota fiscal
+            oficial quando disponível.
+            {totalNotasAnalisadas != null ? (
+              <>
+                {" "}
+                Varredura forense (Benford) sobre{" "}
+                <span className="font-semibold text-[#C9D1D9]">
+                  {totalNotasAnalisadas.toLocaleString("pt-BR")}
+                </span>{" "}
+                notas.
+              </>
+            ) : null}
           </p>
         </div>
       </div>
@@ -125,11 +149,12 @@ export default function DespesasCeapAudit({
           const url = pickUrlDocumento(row);
           const fornecedor = pickFornecedor(row);
           const dataEmissao = pickDataEmissao(row);
+          const cnpj = pickCnpj(row);
           const tipo =
             String(row.tipoDespesa ?? row.tipo_despesa ?? row.descricao ?? "").trim() || "—";
           return (
             <li
-              key={`${pickUrlDocumento(row) || fornecedor}-${dataEmissao}-${idx}`}
+              key={`${pickUrlDocumento(row) || fornecedor}-${cnpj}-${dataEmissao}-${idx}`}
               className={[
                 "rounded-lg border px-3 py-3 sm:px-4",
                 gen
@@ -153,7 +178,12 @@ export default function DespesasCeapAudit({
                   <p className="mt-1 text-lg font-semibold leading-snug text-[#F0F4FC] md:text-xl">
                     {fornecedor || "Fornecedor não informado"}
                   </p>
-                  <p className="mt-1 text-base leading-relaxed text-[#8B949E]">{tipo}</p>
+                  {cnpj ? (
+                    <p className="mt-1 font-data text-sm text-[#484F58]">CNPJ/CPF: {cnpj}</p>
+                  ) : null}
+                  {tipo !== "—" ? (
+                    <p className="mt-1 text-base leading-relaxed text-[#8B949E]">{tipo}</p>
+                  ) : null}
                 </div>
                 <div className="text-right">
                   <p className="font-data text-xl font-bold tabular-nums text-[#7DD3FC] md:text-2xl">
