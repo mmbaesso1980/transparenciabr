@@ -30,11 +30,7 @@ def init_firestore() -> firestore.Client:
     cred_path = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
 
     if emulator_host:
-        mock_key = Path(__file__).resolve().parent.parent / "mock_key.json"
-        if mock_key.is_file():
-            os.environ.setdefault("GOOGLE_APPLICATION_CREDENTIALS", str(mock_key))
-            cred_path = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
-
+        # SecOps: nunca versionar JSON de service account. Emulador aceita ADC sem PEM local.
         if cred_path and Path(cred_path).is_file():
             firebase_admin.initialize_app(
                 credentials.Certificate(cred_path),
