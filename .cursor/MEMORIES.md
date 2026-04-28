@@ -83,7 +83,7 @@ Design ref:  data.gov.uk: Fraunces serif hero, mint #eef5f0, forest green #1B5E3
 
 | Bug | Prioridade | Status |
 |---|---|---|
-| "Politician not found" em dossiês (ex: Kim Kataguiri) | CRÍTICA | 🔴 Pendente |
+| "Politician not found" em dossiês — lookup por slug (`politicos` / `parlamentares`) após falha por ID | CRÍTICA | 🟠 Parcial (frontend) |
 | Scores Asmodeus defaultando para 100 após ETL | CRÍTICA | 🔴 Pendente |
 | SEO zero — mesma meta tag genérica em todas as páginas | ALTA | 🟠 Pendente |
 | Apenas Emendas PIX cobertas — faltam RP6, RP7, RP8 | ALTA | 🟠 Pendente |
