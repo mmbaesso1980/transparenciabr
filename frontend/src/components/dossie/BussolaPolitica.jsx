@@ -38,18 +38,6 @@ function fallbackFromPoliticoId(politico) {
 }
 
 function parseEspectroFromDoc(politico) {
-  const id = String(politico?.id ?? politico?.cnpj ?? "").trim();
-  const nome = String(politico?.nome ?? politico?.nome_completo ?? politico?.apelido_publico ?? "");
-  if (id === "204554" || /erika\s+hilton/i.test(nome)) {
-    return {
-      economia: -0.9,
-      costumes: 0.95,
-      fallback: false,
-      contexto:
-        "Calibracao contextual: parlamentar de extrema-esquerda, progressista radical, militancia trans e alta exposicao midiatico-institucional.",
-    };
-  }
-
   const esp = politico?.espectro_politico;
   if (!esp || typeof esp !== "object") return null;
 
@@ -72,6 +60,7 @@ function parseEspectroFromDoc(politico) {
     economia: normalizeAxis(econRaw ?? 50),
     costumes: normalizeAxis(socRaw ?? 50),
     fallback: false,
+    contexto: typeof esp?.contexto_narrativo === "string" ? esp.contexto_narrativo : "",
   };
 }
 
