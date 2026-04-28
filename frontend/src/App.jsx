@@ -6,6 +6,7 @@ import RouteFallback from "./components/RouteFallback.jsx";
 import { AuthProvider } from "./context/AuthContext.jsx";
 import { CameraFocusProvider } from "./context/CameraFocusContext.jsx";
 import HomePage from "./pages/HomePage.jsx";
+import LandingPage from "./pages/LandingPage.jsx";
 
 const DashboardLayout = lazy(() => import("./layouts/DashboardLayout.jsx"));
 const OperationsOverviewPage = lazy(() => import("./pages/OperationsOverviewPage.jsx"));
@@ -29,8 +30,11 @@ export default function App() {
         <CameraFocusProvider>
           <Suspense fallback={<RouteFallback />}>
             <Routes>
-              <Route path="/" element={<HomePage />} />
+              <Route path="/" element={<LandingPage />} />
+              <Route path="/universo" element={<HomePage />} />
               <Route path="/login" element={<LoginPage />} />
+
+              <Route path="/dossie/:id" element={<DossiePage />} />
 
               <Route element={<ProtectedRoute />}>
                 <Route element={<DashboardLayout />}>
@@ -38,7 +42,6 @@ export default function App() {
                   <Route path="/mapa" element={<MapaPage />} />
                   <Route path="/alertas" element={<AlertasPage />} />
                   <Route path="/ranking" element={<RankingPage />} />
-                  <Route path="/dossie/:id" element={<DossiePage />} />
                   <Route path="/perfil" element={<PerfilPage />} />
                   <Route path="/creditos" element={<CreditosPage />} />
                   <Route path="/radar/dossiers" element={<RadarPage />} />
