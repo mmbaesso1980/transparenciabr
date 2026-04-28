@@ -95,6 +95,8 @@ export default function DossiePage() {
   const [record, setRecord] = useState(null);
   const [oracleUnlocked, setOracleUnlocked] = useState(false);
   const [monitoringActive, setMonitoringActive] = useState(false);
+  const [pdfError, setPdfError] = useState(null);
+  const [pdfBusy, setPdfBusy] = useState(false);
   const reportQuery = useTransparencyReport(politicoId);
 
   const displayRecord = useMemo(() => enrichPoliticoRecord(record), [record]);
@@ -138,19 +140,38 @@ export default function DossiePage() {
   }, [politicoId]);
 
   const handleDownloadPDF = useCallback(async () => {
+    setPdfError(null);
     const el = pdfRef.current;
-    if (!el) return;
-    const filename = dossiePdfFilename(pickNome(displayRecord));
-    await html2pdf()
-      .set({
-        margin: 10,
-        filename,
-        image: { type: "jpeg", quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true },
-        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-      })
-      .from(el)
-      .save();
+    if (!el) {
+      setPdfError("Conteúdo do relatório PDF não está disponível neste momento.");
+      return;
+    }
+    setPdfBusy(true);
+    try {
+      const filename = dossiePdfFilename(pickNome(displayRecord));
+      await html2pdf()
+        .set({
+          margin: 10,
+          filename,
+          image: { type: "jpeg", quality: 0.98 },
+          html2canvas: {
+            scale: 2,
+            useCORS: true,
+            backgroundColor: "#ffffff",
+            logging: false,
+          },
+          jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+        })
+        .from(el)
+        .save();
+    } catch (err) {
+      const msg =
+        err instanceof Error ? err.message : "Erro desconhecido ao gerar o PDF.";
+      setPdfError(msg);
+      console.error("[DossiePage] PDF:", err);
+    } finally {
+      setPdfBusy(false);
+    }
   }, [displayRecord]);
 
   useEffect(() => {
@@ -341,7 +362,7 @@ export default function DossiePage() {
                   Dossiê político completo
                 </p>
                 <div className="mt-1 flex flex-wrap items-center gap-2">
-                  <h1 className="truncate text-lg font-semibold tracking-tight md:text-2xl">
+                  <h1 className="truncate text-3xl font-bold tracking-tight text-[#F0F4FC] md:text-4xl">
                     {nomeExibicao || "—"}
                   </h1>
                   {partidoSigla ? (
@@ -389,7 +410,7 @@ export default function DossiePage() {
             </div>
           </header>
 
-          <div className="mx-auto max-w-[1600px] space-y-4 px-4 pt-6 sm:px-6">
+          <div className="dossie-page-body mx-auto max-w-[1600px] space-y-6 px-4 pt-6 sm:px-6 text-lg leading-relaxed text-[#C9D1D9]">
             {/* Linha 2 — índice forense + bússola */}
             <div className="grid gap-4 md:grid-cols-2">
               <section className="glass-card flex min-h-[26rem] flex-col overflow-hidden p-0">
@@ -397,10 +418,10 @@ export default function DossiePage() {
                   <div className="flex items-center gap-2">
                     <Radar className="size-4 text-[#7DD3FC]" strokeWidth={1.75} />
                     <div>
-                      <h2 className="text-sm font-semibold tracking-tight">
+                      <h2 className="text-2xl font-bold tracking-tight text-[#F0F4FC] md:text-3xl">
                         Motor Forense TransparênciaBR
                       </h2>
-                      <p className="text-[11px] text-[#8B949E]">
+                      <p className="mt-1 text-lg leading-relaxed text-[#8B949E]">
                         Nível de exposição (índice agregado no documento)
                       </p>
                     </div>
@@ -410,7 +431,7 @@ export default function DossiePage() {
                   {riskValue != null ? (
                     <ExposureGauge value={riskValue} />
                   ) : (
-                    <p className="text-center text-xs text-[#484F58]">
+                    <p className="text-center text-lg leading-relaxed text-[#8B949E]">
                       Índice de exposição indisponível neste registo.
                     </p>
                   )}
@@ -421,7 +442,7 @@ export default function DossiePage() {
                 <div className="flex items-center justify-between border-b border-[#30363D] px-4 py-3">
                   <div className="flex items-center gap-2">
                     <BarChart3 className="size-4 text-[#FDBA74]" strokeWidth={1.75} />
-                    <h2 className="text-sm font-semibold tracking-tight">
+                    <h2 className="text-2xl font-bold tracking-tight text-[#F0F4FC] md:text-3xl">
                       Espectro político (Bússola)
                     </h2>
                   </div>
@@ -467,10 +488,10 @@ export default function DossiePage() {
               <div className="mb-4 flex flex-wrap items-center gap-2">
                 <Globe className="size-4 text-[#4ADE80]" strokeWidth={1.75} />
                 <div>
-                  <h2 className="text-sm font-semibold tracking-tight text-[#F0F4FC]">
+                  <h2 className="text-2xl font-bold tracking-tight text-[#F0F4FC] md:text-3xl">
                     Emendas parlamentares
                   </h2>
-                  <p className="text-[11px] text-[#8B949E]">
+                  <p className="mt-1 text-lg leading-relaxed text-[#8B949E]">
                     RP6 / RP7 / RP99 e exercícios LOA (portal SIOP).
                   </p>
                 </div>
@@ -484,7 +505,7 @@ export default function DossiePage() {
                 <div className="flex items-center justify-between border-b border-[#30363D] px-4 py-3">
                   <div className="flex items-center gap-2">
                     <Globe className="size-4 text-[#4ADE80]" strokeWidth={1.75} />
-                    <h2 className="text-sm font-semibold tracking-tight">
+                    <h2 className="text-2xl font-bold tracking-tight text-[#F0F4FC] md:text-3xl">
                       Distribuição geográfica
                     </h2>
                   </div>
@@ -505,14 +526,14 @@ export default function DossiePage() {
                       className="size-4 text-[#f85149]"
                       strokeWidth={1.75}
                     />
-                    <h2 className="text-sm font-semibold tracking-tight">
+                    <h2 className="text-2xl font-bold tracking-tight text-[#F0F4FC] md:text-3xl">
                       Alertas recentes
                     </h2>
                   </div>
                 </div>
                 <ul className="flex min-h-0 flex-1 flex-col gap-0 overflow-y-auto px-4 py-3">
                   {alerts.length === 0 ? (
-                    <li className="py-8 text-center text-xs text-[#8B949E]">
+                    <li className="py-8 text-center text-lg leading-relaxed text-[#8B949E]">
                       Nenhum alerta cadastrado para este parlamentar na coleção de
                       monitorização.
                     </li>
@@ -540,7 +561,7 @@ export default function DossiePage() {
                                 </span>
                               ) : null}
                             </div>
-                            <p className="mt-2 text-xs leading-relaxed text-[#C9D1D9]">
+                            <p className="mt-2 text-lg leading-relaxed text-[#C9D1D9]">
                               {a.trecho}
                             </p>
                           </div>
@@ -562,10 +583,10 @@ export default function DossiePage() {
               <div className="mb-4 flex flex-wrap items-center gap-2">
                 <Sparkles className="size-4 text-[#7DD3FC]" strokeWidth={1.75} />
                 <div>
-                  <h2 className="text-sm font-semibold tracking-tight text-[#F0F4FC]">
+                  <h2 className="text-2xl font-bold tracking-tight text-[#F0F4FC] md:text-3xl">
                     Motor Forense TransparênciaBR — camada premium
                   </h2>
-                  <p className="text-[11px] text-[#8B949E]">
+                  <p className="mt-1 text-lg leading-relaxed text-[#8B949E]">
                     Teia 3D preditiva, PDF forense e oportunidades comerciais — débito de{" "}
                     <span className="font-data text-[#FDE047]">
                       {ORACLE_LABORATORIO_CREDITS}
@@ -583,14 +604,23 @@ export default function DossiePage() {
                 onPayCredits={handleOraclePay}
               >
                 <div className="oracle-laboratory space-y-4">
+                  {pdfError ? (
+                    <div
+                      role="alert"
+                      className="rounded-xl border border-[#f85149]/55 bg-[#f85149]/12 px-4 py-3 text-base leading-relaxed text-[#ffa198]"
+                    >
+                      <span className="font-semibold text-[#F0F4FC]">PDF:</span> {pdfError}
+                    </div>
+                  ) : null}
                   <div className="flex justify-end">
                     <button
                       type="button"
+                      disabled={pdfBusy}
                       onClick={() => void handleDownloadPDF()}
-                      className="inline-flex items-center justify-center gap-2 rounded-full border border-[#7DD3FC]/45 bg-[#7DD3FC]/10 px-5 py-3 text-sm font-semibold tracking-tight text-[#7DD3FC] shadow-[0_0_24px_rgba(125,211,252,0.12)] transition hover:bg-[#7DD3FC]/18 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7DD3FC]"
+                      className="inline-flex items-center justify-center gap-2 rounded-full border border-[#7DD3FC]/45 bg-[#7DD3FC]/10 px-6 py-3.5 text-base font-semibold tracking-tight text-[#7DD3FC] shadow-[0_0_24px_rgba(125,211,252,0.12)] transition hover:bg-[#7DD3FC]/18 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7DD3FC] disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       <span aria-hidden="true">📄</span>
-                      Baixar Dossiê Forense (PDF)
+                      {pdfBusy ? "A gerar PDF…" : "Baixar Dossiê Forense (PDF)"}
                     </button>
                   </div>
 
@@ -600,7 +630,7 @@ export default function DossiePage() {
                     <div className="flex items-center justify-between border-b border-[#30363D] px-4 py-3">
                       <div className="flex items-center gap-2">
                         <Share2 className="size-4 text-[#7DD3FC]" strokeWidth={1.75} />
-                        <h3 className="text-sm font-semibold tracking-tight text-[#F0F4FC]">
+                        <h3 className="text-xl font-bold tracking-tight text-[#F0F4FC] md:text-2xl">
                           Teia preditiva — Análise Forense
                         </h3>
                       </div>

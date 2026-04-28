@@ -48,11 +48,11 @@ export default function DespesasCeapAudit({
 
   if (catalogo.length === 0) {
     return (
-      <div className="rounded-xl border border-[#30363D] bg-[#0D1117]/90 p-4">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#8B949E]">
+      <div className="rounded-xl border border-[#30363D] bg-[#0D1117]/90 p-6">
+        <h2 className="text-2xl font-bold tracking-tight text-[#F0F4FC] md:text-3xl">
           Auditoria CEAP (notas)
-        </p>
-        <p className="mt-2 text-sm text-[#8B949E]">
+        </h2>
+        <p className="mt-3 text-lg leading-relaxed text-[#8B949E]">
           Sem catálogo CEAP neste registo. Rode o motor{" "}
           <span className="font-mono text-[#58A6FF]">node ceap_motor.js</span> para sincronizar.
         </p>
@@ -61,13 +61,13 @@ export default function DespesasCeapAudit({
   }
 
   return (
-    <div className="rounded-xl border border-[#30363D] bg-[#0D1117]/95 p-4 sm:p-5">
-      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+    <div className="rounded-xl border border-[#30363D] bg-[#0D1117]/95 p-6 sm:p-8">
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8B949E]">
+          <h2 className="text-2xl font-bold tracking-tight text-[#F0F4FC] md:text-3xl">
             Auditoria CEAP — amostra prioritária
-          </p>
-          <p className="mt-1 text-xs text-[#6e7681]">
+          </h2>
+          <p className="mt-2 text-lg leading-relaxed text-[#8B949E]">
             Destaque para descrições genéricas (heurística). Links para o PDF oficial da Câmara quando o
             número do documento é numérico.
           </p>
@@ -101,15 +101,15 @@ export default function DespesasCeapAudit({
                       {row.data_documento || "—"}
                     </span>
                   </div>
-                  <p className="mt-1 text-sm font-medium text-[#F0F4FC]">
+                  <p className="mt-1 text-lg font-semibold leading-snug text-[#F0F4FC] md:text-xl">
                     {row.tipo_despesa || "—"}
                   </p>
-                  <p className="mt-0.5 text-xs text-[#8B949E]">
+                  <p className="mt-1 text-lg leading-relaxed text-[#8B949E]">
                     {row.nome_fornecedor || "Fornecedor não informado"}
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="font-data text-sm font-semibold text-[#7DD3FC]">
+                  <p className="font-data text-xl font-bold tabular-nums text-[#7DD3FC] md:text-2xl">
                     {fmtBrl(row.valor_liquido)}
                   </p>
                   {url ? (
@@ -117,13 +117,13 @@ export default function DespesasCeapAudit({
                       href={url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="mt-1 inline-flex items-center gap-1 text-[11px] font-semibold text-[#58A6FF] hover:underline"
+                      className="mt-2 inline-flex items-center gap-1 text-base font-semibold text-[#58A6FF] hover:underline"
                     >
                       Nota oficial (PDF)
                       <ExternalLink className="size-3.5" strokeWidth={2} aria-hidden />
                     </a>
                   ) : (
-                    <p className="mt-1 text-[10px] text-[#484F58]">Sem link PDF automático</p>
+                    <p className="mt-2 text-sm text-[#484F58]">Sem link PDF automático</p>
                   )}
                 </div>
               </div>
@@ -135,7 +135,7 @@ export default function DespesasCeapAudit({
       <div className="mt-5 border-t border-[#21262D] pt-4">
         {!canSeeAll ? (
           <div className="rounded-lg border border-[#7DD3FC]/25 bg-[#7DD3FC]/5 p-4 text-center">
-            <p className="text-xs text-[#C9D1D9]">
+            <p className="text-lg leading-relaxed text-[#C9D1D9]">
               Lista completa das notas CEAP (catálogo sincronizado) disponível com{" "}
               <span className="font-semibold text-[#FDE047]">Modo GOD</span> ou após desbloqueio do
               laboratório (créditos).
@@ -144,7 +144,7 @@ export default function DespesasCeapAudit({
               <button
                 type="button"
                 onClick={() => onRequestUnlock()}
-                className="mt-3 inline-flex items-center justify-center gap-2 rounded-full border border-[#FDE047]/50 bg-[#FDE047]/10 px-5 py-2.5 text-sm font-semibold text-[#FDE047] transition hover:bg-[#FDE047]/20"
+                className="mt-4 inline-flex items-center justify-center gap-2 rounded-full border border-[#FDE047]/50 bg-[#FDE047]/10 px-6 py-3 text-base font-semibold text-[#FDE047] transition hover:bg-[#FDE047]/20"
               >
                 Carregar Todas as Notas
                 <ChevronDown className="size-4" strokeWidth={2} aria-hidden />
@@ -155,7 +155,7 @@ export default function DespesasCeapAudit({
           <button
             type="button"
             onClick={() => setExpanded(!expanded)}
-            className="flex w-full items-center justify-center gap-2 rounded-full border border-[#30363D] bg-[#161B22] px-4 py-3 text-sm font-semibold text-[#F0F4FC] transition hover:border-[#58A6FF]/45 hover:bg-[#21262D]"
+            className="flex w-full items-center justify-center gap-2 rounded-full border border-[#30363D] bg-[#161B22] px-5 py-3.5 text-base font-semibold text-[#F0F4FC] transition hover:border-[#58A6FF]/45 hover:bg-[#21262D]"
           >
             {expanded ? "Mostrar só as 3 prioritárias" : "Carregar Todas as Notas"}
             <ChevronDown
