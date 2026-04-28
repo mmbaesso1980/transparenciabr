@@ -1,0 +1,23 @@
+{
+  "name": "agent-worker",
+  "version": "2.0.0",
+  "description": "Cloud Run Express server that bridges Pub/Sub push messages to Vertex Reasoning Engine ingestion agents.",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "NODE_OPTIONS='--watch' SKIP_JWT_VERIFICATION=true node server.js",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "@google-cloud/aiplatform": "^3.23.0",
+    "@google-cloud/pubsub": "^4.3.3",
+    "@google-cloud/storage": "^7.12.0",
+    "express": "^4.19.2",
+    "fast-jwt": "^4.0.0",
+    "ulid": "^2.3.0"
+  }
+}

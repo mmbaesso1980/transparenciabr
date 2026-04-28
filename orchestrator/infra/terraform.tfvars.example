@@ -1,0 +1,50 @@
+###############################################################################
+# transparenciabr — Terraform variable example values
+# Copy this file to terraform.tfvars and fill in real values before running:
+#   cp terraform.tfvars.example terraform.tfvars
+#   terraform plan
+###############################################################################
+
+# Google Cloud project ID (required)
+project_id = "transparenciabr-prod"
+
+# Deployment region — matches Vertex Reasoning Engine location
+region = "us-west1"
+
+# GCS bucket for API catalog + contracts + function zips
+arsenal_bucket = "tbr-arsenal-prod"
+
+# GCS bucket for raw data lake output
+datalake_bucket = "tbr-datalake-raw-prod"
+
+# Secret Manager secret for the LGPD SHA-256 salt
+# Format: projects/PROJECT_ID/secrets/SECRET_NAME
+lgpd_salt_secret_name = "projects/89728155070/secrets/lgpd-salt/versions/latest"
+
+# Path to CI-built Cloud Function source zip (relative to infra/ directory)
+orchestrator_source_zip = "../../dist/orchestrator-trigger.zip"
+
+# Docker image tag pinned to git SHA by CI
+image_tag = "347c72af"
+
+# BigQuery daily budget — 50 GB to start conservatively
+bq_daily_budget_bytes = 53687091200
+
+# OpenLineage HTTP endpoint (leave blank to use stdout/Cloud Logging)
+openlineage_url = ""
+
+# Cloud Run scaling
+cloud_run_max_instances = 12
+
+# Dead-letter message retention
+pubsub_dlq_retention_days = 7
+
+# Cloud Scheduler cron — 05:00 UTC = 02:00 Brasília
+scheduler_cron = "0 5 * * *"
+
+# Extra resource labels (key = value pairs)
+labels = {
+  env   = "production"
+  team  = "transparenciabr"
+  sprint = "s2"
+}
