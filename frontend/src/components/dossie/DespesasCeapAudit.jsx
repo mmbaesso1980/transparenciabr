@@ -354,8 +354,7 @@ export default function DespesasCeapAudit({
               ACESSO RESTRITO: {hiddenCount} notas ocultas
             </p>
             <p className="mt-2 text-lg leading-relaxed text-[#8B949E]">
-              Catálogo completo da CEAP sincronizado no relatório. Desbloqueie com Modo GOD ou créditos
-              do laboratório.
+              Catálogo completo da CEAP sincronizado no relatório. Desbloqueie com sessão iniciada ou créditos do laboratório.
             </p>
             {onRequestUnlock ? (
               <button

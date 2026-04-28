@@ -113,7 +113,7 @@ export default function UniversePage() {
             Início
           </Link>
           <Link className="hover:text-[#58A6FF]" to="/login">
-            Modo GOD
+            Entrar
           </Link>
           <Link className="hover:text-[#58A6FF]" to="/dashboard">
             Painel
@@ -147,7 +147,7 @@ export default function UniversePage() {
             </div>
             <p className="mt-2 text-sm text-[#C9D1D9]">
               Auditar uma <strong className="text-amber-200">conexão crítica</strong> (fornecedor)
-              consome <strong>{custoAuditoriaConexao}</strong> créditos no Modo GOD.
+              consome <strong>{custoAuditoriaConexao}</strong> créditos.
             </p>
             <p className="mt-1 font-data text-xs text-[#8B949E]">
               Saldo: {saldo.toLocaleString("pt-BR")} Cr
@@ -211,7 +211,7 @@ export default function UniversePage() {
               </span>
               <div>
                 <h2 id="uni-modal-title" className="text-lg font-semibold text-[#F0F4FC]">
-                  Modo GOD necessário
+                  Inicie sessão
                 </h2>
                 <p className="mt-2 text-sm leading-relaxed text-[#C9D1D9]">
                   Faça login para abrir o dossiê investigativo de{" "}

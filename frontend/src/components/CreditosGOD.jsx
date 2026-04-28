@@ -5,7 +5,7 @@ import { useAuth } from "../context/AuthContext.jsx";
 import { useCreditosGOD } from "../context/CreditosGODContext.jsx";
 
 /**
- * HUD global de créditos A.S.M.O.D.E.U.S. — Modo GOD.
+ * HUD de créditos (demonstração no cliente; saldo real vem de `usuarios/{uid}` no painel).
  * Não autenticado: cadeado. Autenticado: saldo de créditos.
  */
 export default function CreditosGOD({ className = "" }) {
@@ -28,7 +28,7 @@ export default function CreditosGOD({ className = "" }) {
       <Link
         to="/login"
         className={`inline-flex h-9 items-center gap-2 rounded-lg border border-amber-500/40 bg-[#0D1117]/75 px-3 text-xs font-semibold uppercase tracking-wide text-amber-200/90 shadow-[0_0_20px_rgba(245,158,11,0.12)] backdrop-blur-md transition hover:border-amber-400/60 hover:text-amber-100 ${className}`}
-        title="Inicie sessão para aceder ao Modo GOD e créditos"
+        title="Inicie sessão para ver o saldo de créditos"
       >
         <Lock className="size-3.5 shrink-0" strokeWidth={2} aria-hidden />
         <span className="hidden sm:inline">Créditos</span>
