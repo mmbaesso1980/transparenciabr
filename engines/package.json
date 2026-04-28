@@ -7,9 +7,11 @@
   },
   "scripts": {
     "ceap": "node ceap_motor.js",
-    "perfil": "node perfil_base_sync.js"
+    "perfil": "node perfil_base_sync.js",
+    "test-bucket": "node test_bucket.js"
   },
   "dependencies": {
+    "@google-cloud/storage": "^7.19.0",
     "axios": "^1.7.9",
     "firebase-admin": "^13.0.2"
   }
