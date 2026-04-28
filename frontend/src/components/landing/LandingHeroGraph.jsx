@@ -3,6 +3,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { getRiskColor, getRiskGlow } from "../../utils/colorUtils.js";
 
+function safePositive(n, fallback) {
+  const v = Number(n);
+  return Number.isFinite(v) && v > 0 ? v : fallback;
+}
+
 function tierRadius(node) {
   switch (node.tier) {
     case "grande":
@@ -17,13 +22,27 @@ function tierRadius(node) {
 }
 
 function drawRadialOrb(ctx, x, y, r, fill, glowStrength) {
+  if (
+    !Number.isFinite(x) ||
+    !Number.isFinite(y) ||
+    !Number.isFinite(r) ||
+    r <= 0 ||
+    typeof fill !== "string" ||
+    !fill.length
+  ) {
+    return;
+  }
+  const gs = safePositive(glowStrength, 0.35);
+  const innerR = safePositive(r * 0.12, 1);
+  const outerR = safePositive(r * 1.35, r);
+
   const grd = ctx.createRadialGradient(
     x - r * 0.35,
     y - r * 0.35,
-    r * 0.12,
+    innerR,
     x,
     y,
-    r * 1.35,
+    outerR,
   );
   grd.addColorStop(0, "rgba(255,255,255,0.95)");
   grd.addColorStop(0.22, fill);
@@ -32,13 +51,13 @@ function drawRadialOrb(ctx, x, y, r, fill, glowStrength) {
 
   ctx.save();
   ctx.shadowColor = fill;
-  ctx.shadowBlur = 18 * glowStrength;
+  ctx.shadowBlur = 18 * gs;
   ctx.beginPath();
   ctx.arc(x, y, r, 0, 2 * Math.PI, false);
   ctx.fillStyle = grd;
   ctx.fill();
 
-  ctx.shadowBlur = 28 * glowStrength;
+  ctx.shadowBlur = 28 * gs;
   ctx.strokeStyle = "rgba(255,255,255,0.22)";
   ctx.lineWidth = 1.2;
   ctx.stroke();
@@ -96,8 +115,13 @@ export default function LandingHeroGraph({ graphData, onNodeClick, empty = false
     (link, ctx) => {
       const s = link.source;
       const t = link.target;
-      if (!s || !t || s.x == null || t.x == null) return;
-      const risk = typeof link.risk === "number" ? link.risk : 40;
+      if (!s || !t) return;
+      const sx = s.x;
+      const sy = s.y;
+      const tx = t.x;
+      const ty = t.y;
+      if (![sx, sy, tx, ty].every(Number.isFinite)) return;
+      const risk = typeof link.risk === "number" && Number.isFinite(link.risk) ? link.risk : 40;
       const warm = risk >= 60;
       const a = pulseAlpha * (warm ? 0.85 : 0.55);
       ctx.save();
@@ -108,8 +132,8 @@ export default function LandingHeroGraph({ graphData, onNodeClick, empty = false
       ctx.shadowBlur = warm ? 14 : 9;
       ctx.shadowColor = warm ? "rgba(239,68,68,0.55)" : "rgba(96,165,250,0.45)";
       ctx.beginPath();
-      ctx.moveTo(s.x, s.y);
-      ctx.lineTo(t.x, t.y);
+      ctx.moveTo(sx, sy);
+      ctx.lineTo(tx, ty);
       ctx.stroke();
 
       ctx.strokeStyle = warm
@@ -118,8 +142,8 @@ export default function LandingHeroGraph({ graphData, onNodeClick, empty = false
       ctx.lineWidth = warm ? 5 : 3.5;
       ctx.shadowBlur = warm ? 22 : 14;
       ctx.beginPath();
-      ctx.moveTo(s.x, s.y);
-      ctx.lineTo(t.x, t.y);
+      ctx.moveTo(sx, sy);
+      ctx.lineTo(tx, ty);
       ctx.stroke();
       ctx.restore();
     },
@@ -155,42 +179,67 @@ export default function LandingHeroGraph({ graphData, onNodeClick, empty = false
           `${n.label || n.id}${n.tipo ? ` · ${n.tipo}` : ""}`
         }
         nodePointerAreaPaint={(node, color, ctx) => {
-          const r = tierRadius(node) + 8;
+          if (!Number.isFinite(node.x) || !Number.isFinite(node.y)) return;
+          const base = tierRadius(node);
+          const r = safePositive(base + 8, 12);
           ctx.fillStyle = color;
           ctx.beginPath();
           ctx.arc(node.x, node.y, r, 0, 2 * Math.PI, false);
           ctx.fill();
         }}
         nodeCanvasObject={(node, ctx, globalScale) => {
-          const r = tierRadius(node);
-          const score =
+          if (!Number.isFinite(node.x) || !Number.isFinite(node.y)) return;
+
+          const rawR = tierRadius(node);
+          const r = safePositive(rawR, 9);
+
+          const scoreRaw =
             typeof node.riskScore === "number" ? node.riskScore : 45;
-          const fill =
+          const score = Number.isFinite(scoreRaw)
+            ? Math.min(100, Math.max(0, scoreRaw))
+            : 45;
+
+          const hueRaw =
             node.tipo === "partido" && typeof node.partyHue === "number"
-              ? `hsl(${node.partyHue}, 72%, 58%)`
+              ? node.partyHue
+              : null;
+          const fill =
+            hueRaw != null && Number.isFinite(hueRaw)
+              ? `hsl(${Math.min(360, Math.max(0, hueRaw))}, 72%, 58%)`
               : getRiskColor(score);
-          const glow = getRiskGlow(score);
-          drawRadialOrb(ctx, node.x, node.y, r, fill, glow + (node.tier === "grande" ? 0.35 : 0));
+
+          let glow = getRiskGlow(score);
+          if (!Number.isFinite(glow)) glow = 0.35;
+          glow = Math.min(2, Math.max(0.08, glow));
+          const glowBoost = node.tier === "grande" ? 0.35 : 0;
+
+          drawRadialOrb(ctx, node.x, node.y, r, fill, glow + glowBoost);
+
+          const gs = safePositive(globalScale, 1);
 
           if (node.tipo === "fornecedor" && node.critical) {
+            const ringExtra = safePositive(4 / gs, 4);
+            const outerR = safePositive(r + ringExtra, r + 2);
             ctx.save();
             ctx.strokeStyle = "rgba(239,68,68,0.75)";
-            ctx.lineWidth = 2.5 / globalScale;
+            ctx.lineWidth = safePositive(2.5 / gs, 1);
             ctx.shadowColor = "rgba(239,68,68,0.9)";
             ctx.shadowBlur = 16;
             ctx.beginPath();
-            ctx.arc(node.x, node.y, r + 4 / globalScale, 0, 2 * Math.PI, false);
+            ctx.arc(node.x, node.y, outerR, 0, 2 * Math.PI, false);
             ctx.stroke();
             ctx.restore();
           }
 
-          if (globalScale > 0.28) {
-            ctx.font = `${10 / globalScale}px var(--font-sans), ui-sans-serif, system-ui, sans-serif`;
+          if (gs > 0.28) {
+            const fontPx = safePositive(10 / gs, 8);
+            const dy = safePositive(r + 3 / gs, r + 2);
+            ctx.font = `${fontPx}px var(--font-sans), ui-sans-serif, system-ui, sans-serif`;
             ctx.textAlign = "center";
             ctx.textBaseline = "top";
             ctx.fillStyle = "rgba(240,244,252,0.88)";
             const lbl = String(node.label || node.id).slice(0, 26);
-            ctx.fillText(lbl, node.x, node.y + r + 3 / globalScale);
+            ctx.fillText(lbl, node.x, node.y + dy);
           }
         }}
         onNodeClick={handleClick}
@@ -206,14 +255,20 @@ export default function LandingHeroGraph({ graphData, onNodeClick, empty = false
           const nodes = data.nodes || [];
           for (const n of nodes) {
             if (n.tipo === "partido") {
-              const k = (n.mass || 10) * 0.018;
-              n.vx = (n.vx || 0) * (1 - k);
-              n.vy = (n.vy || 0) * (1 - k);
+              const mass = Number.isFinite(Number(n.mass)) ? Number(n.mass) : 10;
+              const k = Math.min(0.99, Math.max(0, mass * 0.018));
+              const vx = Number.isFinite(n.vx) ? n.vx : 0;
+              const vy = Number.isFinite(n.vy) ? n.vy : 0;
+              n.vx = vx * (1 - k);
+              n.vy = vy * (1 - k);
             }
           }
         }}
         onEngineStop={() => fgRef.current?.zoomToFit?.(480, 100)}
-        nodeVal={(n) => n.mass ?? 4}
+        nodeVal={(n) => {
+          const m = n?.mass;
+          return Number.isFinite(Number(m)) ? Math.max(1, Number(m)) : 4;
+        }}
       />
     </div>
   );
