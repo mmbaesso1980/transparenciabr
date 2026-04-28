@@ -26,6 +26,7 @@ import OsintCeapCrossSection from "../components/dossie/OsintCeapCrossSection.js
 import PremiumDossierSection from "../components/dossie/PremiumDossierSection.jsx";
 import SocioeconomicBaseSection from "../components/dossie/SocioeconomicBaseSection.jsx";
 import CommercialOpportunitySection from "../components/dossie/CommercialOpportunitySection.jsx";
+import DespesasCeapAudit from "../components/dossie/DespesasCeapAudit.jsx";
 import PrismaCeapSection from "../components/dossie/PrismaCeapSection.jsx";
 import BrazilHeatmap from "../components/BrazilHeatmap.jsx";
 import NetworkGraph from "../components/dossie/NetworkGraph.jsx";
@@ -432,6 +433,19 @@ export default function DossiePage() {
               </section>
             </div>
 
+            <section className="glass-card overflow-hidden p-4 sm:p-5">
+              <DespesasCeapAudit
+                record={displayRecord}
+                godMode={godMode}
+                oracleUnlocked={oracleUnlocked}
+                onRequestUnlock={handleOraclePay}
+              />
+            </section>
+
+            <section className="glass-card overflow-hidden bg-[#050608] p-4 ring-1 ring-[#2d0808]/80 sm:p-5">
+              <PrismaCeapSection record={displayRecord} />
+            </section>
+
             {/* Linha 3 — CEAP · agenda · IBGE */}
             <div className="grid gap-4 lg:grid-cols-3">
               <CeapMonitorSection
@@ -603,8 +617,6 @@ export default function DossiePage() {
                   </div>
 
                   <CommercialOpportunitySection politico={displayRecord} />
-
-                  <PrismaCeapSection record={displayRecord} />
                 </div>
               </PremiumGate>
             </div>

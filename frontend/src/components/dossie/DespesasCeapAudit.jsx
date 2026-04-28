@@ -1,0 +1,171 @@
+import { ChevronDown, ExternalLink, FileWarning } from "lucide-react";
+import { useMemo, useState } from "react";
+
+const PREVIEW_COUNT = 3;
+
+function fmtBrl(v) {
+  const n = Number(v);
+  if (!Number.isFinite(n)) return "—";
+  return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+/**
+ * Auditoria CEAP: 3 despesas em destaque + lista completa atrás de GOD / créditos (oracle unlock).
+ *
+ * @param {{
+ *   record: Record<string, unknown> | null;
+ *   godMode: boolean;
+ *   oracleUnlocked: boolean;
+ *   onRequestUnlock?: () => void;
+ * }} props
+ */
+export default function DespesasCeapAudit({
+  record,
+  godMode,
+  oracleUnlocked,
+  onRequestUnlock,
+}) {
+  const [expanded, setExpanded] = useState(false);
+
+  const catalogo = useMemo(() => {
+    const raw = record?.investigacao_prisma_ceap?.despesas_ceap_catalogo;
+    return Array.isArray(raw) ? raw : [];
+  }, [record]);
+
+  const sorted = useMemo(() => {
+    return [...catalogo].sort((a, b) => {
+      const ga = a.descricao_generica === true ? 0 : 1;
+      const gb = b.descricao_generica === true ? 0 : 1;
+      if (ga !== gb) return ga - gb;
+      const da = String(a.data_documento || "");
+      const db = String(b.data_documento || "");
+      return db.localeCompare(da);
+    });
+  }, [catalogo]);
+
+  const preview = sorted.slice(0, PREVIEW_COUNT);
+  const canSeeAll = godMode || oracleUnlocked;
+
+  if (catalogo.length === 0) {
+    return (
+      <div className="rounded-xl border border-[#30363D] bg-[#0D1117]/90 p-4">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#8B949E]">
+          Auditoria CEAP (notas)
+        </p>
+        <p className="mt-2 text-sm text-[#8B949E]">
+          Sem catálogo CEAP neste registo. Rode o motor{" "}
+          <span className="font-mono text-[#58A6FF]">node ceap_motor.js</span> para sincronizar.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-xl border border-[#30363D] bg-[#0D1117]/95 p-4 sm:p-5">
+      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8B949E]">
+            Auditoria CEAP — amostra prioritária
+          </p>
+          <p className="mt-1 text-xs text-[#6e7681]">
+            Destaque para descrições genéricas (heurística). Links para o PDF oficial da Câmara quando o
+            número do documento é numérico.
+          </p>
+        </div>
+      </div>
+
+      <ul className="space-y-3">
+        {(canSeeAll && expanded ? sorted : preview).map((row, idx) => {
+          const gen = row.descricao_generica === true;
+          const url = row.url_documento_oficial;
+          return (
+            <li
+              key={`${row.numero_documento}-${idx}`}
+              className={[
+                "rounded-lg border px-3 py-3 sm:px-4",
+                gen
+                  ? "border-amber-500/40 bg-amber-500/5"
+                  : "border-[#21262D] bg-[#080B14]/80",
+              ].join(" ")}
+            >
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    {gen ? (
+                      <span className="inline-flex items-center gap-1 rounded bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-200">
+                        <FileWarning className="size-3.5" strokeWidth={2} aria-hidden />
+                        Descrição genérica
+                      </span>
+                    ) : null}
+                    <span className="font-data text-[10px] text-[#484F58]">
+                      {row.data_documento || "—"}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-sm font-medium text-[#F0F4FC]">
+                    {row.tipo_despesa || "—"}
+                  </p>
+                  <p className="mt-0.5 text-xs text-[#8B949E]">
+                    {row.nome_fornecedor || "Fornecedor não informado"}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="font-data text-sm font-semibold text-[#7DD3FC]">
+                    {fmtBrl(row.valor_liquido)}
+                  </p>
+                  {url ? (
+                    <a
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-1 inline-flex items-center gap-1 text-[11px] font-semibold text-[#58A6FF] hover:underline"
+                    >
+                      Nota oficial (PDF)
+                      <ExternalLink className="size-3.5" strokeWidth={2} aria-hidden />
+                    </a>
+                  ) : (
+                    <p className="mt-1 text-[10px] text-[#484F58]">Sem link PDF automático</p>
+                  )}
+                </div>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+
+      <div className="mt-5 border-t border-[#21262D] pt-4">
+        {!canSeeAll ? (
+          <div className="rounded-lg border border-[#7DD3FC]/25 bg-[#7DD3FC]/5 p-4 text-center">
+            <p className="text-xs text-[#C9D1D9]">
+              Lista completa das notas CEAP (catálogo sincronizado) disponível com{" "}
+              <span className="font-semibold text-[#FDE047]">Modo GOD</span> ou após desbloqueio do
+              laboratório (créditos).
+            </p>
+            {onRequestUnlock ? (
+              <button
+                type="button"
+                onClick={() => onRequestUnlock()}
+                className="mt-3 inline-flex items-center justify-center gap-2 rounded-full border border-[#FDE047]/50 bg-[#FDE047]/10 px-5 py-2.5 text-sm font-semibold text-[#FDE047] transition hover:bg-[#FDE047]/20"
+              >
+                Carregar Todas as Notas
+                <ChevronDown className="size-4" strokeWidth={2} aria-hidden />
+              </button>
+            ) : null}
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setExpanded(!expanded)}
+            className="flex w-full items-center justify-center gap-2 rounded-full border border-[#30363D] bg-[#161B22] px-4 py-3 text-sm font-semibold text-[#F0F4FC] transition hover:border-[#58A6FF]/45 hover:bg-[#21262D]"
+          >
+            {expanded ? "Mostrar só as 3 prioritárias" : "Carregar Todas as Notas"}
+            <ChevronDown
+              className={["size-4 transition", expanded ? "rotate-180" : ""].join(" ")}
+              strokeWidth={2}
+              aria-hidden
+            />
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
