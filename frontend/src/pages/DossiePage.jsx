@@ -350,7 +350,7 @@ export default function DossiePage() {
           {/* Linha 1 — cabeçalho Bentobox fixo */}
           <header className="sticky top-0 z-50 border-b border-[#30363D] bg-[#0A0E17]/93 backdrop-blur-lg">
             <div className="mx-auto flex min-w-0 max-w-[1600px] flex-wrap items-center gap-3 px-4 py-3 sm:gap-4 sm:px-6 sm:py-4">
-              <BrandLogo />
+              <BrandLogo to="/" variant="dark" size="md" withGlow className="hidden md:flex" />
               {photoAbs ? (
                 <img
                   src={photoAbs}

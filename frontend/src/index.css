@@ -2,6 +2,16 @@
 
 @import "tailwindcss";
 
+@theme {
+  --color-soc-void: #050a12;
+  --color-soc-deep: #0b1220;
+  --color-soc-elevated: #0f172a;
+  --color-soc-border: rgba(148, 163, 184, 0.14);
+  --color-soc-text: #f8fafc;
+  --color-soc-muted: #94a3b8;
+  --color-soc-accent: #38bdf8;
+}
+
 /*
  * Nota: html2canvas (html2pdf) não suporta oklch. O bloco DossiePDFContent usa
  * apenas estilos inline hex/rgb. Se o build do Tailwind v4 emitir oklch nas
@@ -13,41 +23,43 @@
 :root {
   color-scheme: dark;
 
-  /* Superfícies */
-  --bg-void: #080b14;
-  --bg-deep: #0c101c;
-  --bg-elevated: #12182a;
-  --bg-surface: #182138;
-  --bg-muted: #1e2a45;
+  /* SOC / dark-native (cockpit) */
+  --bg-void: #050a12;
+  --bg-deep: #0b1220;
+  --bg-elevated: #0f172a;
+  --bg-surface: #111c2e;
+  --bg-muted: #1e293b;
 
   /* Texto */
-  --text-primary: #f0f4fc;
-  --text-secondary: #9aa4bd;
-  --text-muted: #5c6784;
-  --text-inverse: #080b14;
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --text-inverse: #050a12;
 
   /* Bordas & sombras */
-  --border-subtle: rgba(255, 255, 255, 0.06);
-  --border-strong: rgba(255, 255, 255, 0.12);
-  --shadow-elevated: 0 24px 48px rgba(0, 0, 0, 0.45);
+  --border-subtle: rgba(148, 163, 184, 0.14);
+  --border-strong: rgba(148, 163, 184, 0.22);
+  --shadow-elevated: 0 24px 48px rgba(0, 0, 0, 0.5);
 
-  /* Destaques */
-  --accent-primary: #6ea8ff;
-  --accent-secondary: #a78bfa;
+  /* Destaques — ciano/azul (navegação / UI); vermelho/laranja só risco */
+  --accent-primary: #38bdf8;
+  --accent-primary-soft: rgba(56, 189, 248, 0.18);
+  --accent-secondary: #60a5fa;
   --accent-warning: #fbbf24;
-  --accent-danger: #fb7185;
+  --accent-danger: #f97316;
+  --accent-critical: #ef4444;
 
-  /* Estados operacionais */
-  --afrodite-clean: #00f5d4;
-  --afrodite-clean-glow: rgba(0, 245, 212, 0.28);
-  --afrodite-clean-bg: rgba(0, 245, 212, 0.09);
-  --afrodite-clean-border: rgba(0, 245, 212, 0.35);
+  /* Estados operacionais (secundário ao ciano) */
+  --afrodite-clean: #22d3ee;
+  --afrodite-clean-glow: rgba(34, 211, 238, 0.22);
+  --afrodite-clean-bg: rgba(34, 211, 238, 0.08);
+  --afrodite-clean-border: rgba(34, 211, 238, 0.28);
 
-  /* Anomalias / alertas críticos */
-  --dracula-red: #ff0054;
-  --dracula-red-glow: rgba(255, 0, 84, 0.38);
-  --dracula-red-bg: rgba(255, 0, 84, 0.09);
-  --dracula-red-border: rgba(255, 0, 84, 0.42);
+  /* Anomalias / alertas críticos (reservado a risco) */
+  --dracula-red: #ef4444;
+  --dracula-red-glow: rgba(239, 68, 68, 0.35);
+  --dracula-red-bg: rgba(239, 68, 68, 0.1);
+  --dracula-red-border: rgba(239, 68, 68, 0.38);
 
   /* Tipografia */
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
@@ -87,17 +99,17 @@ pre {
 .glass-card {
   min-width: 0;
   max-width: 100%;
-  background: rgb(16 21 36 / 0.6);
+  background: rgb(11 18 32 / 0.72);
   backdrop-filter: blur(16px) saturate(160%);
   -webkit-backdrop-filter: blur(16px) saturate(160%);
-  border: 1px solid #30363d;
+  border: 1px solid var(--border-subtle);
   border-radius: 1rem;
-  box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.45);
+  box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.5);
 }
 
 .font-data {
   font-family: var(--font-mono);
-  color: #a1a7b3;
+  color: var(--text-secondary);
 }
 
 /* Vidro fosco — painéis flutuantes */
@@ -112,8 +124,8 @@ pre {
 
 /* Painéis densidade alta — cockpit / SOC */
 .dashboard-panel.glass {
-  background: #0d1117;
-  border: 1px solid #30363d;
+  background: var(--bg-deep);
+  border: 1px solid var(--border-subtle);
   border-radius: 12px;
 }
 

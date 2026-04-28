@@ -96,7 +96,7 @@ export default function LandingPage() {
       />
 
       <header className="relative z-20 flex flex-wrap items-center justify-between gap-3 border-b border-[#30363D]/50 bg-[#02040a]/65 px-4 py-3 backdrop-blur-md sm:px-8">
-        <BrandLogo to="/" />
+        <BrandLogo to="/" variant="full" size="md" />
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <span className="hidden items-center gap-2 rounded-full border border-[#30363D]/90 bg-[#0d1117]/80 px-3 py-1.5 font-data text-[10px] uppercase tracking-[0.18em] text-[#8B949E] md:inline-flex">
             <Shield className="size-3.5 text-[#58A6FF]" strokeWidth={1.75} aria-hidden />

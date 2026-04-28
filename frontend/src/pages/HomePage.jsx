@@ -146,7 +146,7 @@ export default function HomePage() {
       <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_20%_10%,rgba(88,166,255,0.18),transparent_28%),radial-gradient(circle_at_80%_20%,rgba(167,139,250,0.14),transparent_30%),linear-gradient(180deg,rgba(8,11,20,0.20),#080B14_78%)]" />
 
       <header className="sticky top-0 z-30 flex flex-wrap items-center justify-between gap-3 border-b border-[#30363D]/70 bg-[#080B14]/88 px-6 py-3 backdrop-blur-md sm:px-10">
-        <BrandLogo to="/" />
+        <BrandLogo to="/" variant="full" size="md" />
         <nav
           className="flex flex-wrap items-center gap-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#8B949E] sm:gap-5"
           aria-label="Entrada rápida"
