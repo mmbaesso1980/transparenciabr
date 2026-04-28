@@ -19,12 +19,6 @@ import requests
 
 from lib.firebase_app import init_firestore
 
-# Se estiver rodando contra o emulador local, aponta o SDK para mock_key.json
-if os.environ.get("FIRESTORE_EMULATOR_HOST"):
-    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = str(
-        Path(__file__).resolve().parent / "mock_key.json"
-    )
-
 # ── Configuração ─────────────────────────────────────────────────────────────────────────────
 
 CAMARA_DEPUTADOS_URL = "https://dadosabertos.camara.leg.br/api/v2/deputados"
