@@ -30,12 +30,13 @@ const bigquery = new BigQuery();
 
 const ASMODEUS_SUPREME_AGENT_ID = "agent_1777236402725";
 const ASMODEUS_GEMINI_MODEL = "gemini-2.5-pro";
-/** Doze subagentes do Vertex IA sob o Líder Supremo — IDs derivados, sem inventar outros agentes. */
+/**
+ * Doze “papéis” operacionais sob orquestração do Vertex IA — todos consolidados no Líder Supremo.
+ * G.O.A.T.: não inventar IDs secundários (@slot_*, agentes genéricos); apenas agent_1777236402725.
+ */
 const VERTEX_SUBAGENT_COUNT = 12;
-const VERTEX_TEAM_SLOTS = Array.from({ length: VERTEX_SUBAGENT_COUNT }, (_, i) =>
-  `${ASMODEUS_SUPREME_AGENT_ID}@slot_${String(i + 1).padStart(2, "0")}`,
-);
-const COMPLIANCE_SLOT_LABEL = `${ASMODEUS_SUPREME_AGENT_ID} // COMPLIANCE`;
+const VERTEX_TEAM_SLOTS = Array.from({ length: VERTEX_SUBAGENT_COUNT }, () => ASMODEUS_SUPREME_AGENT_ID);
+const COMPLIANCE_SLOT_LABEL = `${ASMODEUS_SUPREME_AGENT_ID} (COMPLIANCE)`;
 
 function clampScore(n) {
   const x = Number(n);
