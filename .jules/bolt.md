@@ -1,3 +1,3 @@
-## 2025-04-22 - [Three.js Object Instantiation Loop]
-**Learning:** Re-instantiating objects (e.g., `new THREE.Color()`) inside repetitive loops like `useLayoutEffect` for `react-three-fiber` instanced meshes leads to high garbage collection overhead and potential frame drops.
-**Action:** Hoist the object instantiation using `useMemo` and reuse the same instance (e.g., updating it with `.setStyle()`) during iteration to avoid memory churn.
+## 2025-04-28 - [InstancedMesh Hover State Performance]
+**Learning:** In `@react-three/fiber`, using React state (`useState`) to track the hovered instance of an `InstancedMesh` with many instances (e.g., 1000) causes severe performance degradation. Every pointer over/out event triggers a full component re-render, forcing a `useLayoutEffect` to loop through all instances (O(N)) to rebuild the entire transformation matrix just to change the scale of a single instance.
+**Action:** Use a mutable `useRef` to track the hovered instance ID. Create a `useCallback` to update only the specific instance's matrix via `mesh.setMatrixAt` and flag `mesh.instanceMatrix.needsUpdate = true`. This changes the hover operation from an O(N) React render cycle to an O(1) direct mutation, keeping the 3D interaction perfectly smooth.
