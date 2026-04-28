@@ -284,8 +284,10 @@ export default function DossiePage() {
         </p>
         <p className="max-w-md text-xs text-[#8B949E]">
           Não existe documento em{" "}
-          <span className="font-mono text-[#C9D1D9]">transparency_reports</span>{" "}
-          nem em <span className="font-mono text-[#C9D1D9]">politicos</span>{" "}
+          <span className="font-mono text-[#C9D1D9]">transparency_reports</span>
+          , nem em <span className="font-mono text-[#C9D1D9]">politicos</span>{" "}
+          (ID ou <span className="font-mono text-[#C9D1D9]">slug</span>), nem em{" "}
+          <span className="font-mono text-[#C9D1D9]">parlamentares</span> por slug,
           para o identificador informado.
         </p>
       </div>
@@ -348,7 +350,11 @@ export default function DossiePage() {
                   ) : null}
                 </div>
                 <p className="mt-1 font-data text-[10px] text-[#484F58]">
-                  {politicoId ? `politicos/${politicoId}` : "—"}
+                  {displayRecord?.id
+                    ? `politicos/${displayRecord.id}`
+                    : politicoId
+                      ? `rota: ${politicoId}`
+                      : "—"}
                 </p>
               </div>
               <span className="inline-flex shrink-0 items-center rounded-full border border-[#4ADE80]/45 bg-[#4ADE80]/12 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-[#4ADE80]">
