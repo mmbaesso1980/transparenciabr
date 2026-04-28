@@ -6,15 +6,52 @@
     "node": ">=20"
   },
   "scripts": {
+    "validate:catalog": "ajv validate -s config/arsenal.schema.json -d config/arsenal_apis.json --spec=draft2020 --strict=true",
+    "ingest:universal": "node ingestors/universal_ingestor.js --target=all",
+    "ingest:imediata": "node ingestors/universal_ingestor.js --target=imediata",
+    "ingest:sprint2": "node ingestors/universal_ingestor.js --target=sprint_2",
+    "ingest:one": "node ingestors/universal_ingestor.js --target=${TARGET:-}",
+    "ingest:dry": "node ingestors/universal_ingestor.js --target=all --dry-run",
+    "ingest:resume": "node ingestors/universal_ingestor.js --target=all --resume",
     "ceap": "node ceap_motor.js",
     "perfil": "node perfil_base_sync.js",
     "test-bucket": "node test_bucket.js",
     "ingest:cnes": "node ingestors/cnes_ingestor.js",
-    "dracula": "python3 17_health_scanner.py"
+    "dracula": "python3 17_health_scanner.py",
+    "test": "vitest run __tests__ --coverage",
+    "test:watch": "vitest",
+    "lint": "eslint ingestors __tests__ bigquery --max-warnings=0",
+    "bq:refresh": "node bigquery/refresh_external_tables.js",
+    "prepare": "husky || true"
   },
   "dependencies": {
+    "@google-cloud/bigquery": "^7.9.4",
+    "@google-cloud/logging": "^11.2.1",
+    "@google-cloud/secret-manager": "^5.6.0",
     "@google-cloud/storage": "^7.19.0",
     "axios": "^1.7.9",
-    "firebase-admin": "^13.0.2"
+    "bottleneck": "^2.19.5",
+    "csv-parse": "^5.6.0",
+    "eslint": "^9.39.4",
+    "fast-xml-parser": "^4.5.6",
+    "firebase-admin": "^13.0.2",
+    "ftp": "^0.3.10",
+    "got": "^14.6.6",
+    "husky": "^9.1.7",
+    "micromatch": "^4.0.8",
+    "msw": "^2.13.6",
+    "node-stream-zip": "^1.15.0",
+    "opossum": "^8.5.0",
+    "p-queue": "^8.1.1",
+    "ulid": "^2.4.0",
+    "vitest": "^2.1.9",
+    "yargs": "^17.7.2"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "^2.1.9",
+    "ajv": "^8.20.0",
+    "ajv-cli": "^5.0.0",
+    "ajv-formats": "^3.0.1",
+    "globals": "^17.5.0"
   }
 }
