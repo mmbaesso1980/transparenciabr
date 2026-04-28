@@ -898,3 +898,56 @@ exports.onDiarioAtoCreated = functions
 
 exports.grantRole = grantRoleModule.grantRole;
 exports.listMyClaims = grantRoleModule.listMyClaims;
+
+/** E-mail do operador GOD — documento `usuarios/{uid}` só via Admin SDK (alinhar a firestore.rules). */
+const GOD_MODE_EMAIL = "manusalt13@gmail.com";
+
+function todayIsoDateUtc() {
+  const d = new Date();
+  const y = d.getUTCFullYear();
+  const m = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(d.getUTCDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+/**
+ * Cria `usuarios/{uid}` no primeiro login — GOD com créditos administrativos;
+ * demais com cota freemium (300). Idempotente se o doc já existir.
+ */
+exports.onAuthUserCreate = functions
+  .region("southamerica-east1")
+  .auth.user()
+  .onCreate(async (user) => {
+    const uid = user.uid;
+    const emailRaw = (user.email || "").trim();
+    const emailLower = emailRaw.toLowerCase();
+    const ref = db.collection("usuarios").doc(uid);
+    const snap = await ref.get();
+    if (snap.exists) {
+      return null;
+    }
+    const today = todayIsoDateUtc();
+    if (emailLower === GOD_MODE_EMAIL) {
+      await ref.set({
+        email: emailRaw || GOD_MODE_EMAIL,
+        creditos: 9999,
+        creditos_ilimitados: true,
+        isAdmin: true,
+        role: "admin",
+        last_login_date: today,
+        updated_at: FieldValue.serverTimestamp(),
+      });
+    } else {
+      await ref.set({
+        email: emailRaw || null,
+        creditos: 300,
+        creditos_ilimitados: false,
+        isAdmin: false,
+        role: "user",
+        last_login_date: today,
+        updated_at: FieldValue.serverTimestamp(),
+      });
+    }
+    console.log(`usuarios/${uid} criado via onAuthUserCreate (god=${emailLower === GOD_MODE_EMAIL})`);
+    return null;
+  });

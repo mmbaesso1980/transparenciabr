@@ -127,6 +127,12 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    /** Parlamentares (slug lookup / migrações) — só leitura pública; escrita via Admin SDK */
+    match /parlamentares/{pid} {
+      allow read: if true;
+      allow write: if false;
+    }
+
     match /alertas_bodes/{aid} {
       allow read: if true;
       allow write: if false;

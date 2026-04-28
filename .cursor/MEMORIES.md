@@ -2,7 +2,7 @@
 > Arquivo de memória persistente do agente. Atualizar ao fim de cada operação.
 > Localização canônica: `.cursor/MEMORIES.md` no repo `mmbaesso1980/transparenciabr`
 > ⚠️ O projeto canônico é **transparenciabr** — NUNCA usar fiscallizapa ou fiscalizapa como referência de destino.
-> Última atualização: 2026-04-27
+> Última atualização: 2026-04-28
 
 ---
 
@@ -14,7 +14,8 @@ O MEMORIES **não** é um ficheiro de feature flags: “ativar tudo” significa
 
 | Área | Onde |
 |------|------|
-| Créditos GOD (`manusalt13@gmail.com`) + 300/dia para demais | `frontend/src/lib/firebase.js` — `ensureUsuarioDoc` |
+| Créditos GOD (`manusalt13@gmail.com`) + 300/dia para demais | **Servidor:** `functions/index.js` — `onAuthUserCreate` cria `usuarios/{uid}`. **Cliente:** `ensureUsuarioDoc` só freemium + reset diário (rules não permitem GOD pelo SDK). |
+| Leitura pública `parlamentares` (slug) | `firestore.rules` — `match /parlamentares/{pid}` read: true |
 | Motor IA único Gemini 2.5 / Líder Supremo `agent_1777236402725` | `functions/index.js`, `functions/src/genkit.config.js`, `functions/src/radar/diarioScanner.js` |
 | CEAP sem `[object Object]` / `urlDocumento` | `frontend/src/utils/dataParsers.js`, `CeapMonitorSection.jsx` |
 
@@ -92,7 +93,7 @@ Design ref:  data.gov.uk: Fraunces serif hero, mint #eef5f0, forest green #1B5E3
 | Build com erros de auth Firebase no deploy | ALTA | 🟠 Pendente |
 | ProjetosSection: `idLegislatura=57` retorna 400 | ALTA | 🟠 Pendente |
 | CreditGate: `PREVIEW_COUNT` deve ser 4 (está 3) | MÉDIA | 🟡 Pendente |
-| Créditos "Missing or insufficient permissions" | ALTA | 🟠 Pendente |
+| Créditos "Missing or insufficient permissions" | ALTA | 🟠 Parcial — deploy `onAuthUserCreate` + rules; utilizadores antigos sem doc precisam novo login ou backfill Admin |
 | Componentes órfãos não removidos: AlertDashboard, AttendanceCard, CreditWallet, ChatIA, EmptyState | BAIXA | 🟡 Pendente |
 
 ### Fixes Documentados

@@ -147,10 +147,9 @@ function isGodEmail(email) {
  *   2. Pilar 2.2 — Cota freemium diária 300 (não-cumulativa).
  *   3. Pilar 2.3 — Reset diário: se `last_login_date` mudou, repõe 300.
  *
- * Importante: o cliente nunca pode escalar privilégios em rotas/usuários
- * que não sejam o seu (`request.auth.uid == userId`) e o e-mail GOD
- * é validado no servidor pela Cloud Function/regra. Aqui apenas
- * preenchemos os campos para o operador autorizado.
+ * Perfil GOD (`manusalt13@gmail.com`) é criado pela Cloud Function
+ * `onAuthUserCreate` (Admin SDK) — as Security Rules não permitem o cliente
+ * gravar créditos/admin. Freemium: create inicial aqui; reset diário conforme rules.
  */
 export async function ensureUsuarioDoc(uid, options = {}) {
   const firestore = getFirestoreDb();
@@ -164,42 +163,30 @@ export async function ensureUsuarioDoc(uid, options = {}) {
 
   if (!snap.exists()) {
     if (isGodEmail(email)) {
-      await setDoc(ref, {
-        email,
-        creditos: 9999,
-        creditos_ilimitados: true,
-        isAdmin: true,
-        role: "admin",
-        last_login_date: today,
-        updated_at: serverTimestamp(),
-      });
-    } else {
-      await setDoc(ref, {
-        email: email || null,
-        creditos: DAILY_FREEMIUM_CREDITS,
-        creditos_ilimitados: false,
-        isAdmin: false,
-        role: "user",
-        last_login_date: today,
-        updated_at: serverTimestamp(),
-      });
+      /* Doc criado no servidor — evita permission-denied nas rules */
+      return;
     }
+    await setDoc(ref, {
+      email: email || null,
+      creditos: DAILY_FREEMIUM_CREDITS,
+      creditos_ilimitados: false,
+      isAdmin: false,
+      role: "user",
+      last_login_date: today,
+      updated_at: serverTimestamp(),
+    });
     return;
   }
 
   const data = snap.data() || {};
-  const patch = {};
-
   if (isGodEmail(email)) {
-    if (data.creditos_ilimitados !== true) patch.creditos_ilimitados = true;
-    if (data.isAdmin !== true) patch.isAdmin = true;
-    if (data.role !== "admin") patch.role = "admin";
-    if (Number(data.creditos ?? 0) < 9999) patch.creditos = 9999;
-  } else {
-    if (data.last_login_date !== today) {
-      patch.creditos = DAILY_FREEMIUM_CREDITS;
-      patch.last_login_date = today;
-    }
+    return;
+  }
+
+  const patch = {};
+  if (data.last_login_date !== today) {
+    patch.creditos = DAILY_FREEMIUM_CREDITS;
+    patch.last_login_date = today;
   }
 
   if (Object.keys(patch).length > 0) {
