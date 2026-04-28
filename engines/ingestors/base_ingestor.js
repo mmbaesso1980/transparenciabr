@@ -77,6 +77,27 @@ export function buildHiveDestinationYearOnly(prefixoExemplo, nomeFicheiro, anoRe
 }
 
 /**
+ * Hive com partição extra por UF (malha territorial — Prisma F.L.A.V.I.O.).
+ * Ex.: `saude/cnes/ano=2026/mes=04/uf=SP/payload_pag1.json`
+ *
+ * @param {string} prefixoBase - ex.: `saude/cnes` (sem barra final)
+ * @param {string} ufSigla - ex.: `SP`, `RJ`
+ * @param {string} nomeFicheiro
+ * @param {Date | string | number} [dataRef]
+ */
+export function buildHiveDestinationWithUf(prefixoBase, ufSigla, nomeFicheiro, dataRef) {
+  const pre = String(prefixoBase).replace(/^\/+|\/+$/g, "");
+  const name = String(nomeFicheiro).replace(/^\/+/, "");
+  const part = hivePartitionPath(hivePartitionFromDate(dataRef));
+  const uf = String(ufSigla || "")
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z]/g, "")
+    .slice(0, 2);
+  return `${pre}/${part}/uf=${uf}/${name}`;
+}
+
+/**
  * Ingestor base: subclasses podem chamar `destinoPara` e `uploadJson`.
  */
 export class BaseIngestor {
