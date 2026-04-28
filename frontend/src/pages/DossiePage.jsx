@@ -464,7 +464,7 @@ export default function DossiePage() {
             </section>
 
             <section className="glass-card overflow-hidden bg-[#050608] p-4 ring-1 ring-[#2d0808]/80 sm:p-5">
-              <PrismaCeapSection record={displayRecord} />
+              <PrismaCeapSection record={displayRecord} politicoId={politicoId} />
             </section>
 
             {/* Linha 3 — CEAP · agenda · IBGE */}
