@@ -158,6 +158,28 @@ export function enrichPoliticoRecord(record) {
   return out;
 }
 
+/** Evita mixed content: fotos da Câmara em HTTP → HTTPS no mesmo host. */
+export function upgradeCamaraPhotoToHttps(url) {
+  if (!url || typeof url !== "string") return "";
+  const t = url.trim();
+  if (!t) return "";
+  if (t.startsWith("https://")) return t;
+  if (t.startsWith("http://www.camara.leg.br")) {
+    return `https://www.camara.leg.br${t.slice("http://www.camara.leg.br".length)}`;
+  }
+  if (t.startsWith("http://")) {
+    try {
+      const parsed = new URL(t);
+      if (parsed.hostname.endsWith("camara.leg.br")) {
+        return `https://${parsed.host}${parsed.pathname}${parsed.search}`;
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+  return t;
+}
+
 export function pickPhotoUrl(data) {
   if (!data || typeof data !== "object") return "";
   const u =
@@ -168,15 +190,19 @@ export function pickPhotoUrl(data) {
     data.foto ??
     data.imagem_url ??
     data.imagem;
-  return typeof u === "string" ? u.trim() : "";
+  const raw = typeof u === "string" ? u.trim() : "";
+  return upgradeCamaraPhotoToHttps(raw);
 }
 
 export function absolutizeMediaUrl(u) {
   if (!u || typeof u !== "string") return undefined;
-  if (u.startsWith("http://") || u.startsWith("https://")) return u;
-  if (typeof window === "undefined") return u;
-  if (u.startsWith("/")) return `${window.location.origin}${u}`;
-  return `${window.location.origin}/${u}`;
+  const upgraded = upgradeCamaraPhotoToHttps(u);
+  if (upgraded.startsWith("http://") || upgraded.startsWith("https://")) {
+    return upgraded;
+  }
+  if (typeof window === "undefined") return upgraded;
+  if (upgraded.startsWith("/")) return `${window.location.origin}${upgraded}`;
+  return `${window.location.origin}/${upgraded}`;
 }
 
 export function pickInvestigations(data) {
@@ -470,7 +496,7 @@ export function mergeCeapInvestigationRows(record) {
 
 export function pickUf(data) {
   if (!data || typeof data !== "object") return "";
-  const u = data.uf ?? data.sigla_uf ?? data.UF ?? data.estado;
+  const u = data.uf ?? data.sigla_uf ?? data.siglaUf ?? data.UF ?? data.estado;
   if (typeof u !== "string") return "";
   const t = u.trim().toUpperCase();
   return t.length >= 2 ? t.slice(0, 2) : "";
