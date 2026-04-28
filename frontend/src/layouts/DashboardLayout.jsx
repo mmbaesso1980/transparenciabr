@@ -23,7 +23,7 @@ export default function DashboardLayout() {
   return (
     <div className="flex min-h-dvh bg-[#0A0E17] text-[#F0F4FC]">
       <aside
-        className="fixed left-0 top-0 z-40 flex h-full w-14 flex-col items-center gap-3 border-r border-[#30363D] bg-[#0D1117]/95 py-6 backdrop-blur-md md:w-16"
+        className="fixed left-0 top-0 z-40 flex h-full w-14 shrink-0 flex-col items-center gap-3 border-r border-[#30363D] bg-[#0D1117]/95 py-6 backdrop-blur-md md:w-16"
         aria-label="Navegação principal"
       >
         <NavLink
@@ -93,7 +93,7 @@ export default function DashboardLayout() {
         </div>
       </aside>
 
-      <div className="flex min-h-dvh flex-1 flex-col pl-14 md:pl-16">
+      <div className="flex min-h-dvh min-w-0 flex-1 flex-col overflow-x-hidden pl-14 md:pl-16">
         <header className="sticky top-0 z-30 flex min-h-14 shrink-0 flex-wrap items-center justify-between gap-4 border-b border-[#30363D] bg-[#0A0E17]/90 px-4 py-2 backdrop-blur-md sm:px-6">
           <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center sm:gap-6">
             <BrandLogo className="hidden md:flex" />
@@ -132,7 +132,7 @@ export default function DashboardLayout() {
           </nav>
         </header>
 
-        <main className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto">
+        <main className="min-w-0 w-full max-w-full flex-1 overflow-x-hidden overflow-y-auto">
           <Outlet />
         </main>
       </div>

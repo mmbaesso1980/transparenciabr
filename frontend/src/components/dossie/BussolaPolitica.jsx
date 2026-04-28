@@ -1,6 +1,8 @@
 import { Compass } from "lucide-react";
 import { useMemo } from "react";
 
+import { estimateSpectroFromPolitico } from "../../utils/espectroCalculator.js";
+
 /**
  * Normaliza para [-1, 1]. Aceita escalas -1..1, 0..100 (50=centro) ou 0..1.
  */
@@ -13,51 +15,10 @@ function normalizeAxis(raw) {
   return Math.max(-1, Math.min(1, n / 100));
 }
 
-/** Posição estável quando `espectro_politico` ainda não veio do pipeline. */
-function fallbackFromPoliticoId(politico) {
-  const raw =
-    politico?.id ??
-    politico?.nome ??
-    politico?.nome_completo ??
-    politico?.CodigoParlamentar ??
-    "default";
-  const s = String(raw);
-  let a = 2166136261 >>> 0;
-  let b = 374761393 >>> 0;
-  for (let i = 0; i < s.length; i++) {
-    a = Math.imul(a ^ s.charCodeAt(i), 16777619);
-    b = Math.imul(b ^ s.charCodeAt(i) * (i + 3), 2654435761);
-  }
-  const u1 = (a >>> 0) / 4294967295;
-  const u2 = (b >>> 0) / 4294967295;
-  return {
-    economia: u1 * 2 - 1,
-    costumes: u2 * 2 - 1,
-    fallback: true,
-  };
-}
-
-/** Quadrante factual calibrado quando o pipeline ainda não enviou `espectro_politico`. */
-function perfilCalibradoFallback(politico) {
-  const id = String(politico?.id ?? "").trim();
-  const nome = String(
-    politico?.nome ?? politico?.nome_completo ?? politico?.apelido_publico ?? "",
-  );
-  if (id === "220645" || /erika\s*hilton/i.test(nome)) {
-    return {
-      economia: -0.92,
-      costumes: 0.94,
-      fallback: true,
-      contexto:
-        "Referência documental: atuação em comissões (ex.: Mulher) e pautas de direitos humanos — eixo progressista no plano E.S.P.E.C.T.R.O.",
-    };
-  }
-  return null;
-}
-
-function parseEspectroFromDoc(politico) {
+/** Lê apenas `espectro_politico` persistido (pipeline / Firestore). */
+function parseEspectroFromFirestore(politico) {
   const esp = politico?.espectro_politico;
-  if (!esp || typeof esp !== "object") return perfilCalibradoFallback(politico);
+  if (!esp || typeof esp !== "object") return null;
 
   const econRaw =
     esp.economia ??
@@ -72,13 +33,13 @@ function parseEspectroFromDoc(politico) {
     esp.conservative_progressive ??
     esp.social_axis;
 
-  if (econRaw == null && socRaw == null) return perfilCalibradoFallback(politico);
+  if (econRaw == null && socRaw == null) return null;
 
   return {
     economia: normalizeAxis(econRaw ?? 50),
     costumes: normalizeAxis(socRaw ?? 50),
-    fallback: false,
-    contexto: typeof esp?.contexto_narrativo === "string" ? esp.contexto_narrativo : "",
+    contexto:
+      typeof esp?.contexto_narrativo === "string" ? esp.contexto_narrativo : "",
   };
 }
 
@@ -94,30 +55,25 @@ function fmtAxisLabel(v) {
  */
 export default function BussolaPolitica({ politico = null }) {
   const { economia, costumes, isFallback, contexto } = useMemo(() => {
-    const parsed = parseEspectroFromDoc(politico);
-    if (parsed) {
+    const fromFirestore = parseEspectroFromFirestore(politico);
+    if (fromFirestore) {
       return {
-        economia: parsed.economia,
-        costumes: parsed.costumes,
-        isFallback: parsed.fallback,
-        contexto: parsed.contexto,
+        economia: fromFirestore.economia,
+        costumes: fromFirestore.costumes,
+        isFallback: false,
+        contexto: fromFirestore.contexto,
       };
     }
-    const cal = perfilCalibradoFallback(politico);
-    if (cal) {
-      return {
-        economia: cal.economia,
-        costumes: cal.costumes,
-        isFallback: true,
-        contexto: cal.contexto || "",
-      };
-    }
-    const fb = fallbackFromPoliticoId(politico);
+
+    const est = estimateSpectroFromPolitico(politico);
+    const ctx = est.siglaUsada
+      ? `Estimativa paramétrica: ${est.siglaUsada} (mapa partidário E.S.P.E.C.T.R.O.).`
+      : "Estimativa neutra: sigla de partido não identificada no registo.";
     return {
-      economia: fb.economia,
-      costumes: fb.costumes,
+      economia: est.economia,
+      costumes: est.costumes,
       isFallback: true,
-      contexto: "",
+      contexto: ctx,
     };
   }, [politico]);
 
@@ -126,7 +82,7 @@ export default function BussolaPolitica({ politico = null }) {
   const py = ((costumes + 1) / 2) * 100;
 
   return (
-    <div className="flex h-full min-h-[200px] w-full flex-col px-3 py-3">
+    <div className="flex h-full min-h-[200px] w-full min-w-0 flex-col px-3 py-3">
       <div className="mb-2 flex items-center gap-2">
         <Compass className="size-4 shrink-0 text-[#58A6FF]" strokeWidth={1.75} aria-hidden />
         <div className="min-w-0">
@@ -139,10 +95,10 @@ export default function BussolaPolitica({ politico = null }) {
         </div>
       </div>
 
-      <div className="relative mx-auto aspect-square w-full max-w-[220px] flex-1">
+      <div className="relative mx-auto aspect-square w-full max-w-[220px] min-w-0 flex-1">
         <svg
           viewBox="0 0 100 100"
-          className="h-full w-full overflow-visible"
+          className="h-full w-full max-w-full overflow-visible"
           aria-label="Mapa ideológico: economia e costumes"
         >
           <defs>
@@ -196,7 +152,7 @@ export default function BussolaPolitica({ politico = null }) {
 
       {isFallback ? (
         <p className="mt-2 text-center text-[10px] leading-snug text-[#484F58]">
-          Estimativa de referência até classificação forense completa.
+          Estimativa algorítmica até classificação forense completa no documento.
         </p>
       ) : null}
       {contexto ? (
