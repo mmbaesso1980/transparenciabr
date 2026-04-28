@@ -102,6 +102,14 @@ export function coordsPartidoBase10(sigla) {
  * @returns {{ economia: number, costumes: number, siglaUsada: string, fonte: "heuristica_partido" }}
  */
 export function estimateSpectroFromPolitico(politico) {
+  if (politico != null && typeof politico !== "object") {
+    return {
+      economia: 0,
+      costumes: 0,
+      siglaUsada: "",
+      fonte: "heuristica_partido",
+    };
+  }
   const sigla = pickSiglaPartido(politico);
   const base = coordsPartidoBase10(sigla);
   const seed =
