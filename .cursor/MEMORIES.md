@@ -6,6 +6,33 @@
 
 ---
 
+## ⚡ ATIVAÇÃO — O QUE “LIGAR” NA PRÁTICA
+
+O MEMORIES **não** é um ficheiro de feature flags: “ativar tudo” significa **concluir o checklist abaixo** (env + deploy + fases). Itens já embutidos no repositório não precisam de toggle.
+
+### Já está no código (sem flag extra)
+
+| Área | Onde |
+|------|------|
+| Créditos GOD (`manusalt13@gmail.com`) + 300/dia para demais | `frontend/src/lib/firebase.js` — `ensureUsuarioDoc` |
+| Motor IA único Gemini 2.5 / Líder Supremo `agent_1777236402725` | `functions/index.js`, `functions/src/genkit.config.js`, `functions/src/radar/diarioScanner.js` |
+| CEAP sem `[object Object]` / `urlDocumento` | `frontend/src/utils/dataParsers.js`, `CeapMonitorSection.jsx` |
+
+### Checklist para produção “ligada”
+
+1. **Frontend (Vite / Hosting):** preencher **todas** as `VITE_FIREBASE_*` no build (CI ou `.env.production.local`). Sem isso Auth/Firestore ficam desativados (`HAS_FULL_FIREBASE_CONFIG`).
+2. **Firebase:** projeto alvo de deploy **`fiscallizapa`** (dois L) — é o *target* do Hosting/Functions, não o nome do repositório Git.
+3. **Cloud Functions:** definir secrets/env `GEMINI_API_KEY` ou `GOOGLE_API_KEY`, `STRIPE_*` se checkout, `RADAR_OWNER_UID` se usar scanner de diário, etc. — **nunca** commitar chaves.
+4. **APIs externas:** `PORTAL_API_KEY` (scripts/ETL), BigQuery/GCP conforme engines — ver secção **VARIÁVEIS DE AMBIENTE**.
+5. **Roadmap funcional:** correções listadas em **BUGS CONHECIDOS** e **PRÓXIMAS FASES** são trabalho incremental (slug dossiê, Asmodeus default, SEO, RP6, etc.), não um único deploy.
+
+### Itens do MEMORIES que dependem de execução (não de “ativar” no repo)
+
+- Gerar `AUDITORIA.md` / Fase 0 quando for política do sprint.
+- Componentes referidos em versões antigas do doc (ex.: `PoliticoPage.jsx`, `CreditGate`) podem não existir neste snapshot do repo — **sempre verificar o caminho no Git antes de assumir**.
+
+---
+
 ## 🗂️ IDENTIDADE DO PROJETO
 
 - **Nome:** TransparênciaBR / FiscalizaPA
@@ -56,7 +83,7 @@ Design ref:  data.gov.uk: Fraunces serif hero, mint #eef5f0, forest green #1B5E3
 
 | Bug | Prioridade | Status |
 |---|---|---|
-| "Politician not found" em dossiês (ex: Kim Kataguiri) | CRÍTICA | 🔴 Pendente |
+| "Politician not found" em dossiês — lookup por slug (`politicos` / `parlamentares`) após falha por ID | CRÍTICA | 🟠 Parcial (frontend) |
 | Scores Asmodeus defaultando para 100 após ETL | CRÍTICA | 🔴 Pendente |
 | SEO zero — mesma meta tag genérica em todas as páginas | ALTA | 🟠 Pendente |
 | Apenas Emendas PIX cobertas — faltam RP6, RP7, RP8 | ALTA | 🟠 Pendente |

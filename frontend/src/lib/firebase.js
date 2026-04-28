@@ -262,6 +262,69 @@ export async function fetchPoliticoById(politicoId) {
   return { id: snap.id, ...snap.data() };
 }
 
+/** Mesmo normalizador usado nos slugs da API Câmara / migrações Firestore. */
+export function normalizePoliticoSlugParam(param) {
+  return String(param || "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+async function fetchPoliticoDocBySlug(firestore, slugNorm) {
+  if (!slugNorm) return null;
+  try {
+    const q1 = query(
+      collection(firestore, "politicos"),
+      where("slug", "==", slugNorm),
+      limit(1),
+    );
+    const snap = await getDocs(q1);
+    if (!snap.empty) {
+      const d = snap.docs[0];
+      return { id: d.id, ...d.data() };
+    }
+  } catch {
+    /* permissão ou índice */
+  }
+  try {
+    const q2 = query(
+      collection(firestore, "parlamentares"),
+      where("slug", "==", slugNorm),
+      limit(1),
+    );
+    const snap2 = await getDocs(q2);
+    if (!snap2.empty) {
+      const d = snap2.docs[0];
+      return { id: d.id, ...d.data() };
+    }
+  } catch {
+    /* coleção ausente ou rules */
+  }
+  return null;
+}
+
+/**
+ * Resolve `politicos/{id}` por ID ou por slug (coleções `politicos` ou `parlamentares`).
+ * Cobre URLs tipo `/dossie/kim-kataguiri` quando o doc está indexado por slug.
+ */
+export async function fetchPoliticoByIdOrSlug(param) {
+  const firestore = getFirestoreDb();
+  const raw = String(param || "").trim();
+  if (!firestore || !raw) return null;
+
+  const direct = await fetchPoliticoById(raw);
+  if (direct) return direct;
+
+  const slugNorm = normalizePoliticoSlugParam(raw);
+  if (!slugNorm) return null;
+
+  const bySlug = await fetchPoliticoDocBySlug(firestore, slugNorm);
+  return bySlug;
+}
+
 const politicoMatchesId = (row, politicoId) =>
   row?.politico_id === politicoId ||
   row?.politicoId === politicoId ||

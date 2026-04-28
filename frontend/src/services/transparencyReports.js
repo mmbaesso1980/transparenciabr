@@ -1,7 +1,7 @@
 import { doc, getDoc } from "firebase/firestore";
 import { useQuery } from "@tanstack/react-query";
 
-import { fetchPoliticoById, getFirestoreDb } from "../lib/firebase.js";
+import { fetchPoliticoByIdOrSlug, getFirestoreDb } from "../lib/firebase.js";
 import { ONE_DAY_MS } from "../lib/queryClient.js";
 
 export const TRANSPARENCY_REPORTS_COLLECTION = "transparency_reports";
@@ -223,7 +223,7 @@ export function useTransparencyReport(reportId) {
     queryFn: async () => {
       const report = await fetchTransparencyReportById(cleanId);
       if (report) return mapTransparencyReportToDossieRecord(report);
-      return fetchPoliticoById(cleanId);
+      return fetchPoliticoByIdOrSlug(cleanId);
     },
     enabled: Boolean(cleanId),
     staleTime: ONE_DAY_MS,

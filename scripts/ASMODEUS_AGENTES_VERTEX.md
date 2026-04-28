@@ -1,5 +1,5 @@
 # 🏛️ A.S.M.O.D.E.U.S. — DIRETORIA COMPLETA
-## Todos os 11 Agentes para Vertex AI Agent Studio
+## Todos os 12 Agentes para Vertex AI Agent Studio
 ### Projeto: transparenciabr | Modelo: Gemini 2.5 Pro (todos)
 
 ---

@@ -3,7 +3,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import { useCameraFocus } from "../context/CameraFocusContext.jsx";
-import { fetchPoliticosCollection, getFirebaseApp } from "../lib/firebase.js";
+import {
+  fetchPoliticosCollection,
+  getFirebaseApp,
+  normalizePoliticoSlugParam,
+} from "../lib/firebase.js";
 import { pickNome } from "../utils/dataParsers.js";
 
 /** Cache em módulo — uma leitura por sessão por instância da SPA. */
@@ -74,8 +78,14 @@ export default function GlobalSearch({ className = "" }) {
     for (const p of catalog) {
       const id = String(p.id ?? "").trim();
       const nome = normalize(pickNome(p));
+      const slugNorm =
+        typeof p.slug === "string" ? normalizePoliticoSlugParam(p.slug) : "";
       if (!id) continue;
-      if (id.toLowerCase().includes(term) || nome.includes(term)) {
+      if (
+        id.toLowerCase().includes(term) ||
+        nome.includes(term) ||
+        (slugNorm && slugNorm.includes(term))
+      ) {
         out.push({ id, nome: pickNome(p) || id });
       }
       if (out.length >= 8) break;
