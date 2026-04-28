@@ -9,6 +9,7 @@ import {
 import { NavLink, Outlet } from "react-router-dom";
 
 import BrandLogo from "../components/BrandLogo.jsx";
+import CreditosGOD from "../components/CreditosGOD.jsx";
 import GlobalSearch from "../components/GlobalSearch.jsx";
 
 const navTabClass = ({ isActive }) =>
@@ -102,9 +103,10 @@ export default function DashboardLayout() {
             </div>
           </div>
           <nav
-            className="flex flex-wrap items-center gap-1 sm:gap-2"
+            className="flex flex-wrap items-center gap-2 sm:gap-3"
             aria-label="Secções do painel"
           >
+            <CreditosGOD />
             <NavLink to="/dashboard" className={navTabClass}>
               Overview
             </NavLink>
