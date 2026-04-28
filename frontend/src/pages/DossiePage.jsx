@@ -26,7 +26,7 @@ import OsintCeapCrossSection from "../components/dossie/OsintCeapCrossSection.js
 import PremiumDossierSection from "../components/dossie/PremiumDossierSection.jsx";
 import SocioeconomicBaseSection from "../components/dossie/SocioeconomicBaseSection.jsx";
 import CommercialOpportunitySection from "../components/dossie/CommercialOpportunitySection.jsx";
-import Section4Placeholder from "../components/dossie/Section4Placeholder.jsx";
+import PrismaCeapSection from "../components/dossie/PrismaCeapSection.jsx";
 import BrazilHeatmap from "../components/BrazilHeatmap.jsx";
 import NetworkGraph from "../components/dossie/NetworkGraph.jsx";
 import { useUserCredits } from "../hooks/useUserCredits.js";
@@ -604,7 +604,7 @@ export default function DossiePage() {
 
                   <CommercialOpportunitySection politico={displayRecord} />
 
-                  <Section4Placeholder />
+                  <PrismaCeapSection record={displayRecord} />
                 </div>
               </PremiumGate>
             </div>
