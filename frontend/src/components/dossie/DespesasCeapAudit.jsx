@@ -20,6 +20,12 @@ function pickFornecedor(row) {
   ).trim();
 }
 
+function pickCnpj(row) {
+  const raw = row.cnpjCpf ?? row.cnpjCpfFornecedor;
+  if (raw == null || raw === "") return "";
+  return String(raw).replace(/\D/g, "");
+}
+
 function pickValor(row) {
   const v =
     row.valorLiquido ??
@@ -68,10 +74,17 @@ export default function DespesasCeapAudit({
 }) {
   const [expanded, setExpanded] = useState(false);
 
+  const prisma = record?.investigacao_prisma_ceap;
+
   const catalogo = useMemo(() => {
-    const raw = record?.investigacao_prisma_ceap?.despesas_ceap_catalogo;
+    const raw = prisma?.despesas_ceap_catalogo;
     return Array.isArray(raw) ? raw : [];
-  }, [record]);
+  }, [prisma]);
+
+  const totalNotasAnalisadas = useMemo(() => {
+    const n = prisma?.total_notas_analisadas;
+    return typeof n === "number" && Number.isFinite(n) && n >= 0 ? n : null;
+  }, [prisma]);
 
   const sorted = useMemo(() => {
     return [...catalogo].sort((a, b) => {
@@ -85,19 +98,40 @@ export default function DespesasCeapAudit({
   }, [catalogo]);
 
   const preview = sorted.slice(0, PREVIEW_COUNT);
-  const hiddenCount = Math.max(0, sorted.length - PREVIEW_COUNT);
+  const hiddenCount =
+    totalNotasAnalisadas != null
+      ? Math.max(0, totalNotasAnalisadas - PREVIEW_COUNT)
+      : Math.max(0, sorted.length - PREVIEW_COUNT);
   const canSeeAll = godMode || oracleUnlocked;
 
   if (catalogo.length === 0) {
+    const hasBundleSemCatalogo =
+      prisma != null &&
+      typeof prisma === "object" &&
+      prisma.despesas_ceap_catalogo == null &&
+      (totalNotasAnalisadas != null || prisma.benford_agente != null);
+
     return (
       <div className="rounded-xl border border-[#30363D] bg-[#0D1117]/90 p-6 sm:p-8">
         <h2 className="text-2xl font-bold tracking-tight text-[#F0F4FC] md:text-3xl">
           Monitor CEAP — auditoria de notas
         </h2>
         <p className="mt-3 text-lg leading-relaxed text-[#8B949E]">
-          Sem catálogo CEAP neste registo. Rode o motor{" "}
-          <span className="font-mono text-[#58A6FF]">node ceap_motor.js</span> para sincronizar o
-          documento <span className="font-mono text-[#58A6FF]">transparency_reports</span>.
+          {hasBundleSemCatalogo ? (
+            <>
+              O relatório tem metadados CEAP (motor), mas o array{" "}
+              <span className="font-mono text-[#58A6FF]">despesas_ceap_catalogo</span> está ausente.
+              Rode novamente{" "}
+              <span className="font-mono text-[#58A6FF]">node ceap_motor.js</span> ou limpe o cache
+              do navegador e atualize a página.
+            </>
+          ) : (
+            <>
+              Sem catálogo CEAP neste registo. Rode o motor{" "}
+              <span className="font-mono text-[#58A6FF]">node ceap_motor.js</span> para sincronizar o
+              documento <span className="font-mono text-[#58A6FF]">transparency_reports</span>.
+            </>
+          )}
         </p>
       </div>
     );
@@ -113,8 +147,18 @@ export default function DespesasCeapAudit({
             Monitor CEAP — amostra prioritária
           </h2>
           <p className="mt-2 text-lg leading-relaxed text-[#8B949E]">
-            Dados da API da Câmara (catálogo sincronizado). Quatro despesas mais recentes; nota fiscal
-            oficial em PDF quando disponível.
+            Dados da API da Câmara (Top 300 persistido). Quatro despesas prioritárias; nota oficial
+            quando disponível.
+            {totalNotasAnalisadas != null ? (
+              <>
+                {" "}
+                Varredura forense (Benford) sobre{" "}
+                <span className="font-semibold text-[#C9D1D9]">
+                  {totalNotasAnalisadas.toLocaleString("pt-BR")}
+                </span>{" "}
+                notas.
+              </>
+            ) : null}
           </p>
         </div>
       </div>
@@ -125,11 +169,12 @@ export default function DespesasCeapAudit({
           const url = pickUrlDocumento(row);
           const fornecedor = pickFornecedor(row);
           const dataEmissao = pickDataEmissao(row);
+          const cnpj = pickCnpj(row);
           const tipo =
             String(row.tipoDespesa ?? row.tipo_despesa ?? row.descricao ?? "").trim() || "—";
           return (
             <li
-              key={`${pickUrlDocumento(row) || fornecedor}-${dataEmissao}-${idx}`}
+              key={`${pickUrlDocumento(row) || fornecedor}-${cnpj}-${dataEmissao}-${idx}`}
               className={[
                 "rounded-lg border px-3 py-3 sm:px-4",
                 gen
@@ -153,7 +198,12 @@ export default function DespesasCeapAudit({
                   <p className="mt-1 text-lg font-semibold leading-snug text-[#F0F4FC] md:text-xl">
                     {fornecedor || "Fornecedor não informado"}
                   </p>
-                  <p className="mt-1 text-base leading-relaxed text-[#8B949E]">{tipo}</p>
+                  {cnpj ? (
+                    <p className="mt-1 font-data text-sm text-[#484F58]">CNPJ/CPF: {cnpj}</p>
+                  ) : null}
+                  {tipo !== "—" ? (
+                    <p className="mt-1 text-base leading-relaxed text-[#8B949E]">{tipo}</p>
+                  ) : null}
                 </div>
                 <div className="text-right">
                   <p className="font-data text-xl font-bold tabular-nums text-[#7DD3FC] md:text-2xl">

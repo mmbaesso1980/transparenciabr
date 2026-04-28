@@ -163,22 +163,41 @@ function normalizeInvestigations(report) {
 }
 
 /**
- * Mapeia o JSON da Engine 17 para o formato lido pelas Bento Boxes existentes.
+ * Mapeia o JSON da Engine 17 (PNCP) para o formato lido pelas Bento Boxes.
+ * Documentos CEAP / deputados: repassa o snapshot Firestore sem descartar `investigacao_prisma_ceap`.
  *
  * @param {TransparencyReport} report
  */
 export function mapTransparencyReportToDossieRecord(report) {
   if (!report || typeof report !== "object") return null;
+
+  const hasCeapBundle =
+    report.investigacao_prisma_ceap != null &&
+    typeof report.investigacao_prisma_ceap === "object";
+  if (hasCeapBundle) {
+    return { ...report };
+  }
+
+  const isPncpDossie =
+    report.tipo_dossie === "fornecedor_pncp" ||
+    (report.identidade &&
+      typeof report.identidade === "object" &&
+      Boolean(report.identidade.razao_social) &&
+      report.contratos != null);
+
+  if (!isPncpDossie) {
+    return { ...report };
+  }
+
   const razao = report.identidade?.razao_social || "Fornecedor PNCP";
   const cnpj = report.identidade?.cnpj || report.id || "";
   return {
-    id: report.id,
-    tipo_dossie: report.tipo_dossie,
+    ...report,
     nome: razao,
     nome_completo: razao,
     apelido_publico: razao,
     cnpj,
-    partido_sigla: "PNCP",
+    partido_sigla: report.partido_sigla || "PNCP",
     score_forense: calculateRiskScore(report),
     alertas_anexados: normalizeAlertRows(report),
     investigacoes_top: normalizeInvestigations(report),
@@ -210,7 +229,8 @@ export async function fetchTransparencyReportById(reportId) {
 }
 
 export function transparencyReportQueryKey(reportId) {
-  return ["dossie-record-v2", TRANSPARENCY_REPORTS_COLLECTION, String(reportId || "").trim()];
+  /** v3: bust persisted cache após correção do mapper CEAP (`investigacao_prisma_ceap`). */
+  return ["dossie-record-v3", TRANSPARENCY_REPORTS_COLLECTION, String(reportId || "").trim()];
 }
 
 /**
