@@ -1,0 +1,360 @@
+#!/usr/bin/env node
+/**
+ * Motor CEAP (Node.js) — ingestão API Câmara + Benford + merge Firestore.
+ *
+ * Pré-requisitos:
+ *   npm install   (na pasta engines/)
+ *   GOOGLE_APPLICATION_CREDENTIALS ou ADC no Cloud Shell
+ *   GOOGLE_CLOUD_PROJECT ou GCP_PROJECT_ID (opcional se inferido pelo ADC)
+ *
+ * Uso:
+ *   node ceap_motor.js
+ *   CEAP_DEPUTADO_ID=220645 node ceap_motor.js
+ *
+ * Escreve em: transparency_reports/{deputadoId}
+ *   - investigacao_prisma_ceap (bundle completo; sobrescreve apenas este campo via merge)
+ *   - ceap_motor_ultima_execucao (timestamp)
+ */
+
+import axios from "axios";
+import admin from "firebase-admin";
+import { createHash } from "crypto";
+
+const BASE = "https://dadosabertos.camara.leg.br/api/v2/deputados";
+const USER_AGENT =
+  "TransparenciaBR-ceap_motor/1.0 (+https://github.com/mmbaesso1980/transparenciabr)";
+const LEGAL_DISCLAIMER =
+  "Indícios quantitativos derivados de dados públicos — não configuram ilícito nem substituem apuração oficial.";
+
+const DEP_ID = (process.env.CEAP_DEPUTADO_ID || "220645").trim();
+
+const BENFORD_EXPECTED = Array.from({ length: 9 }, (_, i) =>
+  Math.log10(1 + 1 / (i + 1)),
+);
+
+function projectId() {
+  return (
+    process.env.GOOGLE_CLOUD_PROJECT ||
+    process.env.GCLOUD_PROJECT ||
+    process.env.GCP_PROJECT_ID ||
+    process.env.GCLOUD_PROJECT_ID ||
+    ""
+  );
+}
+
+function firstSignificantDigit(value) {
+  let v = Math.abs(Number(value));
+  if (!Number.isFinite(v) || v <= 0) return null;
+  while (v < 1) v *= 10;
+  while (v >= 10) v /= 10;
+  return Math.floor(v);
+}
+
+function benfordStats(values) {
+  const counts = Object.fromEntries(
+    Array.from({ length: 9 }, (_, i) => [i + 1, 0]),
+  );
+  let total = 0;
+  for (const val of values) {
+    const d = firstSignificantDigit(val);
+    if (d == null) continue;
+    counts[d] += 1;
+    total += 1;
+  }
+  if (total < 90) {
+    return {
+      amostra_suficiente: false,
+      n_validos: total,
+      anomaly_detected: false,
+      motivo: "Menos de 90 valores válidos para análise Benford estável.",
+    };
+  }
+  const observed = [];
+  for (let d = 1; d <= 9; d++) observed.push(counts[d] / total);
+  let mad = 0;
+  for (let i = 0; i < 9; i++) {
+    mad += Math.abs(observed[i] - BENFORD_EXPECTED[i]);
+  }
+  mad /= 9;
+  let chi = 0;
+  for (let d = 1; d <= 9; d++) {
+    const exp = total * BENFORD_EXPECTED[d - 1];
+    chi += ((counts[d] - exp) ** 2) / Math.max(exp, 1e-12);
+  }
+  const anomaly_detected = mad > 0.08;
+  return {
+    amostra_suficiente: true,
+    n_validos: total,
+    mad: Math.round(mad * 1e5) / 1e5,
+    chi2_pearson_aprox: Math.round(chi * 1e4) / 1e4,
+    digitos_observados: Object.fromEntries(
+      Array.from({ length: 9 }, (_, i) => [String(i + 1), counts[i + 1]]),
+    ),
+    anomaly_detected,
+    interpretacao_administrativa: anomaly_detected
+      ? "Desvio estatístico ao padrão de Benford (MAD elevado); recomenda-se revisão amostral dos valores."
+      : "Distribuição do primeiro dígito compatível com referência Benford sob esta amostra.",
+  };
+}
+
+function parseValor(row) {
+  const keys = ["valorLiquido", "valorDocumento", "valor_documento", "valor"];
+  for (const k of keys) {
+    if (row[k] != null && row[k] !== "") {
+      const n = Number(row[k]);
+      if (Number.isFinite(n)) return n;
+    }
+  }
+  return null;
+}
+
+/** URL oficial do PDF da nota quando o número é numérico (portal CEAP). */
+function urlDocumentoOficial(row) {
+  const u = row.urlDocumento || row.url_documento;
+  if (typeof u === "string" && u.startsWith("http")) return u;
+  const num =
+    row.numeroDocumento ??
+    row.numero_documento ??
+    row.codigoDocumento ??
+    "";
+  const s = String(num ?? "").trim();
+  if (/^[0-9]+$/.test(s)) {
+    return `https://www.camara.leg.br/cota-parlamentar/documentos/publ/${s}.pdf`;
+  }
+  return "";
+}
+
+function parseDataDoc(row) {
+  const raw =
+    row.dataDocumento ??
+    row.data_documento ??
+    row.dataEmissao ??
+    row.data_emissao ??
+    "";
+  return String(raw ?? "").slice(0, 10);
+}
+
+/** Heurística: descrição pouco específica (auditoria humana obrigatória). */
+function isDescricaoGenerica(row) {
+  const tipo = String(
+    row.tipoDespesa ?? row.descricao ?? row.tipo_despesa ?? "",
+  ).trim();
+  if (!tipo) return true;
+  if (tipo.length <= 24) return true;
+  const generic =
+    /^(consultoria|servi[cç]os?\s|passagens?|material|loca[cç][aã]o|combust[ií]vel)/i;
+  return generic.test(tipo);
+}
+
+function normalizeDespesa(row, idx) {
+  const valor = parseValor(row);
+  const dataDoc = parseDataDoc(row);
+  const tipoDespesa = String(
+    row.tipoDespesa ?? row.descricao ?? "",
+  ).trim();
+  const nomeFornecedor = String(
+    row.nomeFornecedor ?? row.nome_fornecedor ?? "",
+  ).trim();
+  const numeroDocumento = String(
+    row.numeroDocumento ?? row.numero_documento ?? "",
+  ).trim();
+  const url = urlDocumentoOficial(row);
+  return {
+    ordem_api: idx,
+    valor_liquido: valor,
+    data_documento: dataDoc,
+    tipo_despesa: tipoDespesa,
+    nome_fornecedor: nomeFornecedor,
+    numero_documento: numeroDocumento,
+    url_documento_oficial: url,
+    descricao_generica: isDescricaoGenerica(row),
+  };
+}
+
+async function fetchAllDespesas(deputadoId) {
+  let pagina = 1;
+  const itens = 100;
+  const todas = [];
+  for (;;) {
+    const { data } = await axios.get(`${BASE}/${deputadoId}/despesas`, {
+      params: { pagina, itens },
+      headers: { "User-Agent": USER_AGENT },
+      timeout: 90000,
+      validateStatus: (s) => s === 200,
+    });
+    const dados = data.dados || [];
+    if (!dados.length) break;
+    todas.push(...dados);
+    if (dados.length < itens) break;
+    pagina += 1;
+    await new Promise((r) => setTimeout(r, 250));
+  }
+  return todas;
+}
+
+function sortDespesasRecentFirst(rows) {
+  return [...rows].sort((a, b) => {
+    const da = a.data_documento || "";
+    const db = b.data_documento || "";
+    return db.localeCompare(da);
+  });
+}
+
+function buildPrismasBundle(benford, nDocs) {
+  return {
+    BENFORD: { status: "calculado", resultado: benford },
+    ORACULO: {
+      status: "aguardando",
+      nota: "[AGUARDANDO VARREDURA PROFUNDA]",
+    },
+    SANGUE_PODER: {
+      status: "aguardando",
+      nota: "[AGUARDANDO VARREDURA PROFUNDA]",
+    },
+    FLAVIO: {
+      status: "aguardando",
+      nota: "[AGUARDANDO VARREDURA PROFUNDA]",
+    },
+    DRACULA: {
+      status: "aguardando",
+      nota: "[AGUARDANDO VARREDURA PROFUNDA]",
+    },
+    ESPECTRO: {
+      status: "aguardando",
+      nota: "[AGUARDANDO VARREDURA PROFUNDA]",
+    },
+    ARIMA: {
+      status: "aguardando",
+      nota: "[AGUARDANDO VARREDURA PROFUNDA]",
+    },
+    KMEANS: {
+      status: "aguardando",
+      nota: "[AGUARDANDO VARREDURA PROFUNDA]",
+    },
+    DOC_AI: {
+      status: "aguardando",
+      nota: "[AGUARDANDO VARREDURA PROFUNDA]",
+    },
+    SANKEY: {
+      status: "aguardando",
+      nota: "[AGUARDANDO VARREDURA PROFUNDA]",
+    },
+    IRONMAN: {
+      status: "aguardando",
+      nota: "[AGUARDANDO VARREDURA PROFUNDA]",
+    },
+    VISUAL: {
+      status: "aguardando",
+      nota: "[AGUARDANDO VARREDURA PROFUNDA]",
+    },
+  };
+}
+
+async function gravarAlertasResumo(db, deputadoId, bundle, benford) {
+  const col = db.collection("alertas_bodes");
+  const batch = db.batch();
+  const ts = admin.firestore.Timestamp.now();
+  const hash = (s) =>
+    createHash("sha256").update(s).digest("hex");
+
+  const msgResumo = `CEAP motor Node: ${bundle.n_documentos_api} documentos API; ${bundle.n_valores_numericos} valores numéricos. ${LEGAL_DISCLAIMER}`;
+  batch.set(
+    col.doc(hash(`${deputadoId}|PRISMA_RESUMO_NODE|${bundle.gerado_em}`)),
+    {
+      politico_id: deputadoId,
+      parlamentar_id: deputadoId,
+      tipo_risco: "PRISMA_CEAP_RESUMO_NODE",
+      mensagem: msgResumo,
+      severidade: "INFORMATIVO",
+      fonte: "engines/ceap_motor.js",
+      criado_em: ts,
+      prisma_bundle_ref: bundle.gerado_em,
+    },
+    { merge: true },
+  );
+
+  const msgB =
+    benford.amostra_suficiente === false
+      ? `Benford: amostra insuficiente (${benford.n_validos ?? 0} valores). ${LEGAL_DISCLAIMER}`
+      : `Benford (1.º dígito): MAD=${benford.mad}; ${benford.interpretacao_administrativa} ${LEGAL_DISCLAIMER}`;
+  batch.set(
+    col.doc(hash(`${deputadoId}|PRISMA_BENFORD_NODE|${bundle.gerado_em}`)),
+    {
+      politico_id: deputadoId,
+      parlamentar_id: deputadoId,
+      tipo_risco: "PRISMA_BENFORD",
+      mensagem: msgB,
+      severidade: benford.anomaly_detected ? "ANALITICO" : "INFORMATIVO",
+      fonte: "engines/ceap_motor.js",
+      criado_em: ts,
+      metricas_benford: benford,
+    },
+    { merge: true },
+  );
+
+  await batch.commit();
+}
+
+async function main() {
+  const pid = projectId();
+  if (!admin.apps.length) {
+    admin.initializeApp(pid ? { projectId: pid } : {});
+  }
+  const db = admin.firestore();
+
+  console.info(`ceap_motor.js — deputado=${DEP_ID} project=${pid || "(ADC)"}`);
+
+  const rawRows = await fetchAllDespesas(DEP_ID);
+  const valores = [];
+  const normalized = rawRows.map((r, i) => normalizeDespesa(r, i));
+  for (const n of normalized) {
+    if (n.valor_liquido != null && Number.isFinite(n.valor_liquido)) {
+      valores.push(n.valor_liquido);
+    }
+  }
+  const sorted = sortDespesasRecentFirst(normalized);
+  const benford = benfordStats(valores);
+
+  const geradoEm = new Date().toISOString();
+  const prismas = buildPrismasBundle(benford, rawRows.length);
+
+  const bundle = {
+    deputado_id: DEP_ID,
+    gerado_em: geradoEm,
+    n_documentos_api: rawRows.length,
+    n_valores_numericos: valores.length,
+    fonte: "camara_api_v2_node_ceap_motor",
+    motor: "node_ceap_motor_v1",
+    prismas,
+    avisos: [LEGAL_DISCLAIMER],
+    despesas_ceap_catalogo: sorted,
+    benford_agente: {
+      ...benford,
+      alerta_forense: benford.anomaly_detected === true,
+    },
+  };
+
+  const ref = db.collection("transparency_reports").doc(DEP_ID);
+  await ref.set(
+    {
+      investigacao_prisma_ceap: bundle,
+      ceap_motor_ultima_execucao: admin.firestore.FieldValue.serverTimestamp(),
+      ceap_motor_meta: {
+        versao: "node-1",
+        n_documentos: rawRows.length,
+      },
+    },
+    { merge: true },
+  );
+
+  await gravarAlertasResumo(db, DEP_ID, bundle, benford);
+
+  console.info(
+    `OK Firestore transparency_reports/${DEP_ID} merge; documentos=${rawRows.length} benford_anomaly=${benford.anomaly_detected === true}`,
+  );
+}
+
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});
