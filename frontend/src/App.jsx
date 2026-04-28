@@ -5,8 +5,9 @@ import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import RouteFallback from "./components/RouteFallback.jsx";
 import { AuthProvider } from "./context/AuthContext.jsx";
 import { CameraFocusProvider } from "./context/CameraFocusContext.jsx";
-import HomePage from "./pages/HomePage.jsx";
+import { CreditosGODProvider } from "./context/CreditosGODContext.jsx";
 import LandingPage from "./pages/LandingPage.jsx";
+import UniversePage from "./pages/UniversePage.jsx";
 
 const DashboardLayout = lazy(() => import("./layouts/DashboardLayout.jsx"));
 const OperationsOverviewPage = lazy(() => import("./pages/OperationsOverviewPage.jsx"));
@@ -27,29 +28,31 @@ export default function App() {
   return (
     <BrowserRouter basename={basename}>
       <AuthProvider>
-        <CameraFocusProvider>
-          <Suspense fallback={<RouteFallback />}>
-            <Routes>
-              <Route path="/" element={<LandingPage />} />
-              <Route path="/universo" element={<HomePage />} />
-              <Route path="/login" element={<LoginPage />} />
+        <CreditosGODProvider>
+          <CameraFocusProvider>
+            <Suspense fallback={<RouteFallback />}>
+              <Routes>
+                <Route path="/" element={<LandingPage />} />
+                <Route path="/universo" element={<UniversePage />} />
+                <Route path="/login" element={<LoginPage />} />
 
-              <Route path="/dossie/:id" element={<DossiePage />} />
+                <Route path="/dossie/:id" element={<DossiePage />} />
 
-              <Route element={<ProtectedRoute />}>
-                <Route element={<DashboardLayout />}>
-                  <Route path="/dashboard" element={<OperationsOverviewPage />} />
-                  <Route path="/mapa" element={<MapaPage />} />
-                  <Route path="/alertas" element={<AlertasPage />} />
-                  <Route path="/ranking" element={<RankingPage />} />
-                  <Route path="/perfil" element={<PerfilPage />} />
-                  <Route path="/creditos" element={<CreditosPage />} />
-                  <Route path="/radar/dossiers" element={<RadarPage />} />
+                <Route element={<ProtectedRoute />}>
+                  <Route element={<DashboardLayout />}>
+                    <Route path="/dashboard" element={<OperationsOverviewPage />} />
+                    <Route path="/mapa" element={<MapaPage />} />
+                    <Route path="/alertas" element={<AlertasPage />} />
+                    <Route path="/ranking" element={<RankingPage />} />
+                    <Route path="/perfil" element={<PerfilPage />} />
+                    <Route path="/creditos" element={<CreditosPage />} />
+                    <Route path="/radar/dossiers" element={<RadarPage />} />
+                  </Route>
                 </Route>
-              </Route>
-            </Routes>
-          </Suspense>
-        </CameraFocusProvider>
+              </Routes>
+            </Suspense>
+          </CameraFocusProvider>
+        </CreditosGODProvider>
       </AuthProvider>
     </BrowserRouter>
   );
