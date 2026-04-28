@@ -114,3 +114,23 @@ pre {
   border: 1px solid #30363d;
   border-radius: 12px;
 }
+
+/* Listas densas (Monitor CEAP expandido) */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(88, 166, 255, 0.35) rgba(22, 27, 34, 0.8);
+}
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(22, 27, 34, 0.85);
+  border-radius: 999px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(88, 166, 255, 0.35);
+  border-radius: 999px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(88, 166, 255, 0.5);
+}
