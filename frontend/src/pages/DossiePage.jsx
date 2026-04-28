@@ -474,6 +474,7 @@ export default function DossiePage() {
                 ceapResumo={displayRecord?.ceap_resumo}
                 analiseAsmodeus={displayRecord?.analise_asmodeus}
                 godMode={godMode}
+                oracleUnlocked={oracleUnlocked}
                 onUnlockAll={handleOraclePay}
               />
               <AgendaDoDia politico={displayRecord} />
