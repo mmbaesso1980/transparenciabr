@@ -15,9 +15,13 @@ function normalizeAxis(raw) {
   return Math.max(-1, Math.min(1, n / 100));
 }
 
-/** Lê apenas `espectro_politico` persistido (pipeline / Firestore). */
+/** `espectro_politico` na raiz ou embutido em `investigacao_prisma_ceap` (snapshots heterogéneos). */
 function parseEspectroFromFirestore(politico) {
-  const esp = politico?.espectro_politico;
+  const esp =
+    politico?.espectro_politico ??
+    politico?.espectroPolitico ??
+    politico?.investigacao_prisma_ceap?.espectro_politico ??
+    null;
   if (!esp || typeof esp !== "object") return null;
 
   const econRaw =
@@ -39,13 +43,40 @@ function parseEspectroFromFirestore(politico) {
     economia: normalizeAxis(econRaw ?? 50),
     costumes: normalizeAxis(socRaw ?? 50),
     contexto:
-      typeof esp?.contexto_narrativo === "string" ? esp.contexto_narrativo : "",
+      typeof esp?.contexto_narrativo === "string"
+        ? esp.contexto_narrativo
+        : typeof esp?.contextoNarrativo === "string"
+          ? esp.contextoNarrativo
+          : "",
   };
 }
 
 function fmtAxisLabel(v) {
   const x = Math.max(-1, Math.min(1, v));
   return x.toFixed(2);
+}
+
+function BussolaSkeleton() {
+  return (
+    <div
+      className="flex h-full min-h-[200px] w-full min-w-0 flex-col px-3 py-3"
+      aria-busy="true"
+      aria-label="A carregar bússola política"
+    >
+      <div className="mb-2 flex items-center gap-2">
+        <div className="size-4 shrink-0 animate-pulse rounded bg-[#21262D]" />
+        <div className="min-w-0 flex-1 space-y-2">
+          <div className="h-2.5 w-24 animate-pulse rounded bg-[#21262D]" />
+          <div className="h-3 w-32 animate-pulse rounded bg-[#21262D]" />
+        </div>
+      </div>
+      <div className="relative mx-auto aspect-square w-full max-w-[220px] min-w-0 flex-1 animate-pulse rounded-lg bg-[#161B22]" />
+      <div className="mt-3 grid grid-cols-2 gap-3">
+        <div className="h-12 animate-pulse rounded-md bg-[#161B22]" />
+        <div className="h-12 animate-pulse rounded-md bg-[#161B22]" />
+      </div>
+    </div>
+  );
 }
 
 /**
@@ -55,6 +86,15 @@ function fmtAxisLabel(v) {
  */
 export default function BussolaPolitica({ politico = null }) {
   const { economia, costumes, isFallback, contexto } = useMemo(() => {
+    if (politico == null || typeof politico !== "object") {
+      return {
+        economia: 0,
+        costumes: 0,
+        isFallback: true,
+        contexto: "",
+      };
+    }
+
     const fromFirestore = parseEspectroFromFirestore(politico);
     if (fromFirestore) {
       return {
@@ -76,6 +116,10 @@ export default function BussolaPolitica({ politico = null }) {
       contexto: ctx,
     };
   }, [politico]);
+
+  if (politico == null || typeof politico !== "object") {
+    return <BussolaSkeleton />;
+  }
 
   const px = ((economia + 1) / 2) * 100;
   /** Progressista no topo do eixo vertical (Y); conservador na base. */
