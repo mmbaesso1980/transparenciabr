@@ -163,6 +163,8 @@ export function pickPhotoUrl(data) {
   const u =
     data.foto_url ??
     data.url_foto ??
+    data.urlFoto ??
+    data.UrlFoto ??
     data.foto ??
     data.imagem_url ??
     data.imagem;
