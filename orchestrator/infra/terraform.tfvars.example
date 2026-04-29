@@ -18,8 +18,13 @@ arsenal_bucket = "tbr-arsenal-prod"
 datalake_bucket = "tbr-datalake-raw-prod"
 
 # Secret Manager secret for the LGPD SHA-256 salt
-# Format: projects/PROJECT_ID/secrets/SECRET_NAME
-lgpd_salt_secret_name = "projects/89728155070/secrets/lgpd-salt/versions/latest"
+# Format: projects/PROJECT_ID/secrets/SECRET_NAME/versions/latest
+lgpd_salt_secret_name = "projects/transparenciabr-prod/secrets/lgpd-salt/versions/latest"
+
+# Optional: full Reasoning Engine resource (Líder Supremo / agent_1777236402725). If empty, Terraform
+# uses vertex_reasoning_engine_numeric_id with project_id + region.
+# vertex_reasoning_engine_id = "projects/transparenciabr-prod/locations/us-west1/reasoningEngines/4398310393894666240"
+vertex_reasoning_engine_numeric_id = "4398310393894666240"
 
 # Path to CI-built Cloud Function source zip (relative to infra/ directory)
 orchestrator_source_zip = "../../dist/orchestrator-trigger.zip"

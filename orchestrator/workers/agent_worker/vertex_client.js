@@ -21,6 +21,14 @@ const { v1beta1 } = aiplatform;
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
+/**
+ * ID literal do Agent Builder (Líder Supremo). Os backends devem invocar apenas o motor
+ * Gemini 2.5 exposto por esse agente — aqui o recurso Vertex Reasoning Engine deve ser o
+ * deployment correspondente (env VERTEX_REASONING_ENGINE_ID). Os bins Pub/Sub agent_id 1–12
+ * são apenas shards de carga, não agentes alternativos.
+ */
+export const SUPREME_AGENT_BUILDER_ID = 'agent_1777236402725';
+
 const REASONING_ENGINE_RESOURCE =
   process.env.VERTEX_REASONING_ENGINE_ID ??
   'projects/89728155070/locations/us-west1/reasoningEngines/4398310393894666240';

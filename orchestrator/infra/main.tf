@@ -40,6 +40,8 @@ locals {
   agent_ids    = toset([for i in range(1, 13) : tostring(i)])  # "1" .. "12"
   service_name = "agent-worker"
   function_name = "orchestrator-trigger"
+  # Vertex Reasoning Engine correspondente ao Líder Supremo (Agent Builder agent_1777236402725).
+  vertex_reasoning_engine_resource = var.vertex_reasoning_engine_id != "" ? var.vertex_reasoning_engine_id : "projects/${var.project_id}/locations/${var.region}/reasoningEngines/${var.vertex_reasoning_engine_numeric_id}"
 }
 
 ###############################################################################
@@ -169,6 +171,10 @@ resource "google_cloud_run_v2_service" "agent_worker" {
       env {
         name  = "NUM_AGENTS"
         value = "12"
+      }
+      env {
+        name  = "VERTEX_REASONING_ENGINE_ID"
+        value = local.vertex_reasoning_engine_resource
       }
       env {
         name  = "PUBSUB_TOPIC"
