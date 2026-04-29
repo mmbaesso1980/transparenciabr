@@ -38,10 +38,10 @@ Vertex AI Reasoning Engine brain + Cloud Run muscle for parallelised government 
                    │ queryReasoningEngine / streamQueryReasoningEngine
                    ▼
   ┌────────────────────────────────┐
-  │  Vertex AI Reasoning Engine    │  Resource: projects/89728155070/
-  │  (brain — plans & routes)      │  locations/us-west1/
-  │                                │  reasoningEngines/4398310393894666240
-  │  agent_id 1..12                │
+  │  Vertex AI Reasoning Engine      │  Deploy do Líder Supremo (Agent Builder
+  │  (brain — plans & routes)       │  `agent_1777236402725`). Env:
+  │                                │  `VERTEX_REASONING_ENGINE_ID` (Terraform).
+  │  agent_id 1..12 (Pub/Sub)      │  Shards de carga apenas — não são outros agentes.
   └────────────────┬───────────────┘
                    │ Tool call: runIngestion(api_id)
                    ▼
