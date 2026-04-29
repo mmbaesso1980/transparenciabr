@@ -3,6 +3,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { CheckCircle2, Coins, Loader2, ArrowRight } from "lucide-react";
 import { doc, onSnapshot } from "firebase/firestore";
+import { onAuthStateChanged } from "firebase/auth";
 
 import { getFirebaseAuth, getFirestoreDb } from "../lib/firebase.js";
 
@@ -24,27 +25,44 @@ export default function SuccessPage() {
   useEffect(() => {
     const auth = getFirebaseAuth();
     const db = getFirestoreDb();
-    if (!auth?.currentUser || !db) {
-      setError("Sessão não detectada. Faça login para ver seu saldo atualizado.");
+    if (!auth || !db) {
+      setError("Firebase não inicializado. Recarregue a página.");
       return undefined;
     }
 
-    const ref = doc(db, "usuarios", auth.currentUser.uid);
-    const unsub = onSnapshot(
-      ref,
-      (snap) => {
-        const data = snap.data() || {};
-        if (typeof data.creditos === "number") {
-          setCredits(data.creditos);
-        }
-      },
-      (err) => setError(err.message),
-    );
-
+    let unsubFirestore = null;
     const t = setInterval(() => setWaited((w) => w + 1), 1000);
 
+    // Aguarda Firebase Auth restaurar a sessão do IndexedDB.
+    // Após redirect do Stripe Checkout, currentUser pode ser null no primeiro render.
+    // onAuthStateChanged dispara assim que a sessão é restaurada (ou confirma null).
+    const unsubAuth = onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        setError(
+          "Sessão não detectada. Faça login para ver seu saldo atualizado.",
+        );
+        return;
+      }
+      // Limpa erro caso já tivesse sido setado em retry
+      setError(null);
+
+      // Anexa onSnapshot ao documento do usuário
+      const ref = doc(db, "usuarios", user.uid);
+      unsubFirestore = onSnapshot(
+        ref,
+        (snap) => {
+          const data = snap.data() || {};
+          if (typeof data.creditos === "number") {
+            setCredits(data.creditos);
+          }
+        },
+        (err) => setError(err.message),
+      );
+    });
+
     return () => {
-      unsub();
+      unsubAuth();
+      if (unsubFirestore) unsubFirestore();
       clearInterval(t);
     };
   }, []);
