@@ -127,7 +127,7 @@ export default function UniversePage() {
           <div className="rounded-2xl border border-[#30363D]/80 bg-[#0a0e17]/55 p-4 shadow-[0_8px_40px_rgba(0,0,0,0.45)] backdrop-blur-md">
             <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-[#58A6FF]">
               <Sparkles className="size-3.5" strokeWidth={2} />
-              A.S.M.O.D.E.U.S.
+              Motor TransparênciaBR
             </div>
             <h1 className="mt-2 text-lg font-semibold leading-tight tracking-tight text-[#F0F4FC]">
               Universo de Orbes

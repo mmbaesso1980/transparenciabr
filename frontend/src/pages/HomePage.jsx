@@ -188,7 +188,7 @@ export default function HomePage() {
           name="description"
           content="TransparênciaBR — ecossistema cívico com ingestão PNCP, OCR, Gemini, BigQuery ML e dossiês desnormalizados no Firestore."
         />
-        <meta property="og:title" content="Transparência BR · A.S.M.O.D.E.U.S." />
+        <meta property="og:title" content="Transparência BR — Cada deputado tem um dossiê." />
         <meta
           property="og:description"
           content="Do dado bruto governamental ao dossiê visual em tempo real: BigQuery, Firestore e IA forense."
@@ -287,10 +287,10 @@ export default function HomePage() {
                 Entrar com e-mail
               </Link>
               <Link
-                to="/dossie/220645"
+                to="/login?redirect=%2Funiverso"
                 className="inline-flex items-center justify-center gap-2 rounded-xl border border-transparent px-4 py-3 text-sm font-semibold uppercase tracking-[0.12em] text-[#9CCBFF] transition hover:text-[#F0F4FC]"
               >
-                Ver dossiê exemplo
+                Entrar no universo
                 <ArrowRight className="size-4" strokeWidth={2} />
               </Link>
             </div>

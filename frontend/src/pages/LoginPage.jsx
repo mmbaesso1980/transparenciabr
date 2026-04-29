@@ -32,7 +32,7 @@ function describeError(err) {
   return ERROR_MESSAGES[code] || err.message || "Falha ao autenticar.";
 }
 
-const REDIRECT_AFTER_LOGIN = "/dashboard";
+const REDIRECT_AFTER_LOGIN = "/universo";
 
 export default function LoginPage() {
   const { user, loading, isAuthenticated } = useAuth();

@@ -248,7 +248,7 @@ export default function LandingPage() {
             </p>
           </form>
 
-          {/* CTAs login Google / e-mail / dossiê exemplo */}
+          {/* CTAs login Google / e-mail */}
           <div className="pointer-events-auto mt-6 flex flex-col items-center gap-3 sm:flex-row sm:flex-wrap sm:justify-center">
             <Link
               to="/login?provider=google"
@@ -270,10 +270,10 @@ export default function LandingPage() {
               Entrar com e-mail
             </Link>
             <Link
-              to="/dossie/220645"
+              to="/login?redirect=%2Funiverso"
               className="inline-flex items-center justify-center gap-2 rounded-xl border border-transparent px-4 py-3 text-sm font-semibold uppercase tracking-[0.12em] text-[#9CCBFF] transition hover:text-[#F0F4FC]"
             >
-              Ver dossiê exemplo
+              Entrar no universo
               <ArrowRight className="size-4" strokeWidth={2} />
             </Link>
           </div>
