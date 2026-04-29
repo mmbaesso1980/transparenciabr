@@ -8,7 +8,7 @@
  * Roteamento:
  *   score < 60  → Ollama local (gemma2:27b-instruct-q4_K_M), 1 passada
  *   60 ≤ s < 85 → Ollama local, 2 passadas (auditoria reforçada)
- *   score ≥ 85  → Vertex Gemini 1.5 Pro (gemini-1.5-pro-002), hard cap US$ 95/mês
+ *   score ≥ 85  → Vertex Gemini 2.5 Pro (Líder Supremo agent_1777236402725), hard cap US$ 95/mês
  *
  * Schema BigQuery de saída — tbr.analysis.score_results:
  *   id          STRING    NOT NULL  -- identificador da nota fiscal
@@ -40,8 +40,12 @@ const PROJECT         = process.env.GCP_PROJECT             || 'transparenciabr'
 const GCS_BUCKET      = process.env.GCS_BUCKET              || 'datalake-tbr-clean';
 const OLLAMA_URL      = process.env.OLLAMA_URL               || 'http://localhost:11434';
 const OLLAMA_MODEL    = process.env.OLLAMA_MODEL             || 'gemma2:27b-instruct-q4_K_M';
-const VERTEX_MODEL    = process.env.VERTEX_MODEL             || 'gemini-1.5-pro-002';
-const VERTEX_LOCATION = process.env.VERTEX_LOCATION          || 'us-central1';
+/** Mesmo Agent Builder que Cloud Functions / Genkit — não inventar IDs alternativos. */
+const SUPREME_AGENT_ID =
+  process.env.VERTEX_SUPREME_AGENT_ID || 'agent_1777236402725';
+const VERTEX_MODEL =
+  process.env.VERTEX_MODEL || 'gemini-2.5-pro';
+const VERTEX_LOCATION = process.env.VERTEX_LOCATION || 'us-central1';
 const VERTEX_CAP      = parseFloat(process.env.VERTEX_MONTHLY_CAP_USD || '95');
 const BATCH_CONC      = parseInt(process.env.BATCH_CONCURRENCY         || '10', 10);
 const DRY_RUN         = process.env.DRY_RUN === '1';
@@ -353,12 +357,16 @@ export async function getVertexMonthlySpent() {
 }
 
 // ---------------------------------------------------------------------------
-// callVertex — chama Gemini 1.5 Pro via Vertex AI REST (ADC)
+// callVertex — Gemini 2.5 Pro via Vertex AI REST (ADC), persona Líder Supremo.
 // Registra custo estimado em tbr.audit.vertex_calls.
 // ---------------------------------------------------------------------------
 
 export async function callVertex(payload) {
-  logger.info('callVertex', { model: VERTEX_MODEL, nota_id: payload.id });
+  logger.info('callVertex', {
+    model: VERTEX_MODEL,
+    agent_id: SUPREME_AGENT_ID,
+    nota_id: payload.id,
+  });
 
   // Obtém token Application Default Credentials
   let token = '';
@@ -377,10 +385,11 @@ export async function callVertex(payload) {
     `${PROJECT}/locations/${VERTEX_LOCATION}/publishers/google/models/` +
     `${VERTEX_MODEL}:generateContent`;
 
-  const systemInstruction = (
-    'Você é auditor forense de gastos públicos brasileiros. Analise a nota com máximo rigor. ' +
-    'JSON: {"veredito":"...","evidências":["..."],"recomendacao_acao":"...","nivel_risco_confirmado":1}'
-  );
+  const systemInstruction =
+    `Voce e o Lider Supremo A.S.M.O.D.E.U.S. (Agent ID ${SUPREME_AGENT_ID}). ` +
+    'Motor Gemini 2.5 Pro via Vertex — unico auditor forense; nao invoque modelos legados. ' +
+    'Analise a nota com maximo rigor. ' +
+    'JSON: {"veredito":"...","evidências":["..."],"recomendacao_acao":"...","nivel_risco_confirmado":1}';
 
   const res = await fetch(endpoint, {
     method:  'POST',
@@ -405,7 +414,7 @@ export async function callVertex(payload) {
   try   { parsed = JSON.parse(content); }
   catch { parsed = { texto_bruto: content }; }
 
-  // Estima custo: US$ 0.00125/1k tokens input + US$ 0.00375/1k tokens output (Gemini 1.5 Pro)
+  // Estima custo aproximado (ajustar se pricing Vertex mudar para gemini-2.5-pro)
   const inputTokens  = data?.usageMetadata?.promptTokenCount     || 0;
   const outputTokens = data?.usageMetadata?.candidatesTokenCount || 0;
   const custoUsd     = (inputTokens * 0.00000125) + (outputTokens * 0.00000375);

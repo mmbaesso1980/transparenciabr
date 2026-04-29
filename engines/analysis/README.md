@@ -15,7 +15,7 @@ nota fiscal / contrato / emenda PIX
         ├─ score < 60   → callOllama(nota, 'classificacao_simples')   [1 passada]
         ├─ 60 ≤ s < 85  → callOllama × 2 (auditoria_p1 + auditoria_p2) [2 passadas]
         └─ score ≥ 85   → getVertexMonthlySpent()
-                              ├─ gasto < cap  → callVertex(nota)  [Gemini 1.5 Pro]
+                              ├─ gasto < cap  → callVertex(nota)  [Gemini 2.5 Pro / Líder Supremo]
                               └─ gasto ≥ cap  → callOllama fallback (degradação)
                                     │
                                     ▼
@@ -47,7 +47,7 @@ nota fiscal / contrato / emenda PIX
 |---|---|---|---|
 | < 60 | Ollama local | 1 passada — `classificacao_simples` | `ollama_1p` |
 | 60–84 | Ollama local | 2 passadas — `auditoria_p1` + `auditoria_p2` | `ollama_2p` |
-| ≥ 85 (cap OK) | Vertex Gemini 1.5 Pro | `gemini-1.5-pro-002` | `vertex` |
+| ≥ 85 (cap OK) | Vertex Gemini 2.5 Pro | `gemini-2.5-pro` | `vertex` |
 | ≥ 85 (cap atingido) | Ollama local | `auditoria_p2_fallback` | `ollama_fallback` |
 
 **Hard cap Vertex:** monitorado em `tbr.audit.vertex_calls`. Padrão: US$ 95/mês (`VERTEX_MONTHLY_CAP_USD`).
@@ -140,7 +140,8 @@ node engines/analysis/score_engine.js --nota <id> --model phi3:14b
 | `GCS_BUCKET` | `datalake-tbr-clean` | Bucket GCS de saída |
 | `OLLAMA_URL` | `http://localhost:11434` | URL do servidor Ollama |
 | `OLLAMA_MODEL` | `gemma2:27b-instruct-q4_K_M` | Modelo Ollama padrão |
-| `VERTEX_MODEL` | `gemini-1.5-pro-002` | Modelo Vertex AI |
+| `VERTEX_MODEL` | `gemini-2.5-pro` | Modelo Vertex AI (Gemini 2.5 Pro) |
+| `VERTEX_SUPREME_AGENT_ID` | `agent_1777236402725` | Agent Builder Líder Supremo (prompt em `callVertex`) |
 | `VERTEX_LOCATION` | `us-central1` | Região Vertex AI |
 | `VERTEX_MONTHLY_CAP_USD` | `95` | Hard cap mensal Vertex em USD |
 | `BATCH_CONCURRENCY` | `10` | Paralelismo máximo no modo batch |
