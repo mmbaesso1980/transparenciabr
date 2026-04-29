@@ -5,13 +5,13 @@
  * a named Reasoning Engine, handling streaming responses, tool-call extraction,
  * and exponential back-off on quota errors.
  *
- * Environment variables:
- *   VERTEX_REASONING_ENGINE_ID  – full resource name override (optional)
- *   VERTEX_TIMEOUT_SECONDS      – per-request timeout in seconds (default 600)
- *   GCP_PROJECT_ID              – Google Cloud project ID
+ * Environment variables (SecOps — sem IDs de projeto hardcoded):
+ *   VERTEX_REASONING_ENGINE_ID       – full resource name (recomendado; ex.: projects/…/locations/…/reasoningEngines/…)
+ *   GCP_PROJECT_ID                   – usado só se o nome completo for montado a partir do ID numérico
+ *   VERTEX_REASONING_ENGINE_NUMERIC_ID – segmento numérico do engine (alternativa ao nome completo)
+ *   VERTEX_LOCATION                  – região Vertex (default us-west1); ignorada se o nome completo já incluir /locations/
+ *   VERTEX_TIMEOUT_SECONDS           – timeout por pedido em segundos (default 600)
  */
-
-import { helpers } from '@google-cloud/aiplatform';
 
 // Dynamically import protobufjs Value helper from aiplatform bundle.
 // The actual gRPC client is accessed through the v1beta1 namespace.
@@ -29,9 +29,37 @@ const { v1beta1 } = aiplatform;
  */
 export const SUPREME_AGENT_BUILDER_ID = 'agent_1777236402725';
 
-const REASONING_ENGINE_RESOURCE =
-  process.env.VERTEX_REASONING_ENGINE_ID ??
-  'projects/89728155070/locations/us-west1/reasoningEngines/4398310393894666240';
+/**
+ * Resolve o resource name do Reasoning Engine apenas a partir do ambiente.
+ * @returns {string}
+ */
+function resolveReasoningEngineResource() {
+  const explicit = (process.env.VERTEX_REASONING_ENGINE_ID || '').trim();
+  if (explicit) return explicit;
+
+  const projectId = (process.env.GCP_PROJECT_ID || process.env.GCP_PROJECT || '').trim();
+  const numericId = (process.env.VERTEX_REASONING_ENGINE_NUMERIC_ID || '').trim();
+  const location = (process.env.VERTEX_LOCATION || 'us-west1').trim() || 'us-west1';
+
+  if (!projectId || !numericId) {
+    throw new Error(
+      'VERTEX_REASONING_ENGINE_ID ausente (ou defina GCP_PROJECT_ID + VERTEX_REASONING_ENGINE_NUMERIC_ID). ' +
+        'Nenhum fallback com project number fixo é permitido (G.O.A.T. / blindagem de infra).',
+    );
+  }
+
+  return `projects/${projectId}/locations/${location}/reasoningEngines/${numericId}`;
+}
+
+/**
+ * @param {string} resourceName
+ * @returns {string}
+ */
+function vertexAiRegionalEndpoint(resourceName) {
+  const m = String(resourceName).match(/\/locations\/([^/]+)\//);
+  const region = m ? m[1] : (process.env.VERTEX_LOCATION || 'us-west1').trim() || 'us-west1';
+  return `${region}-aiplatform.googleapis.com`;
+}
 
 const TIMEOUT_SECONDS = parseInt(
   process.env.VERTEX_TIMEOUT_SECONDS ?? '600',
@@ -104,6 +132,8 @@ async function withBackoff(fn, maxRetries = MAX_RETRIES) {
 export class VertexReasoningClient {
   #client = null;
   #initialized = false;
+  /** @type {string | null} */
+  #reasoningEngineResource = null;
 
   /** @returns {boolean} */
   get isReady() {
@@ -115,14 +145,17 @@ export class VertexReasoningClient {
    * @returns {Promise<void>}
    */
   async init() {
+    this.#reasoningEngineResource = resolveReasoningEngineResource();
+    const apiEndpoint = vertexAiRegionalEndpoint(this.#reasoningEngineResource);
     this.#client = new v1beta1.ReasoningEngineExecutionServiceClient({
-      apiEndpoint: 'us-west1-aiplatform.googleapis.com',
+      apiEndpoint,
     });
     // Eagerly warm up credentials
     await this.#client.initialize();
     this.#initialized = true;
     log('INFO', 'VertexReasoningClient initialised', {
-      resource: REASONING_ENGINE_RESOURCE,
+      resource: this.#reasoningEngineResource,
+      api_endpoint: apiEndpoint,
     });
   }
 
@@ -149,7 +182,7 @@ export class VertexReasoningClient {
     });
 
     const request = {
-      reasoningEngine: REASONING_ENGINE_RESOURCE,
+      reasoningEngine: this.#reasoningEngineResource,
       input: {
         input: prompt,
         ...(tools.length > 0 && { tools }),
@@ -206,6 +239,7 @@ export class VertexReasoningClient {
     if (this.#client) {
       await this.#client.close();
       this.#initialized = false;
+      this.#reasoningEngineResource = null;
     }
   }
 }
