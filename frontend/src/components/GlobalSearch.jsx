@@ -47,6 +47,7 @@ export default function GlobalSearch({ className = "" }) {
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
   const [catalog, setCatalog] = useState([]);
+  const [selectedIndex, setSelectedIndex] = useState(-1);
   const navigate = useNavigate();
   const location = useLocation();
   const { requestTrackToPolitician } = useCameraFocus();
@@ -70,6 +71,10 @@ export default function GlobalSearch({ className = "" }) {
     document.addEventListener("mousedown", onDocClick);
     return () => document.removeEventListener("mousedown", onDocClick);
   }, []);
+
+  useEffect(() => {
+    setSelectedIndex(-1);
+  }, [q, open]);
 
   const matches = useMemo(() => {
     const term = normalize(q);
@@ -109,6 +114,10 @@ export default function GlobalSearch({ className = "" }) {
 
   function submit(e) {
     e.preventDefault();
+    if (selectedIndex >= 0 && selectedIndex < matches.length) {
+      goDossie(matches[selectedIndex].id);
+      return;
+    }
     const id = q.trim();
     if (!id) return;
     if (matches.length === 1) {
@@ -117,6 +126,30 @@ export default function GlobalSearch({ className = "" }) {
     }
     goDossie(id);
   }
+
+  function handleKeyDown(e) {
+    if (!open || matches.length === 0) return;
+
+    switch (e.key) {
+      case "ArrowDown":
+        e.preventDefault();
+        setSelectedIndex((prev) => (prev < matches.length - 1 ? prev + 1 : prev));
+        break;
+      case "ArrowUp":
+        e.preventDefault();
+        setSelectedIndex((prev) => (prev > 0 ? prev - 1 : prev));
+        break;
+      case "Escape":
+        e.preventDefault();
+        setOpen(false);
+        break;
+      case "Enter":
+        // Form onSubmit handles this naturally if selectedIndex is set
+        break;
+    }
+  }
+
+  const listboxId = "global-search-listbox";
 
   return (
     <div ref={wrapRef} className={`relative ${className}`}>
@@ -140,9 +173,18 @@ export default function GlobalSearch({ className = "" }) {
               setOpen(true);
             }}
             onFocus={() => setOpen(true)}
+            onKeyDown={handleKeyDown}
             placeholder="Nome ou ID do político…"
             aria-label="Nome ou ID do político para pesquisa"
             autoComplete="off"
+            role="combobox"
+            aria-expanded={open && matches.length > 0}
+            aria-controls={open && matches.length > 0 ? listboxId : undefined}
+            aria-activedescendant={
+              selectedIndex >= 0 && matches[selectedIndex]
+                ? `search-option-${matches[selectedIndex].id}`
+                : undefined
+            }
             className="w-full min-w-0 rounded-lg border border-[#30363D] bg-[#0D1117] py-2 pl-10 pr-3 text-sm text-[#F0F4FC] placeholder:text-[#484F58] outline-none ring-[#58A6FF] focus:border-[#58A6FF]/50 focus:ring-2"
           />
         </div>
@@ -156,23 +198,33 @@ export default function GlobalSearch({ className = "" }) {
 
       {open && matches.length > 0 ? (
         <ul
+          id={listboxId}
           className="absolute left-0 right-0 top-full z-50 mt-1 max-h-64 overflow-auto rounded-lg border border-[#30363D] bg-[#0D1117]/98 py-1 shadow-xl backdrop-blur-md"
           role="listbox"
           aria-label="Resultados da pesquisa"
         >
-          {matches.map((m) => (
-            <li key={m.id} role="option" aria-selected={false}>
-              <button
-                type="button"
-                className="flex w-full flex-col gap-0.5 px-3 py-2 text-left text-sm text-[#F0F4FC] transition hover:bg-[#21262D] focus-visible:bg-[#21262D] focus-visible:outline-none"
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => goDossie(m.id)}
+          {matches.map((m, idx) => {
+            const isSelected = idx === selectedIndex;
+            return (
+              <li
+                key={m.id}
+                id={`search-option-${m.id}`}
+                role="option"
+                aria-selected={isSelected}
+                className={isSelected ? "bg-[#21262D]" : ""}
               >
-                <span className="truncate font-medium">{m.nome}</span>
-                <span className="font-mono text-[11px] text-[#8B949E]">{m.id}</span>
-              </button>
-            </li>
-          ))}
+                <button
+                  type="button"
+                  className="flex w-full flex-col gap-0.5 px-3 py-2 text-left text-sm text-[#F0F4FC] transition hover:bg-[#21262D] focus-visible:bg-[#21262D] focus-visible:outline-none"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => goDossie(m.id)}
+                >
+                  <span className="truncate font-medium">{m.nome}</span>
+                  <span className="font-mono text-[11px] text-[#8B949E]">{m.id}</span>
+                </button>
+              </li>
+            );
+          })}
         </ul>
       ) : null}
     </div>
