@@ -1,9 +1,11 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { getFunctions, httpsCallable } from "firebase/functions";
-import { Coins, Loader2, Sparkles } from "lucide-react";
+import { AlertCircle, Coins, Loader2, LogIn, Sparkles } from "lucide-react";
 
 import { getFirebaseApp, getFirebaseAuth, getFirestoreDb } from "../lib/firebase.js";
+import { useAuth } from "../context/AuthContext.jsx";
 
 // Catálogo oficial Sprint 2.7 — R$ 0,20-0,30 por crédito
 // 1 dossiê = 200 créditos · 1 nota fiscal = 100 créditos
@@ -49,68 +51,91 @@ function mockCheckoutUrl(credits) {
 }
 
 export default function CreditosPage() {
+  const { user, isAuthenticated, loading: authLoading } = useAuth();
   const [busyId, setBusyId] = useState(null);
   const [error, setError] = useState(null);
+  const [diag, setDiag] = useState({ firebase: false, firestore: false });
 
-  const startCheckout = useCallback(async (pkg) => {
-    setError(null);
-    setBusyId(pkg.id);
+  // Diagnóstico de readiness no mount — informa o motivo real de falha
+  useEffect(() => {
+    setDiag({
+      firebase: !!getFirebaseApp(),
+      firestore: !!getFirestoreDb(),
+    });
+  }, [user]);
 
-    try {
+  const blockingReason = (() => {
+    if (authLoading) return null; // ainda carregando
+    if (!isAuthenticated) return "auth";
+    if (!diag.firebase) return "firebase";
+    if (!diag.firestore) return "firestore";
+    return null;
+  })();
+
+  const startCheckout = useCallback(
+    async (pkg) => {
+      setError(null);
+
+      // Bloquear ANTES de tentar — sem cair em URL fake
+      if (!isAuthenticated) {
+        setError("Você precisa estar autenticado para comprar créditos.");
+        return;
+      }
       const app = getFirebaseApp();
       const auth = getFirebaseAuth();
       const dbReady = !!getFirestoreDb();
-
       if (!app || !auth?.currentUser || !dbReady) {
-        window.location.href = mockCheckoutUrl(pkg.credits);
+        setError(
+          "Firebase ainda não está pronto neste cliente. Recarregue a página e tente de novo.",
+        );
         return;
       }
 
-      await auth.currentUser.getIdToken(true);
+      setBusyId(pkg.id);
 
-      const functions = getFunctions(app, "southamerica-east1");
-      const createCheckoutSession = httpsCallable(functions, "createCheckoutSession");
-
-      let result;
       try {
-        result = await createCheckoutSession({
+        await auth.currentUser.getIdToken(true);
+
+        const functions = getFunctions(app, "southamerica-east1");
+        const createCheckoutSession = httpsCallable(functions, "createCheckoutSession");
+
+        const result = await createCheckoutSession({
           packageId: pkg.id,
           credits: pkg.credits,
           origin: typeof window !== "undefined" ? window.location.origin : "",
         });
-      } catch (fnErr) {
-        const code = fnErr?.code || fnErr?.message || "";
-        if (
-          String(code).includes("functions/not-found") ||
-          String(fnErr?.message || "").includes("not-found")
-        ) {
-          window.location.href = mockCheckoutUrl(pkg.credits);
-          return;
-        }
-        if (
-          String(fnErr?.message || "").includes("STRIPE") ||
-          String(fnErr?.details || "").includes("STRIPE")
-        ) {
-          window.location.href = mockCheckoutUrl(pkg.credits);
-          return;
-        }
-        throw fnErr;
-      }
 
-      const payload = result?.data;
-      const url = payload?.url;
-      if (url && typeof window !== "undefined") {
+        const payload = result?.data;
+        const url = payload?.url;
+        if (!url) {
+          setError(
+            "Stripe respondeu sem URL de checkout. Confira se STRIPE_SECRET_KEY foi configurada nas Functions.",
+          );
+          return;
+        }
         window.location.href = url;
-        return;
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        // Mensagens humanas para erros mais comuns
+        if (msg.includes("STRIPE_SECRET_KEY") || msg.includes("failed-precondition")) {
+          setError(
+            "Stripe ainda não foi configurado em produção. Rode: firebase functions:secrets:set STRIPE_SECRET_KEY",
+          );
+        } else if (msg.includes("not-found") || msg.includes("functions/not-found")) {
+          setError(
+            "Cloud Function 'createCheckoutSession' não está implantada nesta região (southamerica-east1).",
+          );
+        } else if (msg.includes("unauthenticated")) {
+          setError("Sessão expirou. Saia e entre novamente.");
+        } else {
+          setError(msg);
+        }
+      } finally {
+        setBusyId(null);
       }
-
-      window.location.href = mockCheckoutUrl(pkg.credits);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setBusyId(null);
-    }
-  }, []);
+    },
+    [isAuthenticated],
+  );
 
   return (
     <div className="min-h-full bg-[#080B14] px-4 py-8 text-[#F0F4FC] sm:px-6">
@@ -139,11 +164,34 @@ export default function CreditosPage() {
           </p>
         </header>
 
+        {blockingReason === "auth" ? (
+          <div className="mb-8 flex flex-col items-center gap-3 rounded-2xl border border-[#fbbf24]/40 bg-[#fbbf24]/10 px-5 py-5 text-center sm:flex-row sm:text-left">
+            <AlertCircle className="size-6 shrink-0 text-[#fbbf24]" strokeWidth={1.75} />
+            <div className="flex-1 text-sm leading-relaxed text-[#fde68a]">
+              <strong className="font-semibold text-[#fef3c7]">Faça login para comprar créditos.</strong> Você não está autenticado neste navegador.
+              <br />
+              <span className="text-xs opacity-80">
+                Sem login, o sistema não consegue creditar os créditos no seu UID após o pagamento.
+              </span>
+            </div>
+            <Link
+              to="/login?redirect=%2Fcreditos"
+              className="inline-flex items-center gap-2 rounded-xl bg-[#fbbf24] px-5 py-2.5 text-sm font-bold uppercase tracking-wider text-[#02040a] transition hover:bg-[#fcd34d]"
+            >
+              <LogIn className="size-4" strokeWidth={2} />
+              Entrar agora
+            </Link>
+          </div>
+        ) : null}
+
+        {blockingReason && blockingReason !== "auth" ? (
+          <div className="mb-8 rounded-2xl border border-[#fb7185]/40 bg-[#fb7185]/10 px-5 py-4 text-sm text-[#fecdd3]">
+            <strong className="font-semibold">Cliente Firebase indisponível.</strong> Recarregue a página (motivo: {blockingReason}).
+          </div>
+        ) : null}
+
         {error ? (
-          <div
-            className="glass-alert mb-8 rounded-xl border border-[#fb7185]/40 bg-[#fb7185]/10 px-4 py-3 text-sm text-[#fecdd3]"
-            role="alert"
-          >
+          <div className="mb-6 rounded-xl border border-[#fb7185]/40 bg-[#fb7185]/10 px-4 py-3 text-sm text-[#fecdd3]">
             {error}
           </div>
         ) : null}

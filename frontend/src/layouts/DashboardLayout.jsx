@@ -11,6 +11,7 @@ import { NavLink, Outlet } from "react-router-dom";
 import BrandLogo from "../components/BrandLogo.jsx";
 import CreditosGOD from "../components/CreditosGOD.jsx";
 import GlobalSearch from "../components/GlobalSearch.jsx";
+import UserMenu from "../components/UserMenu.jsx";
 
 const navTabClass = ({ isActive }) =>
   [
@@ -134,6 +135,9 @@ export default function DashboardLayout() {
             <NavLink to="/dashboard" className={navTabClass}>
               Relatórios
             </NavLink>
+            <div className="ml-1">
+              <UserMenu />
+            </div>
           </nav>
         </header>
 
