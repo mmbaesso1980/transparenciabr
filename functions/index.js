@@ -692,6 +692,7 @@ function creditsFromSession(session) {
 /** HTTP — Stripe webhook (checkout.session.completed) */
 exports.stripeWebhook = functions
   .region("southamerica-east1")
+  .runWith({ secrets: ["STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET"] })
   .https.onRequest(async (req, res) => {
     if (req.method !== "POST") {
       res.status(405).send("Method Not Allowed");
@@ -756,6 +757,7 @@ exports.stripeWebhook = functions
 /** Callable — devolve { url } para Checkout Stripe */
 exports.createCheckoutSession = functions
   .region("southamerica-east1")
+  .runWith({ secrets: ["STRIPE_SECRET_KEY"] })
   .https.onCall(async (data, context) => {
     if (!context.auth) {
       throw new functions.https.HttpsError(
