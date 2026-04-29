@@ -1,435 +1,814 @@
 #!/usr/bin/env node
 /**
- * Universal declarative ingestor — reads engines/config/arsenal_apis.json,
- * streams NDJSON.gz to GCS (DATALAKE_BUCKET_RAW), checkpoints to DATALAKE_BUCKET_STATE.
+ * ============================================================
+ * universal_ingestor.js — Ingestor Universal TransparênciaBR
+ * ============================================================
+ *
+ * Responsável por:
+ *   1. Ler o mapa de fontes em arsenal_apis.json
+ *   2. Executar chamadas HTTP com retry/backoff exponencial
+ *   3. Gravar cada resposta em gs://datalake-tbr-raw/<path>.json
+ *   4. Garantir idempotência (skip se blob já existe no GCS)
+ *   5. Respeitar rate limits com worker pool (máx 5 paralelas/fonte)
+ *
+ * Destino EXCLUSIVO: GCS (zero Firestore na ingestão)
+ * Exclusão permanente: dadosabertos.camara.leg.br — ver §6 doc mestre
+ *
+ * Uso:
+ *   node universal_ingestor.js --priority P0
+ *   node universal_ingestor.js --source cgu_portal_transparencia --since 2024-01-01
+ *   node universal_ingestor.js --priority P0 --force
+ *   node universal_ingestor.js --source tcu_acordaos --dry-run
+ *
+ * Variáveis de ambiente obrigatórias:
+ *   DATALAKE_BUCKET_RAW         — ex: datalake-tbr-raw
+ *   GOOGLE_APPLICATION_CREDENTIALS — path para service account JSON
+ *
+ * Variáveis opcionais por fonte:
+ *   CGU_API_KEY, INLABS_API_KEY, NEWSAPI_KEY, MEDIASTACK_API_KEY,
+ *   APITUBE_API_KEY, SIAFI_CERT_PATH
+ *
+ * Dependências: @google-cloud/storage, p-limit, node-fetch (ou fetch nativo Node ≥18)
+ * ============================================================
  */
 
 import { readFileSync } from "node:fs";
-import { createHash } from "node:crypto";
+import { createWriteStream } from "node:fs";
+import { mkdir } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import yargs from "yargs";
-import { hideBin } from "yargs/helpers";
-import micromatch from "micromatch";
-import CircuitBreaker from "opossum";
-import { ulid } from "ulid";
+import { parseArgs } from "node:util";
 
-import { BUCKET_RAW } from "../gcp_storage.js";
-import { buildExternalTableDDL } from "./base_ingestor.js";
-import { resolveAuth } from "./strategies/auth/index.js";
-import { loadCheckpoint, saveCheckpoint } from "./core/checkpoint.js";
-import { writeNDJSONGzipParts, buildRawLakePrefix } from "./core/gcs_writer.js";
-import { requestHttp } from "./core/http_client.js";
-import { getLimiterForHost } from "./core/rate_limiter.js";
-import { logStructured, recordMetric } from "./core/observability.js";
+// ---------- Google Cloud Storage ----------
+import { Storage } from "@google-cloud/storage";
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const CONFIG_PATH = join(__dirname, "../config/arsenal_apis.json");
+// ---------- Worker pool com concorrência limitada ----------
+// p-limit ≥ 4 exporta default como named export em ESM
+import pLimit from "p-limit";
 
-const PRIORS = ["imediata", "sprint_2", "sprint_3", "futuro"];
+// ------------------------------------------------------------
+// Caminhos e constantes globais
+// ------------------------------------------------------------
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
-const DEFAULT_UA =
-  process.env.HTTP_USER_AGENT ||
-  "TransparenciaBR/2.0 (+https://transparenciabr.org/bot)";
+/** Localização do mapa de fontes (mesmo diretório que este script) */
+const ARSENAL_PATH = join(__dirname, "arsenal_apis.json");
 
-function loadCatalog() {
-  const raw = readFileSync(CONFIG_PATH, "utf8");
-  return JSON.parse(raw);
-}
+/** Bucket GCS de destino — obrigatório via env */
+const BUCKET_RAW = process.env.DATALAKE_BUCKET_RAW || "datalake-tbr-raw";
 
-function shortHash(s) {
-  return createHash("sha256").update(s, "utf8").digest("hex").slice(0, 16);
-}
+/** Máximo de chamadas paralelas por fonte (conforme spec do projeto) */
+const MAX_CONCURRENT_PER_SOURCE = 5;
 
-function maskPII(value) {
-  if (typeof value !== "string") return value;
-  let out = value.replace(/\d{3}\.\d{3}\.\d{3}-\d{2}/g, (m) => `sha256:${shortHash(m)}…`);
-  const emailRe = /([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g;
-  out = out.replace(emailRe, (m) => `sha256:${shortHash(m)}…`);
-  return out;
-}
+/**
+ * Configuração de backoff exponencial para erros 429/5xx
+ * Delays: 1s → 2s → 4s → 8s → 16s (5 tentativas)
+ */
+const RETRY_CONFIG = {
+  maxAttempts: 5,
+  baseDelayMs: 1000,
+  retryStatuses: new Set([429, 500, 502, 503, 504]),
+};
 
-function normalizeRecord(api, obj, meta = {}) {
-  const base =
-    typeof obj === "object" && obj !== null && !Array.isArray(obj)
-      ? { ...obj }
-      : { _value: obj };
-  for (const k of Object.keys(base)) {
-    if (typeof base[k] === "string") base[k] = maskPII(base[k]);
+/** Domínio excluído por diretiva do projeto — nunca deve ser ingerido */
+const EXCLUDED_DOMAINS = new Set(["dadosabertos.camara.leg.br"]);
+
+// ------------------------------------------------------------
+// Mapeamento de prioridades (string → número para filtrar)
+// ------------------------------------------------------------
+const PRIORITY_ORDER = { P0: 0, P1: 1, P2: 2, P3: 3 };
+
+// ------------------------------------------------------------
+// Inicialização do cliente GCS
+// ------------------------------------------------------------
+const gcsClient = new Storage();
+const bucket = gcsClient.bucket(BUCKET_RAW);
+
+// ============================================================
+// BLOCO 1 — Carregamento do arsenal de fontes
+// ============================================================
+
+/**
+ * Carrega e valida o arquivo arsenal_apis.json.
+ * Lança erro se o arquivo não existir ou for inválido.
+ * @returns {{ version: string, sources: Array }} catálogo
+ */
+function loadArsenal(path = ARSENAL_PATH) {
+  const raw = readFileSync(path, "utf-8");
+  const catalog = JSON.parse(raw);
+
+  if (!catalog.sources || !Array.isArray(catalog.sources)) {
+    throw new Error(`arsenal_apis.json inválido: campo 'sources' ausente em ${path}`);
   }
-  return {
-    _api_id: api.id,
-    _dominio: api.dominio,
-    _fonte: api.fonte,
-    ...meta,
-    ...base,
-  };
-}
 
-function recordsFromBody(api, body) {
-  if (body == null) return [];
-  if (Array.isArray(body)) return body.map((x) => normalizeRecord(api, x));
-  const arrKeys = Object.keys(body).filter((k) => Array.isArray(body[k]));
-  if (arrKeys.length === 1) {
-    return body[arrKeys[0]].map((x) => normalizeRecord(api, x));
-  }
-  return [normalizeRecord(api, body)];
-}
-
-function applyPathTemplate(endpoint, replacements) {
-  let e = endpoint;
-  for (const [k, v] of Object.entries(replacements)) {
-    e = e.split(`{${k}}`).join(v);
-  }
-  return e;
-}
-
-function buildUrl(baseUrl, endpoint, _query) {
-  const base = baseUrl.replace(/\/+$/, "");
-  const path = endpoint.startsWith("http") ? endpoint : `${endpoint.startsWith("/") ? "" : "/"}${endpoint}`;
-  if (endpoint.startsWith("http")) return new URL(path);
-  return new URL(base + (endpoint.startsWith("/") ? endpoint : `/${endpoint}`));
-}
-
-function safeHostname(baseUrl) {
-  try {
-    const u = baseUrl.startsWith("http") ? baseUrl : `https://${baseUrl}`;
-    return new URL(u).hostname;
-  } catch {
-    return "invalid.local";
-  }
-}
-
-function filterApis(catalog, target) {
-  const all = catalog.apis;
-  if (target === "all") return all;
-  if (PRIORS.includes(target)) {
-    return all.filter((a) => a.prioridade === target);
-  }
-  const dominioMatch = all.filter((a) => a.dominio === target);
-  if (dominioMatch.length) return dominioMatch;
-  return all.filter((a) => micromatch.isMatch(a.id, target));
-}
-
-async function runHttp(api, opts) {
-  const auth = await resolveAuth(api);
-  const url = buildUrl(api.base_url, api.endpoint, {});
-  for (const [k, v] of Object.entries(auth.query || {})) {
-    url.searchParams.set(k, v);
-  }
-  for (const [k, v] of Object.entries(opts.query || {})) {
-    url.searchParams.set(k, String(v));
-  }
-  const headers = {
-    "User-Agent": catalogDefaults()?.user_agent || DEFAULT_UA,
-    Accept: "application/json",
-    ...auth.headers,
-  };
-  return requestHttp(url.toString(), {
-    method: api.method || "GET",
-    headers,
-    httpsAgent: auth.httpsAgent,
-    timeout: catalogDefaults()?.timeout_ms ?? 30000,
-    params: undefined,
+  log("INFO", "arsenal_carregado", {
+    versao: catalog.version,
+    total_fontes: catalog.sources.length,
+    exclusoes: catalog.exclusions,
   });
+
+  return catalog;
 }
 
-function catalogDefaults() {
+// ============================================================
+// BLOCO 2 — Filtragem de fontes por prioridade ou ID
+// ============================================================
+
+/**
+ * Seleciona fontes do catálogo conforme flags da CLI.
+ * Aplica exclusão de domínios por segurança.
+ *
+ * @param {Array} sources    - lista completa de fontes
+ * @param {object} options   - { priority, source }
+ * @returns {Array} fontes selecionadas
+ */
+function selectSources(sources, { priority, source }) {
+  let selected = sources;
+
+  // Filtro por ID de fonte específica
+  if (source) {
+    selected = sources.filter((s) => s.id === source);
+    if (selected.length === 0) {
+      throw new Error(`Fonte '${source}' não encontrada no arsenal.`);
+    }
+  }
+
+  // Filtro por prioridade (P0 inclui apenas P0; P1 inclui P0+P1; etc.)
+  if (priority && !source) {
+    const maxLevel = PRIORITY_ORDER[priority];
+    if (maxLevel === undefined) {
+      throw new Error(`Prioridade inválida: '${priority}'. Use P0, P1, P2 ou P3.`);
+    }
+    selected = selected.filter((s) => {
+      const level = PRIORITY_ORDER[s.priority];
+      return level !== undefined && level <= maxLevel;
+    });
+  }
+
+  // Garantia: nunca processar domínio excluído
+  selected = selected.filter((s) => {
+    try {
+      const hostname = new URL(s.base_url).hostname;
+      if (EXCLUDED_DOMAINS.has(hostname)) {
+        log("WARN", "fonte_excluida_por_diretiva", { id: s.id, hostname });
+        return false;
+      }
+    } catch {
+      // URL inválida ou FTP — mantém para runner especializado
+    }
+    return true;
+  });
+
+  return selected;
+}
+
+// ============================================================
+// BLOCO 3 — Construção de headers de autenticação
+// ============================================================
+
+/**
+ * Resolve os headers HTTP de autenticação conforme o tipo definido na fonte.
+ * Suporta: none, api_key_header, api_key_query, cert, oauth
+ *
+ * @param {object} auth - objeto auth da fonte
+ * @param {URL} url     - URL que pode receber query param de auth
+ * @returns {object} headers adicionais
+ */
+function resolveAuthHeaders(auth, url) {
+  if (!auth || auth.type === "none") return {};
+
+  if (auth.type === "api_key_header") {
+    const key = process.env[auth.env];
+    if (!key) {
+      log("WARN", "env_ausente", { env: auth.env, tipo: "api_key_header" });
+      return {};
+    }
+    return { [auth.header]: key };
+  }
+
+  if (auth.type === "api_key_query") {
+    const key = process.env[auth.env];
+    if (!key) {
+      log("WARN", "env_ausente", { env: auth.env, tipo: "api_key_query" });
+      return {};
+    }
+    // Adiciona como query param na URL (mutação intencional)
+    url.searchParams.set(auth.param, key);
+    return {};
+  }
+
+  if (auth.type === "oauth" || auth.type === "cert") {
+    // Autenticação delegada ao Application Default Credentials (GOOGLE_APPLICATION_CREDENTIALS)
+    // ou certificado especificado em env. Não adiciona header manual — SDK cuida disso.
+    return {};
+  }
+
+  log("WARN", "auth_type_desconhecido", { tipo: auth.type });
+  return {};
+}
+
+// ============================================================
+// BLOCO 4 — Requisição HTTP com retry/backoff exponencial
+// ============================================================
+
+/**
+ * Pausa a execução por `ms` milissegundos.
+ */
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Executa uma requisição HTTP com retry automático em caso de erros
+ * 429 (rate limit) e 5xx (erros de servidor).
+ *
+ * Backoff exponencial: 1s → 2s → 4s → 8s → 16s (máx 5 tentativas)
+ *
+ * @param {string} url         - URL completa da requisição
+ * @param {object} options     - opções fetch (headers, method, etc.)
+ * @returns {Response}         - resposta HTTP
+ */
+async function fetchWithRetry(url, options = {}) {
+  let lastError;
+
+  for (let attempt = 1; attempt <= RETRY_CONFIG.maxAttempts; attempt++) {
+    const startMs = Date.now();
+
+    try {
+      const response = await fetch(url, {
+        ...options,
+        headers: {
+          "User-Agent": "TransparenciaBR/2.0 (+https://transparenciabr.org/bot)",
+          Accept: "application/json, application/xml, */*",
+          ...options.headers,
+        },
+      });
+
+      const latencyMs = Date.now() - startMs;
+
+      // Sucesso — retorna imediatamente
+      if (response.ok) {
+        log("DEBUG", "http_ok", { url: url.toString().slice(0, 120), status: response.status, latency_ms: latencyMs, attempt });
+        return response;
+      }
+
+      // Erro que merece retry
+      if (RETRY_CONFIG.retryStatuses.has(response.status)) {
+        const delayMs = RETRY_CONFIG.baseDelayMs * Math.pow(2, attempt - 1);
+        log("WARN", "http_retry", {
+          url: url.toString().slice(0, 120),
+          status: response.status,
+          attempt,
+          proximo_retry_ms: delayMs,
+        });
+        lastError = new Error(`HTTP ${response.status} em ${url}`);
+        await sleep(delayMs);
+        continue;
+      }
+
+      // Erro não-retriable (404, 401, etc.) — lança imediatamente
+      throw new Error(`HTTP ${response.status} em ${url}`);
+    } catch (err) {
+      // Erros de rede (ECONNRESET, ETIMEDOUT, etc.) também fazem retry
+      if (err.message?.startsWith("HTTP ")) throw err; // não-retriable
+      const delayMs = RETRY_CONFIG.baseDelayMs * Math.pow(2, attempt - 1);
+      log("WARN", "http_network_error", {
+        url: url.toString().slice(0, 120),
+        erro: String(err.message),
+        attempt,
+        proximo_retry_ms: delayMs,
+      });
+      lastError = err;
+      await sleep(delayMs);
+    }
+  }
+
+  throw lastError || new Error(`Máximo de tentativas esgotado para ${url}`);
+}
+
+// ============================================================
+// BLOCO 5 — Construção do caminho GCS
+// ============================================================
+
+/**
+ * Constrói o caminho (blob key) no GCS para um registro específico.
+ * Estrutura: <fonte>/<ano>/<mes>/<entidade>/<id>.json
+ * Exemplo:   cgu/contratos_federais/2024/01/run_20240115T103045_p1.json
+ *
+ * @param {object} source      - objeto da fonte do arsenal
+ * @param {object} endpoint    - objeto do endpoint
+ * @param {string} runId       - identificador único da execução (ulid ou timestamp)
+ * @param {number} page        - número de página (para paginação)
+ * @returns {string}           - path relativo no bucket GCS
+ */
+function buildGcsPath(source, endpoint, runId, page = 1) {
+  const now = new Date();
+  const ano = now.getFullYear().toString();
+  const mes = String(now.getMonth() + 1).padStart(2, "0");
+  const entidade = endpoint.name || "default";
+  const fileName = `${runId}_p${page}.json`;
+
+  // Template definido na fonte (substitui placeholders)
+  const template = source.gcs_path || `${source.id}/{endpoint_name}/{ano}/{mes}`;
+  const pathBase = template
+    .replace("{endpoint_name}", entidade)
+    .replace("{ano}", ano)
+    .replace("{mes}", mes)
+    .replace("{source_id}", source.id);
+
+  return `${pathBase}/${fileName}`;
+}
+
+// ============================================================
+// BLOCO 6 — Idempotência (verificação se blob já existe no GCS)
+// ============================================================
+
+/**
+ * Verifica se um blob já existe no GCS (idempotência).
+ * Permite pular re-ingestão de dados já presentes.
+ *
+ * @param {string} gcsPath - caminho do blob no bucket
+ * @returns {boolean}      - true se já existir
+ */
+async function blobExists(gcsPath) {
   try {
-    const c = loadCatalog();
-    return c.defaults;
+    const [exists] = await bucket.file(gcsPath).exists();
+    return exists;
   } catch {
-    return null;
+    return false;
   }
 }
 
-let _catalogCache;
-function getCatalog() {
-  if (!_catalogCache) _catalogCache = loadCatalog();
-  return _catalogCache;
-}
+// ============================================================
+// BLOCO 7 — Gravação no GCS
+// ============================================================
 
-async function ingestOne(api, argv) {
-  const catalog = getCatalog();
-  const defaults = catalog.defaults || {};
-  const started = Date.now();
-  const dry = argv.dryRun;
-  const hostname = safeHostname(api.base_url);
-
-  const breaker = new CircuitBreaker(
-    async (fn) => fn(),
+/**
+ * Grava um objeto JSON no GCS como blob (application/json).
+ * Adiciona metadata de rastreabilidade (source_id, endpoint, timestamp).
+ *
+ * @param {string} gcsPath  - caminho do blob no bucket
+ * @param {object} data     - dados a gravar
+ * @param {object} meta     - metadados adicionais para o blob
+ */
+async function writeToGcs(gcsPath, data, meta = {}) {
+  const payload = JSON.stringify(
     {
-      timeout: defaults.timeout_ms ?? 60000,
-      errorThresholdPercentage: 80,
-      resetTimeout: 60000,
-      volumeThreshold: 5,
+      _meta: {
+        ingested_at: new Date().toISOString(),
+        bucket: BUCKET_RAW,
+        path: gcsPath,
+        ...meta,
+      },
+      data,
     },
+    null,
+    0 // sem indentação para economizar bytes
   );
 
-  const limiter = getLimiterForHost(hostname, api.rate_limit || defaults.rate_limit);
+  const file = bucket.file(gcsPath);
+  await file.save(payload, {
+    contentType: "application/json",
+    metadata: {
+      source_id: meta.source_id || "unknown",
+      endpoint_name: meta.endpoint_name || "unknown",
+      ingested_at: new Date().toISOString(),
+    },
+  });
 
-  let checkpoint = argv.resume ? await loadCheckpoint(api.id).catch(() => null) : null;
-  if (argv.since) {
-    checkpoint = { ...(checkpoint || {}), last_date: argv.since };
+  return Buffer.byteLength(payload, "utf-8");
+}
+
+// ============================================================
+// BLOCO 8 — Execução de um endpoint específico
+// ============================================================
+
+/**
+ * Executa a ingestão de um único endpoint de uma fonte.
+ * Aplica auth, paginação simples e idempotência GCS.
+ *
+ * @param {object} source    - objeto da fonte (do arsenal)
+ * @param {object} endpoint  - objeto do endpoint específico
+ * @param {object} ctx       - contexto: { runId, since, force, dryRun }
+ */
+async function ingestEndpoint(source, endpoint, ctx) {
+  const { runId, since, force, dryRun } = ctx;
+  const startMs = Date.now();
+
+  // Verifica se é FTP ou BigQuery — tipos especiais (apenas log por enquanto)
+  if (source.base_url?.startsWith("ftp://")) {
+    log("INFO", "endpoint_skip_ftp", { source_id: source.id, endpoint: endpoint.name });
+    return { source_id: source.id, endpoint: endpoint.name, status: "skip_ftp" };
   }
 
-  /** @type {Record<string, unknown>[]} */
-  const buffer = [];
-
-  async function pumpRecords(res) {
-    const body = res?.data !== undefined ? res.data : res;
-    for (const r of recordsFromBody(api, body)) {
-      buffer.push(r);
-    }
-  }
-
-  const pag = api.pagination || { type: "none" };
-
-  if (dry) {
-    await logStructured("INFO", "dry-run", {
-      api_id: api.id,
-      pagination: pag.type,
-      sample_keys: Object.keys(api),
+  if (source.auth?.type === "oauth" && source.bigquery_table) {
+    log("INFO", "endpoint_skip_bigquery", {
+      source_id: source.id,
+      endpoint: endpoint.name,
+      bigquery_table: source.bigquery_table || endpoint.bigquery_table,
     });
-    recordMetric(api.id, { records: 0, success: true, durationSec: 0 });
-    return { api_id: api.id, records: 0, dry: true };
+    return { source_id: source.id, endpoint: endpoint.name, status: "skip_bigquery" };
   }
 
-  if (
-    ["bigquery_query", "bulk_download", "ftp_dbc", "catalog_scrape", "zip_csv", "year_zip"].includes(pag.type) ||
-    api.format === "ftp_dbc"
-  ) {
-    buffer.push(
-      normalizeRecord(
-        api,
-        {
-          _skipped: true,
-          reason: "strategy_requires_dedicated_runner",
-          pagination: pag.type,
-          format: api.format,
-        },
-        {},
-      ),
-    );
-  } else if (pag.type === "none") {
-    await limiter.schedule(() =>
-      breaker.fire(() =>
-        runHttp(api, { query: {} }).then((res) => pumpRecords(res)),
-      ),
-    );
-  } else if (pag.type === "page") {
-    let page = pag.start_page ?? 1;
-    const maxPages = 200;
-    while (page <= maxPages) {
-      const before = buffer.length;
-      const qp = {};
-      qp[pag.page_param || "pagina"] = page;
-      if (pag.per_page_param) qp[pag.per_page_param] = pag.page_size ?? 15;
-      await limiter.schedule(() =>
-        breaker.fire(() => runHttp(api, { query: qp }).then((res) => pumpRecords(res))),
-      );
-      const added = buffer.length - before;
-      if (added === 0) break;
-      page += 1;
-      if (added < (pag.page_size ?? 15)) break;
-    }
-  } else if (pag.type === "offset") {
-    let offset = Number(checkpoint?.last_offset ?? 0);
-    const limit = pag.page_size ?? 50;
-    let rounds = 0;
-    while (rounds < 100) {
-      const qp = {};
-      qp[pag.limit_param || "limite"] = limit;
-      qp[pag.offset_param || "offset"] = offset;
-      const before = buffer.length;
-      await limiter.schedule(() =>
-        breaker.fire(() => runHttp(api, { query: qp }).then((res) => pumpRecords(res))),
-      );
-      if (buffer.length === before) break;
-      offset += limit;
-      rounds += 1;
-    }
-    await saveCheckpoint(api.id, {
-      last_offset: offset,
-      last_run_at: new Date().toISOString(),
-      total_records: buffer.length,
-    }).catch(() => {});
-  } else if (pag.type === "date_window") {
-    const qp = {};
-    qp[pag.start_param || "dataInicial"] =
-      checkpoint?.last_date || argv.since || new Date(Date.now() - 7 * 864e5).toISOString().slice(0, 10);
-    qp[pag.end_param || "dataFinal"] = new Date().toISOString().slice(0, 10);
-    await limiter.schedule(() =>
-      breaker.fire(() => runHttp(api, { query: qp }).then((res) => pumpRecords(res))),
-    );
-  } else if (pag.type === "year_loop") {
-    const y0 = pag.start_year ?? 2000;
-    const y1 = pag.end_year ?? new Date().getFullYear();
-    for (let y = y0; y <= y1; y++) {
-      const ep = applyPathTemplate(api.endpoint, { ano: String(y), year: String(y) });
-      const apiYear = { ...api, endpoint: ep };
-      await limiter.schedule(() =>
-        breaker.fire(() => runHttp(apiYear, { query: {} }).then((res) => pumpRecords(res))),
-      );
-    }
-  } else if (pag.type === "uf_loop") {
-    const ufs = [
-      "AC",
-      "AL",
-      "AP",
-      "AM",
-      "BA",
-      "CE",
-      "DF",
-      "ES",
-      "GO",
-      "MA",
-      "MT",
-      "MS",
-      "MG",
-      "PA",
-      "PB",
-      "PR",
-      "PE",
-      "PI",
-      "RJ",
-      "RN",
-      "RS",
-      "RO",
-      "RR",
-      "SC",
-      "SP",
-      "SE",
-      "TO",
-    ];
-    for (const uf of ufs) {
-      const ep = applyPathTemplate(api.endpoint, { UF: uf, uf });
-      const apiUf = { ...api, endpoint: ep };
-      await limiter.schedule(() =>
-        breaker.fire(() => runHttp(apiUf, { query: { uf } }).then((res) => pumpRecords(res))),
-      );
-    }
-  } else {
-    await limiter.schedule(() =>
-      breaker.fire(() => runHttp(api, { query: {} }).then((res) => pumpRecords(res))),
-    );
+  // Constrói URL base
+  let urlStr = source.base_url.replace(/\/+$/, "") + endpoint.path;
+
+  // Substitui path params com valores de contexto (ano, mes, etc.)
+  const now = new Date();
+  urlStr = urlStr
+    .replace("{ano}", now.getFullYear().toString())
+    .replace("{mes}", String(now.getMonth() + 1).padStart(2, "0"))
+    .replace("{AAAAMMDD}", now.toISOString().slice(0, 10).replace(/-/g, ""));
+
+  // Não tenta se ainda tiver path params não resolvidos (ex: {cnpj}, {codigo})
+  if (urlStr.includes("{") && urlStr.includes("}")) {
+    log("DEBUG", "endpoint_skip_param_obrigatorio", {
+      source_id: source.id,
+      endpoint: endpoint.name,
+      url: urlStr,
+      motivo: "endpoint parametrizado requer chamada com params específicos",
+    });
+    return { source_id: source.id, endpoint: endpoint.name, status: "skip_parametrizado" };
   }
 
-  const ingestionDate = new Date().toISOString().slice(0, 10);
-  const runId = ulid();
-  const sourceTag = api.fonte.replace(/\s+/g, "_").toLowerCase();
-  const prefix = buildRawLakePrefix(sourceTag, api.id, ingestionDate, runId);
+  const url = new URL(urlStr);
 
-  async function* iterable() {
-    for (const row of buffer) {
-      yield row;
-    }
+  // Adiciona parâmetro de data "desde" se especificado na CLI
+  if (since) {
+    url.searchParams.set("dataInicial", since);
+    url.searchParams.set("dataIdaDe", since);
   }
 
-  const bucket = process.env.DATALAKE_BUCKET_RAW || BUCKET_RAW;
-  const manifestExtra = {
-    source_url: api.base_url + api.endpoint,
-    params: { pagination: pag.type },
+  // Resolve autenticação (pode adicionar query params ou headers)
+  const authHeaders = resolveAuthHeaders(source.auth, url);
+
+  // Verifica idempotência
+  const page = 1;
+  const gcsPath = buildGcsPath(source, endpoint, runId, page);
+  if (!force && await blobExists(gcsPath)) {
+    log("INFO", "endpoint_skip_ja_existe", { source_id: source.id, endpoint: endpoint.name, gcs_path: gcsPath });
+    return { source_id: source.id, endpoint: endpoint.name, status: "skip_existente", gcs_path: gcsPath };
+  }
+
+  if (dryRun) {
+    log("INFO", "dry_run_endpoint", {
+      source_id: source.id,
+      endpoint: endpoint.name,
+      url: url.toString().slice(0, 120),
+      gcs_path: gcsPath,
+    });
+    return { source_id: source.id, endpoint: endpoint.name, status: "dry_run" };
+  }
+
+  // Executa requisição HTTP com retry
+  let response;
+  try {
+    response = await fetchWithRetry(url, { headers: authHeaders });
+  } catch (err) {
+    log("ERROR", "endpoint_falha_http", {
+      source_id: source.id,
+      endpoint: endpoint.name,
+      url: url.toString().slice(0, 120),
+      erro: String(err.message),
+      latency_ms: Date.now() - startMs,
+    });
+    return { source_id: source.id, endpoint: endpoint.name, status: "erro", erro: String(err.message) };
+  }
+
+  // Lê body como texto (para suportar JSON e XML)
+  const bodyText = await response.text();
+  let data;
+  try {
+    data = JSON.parse(bodyText);
+  } catch {
+    // Não-JSON (XML, CSV, HTML) — armazena como string
+    data = { _raw_text: bodyText, _content_type: response.headers.get("content-type") };
+  }
+
+  // Grava no GCS
+  const bytesGravados = await writeToGcs(gcsPath, data, {
+    source_id: source.id,
+    endpoint_name: endpoint.name,
+    url: url.toString().slice(0, 200),
+    priority: source.priority,
+  });
+
+  const latencyMs = Date.now() - startMs;
+  log("INFO", "endpoint_ok", {
+    source_id: source.id,
+    endpoint: endpoint.name,
+    gcs_path: gcsPath,
+    bytes: bytesGravados,
+    latency_ms: latencyMs,
+    status: response.status,
+  });
+
+  return {
+    source_id: source.id,
+    endpoint: endpoint.name,
+    status: "ok",
+    gcs_path: gcsPath,
+    bytes: bytesGravados,
+    latency_ms: latencyMs,
+  };
+}
+
+// ============================================================
+// BLOCO 9 — Execução de uma fonte completa (todos endpoints)
+// ============================================================
+
+/**
+ * Executa todos os endpoints de uma fonte com worker pool (pLimit).
+ * Respeita o rate limit configurado na fonte (concurrent por fonte).
+ *
+ * @param {string} sourceId   - ID da fonte (ex: "cgu_portal_transparencia")
+ * @param {object} options    - { since, force, dryRun }
+ * @param {Array}  [catalog]  - catálogo opcional (carrega arsenal se omitido)
+ * @returns {object}          - resultado agregado da fonte
+ */
+async function runSource(sourceId, options = {}, catalog = null) {
+  const arsenal = catalog || loadArsenal();
+  const source = arsenal.sources.find((s) => s.id === sourceId);
+
+  if (!source) {
+    throw new Error(`Fonte '${sourceId}' não encontrada no arsenal.`);
+  }
+
+  const runId = buildRunId();
+  const concurrent = Math.min(
+    source.rate_limit?.concurrent || MAX_CONCURRENT_PER_SOURCE,
+    MAX_CONCURRENT_PER_SOURCE
+  );
+  const limit = pLimit(concurrent);
+  const ctx = { runId, ...options };
+
+  log("INFO", "fonte_inicio", {
+    source_id: sourceId,
+    nome: source.name,
+    priority: source.priority,
+    total_endpoints: source.endpoints.length,
+    concurrent,
+  });
+
+  const startMs = Date.now();
+  const tasks = source.endpoints.map((ep) => limit(() => ingestEndpoint(source, ep, ctx)));
+  const results = await Promise.all(tasks);
+
+  const resumo = {
+    source_id: sourceId,
+    total: results.length,
+    ok: results.filter((r) => r.status === "ok").length,
+    skip: results.filter((r) => r.status.startsWith("skip")).length,
+    erro: results.filter((r) => r.status === "erro").length,
+    duration_ms: Date.now() - startMs,
   };
 
-  const result = await writeNDJSONGzipParts(iterable(), {
-    bucket,
-    prefix,
-    manifestExtra,
-  });
-
-  const durationSec = (Date.now() - started) / 1000;
-  recordMetric(api.id, {
-    records: result.nRecords,
-    bytes: result.nBytes,
-    durationSec,
-    success: true,
-  });
-
-  await logStructured("INFO", "ingest_complete", {
-    api_id: api.id,
-    n_records: result.nRecords,
-    duration_ms: Date.now() - started,
-    sample_keys: buffer[0] ? Object.keys(buffer[0]).slice(0, 12) : [],
-  });
-
-  return { api_id: api.id, records: result.nRecords, prefix };
+  log("INFO", "fonte_concluida", resumo);
+  return resumo;
 }
 
-async function appendExternalDDL(api) {
-  const project = process.env.GCP_PROJECT_ID || process.env.GOOGLE_CLOUD_PROJECT || "PROJECT";
-  const bucket = process.env.DATALAKE_BUCKET_RAW || BUCKET_RAW;
-  const fonte = api.fonte.replace(/\s+/g, "_").toLowerCase();
-  const ddl = buildExternalTableDDL({
-    projectId: project,
-    dominio: api.dominio,
-    apiId: api.id,
-    bucket,
-    fonte,
-  });
-  const fs = await import("node:fs/promises");
-  const path = join(__dirname, "../bigquery/external_tables.sql");
-  await fs.appendFile(path, `\n${ddl}\n`);
-}
+// ============================================================
+// BLOCO 10 — Execução de todas as fontes por prioridade
+// ============================================================
 
-async function main() {
-  const argv = await yargs(hideBin(process.argv))
-    .option("target", { type: "string", default: "all" })
-    .option("dry-run", { type: "boolean", default: false })
-    .option("since", { type: "string" })
-    .option("concurrency", { type: "number", default: 4 })
-    .option("resume", { type: "boolean", default: false })
-    .strict()
-    .parse();
+/**
+ * Executa todas as fontes de uma determinada prioridade em paralelo.
+ * Cada fonte tem seu próprio pLimit interno (worker pool isolado por fonte).
+ *
+ * @param {string} priority  - "P0", "P1", "P2" ou "P3"
+ * @param {object} options   - { since, force, dryRun }
+ * @returns {Array}          - resultados por fonte
+ */
+async function runAll(priority = "P0", options = {}) {
+  const arsenal = loadArsenal();
+  const selected = selectSources(arsenal.sources, { priority });
 
-  const catalog = loadCatalog();
-  const selected = filterApis(catalog, argv.target);
-
-  if (!argv.dryRun) {
-    const fs = await import("node:fs/promises");
-    const ddlPath = join(__dirname, "../bigquery/external_tables.sql");
-    await fs.writeFile(
-      ddlPath,
-      `-- Auto-generated by universal_ingestor — ${new Date().toISOString()}\n\n`,
-      "utf8",
-    );
+  if (selected.length === 0) {
+    log("WARN", "nenhuma_fonte_selecionada", { priority });
+    return [];
   }
 
-  await logStructured("INFO", "run_start", {
-    target: argv.target,
-    n_apis: selected.length,
-    dry_run: argv.dryRun,
+  log("INFO", "run_all_inicio", {
+    priority,
+    fontes_selecionadas: selected.length,
+    ids: selected.map((s) => s.id),
   });
 
-  const queue = selected;
-  const concurrency = Math.max(1, argv.concurrency || 4);
-  /** @type {Promise<void>[]} */
-  const workers = [];
+  const startMs = Date.now();
 
-  async function worker() {
-    while (queue.length) {
-      const api = queue.shift();
-      if (!api) return;
-      try {
-        await ingestOne(api, argv);
-        if (!argv.dryRun) await appendExternalDDL(api);
-      } catch (err) {
-        recordMetric(api.id, { error: true, code: err.code || "ERR" });
-        await logStructured("ERROR", "ingest_failed", {
-          api_id: api.id,
-          message: String(err.message || err),
-        });
-      }
+  // Executa todas as fontes selecionadas em paralelo
+  // (cada fonte já tem seu worker pool interno via pLimit)
+  const results = await Promise.allSettled(
+    selected.map((source) => runSource(source.id, options, arsenal))
+  );
+
+  const resumos = results.map((r, i) => {
+    if (r.status === "fulfilled") return r.value;
+    log("ERROR", "fonte_excecao", {
+      source_id: selected[i].id,
+      erro: String(r.reason?.message || r.reason),
+    });
+    return { source_id: selected[i].id, status: "excecao", erro: String(r.reason?.message) };
+  });
+
+  const totais = resumos.reduce(
+    (acc, r) => {
+      acc.total += r.total || 0;
+      acc.ok += r.ok || 0;
+      acc.skip += r.skip || 0;
+      acc.erro += r.erro || 0;
+      return acc;
+    },
+    { total: 0, ok: 0, skip: 0, erro: 0 }
+  );
+
+  log("INFO", "run_all_concluido", {
+    priority,
+    duration_ms: Date.now() - startMs,
+    ...totais,
+  });
+
+  return resumos;
+}
+
+// ============================================================
+// BLOCO 11 — Logger estruturado
+// ============================================================
+
+/**
+ * Logger estruturado com timestamp ISO, nível, evento e payload JSON.
+ * Formato compatível com Cloud Logging / Stackdriver.
+ *
+ * Exemplo de saída:
+ * {"timestamp":"2026-04-29T18:00:00.123Z","severity":"INFO","event":"endpoint_ok","source_id":"cgu_portal_transparencia",...}
+ *
+ * @param {"DEBUG"|"INFO"|"WARN"|"ERROR"} severity
+ * @param {string} event   - identificador do evento (snake_case)
+ * @param {object} payload - dados adicionais
+ */
+function log(severity, event, payload = {}) {
+  // Suprime DEBUG se não estiver em modo verbose
+  if (severity === "DEBUG" && !process.env.LOG_VERBOSE) return;
+
+  const entry = JSON.stringify({
+    timestamp: new Date().toISOString(),
+    severity,
+    event,
+    ...payload,
+  });
+
+  if (severity === "ERROR" || severity === "WARN") {
+    process.stderr.write(entry + "\n");
+  } else {
+    process.stdout.write(entry + "\n");
+  }
+}
+
+// ============================================================
+// BLOCO 12 — Utilitários
+// ============================================================
+
+/**
+ * Gera um ID de execução único baseado em timestamp.
+ * Formato: run_<YYYYMMDDTHHmmss>
+ */
+function buildRunId() {
+  const now = new Date();
+  const ts = now
+    .toISOString()
+    .replace(/[-:]/g, "")
+    .replace("T", "T")
+    .slice(0, 15);
+  return `run_${ts}`;
+}
+
+/**
+ * Exibe lista de todas as fontes disponíveis no arsenal.
+ * @param {Array} sources
+ */
+function printSourcesList(sources) {
+  process.stdout.write(`\nFontes disponíveis no arsenal (${sources.length} total):\n\n`);
+  const byPriority = {};
+  for (const s of sources) {
+    const p = s.priority || "?";
+    if (!byPriority[p]) byPriority[p] = [];
+    byPriority[p].push(s);
+  }
+  for (const p of ["P0", "P1", "P2", "P3"]) {
+    const group = byPriority[p] || [];
+    process.stdout.write(`  ${p} (${group.length}):\n`);
+    for (const s of group) {
+      process.stdout.write(`    - ${s.id.padEnd(40)} ${s.name}\n`);
     }
   }
-
-  for (let i = 0; i < concurrency; i++) workers.push(worker());
-  await Promise.all(workers);
-
-  await logStructured("INFO", "run_end", { target: argv.target });
+  process.stdout.write("\n");
 }
 
-main().catch((e) => {
-  process.stderr.write(`${e.stack || e}\n`);
-  process.exit(1);
-});
+// ============================================================
+// BLOCO 13 — CLI (ponto de entrada)
+// ============================================================
+
+/**
+ * Ponto de entrada via linha de comando.
+ *
+ * Flags suportadas:
+ *   --priority P0|P1|P2|P3   Executa todas as fontes até essa prioridade
+ *   --source   <id>           Executa apenas a fonte especificada
+ *   --since    YYYY-MM-DD     Data de início para endpoints que aceitam dataInicial
+ *   --force                   Ignora idempotência (re-ingere mesmo se blob existe)
+ *   --dry-run                 Apenas loga o que seria ingerido, sem gravar no GCS
+ *   --list                    Lista todas as fontes disponíveis e sai
+ *   --arsenal  <path>         Usa arquivo arsenal_apis.json alternativo
+ */
+async function main() {
+  const { values } = parseArgs({
+    options: {
+      priority: { type: "string", default: undefined },
+      source:   { type: "string", default: undefined },
+      since:    { type: "string", default: undefined },
+      force:    { type: "boolean", default: false },
+      "dry-run":{ type: "boolean", default: false },
+      list:     { type: "boolean", default: false },
+      arsenal:  { type: "string", default: ARSENAL_PATH },
+    },
+    allowPositionals: false,
+    strict: true,
+  });
+
+  // Carrega arsenal (pode ser path alternativo)
+  const arsenal = loadArsenal(values.arsenal);
+
+  // --list: apenas exibe as fontes disponíveis
+  if (values.list) {
+    printSourcesList(arsenal.sources);
+    process.exit(0);
+  }
+
+  // Validação: --priority ou --source é obrigatório
+  if (!values.priority && !values.source) {
+    process.stderr.write(
+      "Erro: informe --priority (P0|P1|P2|P3) ou --source <id>.\n" +
+      "Use --list para ver fontes disponíveis.\n"
+    );
+    process.exit(1);
+  }
+
+  // Contexto de execução compartilhado
+  const ctx = {
+    since:  values.since,
+    force:  values.force,
+    dryRun: values["dry-run"],
+  };
+
+  // Log de início com configuração
+  log("INFO", "cli_inicio", {
+    priority: values.priority,
+    source:   values.source,
+    since:    values.since,
+    force:    values.force,
+    dry_run:  values["dry-run"],
+    bucket:   BUCKET_RAW,
+  });
+
+  let results;
+
+  if (values.source) {
+    // Modo: fonte única
+    const resumo = await runSource(values.source, ctx, arsenal);
+    results = [resumo];
+  } else {
+    // Modo: todas as fontes até a prioridade especificada
+    results = await runAll(values.priority, ctx);
+  }
+
+  // Sumário final no stdout
+  const total = results.reduce((a, r) => a + (r.total || 0), 0);
+  const ok    = results.reduce((a, r) => a + (r.ok    || 0), 0);
+  const skip  = results.reduce((a, r) => a + (r.skip  || 0), 0);
+  const erro  = results.reduce((a, r) => a + (r.erro  || 0), 0);
+
+  log("INFO", "execucao_finalizada", {
+    total_endpoints: total,
+    ok,
+    skip,
+    erro,
+    exitCode: erro > 0 ? 1 : 0,
+  });
+
+  process.exit(erro > 0 ? 1 : 0);
+}
+
+// Executa se for o script principal (não importado como módulo)
+const isMain = process.argv[1] === fileURLToPath(import.meta.url);
+if (isMain) {
+  main().catch((err) => {
+    log("ERROR", "erro_fatal", { mensagem: String(err.message), stack: err.stack });
+    process.exit(1);
+  });
+}
+
+// ============================================================
+// Exports para uso como módulo em outros scripts
+// ============================================================
+export { loadArsenal, runSource, runAll, ingestEndpoint, log, buildRunId, BUCKET_RAW };

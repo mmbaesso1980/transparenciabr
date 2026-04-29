@@ -1,0 +1,1613 @@
+{
+  "version": "1.0.0",
+  "updated_at": "2026-04-29",
+  "description": "Mapa completo de fontes públicas para o ingestor universal TransparênciaBR",
+  "exclusions": ["dadosabertos.camara.leg.br"],
+  "exclusion_reason": "Câmara dos Deputados EXCLUDIDA conforme diretiva do projeto — usar fonte alternativa documentada para CEAP",
+  "sources": [
+    {
+      "id": "cgu_portal_transparencia",
+      "name": "CGU — Portal da Transparência",
+      "category": "controle_federal",
+      "priority": "P0",
+      "base_url": "https://api.portaldatransparencia.gov.br",
+      "auth": {
+        "type": "api_key_header",
+        "header": "chave-api-dados",
+        "env": "CGU_API_KEY"
+      },
+      "rate_limit": { "requests": 500, "per": "hour", "concurrent": 5 },
+      "endpoints": [
+        {
+          "path": "/api-de-dados/servidores",
+          "name": "servidores_federais",
+          "params_required": [],
+          "params_optional": ["pagina", "cpf", "nome", "codigoOrgao"]
+        },
+        {
+          "path": "/api-de-dados/viagens",
+          "name": "viagens_servidores",
+          "params_required": ["dataIdaDe", "dataIdaAte"],
+          "params_optional": ["codigoOrgao", "pagina"]
+        },
+        {
+          "path": "/api-de-dados/contratos",
+          "name": "contratos_federais",
+          "params_required": ["dataInicial", "dataFinal"],
+          "params_optional": ["codigoOrgao", "pagina"]
+        },
+        {
+          "path": "/api-de-dados/emendas/parlamentar",
+          "name": "emendas_parlamentares",
+          "params_required": ["ano"],
+          "params_optional": ["codigoFuncao", "pagina"]
+        },
+        {
+          "path": "/api-de-dados/emendas/localidade",
+          "name": "emendas_por_localidade",
+          "params_required": ["ano"],
+          "params_optional": ["codigoIbge", "pagina"]
+        },
+        {
+          "path": "/api-de-dados/convenios",
+          "name": "convenios_federais",
+          "params_required": ["dataVigenciaInicial", "dataVigenciaFinal"],
+          "params_optional": ["codigoOrgao", "pagina"]
+        },
+        {
+          "path": "/api-de-dados/gastos-diretos",
+          "name": "gastos_diretos",
+          "params_required": ["mesAno"],
+          "params_optional": ["codigoOrgao", "pagina"]
+        },
+        {
+          "path": "/api-de-dados/licitacoes",
+          "name": "licitacoes_federais",
+          "params_required": ["dataInicial", "dataFinal"],
+          "params_optional": ["codigoOrgao", "pagina"]
+        },
+        {
+          "path": "/api-de-dados/ceis",
+          "name": "empresas_inidoneas_suspensas",
+          "params_required": [],
+          "params_optional": ["cnpjCpf", "pagina"]
+        },
+        {
+          "path": "/api-de-dados/cnep",
+          "name": "empresas_punidas_anticorrupcao",
+          "params_required": [],
+          "params_optional": ["cnpjCpf", "pagina"]
+        },
+        {
+          "path": "/api-de-dados/cepim",
+          "name": "entidades_impedidas",
+          "params_required": [],
+          "params_optional": ["cnpj", "pagina"]
+        }
+      ],
+      "gcs_path": "cgu/{endpoint_name}/{ano}/{mes}",
+      "format": "json",
+      "frequency": "continuous"
+    },
+
+    {
+      "id": "pncp",
+      "name": "PNCP — Portal Nacional de Contratações Públicas",
+      "category": "compras_publicas",
+      "priority": "P0",
+      "base_url": "https://pncp.gov.br/api/pncp/v1",
+      "auth": { "type": "none" },
+      "rate_limit": { "requests": 60, "per": "minute", "concurrent": 5 },
+      "endpoints": [
+        {
+          "path": "/contratos",
+          "name": "contratos_pncp",
+          "params_required": ["dataInicial", "dataFinal"],
+          "params_optional": ["pagina", "tamanhoPagina"]
+        },
+        {
+          "path": "/contratacoes/publicacao",
+          "name": "contratacoes_publicacao",
+          "params_required": ["dataInicial", "dataFinal"],
+          "params_optional": ["pagina", "tamanhoPagina"]
+        },
+        {
+          "path": "/planos-contratacao",
+          "name": "pca_plano_anual",
+          "params_required": ["ano"],
+          "params_optional": ["pagina", "tamanhoPagina", "codigoOrgao"]
+        },
+        {
+          "path": "/planos-contratacao/{id}/itens",
+          "name": "pca_itens",
+          "params_required": ["id"],
+          "params_optional": ["pagina"]
+        },
+        {
+          "path": "/atas",
+          "name": "atas_registro_preco",
+          "params_required": ["dataInicial", "dataFinal"],
+          "params_optional": ["pagina", "tamanhoPagina"]
+        }
+      ],
+      "gcs_path": "pncp/{endpoint_name}/{ano}/{mes}",
+      "format": "json",
+      "frequency": "continuous"
+    },
+
+    {
+      "id": "transferegov",
+      "name": "Transferegov — Emendas PIX (Transferências Especiais)",
+      "category": "orcamento_federal",
+      "priority": "P0",
+      "base_url": "https://api.transferegov.gestao.gov.br/transferenciasespeciais",
+      "auth": { "type": "none" },
+      "rate_limit": { "requests": 120, "per": "minute", "concurrent": 5 },
+      "endpoints": [
+        {
+          "path": "/emendas",
+          "name": "emendas_pix",
+          "params_required": [],
+          "params_optional": ["ano", "pagina"]
+        },
+        {
+          "path": "/emendas/{id}",
+          "name": "emenda_detalhe",
+          "params_required": ["id"],
+          "params_optional": []
+        },
+        {
+          "path": "/emendas/{id}/planos-acao",
+          "name": "emenda_planos_acao",
+          "params_required": ["id"],
+          "params_optional": []
+        },
+        {
+          "path": "/executor_especial",
+          "name": "executor_especial",
+          "params_required": [],
+          "params_optional": ["pagina"]
+        },
+        {
+          "path": "/relatorio_gestao_novo_especial",
+          "name": "relatorio_gestao",
+          "params_required": [],
+          "params_optional": ["pagina"]
+        },
+        {
+          "path": "/municipios",
+          "name": "municipios_transferegov",
+          "params_required": [],
+          "params_optional": []
+        }
+      ],
+      "gcs_path": "transferegov/{endpoint_name}/{ano}/{mes}",
+      "format": "json",
+      "frequency": "daily"
+    },
+
+    {
+      "id": "tcu",
+      "name": "TCU — Tribunal de Contas da União",
+      "category": "controle_externo",
+      "priority": "P0",
+      "base_url": "https://contas.tcu.gov.br/ords/api",
+      "auth": { "type": "none" },
+      "rate_limit": { "requests": 120, "per": "minute", "concurrent": 3 },
+      "endpoints": [
+        {
+          "path": "/publica/sancoes",
+          "name": "tcu_sancoes",
+          "params_required": [],
+          "params_optional": ["pagina", "cpfCnpj"]
+        },
+        {
+          "path": "/publica/cadirreg",
+          "name": "tcu_cadirreg",
+          "params_required": [],
+          "params_optional": ["pagina", "cnpj"]
+        },
+        {
+          "path": "/publica/pj",
+          "name": "tcu_pessoas_juridicas",
+          "params_required": [],
+          "params_optional": ["pagina"]
+        },
+        {
+          "path": "/publica/sessoes",
+          "name": "tcu_sessoes",
+          "params_required": [],
+          "params_optional": ["data", "pagina"]
+        }
+      ],
+      "gcs_path": "tcu/{endpoint_name}/{ano}/{mes}",
+      "format": "json",
+      "frequency": "daily"
+    },
+
+    {
+      "id": "tcu_acordaos",
+      "name": "TCU — Acórdãos (sistema de busca)",
+      "category": "controle_externo",
+      "priority": "P0",
+      "base_url": "https://dados-abertos.apps.tcu.gov.br",
+      "auth": { "type": "none" },
+      "rate_limit": { "requests": 60, "per": "minute", "concurrent": 3 },
+      "endpoints": [
+        {
+          "path": "/api/acordao/recupera-acordaos",
+          "name": "tcu_acordaos_busca",
+          "params_required": [],
+          "params_optional": ["termo", "dataInicio", "dataFim", "pagina"]
+        }
+      ],
+      "gcs_path": "tcu/acordaos/{ano}/{mes}",
+      "format": "json",
+      "frequency": "daily"
+    },
+
+    {
+      "id": "senado_federal",
+      "name": "Senado Federal — Dados Abertos",
+      "category": "poder_legislativo",
+      "priority": "P1",
+      "base_url": "https://legis.senado.leg.br/dadosabertos",
+      "auth": { "type": "none" },
+      "rate_limit": { "requests": 100, "per": "minute", "concurrent": 5 },
+      "endpoints": [
+        {
+          "path": "/senador/lista/atual",
+          "name": "senadores_lista_atual",
+          "params_required": [],
+          "params_optional": []
+        },
+        {
+          "path": "/senador/{codigo}",
+          "name": "senador_perfil",
+          "params_required": ["codigo"],
+          "params_optional": []
+        },
+        {
+          "path": "/senador/{codigo}/despesas",
+          "name": "senador_despesas",
+          "params_required": ["codigo"],
+          "params_optional": ["ano", "mes"]
+        },
+        {
+          "path": "/senador/{codigo}/votacoes",
+          "name": "senador_votacoes",
+          "params_required": ["codigo"],
+          "params_optional": ["ano"]
+        },
+        {
+          "path": "/senador/{codigo}/autorias",
+          "name": "senador_autorias",
+          "params_required": ["codigo"],
+          "params_optional": []
+        },
+        {
+          "path": "/plenario/votacoes/{ano}",
+          "name": "votacoes_plenario",
+          "params_required": ["ano"],
+          "params_optional": []
+        },
+        {
+          "path": "/plenario/votacao/{codigo}",
+          "name": "votacao_detalhe",
+          "params_required": ["codigo"],
+          "params_optional": []
+        },
+        {
+          "path": "/agendareuniao/{AAAAMMDD}.json",
+          "name": "agenda_reuniao_data",
+          "params_required": ["AAAAMMDD"],
+          "params_optional": []
+        },
+        {
+          "path": "/agendareuniao/atual",
+          "name": "agenda_reuniao_30d",
+          "params_required": [],
+          "params_optional": []
+        },
+        {
+          "path": "/agenda/{data}",
+          "name": "agenda_plenario",
+          "params_required": ["data"],
+          "params_optional": []
+        }
+      ],
+      "gcs_path": "senado/{endpoint_name}/{ano}/{mes}",
+      "format": "json",
+      "frequency": "daily"
+    },
+
+    {
+      "id": "tse_dados_abertos",
+      "name": "TSE — Dados Abertos (portal bulk downloads)",
+      "category": "eleicoes",
+      "priority": "P1",
+      "base_url": "https://dadosabertos.tse.jus.br",
+      "auth": { "type": "none" },
+      "rate_limit": { "requests": 30, "per": "minute", "concurrent": 3 },
+      "endpoints": [
+        {
+          "path": "/dataset/votacao-candidato-munzona/resource/votacao_candidato_munzona_{ano}.zip",
+          "name": "tse_votacao_munzona",
+          "params_required": ["ano"],
+          "params_optional": []
+        },
+        {
+          "path": "/dataset/bem-candidato/resource/bem_candidato_{ano}.zip",
+          "name": "tse_bens_candidatos",
+          "params_required": ["ano"],
+          "params_optional": []
+        },
+        {
+          "path": "/dataset/prestacao-contas-eleitorais/resource/prestacao_contas_{ano}.zip",
+          "name": "tse_prestacao_contas",
+          "params_required": ["ano"],
+          "params_optional": []
+        }
+      ],
+      "gcs_path": "tse/{endpoint_name}/{ano}",
+      "format": "zip",
+      "frequency": "one_shot"
+    },
+
+    {
+      "id": "tse_divulga_cand",
+      "name": "TSE — DivulgaCandContas (API REST doadores/fornecedores)",
+      "category": "eleicoes",
+      "priority": "P1",
+      "base_url": "https://divulgacandcontas.tse.jus.br",
+      "auth": { "type": "none" },
+      "rate_limit": { "requests": 60, "per": "minute", "concurrent": 3 },
+      "endpoints": [
+        {
+          "path": "/divulga/rest/v1/candidatura/listar/{ano}/{siglaUf}/0/0/0/0/0",
+          "name": "tse_candidatos",
+          "params_required": ["ano", "siglaUf"],
+          "params_optional": []
+        },
+        {
+          "path": "/divulga/rest/v1/receitas/{ano}/{siglaUf}/{idCandidato}",
+          "name": "tse_receitas_candidato",
+          "params_required": ["ano", "siglaUf", "idCandidato"],
+          "params_optional": []
+        },
+        {
+          "path": "/divulga/rest/v1/despesas/{ano}/{siglaUf}/{idCandidato}",
+          "name": "tse_despesas_candidato",
+          "params_required": ["ano", "siglaUf", "idCandidato"],
+          "params_optional": []
+        }
+      ],
+      "gcs_path": "tse/divulga/{endpoint_name}/{ano}",
+      "format": "json",
+      "frequency": "daily"
+    },
+
+    {
+      "id": "receita_cnpj",
+      "name": "Receita Federal — Dados Abertos CNPJ (dump completo ~85 GB)",
+      "category": "cadastros",
+      "priority": "P1",
+      "base_url": "https://arquivos.receitafederal.gov.br",
+      "auth": { "type": "none" },
+      "rate_limit": { "requests": 10, "per": "minute", "concurrent": 2 },
+      "endpoints": [
+        {
+          "path": "/dados/cnpj/dados_abertos_cnpj/{ano}-{mes}/Empresas{n}.zip",
+          "name": "cnpj_empresas",
+          "params_required": ["ano", "mes", "n"],
+          "params_optional": []
+        },
+        {
+          "path": "/dados/cnpj/dados_abertos_cnpj/{ano}-{mes}/Estabelecimentos{n}.zip",
+          "name": "cnpj_estabelecimentos",
+          "params_required": ["ano", "mes", "n"],
+          "params_optional": []
+        },
+        {
+          "path": "/dados/cnpj/dados_abertos_cnpj/{ano}-{mes}/Socios{n}.zip",
+          "name": "cnpj_socios",
+          "params_required": ["ano", "mes", "n"],
+          "params_optional": []
+        },
+        {
+          "path": "/dados/cnpj/dados_abertos_cnpj/{ano}-{mes}/Simples.zip",
+          "name": "cnpj_simples",
+          "params_required": ["ano", "mes"],
+          "params_optional": []
+        }
+      ],
+      "gcs_path": "receita/cnpj/{endpoint_name}/{ano}/{mes}",
+      "format": "zip",
+      "frequency": "one_shot"
+    },
+
+    {
+      "id": "opencnpj",
+      "name": "OpenCNPJ — Consulta individual CNPJ + CNO Obras",
+      "category": "cadastros",
+      "priority": "P2",
+      "base_url": "https://api.opencnpj.org",
+      "auth": { "type": "none" },
+      "rate_limit": { "requests": 30, "per": "minute", "concurrent": 3 },
+      "endpoints": [
+        {
+          "path": "/{cnpj}",
+          "name": "opencnpj_consulta",
+          "params_required": ["cnpj"],
+          "params_optional": []
+        }
+      ],
+      "gcs_path": "opencnpj/consultas/{ano}/{mes}",
+      "format": "json",
+      "frequency": "continuous"
+    },
+
+    {
+      "id": "brasilapi",
+      "name": "BrasilAPI — CNPJ, CEP, bancos, feriados, DDD, câmbio, PIX",
+      "category": "utilitarios",
+      "priority": "P2",
+      "base_url": "https://brasilapi.com.br/api",
+      "auth": { "type": "none" },
+      "rate_limit": { "requests": 100, "per": "minute", "concurrent": 5 },
+      "endpoints": [
+        {
+          "path": "/cnpj/v1/{cnpj}",
+          "name": "brasilapi_cnpj",
+          "params_required": ["cnpj"],
+          "params_optional": []
+        },
+        {
+          "path": "/cep/v2/{cep}",
+          "name": "brasilapi_cep",
+          "params_required": ["cep"],
+          "params_optional": []
+        },
+        {
+          "path": "/banks/v1",
+          "name": "brasilapi_bancos",
+          "params_required": [],
+          "params_optional": []
+        },
+        {
+          "path": "/feriados/v1/{ano}",
+          "name": "brasilapi_feriados",
+          "params_required": ["ano"],
+          "params_optional": []
+        },
+        {
+          "path": "/pix/v1/participants",
+          "name": "brasilapi_pix_participantes",
+          "params_required": [],
+          "params_optional": []
+        },
+        {
+          "path": "/exchange/v1/latest/{moeda}",
+          "name": "brasilapi_cambio",
+          "params_required": ["moeda"],
+          "params_optional": []
+        },
+        {
+          "path": "/ddd/v1/{ddd}",
+          "name": "brasilapi_ddd",
+          "params_required": ["ddd"],
+          "params_optional": []
+        },
+        {
+          "path": "/taxas/v1",
+          "name": "brasilapi_taxas",
+          "params_required": [],
+          "params_optional": []
+        }
+      ],
+      "gcs_path": "brasilapi/{endpoint_name}/{ano}/{mes}",
+      "format": "json",
+      "frequency": "daily"
+    },
+
+    {
+      "id": "minhareceita",
+      "name": "MinhaReceita — Dados Receita Federal formatados",
+      "category": "cadastros",
+      "priority": "P2",
+      "base_url": "https://minhareceita.org",
+      "auth": { "type": "none" },
+      "rate_limit": { "requests": 30, "per": "minute", "concurrent": 3 },
+      "endpoints": [
+        {
+          "path": "/{cnpj}",
+          "name": "minhareceita_cnpj",
+          "params_required": ["cnpj"],
+          "params_optional": []
+        }
+      ],
+      "gcs_path": "minhareceita/cnpj/{ano}/{mes}",
+      "format": "json",
+      "frequency": "continuous"
+    },
+
+    {
+      "id": "brasil_io",
+      "name": "Brasil.IO — QSA (Sócios empresas)",
+      "category": "cadastros",
+      "priority": "P2",
+      "base_url": "https://brasil.io/api",
+      "auth": { "type": "none" },
+      "rate_limit": { "requests": 60, "per": "minute", "concurrent": 3 },
+      "endpoints": [
+        {
+          "path": "/dataset/socios-brasil/empresas/data/",
+          "name": "brasil_io_empresas",
+          "params_required": [],
+          "params_optional": ["search", "cnpj", "page"]
+        },
+        {
+          "path": "/dataset/socios-brasil/socios/data/",
+          "name": "brasil_io_socios",
+          "params_required": [],
+          "params_optional": ["search", "cpf", "page"]
+        }
+      ],
+      "gcs_path": "brasil_io/{endpoint_name}/{ano}/{mes}",
+      "format": "json",
+      "frequency": "daily"
+    },
+
+    {
+      "id": "inlabs_dou",
+      "name": "INLABS — Diário Oficial da União (XML estruturado)",
+      "category": "diarios_oficiais",
+      "priority": "P1",
+      "base_url": "https://inlabs.in.gov.br",
+      "auth": {
+        "type": "api_key_header",
+        "header": "Authorization",
+        "env": "INLABS_API_KEY"
+      },
+      "rate_limit": { "requests": 60, "per": "minute", "concurrent": 3 },
+      "endpoints": [
+        {
+          "path": "/open-data/index.php",
+          "name": "dou_index_diario",
+          "params_required": ["data"],
+          "params_optional": ["secao"]
+        },
+        {
+          "path": "/open-data/articles.php",
+          "name": "dou_artigos",
+          "params_required": ["data"],
+          "params_optional": ["secao", "pagina"]
+        }
+      ],
+      "gcs_path": "dou/inlabs/{ano}/{mes}",
+      "format": "xml",
+      "frequency": "daily"
+    },
+
+    {
+      "id": "querido_diario",
+      "name": "Querido Diário — Diários Oficiais Municipais (2.700+ municípios)",
+      "category": "diarios_oficiais",
+      "priority": "P1",
+      "base_url": "https://queridodiario.ok.org.br/api",
+      "auth": { "type": "none" },
+      "rate_limit": { "requests": 60, "per": "minute", "concurrent": 3 },
+      "endpoints": [
+        {
+          "path": "/gazettes",
+          "name": "qd_gazettes",
+          "params_required": [],
+          "params_optional": ["territory_id", "since", "until", "querystring", "offset", "size"]
+        },
+        {
+          "path": "/gazettes/{gazette_id}",
+          "name": "qd_gazette_detalhe",
+          "params_required": ["gazette_id"],
+          "params_optional": []
+        },
+        {
+          "path": "/cities",
+          "name": "qd_cidades",
+          "params_required": [],
+          "params_optional": ["territory_id", "page", "size"]
+        }
+      ],
+      "gcs_path": "diarios/querido_diario/{ano}/{mes}",
+      "format": "json",
+      "frequency": "continuous"
+    },
+
+    {
+      "id": "basedosdados_dou",
+      "name": "Base dos Dados — DOU (BigQuery público)",
+      "category": "diarios_oficiais",
+      "priority": "P2",
+      "base_url": "https://basedosdados.org",
+      "auth": {
+        "type": "oauth",
+        "env": "GOOGLE_APPLICATION_CREDENTIALS"
+      },
+      "rate_limit": { "requests": 100, "per": "day", "concurrent": 2 },
+      "endpoints": [
+        {
+          "path": "/api/v1/dataset/0bd844d9-454a-4c47-83e2-fc15df4f5ed7",
+          "name": "bdd_dou_dataset",
+          "params_required": [],
+          "params_optional": []
+        }
+      ],
+      "bigquery_table": "basedosdados.br_imprensa_nacional_dou.secao_1",
+      "gcs_path": "diarios/bdd_dou/{ano}/{mes}",
+      "format": "json",
+      "frequency": "daily"
+    },
+
+    {
+      "id": "ibge_localidades",
+      "name": "IBGE — Localidades e municípios",
+      "category": "geografia",
+      "priority": "P1",
+      "base_url": "https://servicodados.ibge.gov.br/api/v1",
+      "auth": { "type": "none" },
+      "rate_limit": { "requests": 200, "per": "minute", "concurrent": 5 },
+      "endpoints": [
+        {
+          "path": "/localidades/municipios",
+          "name": "ibge_municipios",
+          "params_required": [],
+          "params_optional": []
+        },
+        {
+          "path": "/localidades/estados",
+          "name": "ibge_estados",
+          "params_required": [],
+          "params_optional": []
+        },
+        {
+          "path": "/localidades/regioes",
+          "name": "ibge_regioes",
+          "params_required": [],
+          "params_optional": []
+        },
+        {
+          "path": "/localidades/distritos",
+          "name": "ibge_distritos",
+          "params_required": [],
+          "params_optional": []
+        }
+      ],
+      "gcs_path": "ibge/localidades/{endpoint_name}/{ano}",
+      "format": "json",
+      "frequency": "one_shot"
+    },
+
+    {
+      "id": "ibge_malhas",
+      "name": "IBGE — Malhas geoespaciais (GeoJSON)",
+      "category": "geografia",
+      "priority": "P1",
+      "base_url": "https://servicodados.ibge.gov.br/api/v3",
+      "auth": { "type": "none" },
+      "rate_limit": { "requests": 60, "per": "minute", "concurrent": 3 },
+      "endpoints": [
+        {
+          "path": "/malhas/municipios/{codigo}",
+          "name": "ibge_malha_municipio",
+          "params_required": ["codigo"],
+          "params_optional": ["formato", "qualidade"]
+        },
+        {
+          "path": "/malhas/estados/{codigo}",
+          "name": "ibge_malha_estado",
+          "params_required": ["codigo"],
+          "params_optional": ["formato"]
+        },
+        {
+          "path": "/malhas/paises/BR",
+          "name": "ibge_malha_brasil",
+          "params_required": [],
+          "params_optional": ["formato"]
+        }
+      ],
+      "gcs_path": "ibge/malhas/{endpoint_name}/{ano}",
+      "format": "json",
+      "frequency": "one_shot"
+    },
+
+    {
+      "id": "ibge_sidra",
+      "name": "IBGE — SIDRA (séries temporais e tabelas temáticas)",
+      "category": "estatisticas",
+      "priority": "P1",
+      "base_url": "https://apisidra.ibge.gov.br",
+      "auth": { "type": "none" },
+      "rate_limit": { "requests": 120, "per": "minute", "concurrent": 5 },
+      "endpoints": [
+        {
+          "path": "/values/t/9514/n6/all/v/93/p/last%201",
+          "name": "sidra_censo_2022_populacao",
+          "params_required": [],
+          "params_optional": [],
+          "description": "Tabela 9514 — Censo 2022 população por município"
+        },
+        {
+          "path": "/values/t/6579/n6/all/v/9324/p/last%201",
+          "name": "sidra_estimativa_populacao",
+          "params_required": [],
+          "params_optional": [],
+          "description": "Tabela 6579 — Estimativa anual de população"
+        },
+        {
+          "path": "/values/t/9605/n6/all/v/all/p/last%201",
+          "name": "sidra_domicilios",
+          "params_required": [],
+          "params_optional": [],
+          "description": "Tabela 9605 — Domicílios Censo 2022"
+        },
+        {
+          "path": "/values/t/7358/n6/all/v/all/p/last%201",
+          "name": "sidra_mortalidade_infantil",
+          "params_required": [],
+          "params_optional": [],
+          "description": "Tabela 7358 — Mortalidade infantil"
+        },
+        {
+          "path": "/values/t/6691/n6/all/v/all/p/last%201",
+          "name": "sidra_pib_percapita",
+          "params_required": [],
+          "params_optional": [],
+          "description": "Tabela 6691 — PIB per capita municipal"
+        },
+        {
+          "path": "/values/t/1209/n6/all/v/all/p/last%201",
+          "name": "sidra_area_municipio",
+          "params_required": [],
+          "params_optional": [],
+          "description": "Tabela 1209 — Área territorial dos municípios"
+        }
+      ],
+      "gcs_path": "ibge/sidra/{endpoint_name}/{ano}",
+      "format": "json",
+      "frequency": "daily"
+    },
+
+    {
+      "id": "ibge_projecoes",
+      "name": "IBGE — Projeções populacionais",
+      "category": "estatisticas",
+      "priority": "P2",
+      "base_url": "https://servicodados.ibge.gov.br/api/v1",
+      "auth": { "type": "none" },
+      "rate_limit": { "requests": 100, "per": "minute", "concurrent": 5 },
+      "endpoints": [
+        {
+          "path": "/projecoes/populacao/{cod}",
+          "name": "ibge_projecao_pop",
+          "params_required": ["cod"],
+          "params_optional": []
+        }
+      ],
+      "gcs_path": "ibge/projecoes/{ano}",
+      "format": "json",
+      "frequency": "one_shot"
+    },
+
+    {
+      "id": "datasus_cnes",
+      "name": "DATASUS/CNES — Cadastro Nacional de Estabelecimentos de Saúde",
+      "category": "saude",
+      "priority": "P1",
+      "base_url": "https://cnes.datasus.gov.br",
+      "auth": { "type": "none" },
+      "rate_limit": { "requests": 60, "per": "minute", "concurrent": 3 },
+      "endpoints": [
+        {
+          "path": "/pages/estabelecimento/buscar",
+          "name": "cnes_estabelecimentos",
+          "params_required": [],
+          "params_optional": ["municipio", "uf", "pagina"]
+        },
+        {
+          "path": "/pages/profissional/buscar",
+          "name": "cnes_profissionais",
+          "params_required": [],
+          "params_optional": ["municipio", "uf", "pagina"]
+        }
+      ],
+      "gcs_path": "datasus/cnes/{endpoint_name}/{ano}/{mes}",
+      "format": "json",
+      "frequency": "daily"
+    },
+
+    {
+      "id": "elasticnes",
+      "name": "ElastiCNES — Leitos por especialidade",
+      "category": "saude",
+      "priority": "P2",
+      "base_url": "https://elasticnes.saude.gov.br",
+      "auth": { "type": "none" },
+      "rate_limit": { "requests": 60, "per": "minute", "concurrent": 3 },
+      "endpoints": [
+        {
+          "path": "/api/cnes/estabelecimentos",
+          "name": "elasticnes_estabelecimentos",
+          "params_required": [],
+          "params_optional": ["municipio", "especialidade", "pagina"]
+        },
+        {
+          "path": "/api/cnes/leitos",
+          "name": "elasticnes_leitos",
+          "params_required": [],
+          "params_optional": ["municipio", "tipo_leito", "pagina"]
+        }
+      ],
+      "gcs_path": "datasus/elasticnes/{endpoint_name}/{ano}/{mes}",
+      "format": "json",
+      "frequency": "daily"
+    },
+
+    {
+      "id": "cnes_ftp_dbc",
+      "name": "CNES FTP — Microdados DBC mensais",
+      "category": "saude",
+      "priority": "P1",
+      "base_url": "ftp://ftp.datasus.gov.br",
+      "auth": { "type": "none" },
+      "rate_limit": { "requests": 5, "per": "minute", "concurrent": 2 },
+      "endpoints": [
+        {
+          "path": "/dissemin/publicos/CNES/200508_/Dados/ST{uf}{aamm}.dbc",
+          "name": "cnes_dbc_estabelecimentos",
+          "params_required": ["uf", "aamm"],
+          "params_optional": []
+        },
+        {
+          "path": "/dissemin/publicos/CNES/200508_/Dados/LT{uf}{aamm}.dbc",
+          "name": "cnes_dbc_leitos",
+          "params_required": ["uf", "aamm"],
+          "params_optional": []
+        },
+        {
+          "path": "/dissemin/publicos/CNES/200508_/Dados/PF{uf}{aamm}.dbc",
+          "name": "cnes_dbc_profissionais",
+          "params_required": ["uf", "aamm"],
+          "params_optional": []
+        }
+      ],
+      "gcs_path": "datasus/cnes/ftp/{endpoint_name}/{ano}/{mes}",
+      "format": "dbc",
+      "frequency": "daily"
+    },
+
+    {
+      "id": "opendatasus",
+      "name": "OpenDataSUS — Datasets abertos do Ministério da Saúde",
+      "category": "saude",
+      "priority": "P2",
+      "base_url": "https://opendatasus.saude.gov.br",
+      "auth": { "type": "none" },
+      "rate_limit": { "requests": 30, "per": "minute", "concurrent": 3 },
+      "endpoints": [
+        {
+          "path": "/api/3/action/package_list",
+          "name": "opendatasus_datasets",
+          "params_required": [],
+          "params_optional": []
+        },
+        {
+          "path": "/api/3/action/package_show",
+          "name": "opendatasus_dataset_detalhe",
+          "params_required": ["id"],
+          "params_optional": []
+        }
+      ],
+      "gcs_path": "datasus/opendatasus/{endpoint_name}/{ano}",
+      "format": "json",
+      "frequency": "daily"
+    },
+
+    {
+      "id": "inep_censo_escolar",
+      "name": "INEP — Censo Escolar Microdados",
+      "category": "educacao",
+      "priority": "P1",
+      "base_url": "https://www.gov.br/inep/pt-br/acesso-a-informacao/dados-abertos",
+      "auth": { "type": "none" },
+      "rate_limit": { "requests": 10, "per": "minute", "concurrent": 2 },
+      "endpoints": [
+        {
+          "path": "/censo-escolar/{ano}",
+          "name": "inep_censo_escolar",
+          "params_required": ["ano"],
+          "params_optional": []
+        }
+      ],
+      "gcs_path": "inep/censo_escolar/{ano}",
+      "format": "zip",
+      "frequency": "one_shot"
+    },
+
+    {
+      "id": "inep_ideb",
+      "name": "INEP — IDEB (Índice de Desenvolvimento da Educação Básica)",
+      "category": "educacao",
+      "priority": "P1",
+      "base_url": "https://www.gov.br/inep/pt-br/acesso-a-informacao/dados-abertos",
+      "auth": { "type": "none" },
+      "rate_limit": { "requests": 10, "per": "minute", "concurrent": 2 },
+      "endpoints": [
+        {
+          "path": "/ideb/{ano}",
+          "name": "inep_ideb_municipios",
+          "params_required": ["ano"],
+          "params_optional": []
+        }
+      ],
+      "gcs_path": "inep/ideb/{ano}",
+      "format": "zip",
+      "frequency": "one_shot"
+    },
+
+    {
+      "id": "inep_catalogo_escolas",
+      "name": "INEP — Catálogo de Escolas",
+      "category": "educacao",
+      "priority": "P1",
+      "base_url": "https://www.gov.br/inep/pt-br/acesso-a-informacao/dados-abertos",
+      "auth": { "type": "none" },
+      "rate_limit": { "requests": 10, "per": "minute", "concurrent": 2 },
+      "endpoints": [
+        {
+          "path": "/catalogo-de-escolas",
+          "name": "inep_escolas",
+          "params_required": [],
+          "params_optional": []
+        }
+      ],
+      "gcs_path": "inep/catalogo_escolas/{ano}",
+      "format": "csv",
+      "frequency": "one_shot"
+    },
+
+    {
+      "id": "inep_educacao_api",
+      "name": "API Educação Inteligente (3rd party INEP)",
+      "category": "educacao",
+      "priority": "P3",
+      "base_url": "https://educacao.dadosabertosbr.org/api",
+      "auth": { "type": "none" },
+      "rate_limit": { "requests": 60, "per": "minute", "concurrent": 3 },
+      "endpoints": [
+        {
+          "path": "/escolas",
+          "name": "escolas_list",
+          "params_required": [],
+          "params_optional": ["municipio", "uf", "pagina"]
+        }
+      ],
+      "gcs_path": "inep/educacao_api/{ano}",
+      "format": "json",
+      "frequency": "daily"
+    },
+
+    {
+      "id": "snis_sinisa",
+      "name": "SNIS/SINISA — Saneamento básico nacional",
+      "category": "saneamento",
+      "priority": "P2",
+      "base_url": "https://app4.mdr.gov.br",
+      "auth": { "type": "none" },
+      "rate_limit": { "requests": 30, "per": "minute", "concurrent": 3 },
+      "endpoints": [
+        {
+          "path": "/serieHistorica/",
+          "name": "snis_serie_historica",
+          "params_required": [],
+          "params_optional": ["municipio", "uf", "ano", "servico"]
+        }
+      ],
+      "gcs_path": "saneamento/snis/{ano}",
+      "format": "csv",
+      "frequency": "one_shot"
+    },
+
+    {
+      "id": "ana_hidroweb",
+      "name": "ANA — Hidroweb (séries hidrológicas)",
+      "category": "ambiente",
+      "priority": "P2",
+      "base_url": "https://snirh.gov.br/hidroweb",
+      "auth": { "type": "none" },
+      "rate_limit": { "requests": 30, "per": "minute", "concurrent": 3 },
+      "endpoints": [
+        {
+          "path": "/serieshistoricas",
+          "name": "hidroweb_series",
+          "params_required": [],
+          "params_optional": ["codEstacao", "dataIni", "dataFim", "tipoDados"]
+        }
+      ],
+      "gcs_path": "ambiente/ana/hidroweb/{ano}",
+      "format": "csv",
+      "frequency": "daily"
+    },
+
+    {
+      "id": "atlas_brasil",
+      "name": "Atlas Brasil — IDHM e 200 indicadores municipais",
+      "category": "desenvolvimento_humano",
+      "priority": "P2",
+      "base_url": "https://www.atlasbrasil.org.br",
+      "auth": { "type": "none" },
+      "rate_limit": { "requests": 30, "per": "minute", "concurrent": 2 },
+      "endpoints": [
+        {
+          "path": "/acervo/atlas",
+          "name": "atlas_brasil_download",
+          "params_required": [],
+          "params_optional": ["ano"]
+        }
+      ],
+      "gcs_path": "atlas_brasil/{ano}",
+      "format": "csv",
+      "frequency": "one_shot"
+    },
+
+    {
+      "id": "rais",
+      "name": "RAIS — Relação Anual de Informações Sociais (emprego formal)",
+      "category": "trabalho_renda",
+      "priority": "P2",
+      "base_url": "https://www.gov.br/trabalho-e-emprego/pt-br/acesso-a-informacao/estatisticas-trabalho",
+      "auth": { "type": "none" },
+      "rate_limit": { "requests": 10, "per": "minute", "concurrent": 2 },
+      "endpoints": [
+        {
+          "path": "/rais/{ano}",
+          "name": "rais_microdados",
+          "params_required": ["ano"],
+          "params_optional": []
+        }
+      ],
+      "gcs_path": "trabalho/rais/{ano}",
+      "format": "zip",
+      "frequency": "one_shot"
+    },
+
+    {
+      "id": "caged",
+      "name": "CAGED — Cadastro Geral de Empregados e Desempregados",
+      "category": "trabalho_renda",
+      "priority": "P2",
+      "base_url": "https://www.gov.br/trabalho-e-emprego/pt-br/acesso-a-informacao/estatisticas-trabalho",
+      "auth": { "type": "none" },
+      "rate_limit": { "requests": 10, "per": "minute", "concurrent": 2 },
+      "endpoints": [
+        {
+          "path": "/caged/{ano}/{mes}",
+          "name": "caged_mensal",
+          "params_required": ["ano", "mes"],
+          "params_optional": []
+        }
+      ],
+      "gcs_path": "trabalho/caged/{ano}/{mes}",
+      "format": "zip",
+      "frequency": "daily"
+    },
+
+    {
+      "id": "basedosdados_rais",
+      "name": "Base dos Dados — RAIS (BigQuery público, vínculos 1985→atual)",
+      "category": "trabalho_renda",
+      "priority": "P2",
+      "base_url": "https://basedosdados.org",
+      "auth": {
+        "type": "oauth",
+        "env": "GOOGLE_APPLICATION_CREDENTIALS"
+      },
+      "rate_limit": { "requests": 50, "per": "day", "concurrent": 2 },
+      "endpoints": [
+        {
+          "path": "/api/v1/dataset/br_me_rais",
+          "name": "bdd_rais",
+          "params_required": [],
+          "params_optional": []
+        }
+      ],
+      "bigquery_table": "basedosdados.br_me_rais.microdados_vinculos",
+      "gcs_path": "trabalho/bdd_rais/{ano}",
+      "format": "json",
+      "frequency": "one_shot"
+    },
+
+    {
+      "id": "siop",
+      "name": "SIOP — Execução Orçamentária (SPARQL/RDF)",
+      "category": "orcamento_federal",
+      "priority": "P2",
+      "base_url": "https://www1.siop.planejamento.gov.br",
+      "auth": { "type": "none" },
+      "rate_limit": { "requests": 30, "per": "minute", "concurrent": 2 },
+      "endpoints": [
+        {
+          "path": "/sparql/",
+          "name": "siop_execucao_orcamentaria",
+          "params_required": ["query"],
+          "params_optional": ["format"]
+        }
+      ],
+      "gcs_path": "orcamento/siop/{ano}/{mes}",
+      "format": "json",
+      "frequency": "daily"
+    },
+
+    {
+      "id": "siafi",
+      "name": "SIAFI — Execução Orçamentária (certificado digital)",
+      "category": "orcamento_federal",
+      "priority": "P2",
+      "base_url": "https://www.gov.br/tesouronacional",
+      "auth": {
+        "type": "cert",
+        "env": "SIAFI_CERT_PATH"
+      },
+      "rate_limit": { "requests": 30, "per": "minute", "concurrent": 2 },
+      "endpoints": [
+        {
+          "path": "/pt-br/assuntos/contabilidade-e-custos/tabelas-de-dados-e-arquivos/siafi",
+          "name": "siafi_modulo_orcamentario",
+          "params_required": [],
+          "params_optional": ["ano", "mes"]
+        }
+      ],
+      "gcs_path": "orcamento/siafi/{ano}/{mes}",
+      "format": "csv",
+      "frequency": "daily"
+    },
+
+    {
+      "id": "ocds_compras_br",
+      "name": "OCDS — Open Contracting Data Standard (Compras.gov.br)",
+      "category": "compras_publicas",
+      "priority": "P2",
+      "base_url": "https://data.open-contracting.org",
+      "auth": { "type": "none" },
+      "rate_limit": { "requests": 60, "per": "minute", "concurrent": 3 },
+      "endpoints": [
+        {
+          "path": "/en/search/",
+          "name": "ocds_registros_br",
+          "params_required": [],
+          "params_optional": ["country", "page", "format"]
+        }
+      ],
+      "gcs_path": "compras/ocds/br/{ano}/{mes}",
+      "format": "json",
+      "frequency": "daily"
+    },
+
+    {
+      "id": "ocds_ocp_registry",
+      "name": "OCP Data Registry — 50+ países (Open Contracting Partnership)",
+      "category": "compras_publicas",
+      "priority": "P3",
+      "base_url": "https://data.open-contracting.org",
+      "auth": { "type": "none" },
+      "rate_limit": { "requests": 60, "per": "minute", "concurrent": 3 },
+      "endpoints": [
+        {
+          "path": "/api/publications/",
+          "name": "ocp_publications",
+          "params_required": [],
+          "params_optional": ["country", "page"]
+        },
+        {
+          "path": "/en/search/",
+          "name": "ocp_search",
+          "params_required": [],
+          "params_optional": ["country", "q", "page"]
+        }
+      ],
+      "gcs_path": "compras/ocds/internacional/{ano}/{mes}",
+      "format": "json",
+      "frequency": "daily"
+    },
+
+    {
+      "id": "banco_mundial",
+      "name": "Banco Mundial — World Bank Data API (16.000+ indicadores)",
+      "category": "organismos_internacionais",
+      "priority": "P3",
+      "base_url": "https://api.worldbank.org/v2",
+      "auth": { "type": "none" },
+      "rate_limit": { "requests": 100, "per": "minute", "concurrent": 5 },
+      "endpoints": [
+        {
+          "path": "/country/BR/indicator/{indicador}",
+          "name": "wb_indicador_brasil",
+          "params_required": ["indicador"],
+          "params_optional": ["date", "format", "page", "per_page"]
+        },
+        {
+          "path": "/country/all/indicator/{indicador}",
+          "name": "wb_indicador_global",
+          "params_required": ["indicador"],
+          "params_optional": ["date", "format", "page", "per_page"]
+        }
+      ],
+      "gcs_path": "internacional/banco_mundial/{endpoint_name}/{ano}",
+      "format": "json",
+      "frequency": "daily"
+    },
+
+    {
+      "id": "fmi",
+      "name": "FMI — International Monetary Fund Data API",
+      "category": "organismos_internacionais",
+      "priority": "P3",
+      "base_url": "https://data.imf.org/api",
+      "auth": { "type": "none" },
+      "rate_limit": { "requests": 30, "per": "minute", "concurrent": 3 },
+      "endpoints": [
+        {
+          "path": "/CompactData/{dataset}/{freq}.{country}.{indicador}",
+          "name": "fmi_compact_data",
+          "params_required": ["dataset", "freq", "country", "indicador"],
+          "params_optional": ["startPeriod", "endPeriod"]
+        },
+        {
+          "path": "/Dataflow",
+          "name": "fmi_datasets",
+          "params_required": [],
+          "params_optional": []
+        }
+      ],
+      "gcs_path": "internacional/fmi/{endpoint_name}/{ano}",
+      "format": "json",
+      "frequency": "daily"
+    },
+
+    {
+      "id": "ocde",
+      "name": "OCDE — OECD SDMX-JSON Data API",
+      "category": "organismos_internacionais",
+      "priority": "P3",
+      "base_url": "https://stats.oecd.org/SDMX-JSON/data",
+      "auth": { "type": "none" },
+      "rate_limit": { "requests": 30, "per": "minute", "concurrent": 3 },
+      "endpoints": [
+        {
+          "path": "/{dataset}/all/all",
+          "name": "ocde_dataset",
+          "params_required": ["dataset"],
+          "params_optional": ["startTime", "endTime", "dimensionAtObservation"]
+        }
+      ],
+      "gcs_path": "internacional/ocde/{endpoint_name}/{ano}",
+      "format": "json",
+      "frequency": "daily"
+    },
+
+    {
+      "id": "transparency_intl",
+      "name": "Transparency International — CPI (Corruption Perceptions Index)",
+      "category": "organismos_internacionais",
+      "priority": "P3",
+      "base_url": "https://transparency.org",
+      "auth": { "type": "none" },
+      "rate_limit": { "requests": 10, "per": "minute", "concurrent": 2 },
+      "endpoints": [
+        {
+          "path": "/en/cpi/table",
+          "name": "ti_cpi_tabela",
+          "params_required": [],
+          "params_optional": ["ano"]
+        }
+      ],
+      "gcs_path": "internacional/transparency_intl/{ano}",
+      "format": "json",
+      "frequency": "one_shot"
+    },
+
+    {
+      "id": "basedosdados_bq",
+      "name": "Base dos Dados — BigQuery (datasets nomeados, atalho universal)",
+      "category": "agregador",
+      "priority": "P2",
+      "base_url": "https://basedosdados.org",
+      "auth": {
+        "type": "oauth",
+        "env": "GOOGLE_APPLICATION_CREDENTIALS"
+      },
+      "rate_limit": { "requests": 100, "per": "day", "concurrent": 3 },
+      "endpoints": [
+        {
+          "path": "/api/v1/dataset/br_bd_diretorios_brasil",
+          "name": "bdd_diretorios",
+          "bigquery_table": "basedosdados.br_bd_diretorios_brasil.municipio",
+          "params_required": [],
+          "params_optional": []
+        },
+        {
+          "path": "/api/v1/dataset/br_ibge_populacao",
+          "name": "bdd_populacao_ibge",
+          "bigquery_table": "basedosdados.br_ibge_populacao.municipio",
+          "params_required": [],
+          "params_optional": []
+        },
+        {
+          "path": "/api/v1/dataset/br_inep_ideb",
+          "name": "bdd_ideb",
+          "bigquery_table": "basedosdados.br_inep_ideb.municipio",
+          "params_required": [],
+          "params_optional": []
+        },
+        {
+          "path": "/api/v1/dataset/br_mdr_snis",
+          "name": "bdd_snis",
+          "bigquery_table": "basedosdados.br_mdr_snis.municipio_agua_esgoto",
+          "params_required": [],
+          "params_optional": []
+        },
+        {
+          "path": "/api/v1/dataset/br_me_rais",
+          "name": "bdd_rais_vinculos",
+          "bigquery_table": "basedosdados.br_me_rais.microdados_vinculos",
+          "params_required": [],
+          "params_optional": []
+        },
+        {
+          "path": "/api/v1/dataset/br_imprensa_nacional_dou",
+          "name": "bdd_dou",
+          "bigquery_table": "basedosdados.br_imprensa_nacional_dou.secao_1",
+          "params_required": [],
+          "params_optional": []
+        }
+      ],
+      "gcs_path": "basedosdados/{endpoint_name}/{ano}",
+      "format": "json",
+      "frequency": "daily"
+    },
+
+    {
+      "id": "newsapi",
+      "name": "NewsAPI — Manchetes Brasil (notícias)",
+      "category": "noticias",
+      "priority": "P3",
+      "base_url": "https://newsapi.org/v2",
+      "auth": {
+        "type": "api_key_query",
+        "param": "apiKey",
+        "env": "NEWSAPI_KEY"
+      },
+      "rate_limit": { "requests": 100, "per": "day", "concurrent": 2 },
+      "endpoints": [
+        {
+          "path": "/top-headlines",
+          "name": "newsapi_manchetes_br",
+          "params_required": ["country"],
+          "params_optional": ["category", "q", "pageSize", "page"]
+        },
+        {
+          "path": "/everything",
+          "name": "newsapi_tudo",
+          "params_required": ["q"],
+          "params_optional": ["from", "to", "language", "sortBy", "pageSize", "page"]
+        }
+      ],
+      "gcs_path": "noticias/newsapi/{ano}/{mes}",
+      "format": "json",
+      "frequency": "daily"
+    },
+
+    {
+      "id": "mediastack",
+      "name": "Mediastack — API de Notícias BR",
+      "category": "noticias",
+      "priority": "P3",
+      "base_url": "https://api.mediastack.com",
+      "auth": {
+        "type": "api_key_query",
+        "param": "access_key",
+        "env": "MEDIASTACK_API_KEY"
+      },
+      "rate_limit": { "requests": 500, "per": "month", "concurrent": 2 },
+      "endpoints": [
+        {
+          "path": "/v1/news",
+          "name": "mediastack_noticias_br",
+          "params_required": [],
+          "params_optional": ["countries", "keywords", "languages", "date", "offset", "limit"]
+        }
+      ],
+      "gcs_path": "noticias/mediastack/{ano}/{mes}",
+      "format": "json",
+      "frequency": "daily"
+    },
+
+    {
+      "id": "conecta_gov",
+      "name": "Conecta.gov.br — Catálogo de APIs Governamentais (200+ APIs)",
+      "category": "utilitarios",
+      "priority": "P3",
+      "base_url": "https://www.gov.br/conecta/catalogo/apis",
+      "auth": { "type": "none" },
+      "rate_limit": { "requests": 30, "per": "minute", "concurrent": 2 },
+      "endpoints": [
+        {
+          "path": "/",
+          "name": "conecta_gov_catalogo",
+          "params_required": [],
+          "params_optional": []
+        }
+      ],
+      "gcs_path": "utilitarios/conecta_gov/{ano}",
+      "format": "json",
+      "frequency": "one_shot"
+    },
+
+    {
+      "id": "dados_gov_br",
+      "name": "dados.gov.br — Portal Brasileiro de Dados Abertos",
+      "category": "utilitarios",
+      "priority": "P2",
+      "base_url": "https://dados.gov.br",
+      "auth": { "type": "none" },
+      "rate_limit": { "requests": 60, "per": "minute", "concurrent": 3 },
+      "endpoints": [
+        {
+          "path": "/api/3/action/package_list",
+          "name": "dados_gov_datasets",
+          "params_required": [],
+          "params_optional": []
+        },
+        {
+          "path": "/api/3/action/package_search",
+          "name": "dados_gov_busca",
+          "params_required": [],
+          "params_optional": ["q", "rows", "start"]
+        }
+      ],
+      "gcs_path": "utilitarios/dados_gov/{ano}",
+      "format": "json",
+      "frequency": "daily"
+    },
+
+    {
+      "id": "datasus_tabnet",
+      "name": "DATASUS — TabNet (SIM, SIH, SINASC, SINAN, SIA — CGI/FTP)",
+      "category": "saude",
+      "priority": "P2",
+      "base_url": "ftp://ftp.datasus.gov.br",
+      "auth": { "type": "none" },
+      "rate_limit": { "requests": 5, "per": "minute", "concurrent": 2 },
+      "endpoints": [
+        {
+          "path": "/dissemin/publicos/SIM/CID10/DORES/DO{uf}{aa}.dbc",
+          "name": "datasus_sim_obitos",
+          "params_required": ["uf", "aa"],
+          "params_optional": [],
+          "description": "SIM — Sistema de Informação sobre Mortalidade"
+        },
+        {
+          "path": "/dissemin/publicos/SINASC/NOV/DNRES/DN{uf}{ano}.dbc",
+          "name": "datasus_sinasc_nascimentos",
+          "params_required": ["uf", "ano"],
+          "params_optional": [],
+          "description": "SINASC — Nascidos vivos"
+        },
+        {
+          "path": "/dissemin/publicos/SIHSUS/1992_/Dados/RD{uf}{aamm}.dbc",
+          "name": "datasus_sih_internacoes",
+          "params_required": ["uf", "aamm"],
+          "params_optional": [],
+          "description": "SIH — Internações hospitalares"
+        }
+      ],
+      "gcs_path": "datasus/tabnet/{endpoint_name}/{ano}/{mes}",
+      "format": "dbc",
+      "frequency": "daily"
+    },
+
+    {
+      "id": "ocds_uk",
+      "name": "OCDS — Reino Unido (Find a Tender)",
+      "category": "compras_internacionais",
+      "priority": "P3",
+      "base_url": "https://www.find-tender.service.gov.uk",
+      "auth": { "type": "none" },
+      "rate_limit": { "requests": 30, "per": "minute", "concurrent": 2 },
+      "endpoints": [
+        {
+          "path": "/api/1.0/ocdsRecordPackages",
+          "name": "ocds_uk_record_packages",
+          "params_required": [],
+          "params_optional": ["publishedFrom", "publishedTo", "page"]
+        }
+      ],
+      "gcs_path": "compras/ocds/uk/{ano}/{mes}",
+      "format": "json",
+      "frequency": "daily"
+    },
+
+    {
+      "id": "apitube",
+      "name": "APITube — Notícias em vídeo BR",
+      "category": "noticias",
+      "priority": "P3",
+      "base_url": "https://apitube.io",
+      "auth": {
+        "type": "api_key_query",
+        "param": "api_key",
+        "env": "APITUBE_API_KEY"
+      },
+      "rate_limit": { "requests": 200, "per": "day", "concurrent": 2 },
+      "endpoints": [
+        {
+          "path": "/v1/news/everything",
+          "name": "apitube_noticias",
+          "params_required": [],
+          "params_optional": ["country", "language", "q", "dateFrom", "dateTo", "limit"]
+        }
+      ],
+      "gcs_path": "noticias/apitube/{ano}/{mes}",
+      "format": "json",
+      "frequency": "daily"
+    },
+
+    {
+      "id": "basedosdados_ideb",
+      "name": "Base dos Dados — IDEB (BigQuery, INEP processado)",
+      "category": "educacao",
+      "priority": "P2",
+      "base_url": "https://basedosdados.org",
+      "auth": {
+        "type": "oauth",
+        "env": "GOOGLE_APPLICATION_CREDENTIALS"
+      },
+      "rate_limit": { "requests": 50, "per": "day", "concurrent": 2 },
+      "endpoints": [
+        {
+          "path": "/api/v1/dataset/br_inep_ideb",
+          "name": "bdd_ideb_municipios",
+          "bigquery_table": "basedosdados.br_inep_ideb.municipio",
+          "params_required": [],
+          "params_optional": []
+        }
+      ],
+      "gcs_path": "educacao/bdd_ideb/{ano}",
+      "format": "json",
+      "frequency": "one_shot"
+    },
+
+    {
+      "id": "basedosdados_snis",
+      "name": "Base dos Dados — SNIS (BigQuery, saneamento processado)",
+      "category": "saneamento",
+      "priority": "P2",
+      "base_url": "https://basedosdados.org",
+      "auth": {
+        "type": "oauth",
+        "env": "GOOGLE_APPLICATION_CREDENTIALS"
+      },
+      "rate_limit": { "requests": 50, "per": "day", "concurrent": 2 },
+      "endpoints": [
+        {
+          "path": "/api/v1/dataset/br_mdr_snis",
+          "name": "bdd_snis_municipios",
+          "bigquery_table": "basedosdados.br_mdr_snis.municipio_agua_esgoto",
+          "params_required": [],
+          "params_optional": []
+        }
+      ],
+      "gcs_path": "saneamento/bdd_snis/{ano}",
+      "format": "json",
+      "frequency": "one_shot"
+    }
+  ]
+}
