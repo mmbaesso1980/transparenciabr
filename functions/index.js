@@ -831,7 +831,8 @@ exports.createCheckoutSession = functions
   });
 
 /**
- * Novo ato em diarios_atos → classificação + Gemini (Flash) → radar_dossiers (privado).
+ * Novo ato em diarios_atos → classificação + Gemini 2.5 Pro (Líder Supremo agent_1777236402725) → radar_dossiers (privado).
+ * Implementação: analyzeWithGemini em diarioScanner.js (gemini-2.5-pro).
  * Env: GEMINI_API_KEY, RADAR_OWNER_UID (Firebase Auth UID do operador jurídico).
  */
 exports.onDiarioAtoCreated = functions
