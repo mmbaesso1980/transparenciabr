@@ -6,7 +6,7 @@
  * and exponential back-off on quota errors.
  *
  * Environment variables:
- *   VERTEX_REASONING_ENGINE_ID  – full resource name override (optional)
+ *   VERTEX_REASONING_ENGINE_ID  – full Reasoning Engine resource name (required in deploy)
  *   VERTEX_TIMEOUT_SECONDS      – per-request timeout in seconds (default 600)
  *   GCP_PROJECT_ID              – Google Cloud project ID
  */
@@ -29,9 +29,8 @@ const { v1beta1 } = aiplatform;
  */
 export const SUPREME_AGENT_BUILDER_ID = 'agent_1777236402725';
 
-const REASONING_ENGINE_RESOURCE =
-  process.env.VERTEX_REASONING_ENGINE_ID ??
-  'projects/89728155070/locations/us-west1/reasoningEngines/4398310393894666240';
+/** Full Vertex Reasoning Engine resource name — obrigatório via env (G.O.A.T.: sem fallback hardcoded). */
+const REASONING_ENGINE_RESOURCE = (process.env.VERTEX_REASONING_ENGINE_ID || '').trim();
 
 const TIMEOUT_SECONDS = parseInt(
   process.env.VERTEX_TIMEOUT_SECONDS ?? '600',
@@ -115,6 +114,11 @@ export class VertexReasoningClient {
    * @returns {Promise<void>}
    */
   async init() {
+    if (!REASONING_ENGINE_RESOURCE) {
+      throw new Error(
+        'VERTEX_REASONING_ENGINE_ID ausente — defina o nome completo do Reasoning Engine (Líder Supremo agent_1777236402725).',
+      );
+    }
     this.#client = new v1beta1.ReasoningEngineExecutionServiceClient({
       apiEndpoint: 'us-west1-aiplatform.googleapis.com',
     });
