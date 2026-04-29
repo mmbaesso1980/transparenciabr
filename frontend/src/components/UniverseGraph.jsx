@@ -14,6 +14,7 @@ import * as THREE from "three";
 
 import { useCameraFocus } from "../context/CameraFocusContext.jsx";
 import { getRiskColor } from "../utils/colorUtils.js";
+import { getPoliticianHex } from "../utils/politicianColor.js";
 
 const MAX_NODES = 1000;
 const GLOBE_RADIUS = 45;
@@ -83,6 +84,7 @@ function InstancedSpheres({
   count,
   positions,
   scores,
+  identities,
   baseScales,
   dadosPorInstancia,
   onOrbSelect,
@@ -108,7 +110,13 @@ function InstancedSpheres({
       temp.updateMatrix();
       mesh.setMatrixAt(i, temp.matrix);
 
-      tempColor.setStyle(getRiskColor(scores[i])); // Bolt: Reuse instead of instantiating new color
+      // Cor por político = hash determinístico do CPF/ID modulado pelo score forense.
+      // Garante orbe única por pessoa, vibrante quando score sobe (ASMODEUS).
+      const ident = identities?.[i];
+      const colorHex = ident
+        ? getPoliticianHex(ident, scores[i])
+        : getRiskColor(scores[i]);
+      tempColor.setStyle(colorHex);
       mesh.setColorAt(i, tempColor);
     }
 
@@ -124,6 +132,7 @@ function InstancedSpheres({
     count,
     positions,
     scores,
+    identities,
     baseScales,
     temp,
     tempColor,
@@ -229,6 +238,7 @@ export default function UniverseGraph({ politicos = [] }) {
     const positionsArr = new Float32Array(Math.max(count, 1) * 3);
     const scoresArr = new Int32Array(Math.max(count, 1));
     const baseScalesArr = new Float32Array(Math.max(count, 1));
+    const identitiesArr = new Array(Math.max(count, 1));
     const dadosPorInstancia = [];
 
     if (count < 1) {
@@ -236,6 +246,7 @@ export default function UniverseGraph({ politicos = [] }) {
         count: 0,
         positions: positionsArr,
         scores: scoresArr,
+        identities: identitiesArr,
         baseScales: baseScalesArr,
         dadosPorInstancia,
       };
@@ -250,6 +261,8 @@ export default function UniverseGraph({ politicos = [] }) {
 
       const sc = extractPoliticoScore(p);
       scoresArr[i] = sc;
+      // Identidade estável para o algoritmo de cor: CPF > id > nome.
+      identitiesArr[i] = p.cpf ?? p.id ?? p.nome ?? `slot-${i}`;
       baseScalesArr[i] = baseScaleForScore(sc);
       dadosPorInstancia.push({ docId: p.id });
     }
@@ -258,6 +271,7 @@ export default function UniverseGraph({ politicos = [] }) {
       count,
       positions: positionsArr,
       scores: scoresArr,
+      identities: identitiesArr,
       baseScales: baseScalesArr,
       dadosPorInstancia,
     };
@@ -305,6 +319,7 @@ export default function UniverseGraph({ politicos = [] }) {
         count={sceneBundle.count}
         positions={sceneBundle.positions}
         scores={sceneBundle.scores}
+        identities={sceneBundle.identities}
         baseScales={sceneBundle.baseScales}
         dadosPorInstancia={sceneBundle.dadosPorInstancia}
         onOrbSelect={beginTrackingToWorldPoint}
