@@ -775,21 +775,10 @@ exports.createCheckoutSession = functions
     const credits = parseInt(data.credits || data.creditos || "0", 10);
     const priceId = (data.priceId || data.price_id || "").trim();
 
-    // 🛡️ Sentinel: Validate origin to prevent Open Redirect
-    let origin = (data.origin || "").replace(/\/$/, "");
-    const allowedOrigins = [
-      "https://transparenciabr.com.br",
-      "https://transparenciabr.web.app",
-      "https://transparenciabr.firebaseapp.com"
-    ];
-    // Allow localhost for local development
-    if (!origin.startsWith("http://localhost:") && !allowedOrigins.includes(origin)) {
-      origin = "https://transparenciabr.web.app";
-    }
-
-    // 🛡️ Sentinel: Hardcode path to prevent redirection to arbitrary URLs
-    const successUrl = `${origin}/sucesso?session_id={CHECKOUT_SESSION_ID}`;
-    const cancelUrl = `${origin}/creditos?canceled=1`;
+    // Checkout redirects: domínio oficial (catálogo Stripe V2)
+    const checkoutBase = "https://transparenciabr.web.app";
+    const successUrl = `${checkoutBase}/sucesso?session_id={CHECKOUT_SESSION_ID}`;
+    const cancelUrl = `${checkoutBase}/creditos?canceled=1`;
 
     /** @type {import('stripe').Stripe.Checkout.SessionCreateParams} */
     const params = {
@@ -803,12 +792,20 @@ exports.createCheckoutSession = functions
       },
     };
 
-    // Catálogo oficial Sprint 2.7 (espelha frontend/CreditosPage.jsx)
-    // Preço em centavos (BRL) seguindo R$ 0,20-0,30 / crédito
+    // Catálogo oficial Stripe (price IDs no Dashboard — espelha frontend/CreditosPage.jsx)
     const PACKAGE_CATALOG = {
-      starter_500: { credits: 500, amount: 14900, label: "Starter — 500 créditos" },
-      jornalista_1500: { credits: 1500, amount: 37900, label: "Jornalista — 1.500 créditos" },
-      investigador_4000: { credits: 4000, amount: 79900, label: "Investigador — 4.000 créditos" },
+      starter_500: {
+        credits: 500,
+        stripe_price_id: "price_1TRf4NDnfbKVv2ZRDRnR09b8",
+      },
+      jornalista_1500: {
+        credits: 1500,
+        stripe_price_id: "price_1TRf5XDnfbKVv2ZRSFw8vMxN",
+      },
+      investigador_4000: {
+        credits: 4000,
+        stripe_price_id: "price_1TRf6RDnfbKVv2ZRge1XL7oJ",
+      },
     };
     const packageId = (data.packageId || data.package_id || "").trim();
 
@@ -818,19 +815,7 @@ exports.createCheckoutSession = functions
       const pkg = PACKAGE_CATALOG[packageId];
       params.metadata.credits = String(pkg.credits);
       params.metadata.package_id = packageId;
-      params.line_items = [
-        {
-          price_data: {
-            currency: "brl",
-            product_data: {
-              name: pkg.label,
-              description: "TransparênciaBR — créditos para dossiês e análises forenses",
-            },
-            unit_amount: pkg.amount,
-          },
-          quantity: 1,
-        },
-      ];
+      params.line_items = [{ price: pkg.stripe_price_id, quantity: 1 }];
     } else if (credits > 0) {
       // Fallback: preço calculado em R$ 0,30/crédito (mesmo do tier Starter)
       params.line_items = [
@@ -849,7 +834,7 @@ exports.createCheckoutSession = functions
     } else {
       throw new functions.https.HttpsError(
         "invalid-argument",
-        "Informe priceId ou credits.",
+        "Informe packageId, priceId ou credits.",
       );
     }
 
