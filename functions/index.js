@@ -788,7 +788,7 @@ exports.createCheckoutSession = functions
     }
 
     // 🛡️ Sentinel: Hardcode path to prevent redirection to arbitrary URLs
-    const successUrl = `${origin}/creditos?session_id={CHECKOUT_SESSION_ID}`;
+    const successUrl = `${origin}/sucesso?session_id={CHECKOUT_SESSION_ID}`;
     const cancelUrl = `${origin}/creditos?canceled=1`;
 
     /** @type {import('stripe').Stripe.Checkout.SessionCreateParams} */
@@ -803,18 +803,45 @@ exports.createCheckoutSession = functions
       },
     };
 
+    // Catálogo oficial Sprint 2.7 (espelha frontend/CreditosPage.jsx)
+    // Preço em centavos (BRL) seguindo R$ 0,20-0,30 / crédito
+    const PACKAGE_CATALOG = {
+      starter_500: { credits: 500, amount: 14900, label: "Starter — 500 créditos" },
+      jornalista_1500: { credits: 1500, amount: 37900, label: "Jornalista — 1.500 créditos" },
+      investigador_4000: { credits: 4000, amount: 79900, label: "Investigador — 4.000 créditos" },
+    };
+    const packageId = (data.packageId || data.package_id || "").trim();
+
     if (priceId) {
       params.line_items = [{ price: priceId, quantity: 1 }];
-    } else if (credits > 0) {
+    } else if (packageId && PACKAGE_CATALOG[packageId]) {
+      const pkg = PACKAGE_CATALOG[packageId];
+      params.metadata.credits = String(pkg.credits);
+      params.metadata.package_id = packageId;
       params.line_items = [
         {
           price_data: {
             currency: "brl",
             product_data: {
-              name: `Créditos investigativos (${credits})`,
-              description: "A.S.M.O.D.E.U.S. — Transparência BR",
+              name: pkg.label,
+              description: "TransparênciaBR — créditos para dossiês e análises forenses",
             },
-            unit_amount: Math.max(100, credits * 10),
+            unit_amount: pkg.amount,
+          },
+          quantity: 1,
+        },
+      ];
+    } else if (credits > 0) {
+      // Fallback: preço calculado em R$ 0,30/crédito (mesmo do tier Starter)
+      params.line_items = [
+        {
+          price_data: {
+            currency: "brl",
+            product_data: {
+              name: `Créditos avulsos (${credits})`,
+              description: "TransparênciaBR — pacote customizado",
+            },
+            unit_amount: Math.max(100, credits * 30),
           },
           quantity: 1,
         },

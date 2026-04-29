@@ -5,29 +5,34 @@ import { Coins, Loader2, Sparkles } from "lucide-react";
 
 import { getFirebaseApp, getFirebaseAuth, getFirestoreDb } from "../lib/firebase.js";
 
+// Catálogo oficial Sprint 2.7 — R$ 0,20-0,30 por crédito
+// 1 dossiê = 200 créditos · 1 nota fiscal = 100 créditos
 const PACKAGES = [
   {
-    id: "p500",
+    id: "starter_500",
     credits: 500,
-    label: "500 Créditos Investigativos",
-    priceDisplay: "R$ 49,90",
-    blurb: "Pacote entrada — Motor Forense TransparênciaBR e exportações pontuais.",
+    label: "Starter",
+    priceDisplay: "R$ 149",
+    pricePerCreditDisplay: "R$ 0,30 / crédito",
+    blurb: "~2 dossiês + 1 nota fiscal isolada. Ideal para validar o produto.",
     highlight: false,
   },
   {
-    id: "p1200",
-    credits: 1200,
-    label: "1.200 Créditos",
-    priceDisplay: "R$ 99,90",
-    blurb: "Melhor custo por crédito para equipas de investigação.",
+    id: "jornalista_1500",
+    credits: 1500,
+    label: "Jornalista",
+    priceDisplay: "R$ 379",
+    pricePerCreditDisplay: "R$ 0,25 / crédito",
+    blurb: "~7 dossiês completos. Pacote mais popular em redações.",
     highlight: true,
   },
   {
-    id: "p3000",
-    credits: 3000,
-    label: "3.000 Créditos Elite",
-    priceDisplay: "R$ 229,90",
-    blurb: "Volume para salas de situação e auditoria contínua.",
+    id: "investigador_4000",
+    credits: 4000,
+    label: "Investigador",
+    priceDisplay: "R$ 799",
+    pricePerCreditDisplay: "R$ 0,20 / crédito",
+    blurb: "~20 dossiês. Volume para auditoria contínua e investigações de longo curso.",
     highlight: false,
   },
 ];
@@ -69,6 +74,7 @@ export default function CreditosPage() {
       let result;
       try {
         result = await createCheckoutSession({
+          packageId: pkg.id,
           credits: pkg.credits,
           origin: typeof window !== "undefined" ? window.location.origin : "",
         });
@@ -175,7 +181,7 @@ export default function CreditosPage() {
               </div>
               <p className="mt-4 flex-1 text-sm leading-relaxed text-[#8B949E]">{pkg.blurb}</p>
               <p className="mt-3 font-mono text-xs text-[#5c6784]">
-                Inclui ~{pkg.credits} créditos após webhook Stripe.
+                {pkg.credits.toLocaleString("pt-BR")} créditos · {pkg.pricePerCreditDisplay}
               </p>
               <button
                 type="button"

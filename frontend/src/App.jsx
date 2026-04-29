@@ -19,6 +19,7 @@ const AlertasPage = lazy(() => import("./pages/AlertasPage.jsx"));
 const PerfilPage = lazy(() => import("./pages/PerfilPage.jsx"));
 const CreditosPage = lazy(() => import("./pages/CreditosPage.jsx"));
 const RadarPage = lazy(() => import("./pages/RadarPage.jsx"));
+const SuccessPage = lazy(() => import("./pages/SuccessPage.jsx"));
 
 // Em GitHub Pages o app é servido em /transparenciabr/
 // Em dev (Vite) roda na raiz /
@@ -37,6 +38,7 @@ export default function App() {
                 <Route path="/login" element={<LoginPage />} />
 
                 <Route path="/dossie/:id" element={<DossiePage />} />
+                <Route path="/sucesso" element={<SuccessPage />} />
 
                 <Route element={<ProtectedRoute />}>
                   <Route element={<DashboardLayout />}>
