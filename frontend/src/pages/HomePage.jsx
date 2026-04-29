@@ -101,9 +101,9 @@ const INVESTIGATION_CATEGORIES = [
     cta: "Ver enriquecimento",
   },
   {
-    seed: "asmodeus.flavio",
+    seed: "asmodeus.gabinete",
     score: 72,
-    label: "Folha F.L.A.V.I.O.",
+    label: "Folha do Gabinete",
     headline: "21 secretários",
     body: "Familiares, sócios e fantasmas no gabinete. Cruzamento CPF × empresa × parentesco.",
     to: "/ranking?modulo=folha",
