@@ -10,7 +10,7 @@ import PoliticianOrb from "../components/PoliticianOrb.jsx";
 import UserOrb from "../components/UserOrb.jsx";
 import LandingHeroGraph from "../components/landing/LandingHeroGraph.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
-import { useTransparencyReportsUniverso } from "../hooks/useTransparencyReportsUniverso.js";
+import { useUniverseRoster } from "../hooks/useUniverseRoster.js";
 import { useUserCredits } from "../hooks/useUserCredits.js";
 
 /**
@@ -94,8 +94,8 @@ export default function LandingPage() {
   const navigate = useNavigate();
   const { isAuthenticated, user } = useAuth();
   const { credits } = useUserCredits();
-  const { graphData, loading, error, findPoliticoByQuery, rows } =
-    useTransparencyReportsUniverso(600);
+  const { graphData, loading, error, findPoliticoByQuery, roster } =
+    useUniverseRoster();
 
   const [query, setQuery] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -109,27 +109,25 @@ export default function LandingPage() {
   const suggestions = useMemo(() => {
     const needle = String(query || "").trim().toLowerCase()
       .normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    if (needle.length < 2 || !rows?.length) return [];
+    if (needle.length < 2 || !roster?.length) return [];
     const out = [];
-    for (const row of rows) {
+    for (const p of roster) {
       if (out.length >= 8) break;
-      const id = String(row.id ?? "").trim();
-      const nome = String(
-        row.nome_eleitoral ?? row.nome_parlamentar ?? row.nomeParlamentar ?? row.nome ?? "",
-      ).trim();
+      const id = String(p.id ?? "").trim();
+      const nome = String(p.nome ?? "").trim();
       if (!id || !nome) continue;
       const hay = nome.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
       if (hay.includes(needle)) {
         out.push({
           id,
           nome: nome.slice(0, 80),
-          partido: String(row.sigla_partido ?? row.partido ?? "").slice(0, 8),
-          uf: String(row.uf ?? row.sigla_uf ?? "").slice(0, 2),
+          partido: String(p.partido || "").slice(0, 12),
+          uf: String(p.uf || "").slice(0, 2),
         });
       }
     }
     return out;
-  }, [query, rows]);
+  }, [query, roster]);
 
   const emptyGraph = !loading && (!graphData.nodes?.length || error === "firebase_unavailable");
 

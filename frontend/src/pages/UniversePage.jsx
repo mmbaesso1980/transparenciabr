@@ -10,7 +10,7 @@ import UserOrb from "../components/UserOrb.jsx";
 import { INVESTIGATION_CATEGORIES } from "../constants/investigationCategories.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useCreditosGOD } from "../context/CreditosGODContext.jsx";
-import { useTransparencyReportsUniverso } from "../hooks/useTransparencyReportsUniverso.js";
+import { useUniverseRoster } from "../hooks/useUniverseRoster.js";
 import { useUserCredits } from "../hooks/useUserCredits.js";
 
 const LEFT_BENTO = INVESTIGATION_CATEGORIES.slice(0, 3);
@@ -30,8 +30,8 @@ export default function UniversePage() {
   const { credits } = useUserCredits();
   const creditDisplay = Number.isFinite(credits) ? credits : saldo;
 
-  const { graphData, loading, error, findPoliticoByQuery, rows } =
-    useTransparencyReportsUniverso(600);
+  const { graphData, loading, error, findPoliticoByQuery, roster } =
+    useUniverseRoster();
 
   const [modalOpen, setModalOpen] = useState(false);
   const [modalPolitico, setModalPolitico] = useState({ id: "", nome: "" });
@@ -47,14 +47,12 @@ export default function UniversePage() {
       .toLowerCase()
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "");
-    if (needle.length < 2 || !rows?.length) return [];
+    if (needle.length < 2 || !roster?.length) return [];
     const out = [];
-    for (const row of rows) {
+    for (const p of roster) {
       if (out.length >= 8) break;
-      const id = String(row.id ?? "").trim();
-      const nome = String(
-        row.nome_eleitoral ?? row.nome_parlamentar ?? row.nomeParlamentar ?? row.nome ?? "",
-      ).trim();
+      const id = String(p.id ?? "").trim();
+      const nome = String(p.nome ?? "").trim();
       if (!id || !nome) continue;
       const hay = nome
         .toLowerCase()
@@ -64,13 +62,13 @@ export default function UniversePage() {
         out.push({
           id,
           nome: nome.slice(0, 80),
-          partido: String(row.sigla_partido ?? row.partido ?? "").slice(0, 8),
-          uf: String(row.uf ?? row.sigla_uf ?? "").slice(0, 2),
+          partido: String(p.partido || "").slice(0, 12),
+          uf: String(p.uf || "").slice(0, 2),
         });
       }
     }
     return out;
-  }, [searchQuery, rows]);
+  }, [searchQuery, roster]);
 
   // Fecha dropdown ao clicar fora.
   useEffect(() => {
