@@ -133,12 +133,14 @@ export default function LandingPage() {
 
   const emptyGraph = !loading && (!graphData.nodes?.length || error === "firebase_unavailable");
 
+  // Sem bypass: SEMPRE leva ao /universo focando a orbe do parlamentar.
+  // O dossiê só abre via clique deliberado na orbe dentro do universo (FOMO preservado).
   const openGate = useCallback((nome, politicoId) => {
     const id = String(politicoId || "").trim();
     const name = String(nome || "").trim() || "este parlamentar";
     if (!id) return;
     if (isAuthenticated) {
-      navigate(`/dossie/${encodeURIComponent(id)}`);
+      navigate(`/universo?focus=${encodeURIComponent(id)}`);
       return;
     }
     setPendingPolitico({ id, nome: name });
@@ -170,9 +172,10 @@ export default function LandingPage() {
     [openGate],
   );
 
+  // Pós-login deslogado retoma no /universo focando a orbe (não /dossie direto).
   const loginHref = useMemo(() => {
     if (!pendingPolitico.id) return "/login";
-    return `/login?redirect=${encodeURIComponent(`/dossie/${pendingPolitico.id}`)}`;
+    return `/login?redirect=${encodeURIComponent(`/universo?focus=${pendingPolitico.id}`)}`;
   }, [pendingPolitico.id]);
 
   return (
@@ -482,7 +485,7 @@ export default function LandingPage() {
               </button>
               <Link
                 to={loginHref}
-                state={pendingPolitico.id ? { from: `/dossie/${pendingPolitico.id}` } : undefined}
+                state={pendingPolitico.id ? { from: `/universo?focus=${pendingPolitico.id}` } : undefined}
                 className="rounded-xl bg-[#F0F4FC] px-4 py-2.5 text-sm font-semibold text-[#02040a] hover:bg-white"
                 onClick={() => setModalOpen(false)}
               >

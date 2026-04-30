@@ -1,7 +1,7 @@
 import { ArrowRight, Loader2, Lock, LogIn, Search } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Helmet } from "react-helmet-async";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 
 import BrandLogo from "../components/BrandLogo.jsx";
 import LandingHeroGraph from "../components/landing/LandingHeroGraph.jsx";
@@ -21,7 +21,10 @@ const RIGHT_BENTO = INVESTIGATION_CATEGORIES.slice(3, 6);
  */
 export default function UniversePage() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const focusParam = searchParams.get("focus") || "";
   const graphRef = useRef(null);
+  const focusedRef = useRef(""); // garante fly-to apenas uma vez por id
   const { isAuthenticated, user } = useAuth();
   const { saldo } = useCreditosGOD();
   const { credits } = useUserCredits();
@@ -82,6 +85,22 @@ export default function UniversePage() {
     return () => document.removeEventListener("mousedown", onDocClick);
   }, [showSuggestions]);
 
+  // Fly-to automático quando chega via ?focus=<politicoId> (vindo da landing/login).
+  // SEM abrir o dossiê: a entrada é por clique deliberado na orbe (preserva FOMO).
+  useEffect(() => {
+    const id = String(focusParam || "").trim();
+    if (!id) return;
+    if (focusedRef.current === id) return; // já focou esse id
+    if (!graphData?.nodes?.length) return; // espera grafo carregar
+    if (!graphRef.current?.flyToPoliticianId) return;
+    focusedRef.current = id;
+    graphRef.current.flyToPoliticianId(id);
+    // Limpa o param da URL para não re-disparar em hot-reload nem deixar URL feia.
+    const next = new URLSearchParams(searchParams);
+    next.delete("focus");
+    setSearchParams(next, { replace: true });
+  }, [focusParam, graphData, searchParams, setSearchParams]);
+
   const emptyGraph =
     !loading && (!graphData.nodes?.length || error === "firebase_unavailable");
 
@@ -134,6 +153,8 @@ export default function UniversePage() {
     [openGate, resolvePoliticoIdFromNode],
   );
 
+  // Busca SEM bypass: fly-to da câmera e PRONTO. O dossiê só abre por clique
+  // deliberado na orbe (preserva FOMO da coreografia universo).
   const handleSearchSubmit = useCallback(
     async (e) => {
       e.preventDefault();
@@ -145,9 +166,9 @@ export default function UniversePage() {
         return;
       }
       await graphRef.current?.flyToPoliticianId?.(match.id);
-      openGate(match.nome, match.id);
+      // Sem openGate aqui — a câmera para na orbe e o usuário decide o próximo passo.
     },
-    [findPoliticoByQuery, openGate, searchQuery],
+    [findPoliticoByQuery, searchQuery],
   );
 
   const handleSelectSuggestion = useCallback(
@@ -155,9 +176,9 @@ export default function UniversePage() {
       setSearchQuery(sug.nome);
       setShowSuggestions(false);
       await graphRef.current?.flyToPoliticianId?.(sug.id);
-      openGate(sug.nome, sug.id);
+      // Sem openGate — fly-to e espera o clique deliberado na orbe.
     },
-    [openGate],
+    [],
   );
 
   const loginHref = useMemo(() => {
