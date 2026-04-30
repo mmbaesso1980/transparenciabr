@@ -955,3 +955,120 @@ exports.getSprintStatus = functions
       res.status(500).json({ error: "failed_to_read_status", detail: String(err.message || err) });
     }
   });
+
+// ────────────────────────────────────────────────────────────────────────
+// /universo — cadastro básico de parlamentares (id, nome, partido, UF) lido do Data Lake.
+// Snapshot é gerado por seedUniverseRoster (query BQ público) e servido por getUniverseRoster.
+// Diretiva Suprema preservada: ZERO Firestore — leitura/escrita direta no GCS.
+// ────────────────────────────────────────────────────────────────────────
+exports.seedUniverseRoster = functions
+  .region("us-central1")
+  .runWith({ memory: "512MB", timeoutSeconds: 180 })
+  .https.onRequest(async (req, res) => {
+    res.set("Access-Control-Allow-Origin", "*");
+    try {
+      // Câmara: deputados ativos via basedosdados (cadastro público).
+      // Senátores: usamos `basedosdados.br_senado_dados_abertos.senador` quando disponível;
+      // se a tabela não existir, ignoramos senátores e seguimos só com deputados.
+      const camaraQuery = `
+        WITH dep AS (
+          SELECT
+            CAST(id_deputado AS STRING) AS id,
+            ANY_VALUE(nome) AS nome,
+            ANY_VALUE(sigla_partido) AS partido,
+            ANY_VALUE(sigla_uf) AS uf,
+            'deputado' AS cargo
+          FROM \`basedosdados.br_camara_dados_abertos.deputado\`
+          GROUP BY id_deputado
+        )
+        SELECT id, nome, partido, uf, cargo FROM dep
+        WHERE nome IS NOT NULL AND id IS NOT NULL
+      `;
+
+      const [camaraJob] = await bigquery.createQueryJob({ query: camaraQuery, location: "US" });
+      const [camaraRows] = await camaraJob.getQueryResults();
+
+      let senadoRows = [];
+      try {
+        const senadoQuery = `
+          SELECT
+            CAST(id_senador AS STRING) AS id,
+            ANY_VALUE(nome) AS nome,
+            ANY_VALUE(sigla_partido) AS partido,
+            ANY_VALUE(sigla_uf) AS uf,
+            'senador' AS cargo
+          FROM \`basedosdados.br_senado_dados_abertos.senador\`
+          GROUP BY id_senador
+          LIMIT 200
+        `;
+        const [sj] = await bigquery.createQueryJob({ query: senadoQuery, location: "US" });
+        const [sr] = await sj.getQueryResults();
+        senadoRows = sr;
+      } catch (e) {
+        console.warn("senadores não disponíveis em basedosdados:", e.message);
+      }
+
+      const all = [...camaraRows, ...senadoRows].map((r) => ({
+        id: String(r.id || "").trim(),
+        nome: String(r.nome || "").trim(),
+        partido: String(r.partido || "").trim().toUpperCase(),
+        uf: String(r.uf || "").trim().toUpperCase(),
+        cargo: r.cargo,
+      })).filter((r) => r.id && r.nome);
+
+      const payload = {
+        generated_at: new Date().toISOString(),
+        total: all.length,
+        deputados: camaraRows.length,
+        senadores: senadoRows.length,
+        roster: all,
+      };
+
+      const { Storage } = require("@google-cloud/storage");
+      const storage = new Storage();
+      const file = storage.bucket("datalake-tbr-clean").file("universe/roster.json");
+      await file.save(JSON.stringify(payload), {
+        contentType: "application/json; charset=utf-8",
+        metadata: { cacheControl: "public, max-age=300" },
+      });
+
+      res.json({ ok: true, total: all.length, deputados: camaraRows.length, senadores: senadoRows.length });
+    } catch (err) {
+      console.error("seedUniverseRoster error:", err);
+      res.status(500).json({ ok: false, error: String(err.message || err) });
+    }
+  });
+
+exports.getUniverseRoster = functions
+  .region("southamerica-east1")
+  .runWith({ memory: "256MB", timeoutSeconds: 30 })
+  .https.onRequest(async (req, res) => {
+    res.set("Access-Control-Allow-Origin", "*");
+    res.set("Access-Control-Allow-Methods", "GET");
+    res.set("Cache-Control", "public, max-age=300, s-maxage=600");
+    res.set("Content-Type", "application/json; charset=utf-8");
+
+    if (req.method !== "GET" && req.method !== "HEAD") {
+      res.status(405).json({ error: "Method not allowed" });
+      return;
+    }
+    try {
+      const { Storage } = require("@google-cloud/storage");
+      const storage = new Storage();
+      const file = storage.bucket("datalake-tbr-clean").file("universe/roster.json");
+      const [exists] = await file.exists();
+      if (!exists) {
+        res.status(404).json({
+          error: "roster.json ainda não publicado",
+          hint: "Chame seedUniverseRoster (us-central1) para gerar o snapshot.",
+          generated_at: new Date().toISOString(),
+        });
+        return;
+      }
+      const [buf] = await file.download();
+      res.status(200).send(buf.toString("utf-8"));
+    } catch (err) {
+      console.error("getUniverseRoster error:", err);
+      res.status(500).json({ error: "failed_to_read_roster", detail: String(err.message || err) });
+    }
+  });
