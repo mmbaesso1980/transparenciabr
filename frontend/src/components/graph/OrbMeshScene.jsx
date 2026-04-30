@@ -60,23 +60,22 @@ export function layoutOrbPositions(nodes) {
   return posById;
 }
 
+// ⚡ Bolt Optimization: Return native CSS color strings instead of new THREE.Color().
+// Expected Impact: Eliminates O(N) object allocations per frame in the `<Instance>` render loop mapping, drastically reducing GC overhead. Fiber's native string prop parsing correctly handles these without instantiation.
 function nodeColor(node) {
-  const c = new THREE.Color();
   if (node?.tipo === "partido" && Number.isFinite(node.partyHue)) {
     const h = Math.min(360, Math.max(0, node.partyHue));
-    c.setHSL(h / 360, 0.72, 0.58);
-    return c;
+    return `hsl(${h}, 72%, 58%)`;
   }
   const score =
     typeof node.riskScore === "number" && Number.isFinite(node.riskScore)
       ? node.riskScore
       : 45;
   try {
-    c.setStyle(getRiskColor(score));
+    return getRiskColor(score);
   } catch {
-    c.set("#58a6ff");
+    return "#58a6ff";
   }
-  return c;
 }
 
 function LinkNeon({ from, to, warm }) {
