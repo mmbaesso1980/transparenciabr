@@ -508,26 +508,9 @@ function SceneContent({
           maxDistance={52}
           enableDamping
           dampingFactor={0.08}
-    <group ref={groupRef}>
-      <ambientLight intensity={0.25} />
-      <pointLight position={[18, 14, 22]} intensity={90} color="#58a6ff" distance={80} />
-      <pointLight position={[-16, -10, 18]} intensity={55} color="#f87171" distance={70} />
-      <pointLight position={[0, -22, 12]} intensity={40} color="#a78bfa" distance={65} />
-
-      {linkSegments.map((seg, i) => (
-        <LinkNeon key={`ln-${i}`} from={seg.from} to={seg.to} warm={seg.warm} />
-      ))}
-
-      <Instances limit={maxInstances} range={nodes.length}>
-        <sphereGeometry args={[0.42, 20, 20]} />
-        <meshStandardMaterial
-          roughness={0.28}
-          metalness={0.42}
-          emissive="#1a2a4a"
-          emissiveIntensity={1.0}
         />
-        <CameraRig controlsRef={controlsRef} flyStateRef={flyStateRef} />
       </group>
+      <CameraRig controlsRef={controlsRef} flyStateRef={flyStateRef} />
     </>
   );
 }

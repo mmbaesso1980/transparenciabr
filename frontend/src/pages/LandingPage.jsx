@@ -10,7 +10,6 @@ import PoliticianOrb from "../components/PoliticianOrb.jsx";
 import UserOrb from "../components/UserOrb.jsx";
 import LandingHeroGraph from "../components/landing/LandingHeroGraph.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
-import { INVESTIGATION_CATEGORIES } from "../constants/investigationCategories.js";
 import { useTransparencyReportsUniverso } from "../hooks/useTransparencyReportsUniverso.js";
 import { useUserCredits } from "../hooks/useUserCredits.js";
 
