@@ -20,19 +20,117 @@ import { useUserCredits } from "../hooks/useUserCredits.js";
  * via botões Google / e-mail.
  */
 
+// Frentes de auditoria — orbes-portal estilo data.gov.uk.
+// `seed` é determinístico (mesma seed = mesma cor sempre).
+// `score` modula a urgência visual (90 = vermelho profundo · 35 = pastel).
+// Todas levam ao /universo (gate de login dispara via UniversePage).
+const INVESTIGATION_CATEGORIES = [
+  {
+    seed: "asmodeus.ceap",
+    score: 90,
+    label: "Cota CEAP",
+    headline: "R$ 4 bi/ano",
+    body: "Cada nota é suspeita até prova contrária. Locação, combustível, divulgação — auditados nota a nota.",
+    to: "/universo?frente=ceap",
+    cta: "Abrir no Universo",
+  },
+  {
+    seed: "asmodeus.patrimonio",
+    score: 78,
+    label: "Patrimônio TSE",
+    headline: "+1.200%",
+    body: "Crescimento patrimonial entre eleições. Bens declarados vs. faixa salarial — outliers expostos.",
+    to: "/universo?frente=patrimonio",
+    cta: "Abrir no Universo",
+  },
+  {
+    seed: "asmodeus.gabinete",
+    score: 72,
+    label: "Folha do Gabinete",
+    headline: "21 secretários",
+    body: "Familiares, sócios e fantasmas no gabinete. Cruzamento CPF × empresa × parentesco.",
+    to: "/universo?frente=gabinete",
+    cta: "Abrir no Universo",
+  },
+  {
+    seed: "asmodeus.viagens",
+    score: 65,
+    label: "Viagens & Pedágios",
+    headline: "48 passagens",
+    body: "Carro alugado em Brasília, pedágio no Rio. SEM PARAR não mente — geolocalização aberta.",
+    to: "/universo?frente=viagens",
+    cta: "Abrir no Universo",
+  },
+  {
+    seed: "asmodeus.emendas",
+    score: 82,
+    label: "Emendas & PIX",
+    headline: "R$ 50 bi",
+    body: "Emendas relator, individuais e PIX. Beneficiários terminais, ONGs sem CNAE, prefeituras-fachada.",
+    to: "/universo?frente=emendas",
+    cta: "Abrir no Universo",
+  },
+  {
+    seed: "asmodeus.contratos",
+    score: 60,
+    label: "Contratos PNCP",
+    headline: "3,7 mi licitações",
+    body: "Vencedores recorrentes, sobrepreço, dispensa indevida. OCR + Gemini sob direito administrativo.",
+    to: "/universo?frente=contratos",
+    cta: "Abrir no Universo",
+  },
+];
+
+// Frentes complementares dentro do dossiê (sinalizadas em texto, não em card).
+const FRENTES_COMPLEMENTARES = [
+  "OSINT × CEAP cruzado",
+  "Sentimento de mídia",
+  "Saúde & atestados",
+  "Agenda diária",
+  "Bússola política",
+  "Rede de relações",
+];
+
 export default function LandingPage() {
   const navigate = useNavigate();
   const { isAuthenticated, user } = useAuth();
   const { credits } = useUserCredits();
-  const { graphData, loading, error, findPoliticoByQuery } =
+  const { graphData, loading, error, findPoliticoByQuery, rows } =
     useTransparencyReportsUniverso(180);
 
   const [query, setQuery] = useState("");
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [pendingPolitico, setPendingPolitico] = useState({
     id: "",
     nome: "",
   });
+
+  // Autocomplete — sugestões de políticos enquanto digita.
+  const suggestions = useMemo(() => {
+    const needle = String(query || "").trim().toLowerCase()
+      .normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    if (needle.length < 2 || !rows?.length) return [];
+    const out = [];
+    for (const row of rows) {
+      if (out.length >= 8) break;
+      const id = String(row.id ?? "").trim();
+      const nome = String(
+        row.nome_eleitoral ?? row.nome_parlamentar ?? row.nomeParlamentar ?? row.nome ?? "",
+      ).trim();
+      if (!id || !nome) continue;
+      const hay = nome.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      if (hay.includes(needle)) {
+        out.push({
+          id,
+          nome: nome.slice(0, 80),
+          partido: String(row.sigla_partido ?? row.partido ?? "").slice(0, 8),
+          uf: String(row.uf ?? row.sigla_uf ?? "").slice(0, 2),
+        });
+      }
+    }
+    return out;
+  }, [query, rows]);
 
   const emptyGraph = !loading && (!graphData.nodes?.length || error === "firebase_unavailable");
 
@@ -84,9 +182,9 @@ export default function LandingPage() {
         <title>TransparênciaBR — Cada deputado tem um dossiê. O do seu, você ainda não viu.</title>
         <meta
           name="description"
-          content="OSINT forense em 513 deputados, 81 senadores e 5.568 prefeituras. 300 créditos diários grátis ao logar — investigue qualquer mandato em 30 segundos."
+          content="Inteligência cívica em 513 deputados, 81 senadores e 5.569 municípios. 300 créditos diários grátis ao logar — investigue qualquer mandato em 30 segundos."
         />
-        <meta property="og:title" content="TransparênciaBR — Motor Forense Cívico" />
+        <meta property="og:title" content="TransparênciaBR — Motor de Inteligência Cívica" />
         <meta
           property="og:description"
           content="Cada deputado tem um dossiê. O do seu, você ainda não viu. 300 créditos/dia grátis ao logar."
@@ -112,7 +210,7 @@ export default function LandingPage() {
       <header className="sticky top-0 z-30 flex flex-wrap items-center justify-between gap-3 border-b border-[#30363D]/50 bg-[#02040a]/80 px-4 py-3 backdrop-blur-md sm:px-8">
         <BrandLogo to="/" variant="full" size="md" />
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-          <CreditosGOD />
+          {!isAuthenticated ? <CreditosGOD /> : null}
           {isAuthenticated ? (
             <Link
               to="/perfil"
@@ -155,9 +253,9 @@ export default function LandingPage() {
           </h1>
 
           <p className="pointer-events-none mt-5 max-w-2xl text-base leading-7 text-[#AAB4C8] sm:text-lg">
-            OSINT forense em <strong className="text-[#F0F4FC]">513 deputados</strong>,{" "}
+            Inteligência cívica em <strong className="text-[#F0F4FC]">513 deputados</strong>,{" "}
             <strong className="text-[#F0F4FC]">81 senadores</strong> e{" "}
-            <strong className="text-[#F0F4FC]">5.568 prefeituras</strong>. Investigue
+            <strong className="text-[#F0F4FC]">5.569 municípios</strong>. Investigue
             qualquer mandato em 30 segundos — com contraditório ativo e fonte primária.
           </p>
 
@@ -181,10 +279,10 @@ export default function LandingPage() {
             </Link>
           )}
 
-          {/* Busca — abre modal de gate ou navega ao dossiê */}
+          {/* Busca — abre modal de gate ou navega ao dossiê (com autocomplete) */}
           <form
             onSubmit={handleSearch}
-            className="pointer-events-auto mt-8 w-full max-w-2xl rounded-2xl border border-white/10 bg-[#0d1117]/55 p-2 shadow-[0_24px_80px_rgba(0,0,0,0.55)] backdrop-blur-md"
+            className="pointer-events-auto relative mt-8 w-full max-w-2xl rounded-2xl border border-white/10 bg-[#0d1117]/55 p-2 shadow-[0_24px_80px_rgba(0,0,0,0.55)] backdrop-blur-md"
           >
             <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch sm:gap-0">
               <label className="sr-only" htmlFor="landing-search">
@@ -194,9 +292,17 @@ export default function LandingPage() {
                 id="landing-search"
                 type="search"
                 value={query}
-                onChange={(e) => setQuery(e.target.value)}
+                onChange={(e) => {
+                  setQuery(e.target.value);
+                  setShowSuggestions(true);
+                }}
+                onFocus={() => setShowSuggestions(true)}
+                onBlur={() => setTimeout(() => setShowSuggestions(false), 180)}
                 placeholder="Pesquise seu político..."
                 autoComplete="off"
+                role="combobox"
+                aria-expanded={showSuggestions && suggestions.length > 0}
+                aria-controls="landing-search-suggestions"
                 className="min-h-12 flex-1 rounded-xl border border-transparent bg-[#080b14]/90 px-4 text-base text-[#F0F4FC] outline-none ring-0 placeholder:text-[#6e7681] focus:border-[#58A6FF]/45 sm:rounded-l-xl sm:rounded-r-none sm:px-5"
               />
               <button
@@ -211,6 +317,37 @@ export default function LandingPage() {
                 Buscar
               </button>
             </div>
+
+            {/* Dropdown de sugestões */}
+            {showSuggestions && suggestions.length > 0 ? (
+              <ul
+                id="landing-search-suggestions"
+                role="listbox"
+                className="absolute left-2 right-2 top-[calc(100%+0.4rem)] z-40 max-h-72 overflow-y-auto rounded-xl border border-[#30363D] bg-[#0d1117]/96 p-1 shadow-[0_18px_50px_rgba(0,0,0,0.6)] backdrop-blur-xl"
+              >
+                {suggestions.map((s) => (
+                  <li key={s.id}>
+                    <button
+                      type="button"
+                      role="option"
+                      onMouseDown={(ev) => ev.preventDefault()}
+                      onClick={() => {
+                        setShowSuggestions(false);
+                        setQuery(s.nome);
+                        openGate(s.nome, s.id);
+                      }}
+                      className="flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-left text-sm text-[#E6EDF3] transition hover:bg-[#21262D] focus:bg-[#21262D] focus:outline-none"
+                    >
+                      <span className="truncate">{s.nome}</span>
+                      <span className="shrink-0 font-data text-[10px] font-semibold uppercase tracking-[0.18em] text-[#7DD3FC]">
+                        {s.partido}{s.partido && s.uf ? "·" : ""}{s.uf}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+
             <div className="mt-3 px-2 text-left">
               {loading ? (
                 <p className="text-[11px] leading-relaxed text-[#8B949E]">
@@ -241,11 +378,11 @@ export default function LandingPage() {
                 id="categorias-heading"
                 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl"
               >
-                Seis portais. Um único veredito por mandato.
+                Um Universo. Mais de dez frentes de auditoria.
               </h2>
               <p className="mt-2 max-w-2xl text-sm leading-7 text-[#AAB4C8]">
-                Cada orbe é uma frente de auditoria autônoma. Você abre, ela
-                devolve os mandatos com risco mais alto naquela frente.
+                Cada orbe é uma frente autônoma. Você abre uma, todas se
+                conectam no mesmo dossiê — sem pular de aba, sem perder o fio.
               </p>
             </div>
             <span className="inline-flex items-center gap-2 rounded-full border border-[#FDE047]/30 bg-[#FDE047]/10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-[#FDE047]">
@@ -258,7 +395,7 @@ export default function LandingPage() {
             {INVESTIGATION_CATEGORIES.map((cat) => (
               <li key={cat.seed}>
                 <Link
-                  to={cat.to}
+                  to={isAuthenticated ? cat.to : `/login?redirect=${encodeURIComponent(cat.to)}`}
                   className="group flex h-full flex-col gap-4 rounded-2xl border border-[#21262D] bg-[#080B14]/72 p-5 text-left transition hover:-translate-y-0.5 hover:border-[#7DD3FC]/40 hover:bg-[#0D1117]/85 hover:shadow-[0_20px_50px_rgba(125,211,252,0.15)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7DD3FC]"
                 >
                   <div className="flex items-start gap-4">
@@ -288,6 +425,21 @@ export default function LandingPage() {
               </li>
             ))}
           </ul>
+
+          {/* Frentes complementares — indica profundidade sem poluir o grid */}
+          <div className="mt-7 flex flex-wrap items-center gap-2 border-t border-[#30363D]/55 pt-5">
+            <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#8B949E]">
+              + dentro do dossiê:
+            </span>
+            {FRENTES_COMPLEMENTARES.map((f) => (
+              <span
+                key={f}
+                className="inline-flex h-7 items-center rounded-full border border-[#21262D] bg-[#0D1117]/65 px-3 text-[11px] font-medium text-[#C9D1D9]"
+              >
+                {f}
+              </span>
+            ))}
+          </div>
         </section>
       </main>
 
