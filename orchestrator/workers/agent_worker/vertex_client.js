@@ -6,12 +6,10 @@
  * and exponential back-off on quota errors.
  *
  * Environment variables:
- *   VERTEX_REASONING_ENGINE_ID  – full resource name override (optional)
+ *   VERTEX_REASONING_ENGINE_ID  – full resource name (required; G.O.A.T.: no hardcoded GCP project/engine fallback)
  *   VERTEX_TIMEOUT_SECONDS      – per-request timeout in seconds (default 600)
  *   GCP_PROJECT_ID              – Google Cloud project ID
  */
-
-import { helpers } from '@google-cloud/aiplatform';
 
 // Dynamically import protobufjs Value helper from aiplatform bundle.
 // The actual gRPC client is accessed through the v1beta1 namespace.
@@ -29,9 +27,16 @@ const { v1beta1 } = aiplatform;
  */
 export const SUPREME_AGENT_BUILDER_ID = 'agent_1777236402725';
 
-const REASONING_ENGINE_RESOURCE =
-  process.env.VERTEX_REASONING_ENGINE_ID ??
-  'projects/89728155070/locations/us-west1/reasoningEngines/4398310393894666240';
+/**
+ * @param {string} resourceName
+ * @returns {string | null} location id, e.g. us-west1
+ */
+function locationFromReasoningEngineName(resourceName) {
+  const m = /^projects\/[^/]+\/locations\/([^/]+)\/reasoningEngines\/[^/]+$/.exec(
+    String(resourceName || '').trim(),
+  );
+  return m ? m[1] : null;
+}
 
 const TIMEOUT_SECONDS = parseInt(
   process.env.VERTEX_TIMEOUT_SECONDS ?? '600',
@@ -104,6 +109,8 @@ async function withBackoff(fn, maxRetries = MAX_RETRIES) {
 export class VertexReasoningClient {
   #client = null;
   #initialized = false;
+  /** @type {string} */
+  #reasoningEngineResource = '';
 
   /** @returns {boolean} */
   get isReady() {
@@ -115,14 +122,30 @@ export class VertexReasoningClient {
    * @returns {Promise<void>}
    */
   async init() {
+    const resource = (process.env.VERTEX_REASONING_ENGINE_ID || '').trim();
+    if (!resource) {
+      throw new Error(
+        'VERTEX_REASONING_ENGINE_ID is required (full name: projects/.../locations/.../reasoningEngines/...). ' +
+          'Do not rely on a baked-in project or engine id.',
+      );
+    }
+    const location = locationFromReasoningEngineName(resource);
+    if (!location) {
+      throw new Error(
+        'VERTEX_REASONING_ENGINE_ID must match projects/{project}/locations/{region}/reasoningEngines/{numeric_id}',
+      );
+    }
+    this.#reasoningEngineResource = resource;
+    const apiEndpoint = `${location}-aiplatform.googleapis.com`;
     this.#client = new v1beta1.ReasoningEngineExecutionServiceClient({
-      apiEndpoint: 'us-west1-aiplatform.googleapis.com',
+      apiEndpoint,
     });
     // Eagerly warm up credentials
     await this.#client.initialize();
     this.#initialized = true;
     log('INFO', 'VertexReasoningClient initialised', {
-      resource: REASONING_ENGINE_RESOURCE,
+      resource: this.#reasoningEngineResource,
+      api_endpoint: apiEndpoint,
     });
   }
 
@@ -149,7 +172,7 @@ export class VertexReasoningClient {
     });
 
     const request = {
-      reasoningEngine: REASONING_ENGINE_RESOURCE,
+      reasoningEngine: this.#reasoningEngineResource,
       input: {
         input: prompt,
         ...(tools.length > 0 && { tools }),
