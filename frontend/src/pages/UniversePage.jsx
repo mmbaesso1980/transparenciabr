@@ -330,7 +330,7 @@ export default function UniversePage() {
 
       {/* Strip horizontal de bentos — mobile apenas (<sm). Acima da busca, sem cobrir canvas. */}
       <div className="pointer-events-none absolute inset-x-0 bottom-[7.5rem] z-20 px-3 sm:hidden">
-        <div className="pointer-events-auto -mx-1 flex snap-x snap-mandatory gap-2.5 overflow-x-auto px-1 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="pointer-events-auto flex snap-x snap-mandatory gap-2.5 overflow-x-auto px-1 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {[...LEFT_BENTO, ...RIGHT_BENTO].map((cat) => (
             <Link
               key={`mobile-${cat.seed}`}
