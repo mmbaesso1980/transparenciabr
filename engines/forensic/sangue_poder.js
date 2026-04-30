@@ -98,11 +98,18 @@ function loadCeapSuppliers() {
   const byParlamentar = new Map(); // id_dep → Map<cnpj, {nome, valor_total, qtd_notas}>
 
   for (const year of YEARS) {
-    const prefix = `${BUCKET_CLEAN}/ceap/year=${year}/`;
-    const files = gsLs(prefix).filter(f => f.endsWith('.ndjson') || f.endsWith('.csv'));
+    // ingestor grava em ceap_camara/ (vide ceap_camara.yaml). Tentamos ambos por compat.
+    const prefixes = [
+      `${BUCKET_CLEAN}/ceap_camara/year=${year}/`,
+      `${BUCKET_CLEAN}/ceap/year=${year}/`,
+    ];
+    let files = [];
+    for (const p of prefixes) {
+      files = gsLs(p).filter(f => f.endsWith('.ndjson') || f.endsWith('.csv'));
+      if (files.length > 0) break;
+    }
     if (files.length === 0) {
-      // tentar raw
-      const rawFiles = gsLs(`${BUCKET_RAW}/ceap/year=${year}/`).filter(f => /\.csv$/i.test(f));
+      const rawFiles = gsLs(`${BUCKET_RAW}/ceap_camara/year=${year}/`).filter(f => /\.csv$|\.json$/i.test(f));
       files.push(...rawFiles);
     }
 
@@ -273,7 +280,7 @@ function detectarVinculos(suppliers, qsa, tree) {
           cpf_compativel: cpfMatch,
           severidade: cpfMatch ? 'CRITICA' : (match.score >= 0.95 ? 'ALTA' : 'MEDIA'),
           fonte_evidencias: [
-            `gs://${BUCKET_CLEAN}/ceap/`,
+            `gs://${BUCKET_CLEAN}/ceap_camara/`,
             `gs://${BUCKET_CLEAN}/qsa/`,
             `gs://${BUCKET_CLEAN}/tse/parentes/`,
           ],

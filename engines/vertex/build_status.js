@@ -15,6 +15,7 @@ import { writeFileSync } from 'node:fs';
 
 const BUCKET_RAW = 'datalake-tbr-raw';
 const BUCKET_CLEAN = 'datalake-tbr-clean';
+const BUCKET_PUBLIC = 'tbr-public-dashboard'; // bucket dedicado, 100% público
 
 function gsCat(uri) {
   try { return execSync(`gsutil cat "${uri}" 2>/dev/null`, { encoding: 'utf-8', maxBuffer: 50 * 1024 * 1024 }); }
@@ -109,6 +110,6 @@ const status = {
 
 const local = '/tmp/sprint_status.json';
 writeFileSync(local, JSON.stringify(status, null, 2));
-execSync(`gsutil -q -h "Cache-Control:public,max-age=60" -h "Content-Type:application/json" cp "${local}" "gs://${BUCKET_CLEAN}/dashboard/sprint_status.json"`);
-// Bucket usa Uniform Bucket-Level Access — leitura pública é via IAM, configurada uma vez via setup_public_dashboard.sh
-console.log(`✅ status publicado em https://storage.googleapis.com/${BUCKET_CLEAN}/dashboard/sprint_status.json`);
+// Publica APENAS no bucket dedicado público (separação física do datalake privado)
+execSync(`gsutil -q -h "Cache-Control:public,max-age=60" -h "Content-Type:application/json" cp "${local}" "gs://${BUCKET_PUBLIC}/sprint_status.json"`);
+console.log(`✅ status publicado em https://storage.googleapis.com/${BUCKET_PUBLIC}/sprint_status.json`);
