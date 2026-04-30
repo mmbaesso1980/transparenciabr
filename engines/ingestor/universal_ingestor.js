@@ -462,6 +462,182 @@ async function ingestPostgrest(source, args) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// FONTE: postgrest_no_year (Transferegov endpoints sem ano_emenda — paga tudo de uma vez)
+//   Usado por: executor_especial, relatorio_gestao_especial.
+//   Salva em snapshot=YYYY-MM-DD ao invés de year= (porque é o universo completo).
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function ingestPostgrestNoYear(source, args) {
+  const { name, fetch_config } = source;
+  const url = fetch_config.url_template;
+  const snapshotDate = (args.snapshot || new Date().toISOString().slice(0, 10));
+
+  logger.info('postgrest_no_year_start', { source: name, snapshot: snapshotDate, url });
+
+  const baseHeaders = {
+    'Range-Unit': 'items',
+    ...(fetch_config.headers || {}),
+  };
+  const pageSize = fetch_config.page_size || 5000;
+  let offset = 0;
+  const allRawItems = [];
+
+  while (true) {
+    const rangeHeaders = { ...baseHeaders, 'Range': `${offset}-${offset + pageSize - 1}` };
+    let response;
+    try {
+      response = await fetchWithRetry(url, { headers: rangeHeaders });
+    } catch (err) {
+      logger.error('postgrest_no_year_fetch_failed', { source: name, offset, error: err.message });
+      break;
+    }
+    const items = await response.json();
+    if (!items || items.length === 0) break;
+    allRawItems.push(...items);
+    logger.debug('postgrest_no_year_page', { source: name, offset, items: items.length, accumulated: allRawItems.length });
+    if (items.length < pageSize) break;
+    offset += pageSize;
+    if (fetch_config.delay_ms) await sleep(fetch_config.delay_ms);
+  }
+
+  const rawPath = `${name}/snapshot=${snapshotDate}/raw.json`;
+  const rawUrl = await uploadToGCS(RAW_BUCKET, rawPath, JSON.stringify(allRawItems),
+    'application/json', { records: String(allRawItems.length), snapshot: snapshotDate });
+
+  const { cleanRecords, quarantine, redactions } = processBatch(allRawItems, {
+    schema: source.schema_strict || null,
+  });
+
+  const cleanPath = `${name}/snapshot=${snapshotDate}/clean.ndjson`;
+  const cleanUrl = await uploadToGCS(CLEAN_BUCKET, cleanPath,
+    cleanRecords.map(r => JSON.stringify(r)).join('\n'),
+    'application/x-ndjson',
+    { records: String(cleanRecords.length), snapshot: snapshotDate });
+
+  let quarantineUrl = null;
+  if (quarantine.length > 0) {
+    const quarantinePath = `${name}/snapshot=${snapshotDate}/quarantine.ndjson`;
+    quarantineUrl = await uploadToGCS(QUARANTINE_BUCKET, quarantinePath,
+      quarantine.map(r => JSON.stringify(r)).join('\n'),
+      'application/x-ndjson',
+      { records: String(quarantine.length), snapshot: snapshotDate });
+  }
+
+  logger.info('postgrest_no_year_done', {
+    source: name, snapshot: snapshotDate,
+    raw_records: allRawItems.length,
+    clean_records: cleanRecords.length,
+    quarantined: quarantine.length,
+    redactions, raw_url: rawUrl, clean_url: cleanUrl, quarantine_url: quarantineUrl,
+  });
+  return { records: cleanRecords.length, quarantined: quarantine.length, redactions };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FONTE: rest_paginated_monthly (PNCP — varre mês a mês de um ano)
+// Particiona por year=, agrega contratos de janeiro a dezembro.
+// ─────────────────────────────────────────────────────────────────────────────
+
+function monthBounds(year, month) {
+  const start = new Date(Date.UTC(year, month - 1, 1));
+  const end = new Date(Date.UTC(year, month, 0));
+  const fmt = (d) => `${d.getUTCFullYear()}${String(d.getUTCMonth() + 1).padStart(2, '0')}${String(d.getUTCDate()).padStart(2, '0')}`;
+  return { start: fmt(start), end: fmt(end) };
+}
+
+async function ingestRestPaginatedMonthly(source, args) {
+  const { name, fetch_config } = source;
+  const year = args.year || new Date().getFullYear();
+  const monthsArg = args.months || (year === new Date().getFullYear() ? null : '1-12');
+  // default = todos os meses até o atual quando ano = corrente
+  const today = new Date();
+  const lastMonth = (year === today.getFullYear()) ? today.getMonth() + 1 : 12;
+
+  let monthList;
+  if (monthsArg && monthsArg.includes('-')) {
+    const [a, b] = monthsArg.split('-').map(n => parseInt(n, 10));
+    monthList = [];
+    for (let m = a; m <= b; m++) monthList.push(m);
+  } else if (monthsArg) {
+    monthList = monthsArg.split(',').map(n => parseInt(n, 10));
+  } else {
+    monthList = [];
+    for (let m = 1; m <= lastMonth; m++) monthList.push(m);
+  }
+
+  const allRawItems = [];
+  const dataField = fetch_config.data_field || 'data';
+  const pageSize = fetch_config.page_size || 50;
+  const maxPagesPerMonth = fetch_config.max_pages_per_month || 200;
+
+  for (const month of monthList) {
+    const { start, end } = monthBounds(year, month);
+    let page = 1;
+    let pagesThisMonth = 0;
+    while (true) {
+      const sep = fetch_config.url_template.includes('?') ? '&' : '?';
+      const url = `${fetch_config.url_template}${sep}` +
+        `${fetch_config.date_initial_param || 'dataInicial'}=${start}&` +
+        `${fetch_config.date_final_param || 'dataFinal'}=${end}&` +
+        `${fetch_config.page_param || 'pagina'}=${page}&` +
+        `${fetch_config.page_size_param || 'tamanhoPagina'}=${pageSize}`;
+      let response;
+      try {
+        response = await fetchWithRetry(url, { headers: fetch_config.headers || {} });
+      } catch (err) {
+        logger.error('rest_monthly_fetch_failed', { source: name, year, month, page, error: err.message });
+        break;
+      }
+      const body = await response.json();
+      const items = body?.[dataField] || [];
+      if (!items || items.length === 0) break;
+      allRawItems.push(...items);
+      pagesThisMonth++;
+      logger.debug('rest_monthly_page', { source: name, year, month, page, items: items.length, accumulated: allRawItems.length });
+      if (items.length < pageSize) break;
+      if (pagesThisMonth >= maxPagesPerMonth) {
+        logger.warn('rest_monthly_max_pages_hit', { source: name, year, month, max: maxPagesPerMonth });
+        break;
+      }
+      page++;
+      if (fetch_config.delay_ms) await sleep(fetch_config.delay_ms);
+    }
+    logger.info('rest_monthly_month_done', { source: name, year, month, pagesThisMonth, accumulated: allRawItems.length });
+  }
+
+  const rawPath = `${name}/year=${year}/raw.json`;
+  const rawUrl = await uploadToGCS(RAW_BUCKET, rawPath, JSON.stringify(allRawItems),
+    'application/json', { records: String(allRawItems.length), year: String(year) });
+
+  const { cleanRecords, quarantine, redactions } = processBatch(allRawItems, {
+    schema: source.schema_strict || null,
+  });
+  const cleanPath = `${name}/year=${year}/clean.ndjson`;
+  const cleanUrl = await uploadToGCS(CLEAN_BUCKET, cleanPath,
+    cleanRecords.map(r => JSON.stringify(r)).join('\n'),
+    'application/x-ndjson',
+    { records: String(cleanRecords.length), year: String(year) });
+
+  let quarantineUrl = null;
+  if (quarantine.length > 0) {
+    const quarantinePath = `${name}/year=${year}/quarantine.ndjson`;
+    quarantineUrl = await uploadToGCS(QUARANTINE_BUCKET, quarantinePath,
+      quarantine.map(r => JSON.stringify(r)).join('\n'),
+      'application/x-ndjson',
+      { records: String(quarantine.length), year: String(year) });
+  }
+
+  logger.info('rest_monthly_done', {
+    source: name, year,
+    raw_records: allRawItems.length,
+    clean_records: cleanRecords.length,
+    quarantined: quarantine.length,
+    redactions, raw_url: rawUrl, clean_url: cleanUrl, quarantine_url: quarantineUrl,
+  });
+  return { records: cleanRecords.length, quarantined: quarantine.length, redactions };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // DISPATCHER
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -469,7 +645,9 @@ const STRATEGIES = {
   csv_yearly_file: ingestCsvYearlyFile,
   csv_static_file: ingestCsvStaticFile,
   rest_paginated: ingestRestPaginated,
+  rest_paginated_monthly: ingestRestPaginatedMonthly,
   postgrest: ingestPostgrest,
+  postgrest_no_year: ingestPostgrestNoYear,
 };
 
 export async function ingestSource(sourceName, args = {}) {
@@ -514,6 +692,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   ingestSource(args.source, {
     year: args.year ? parseInt(args.year, 10) : undefined,
     snapshot: args.snapshot || undefined,
+    months: args.months || undefined,
   })
     .then(result => {
       console.error(`✅ ${args.source} done: ${result.records} records, quarantined: ${result.quarantined}, redactions: ${JSON.stringify(result.redactions)}`);

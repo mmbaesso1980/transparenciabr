@@ -1,0 +1,34 @@
+# Fonte: CGU Portal da Transparência — Emendas Parlamentares por localidade do gasto.
+# Inclui empenhado/liquidado/pago por código de emenda e UF.
+# Requer chave-api-dados (env: PORTAL_TRANSPARENCIA_API_KEY).
+name: cgu_emendas_localidade
+description: "Emendas parlamentares (CGU) com localidade do gasto, empenho, liquidação"
+type: rest_paginated
+priority: high
+sovereignty_class: public
+
+fetch_config:
+  url_template: "https://api.portaldatransparencia.gov.br/api-de-dados/emendas?ano={year}"
+  api_key_env: PORTAL_TRANSPARENCIA_API_KEY
+  api_key_header: "chave-api-dados"
+  page_param: "pagina"
+  page_start: 1
+  page_size: 500
+  delay_ms: 250
+  max_pages: 200
+  headers:
+    Accept: "application/json"
+    User-Agent: "TransparenciaBR-Ingestor/1.0"
+
+# Schema confirmado:
+#   codigoEmenda            — PK (junção com plano_acao_especial.numero_emenda_parlamentar)
+#   ano / tipoEmenda / autor / nomeAutor
+#   numeroEmenda
+#   localidadeDoGasto       — UF ou município
+#   funcao / subfuncao
+#   valorEmpenhado / valorLiquidado / valorPago
+#   valorRestoInscrito / valorRestoPago
+
+retention:
+  raw_versioning: enabled
+  archive_after_days: 90

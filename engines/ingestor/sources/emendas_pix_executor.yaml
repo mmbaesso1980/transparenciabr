@@ -1,0 +1,35 @@
+# Fonte: Executor Especial — Transferegov (Transferências Especiais EC 105/2019)
+# 🎯 PULO DO GATO: decifra QUEM recebeu o PIX (município, CNPJ, dados bancários).
+# Endpoint público (PostgREST), sem auth, sem partição por ano.
+# Junção com plano_acao_especial via id_plano_acao.
+# Documentação: https://docs.api.transferegov.gestao.gov.br/transferenciasespeciais/
+name: emendas_pix_executor
+description: "Executores especiais — quem recebe Emendas PIX (CNPJ, banco, conta, objeto)"
+type: postgrest_no_year
+priority: critical
+sovereignty_class: public
+
+fetch_config:
+  url_template: "https://api.transferegov.gestao.gov.br/transferenciasespeciais/executor_especial"
+  page_size: 5000
+  delay_ms: 300
+  headers:
+    Accept: "application/json"
+    User-Agent: "TransparenciaBR-Ingestor/1.0"
+
+# Schema confirmado (campos reais):
+#   id_plano_acao              — junção com plano_acao_especial e relatorio_gestao_especial
+#   id_executor                — PK
+#   cnpj_executor              — CNPJ destinatário (chave OpenCNPJ enrichment)
+#   nome_executor              — razão social / município
+#   objeto_executor            — descrição do uso (texto p/ Vertex classify)
+#   vl_custeio_executor        — R$ corrente
+#   vl_investimento_executor   — R$ capital
+#   codigo_banco_executor      — banco
+#   numero_agencia_executor    — agência
+#   numero_conta_executor      — conta destino
+#   descricao_situacao_dado_bancario_executor
+
+retention:
+  raw_versioning: enabled
+  archive_after_days: 90

@@ -1,0 +1,36 @@
+# Fonte: Plano de Ação Especial — Transferegov (Transferências Especiais EC 105/2019)
+# Cada plano descreve PARA QUE o município pretende aplicar o PIX.
+# Endpoint PostgREST, sem auth. Particionado por ano_plano_acao.
+name: emendas_pix_planos
+description: "Planos de ação especiais (parlamentar, ano, beneficiário, áreas, valores)"
+type: postgrest
+priority: critical
+sovereignty_class: public
+
+fetch_config:
+  url_template: "https://api.transferegov.gestao.gov.br/transferenciasespeciais/plano_acao_especial"
+  year_param: ano_plano_acao
+  page_size: 5000
+  delay_ms: 300
+  headers:
+    Accept: "application/json"
+    User-Agent: "TransparenciaBR-Ingestor/1.0"
+
+# Schema confirmado (campos relevantes):
+#   id_plano_acao                                 — PK
+#   codigo_plano_acao                             — código humano
+#   ano_plano_acao                                — partição
+#   situacao_plano_acao                           — status
+#   cnpj_beneficiario_plano_acao                  — CNPJ destino
+#   nome_beneficiario_plano_acao                  — município
+#   uf_beneficiario_plano_acao
+#   nome_parlamentar_emenda_plano_acao            — quem indicou
+#   ano_emenda_parlamentar_plano_acao
+#   numero_emenda_parlamentar_plano_acao          — junção com emendas_pix
+#   codigo_descricao_areas_politicas_publicas_plano_acao  — texto p/ Vertex
+#   valor_custeio_plano_acao
+#   valor_investimento_plano_acao
+
+retention:
+  raw_versioning: enabled
+  archive_after_days: 90

@@ -1,0 +1,26 @@
+# Fonte: Relatório de Gestão Especial — Transferegov
+# Pareceres e situação de execução por plano de ação.
+# Endpoint PostgREST, sem auth, sem partição por ano.
+name: transferegov_relatorio_gestao
+description: "Relatórios de gestão dos PIX (situação, parecer, plano)"
+type: postgrest_no_year
+priority: high
+sovereignty_class: public
+
+fetch_config:
+  url_template: "https://api.transferegov.gestao.gov.br/transferenciasespeciais/relatorio_gestao_especial"
+  page_size: 5000
+  delay_ms: 300
+  headers:
+    Accept: "application/json"
+    User-Agent: "TransparenciaBR-Ingestor/1.0"
+
+# Schema confirmado:
+#   id_relatorio_gestao
+#   situacao_relatorio_gestao   — EM_ELABORACAO, FINALIZADO etc.
+#   parecer_relatorio_gestao    — texto livre (Vertex classify)
+#   id_plano_acao               — junção com plano_acao_especial
+
+retention:
+  raw_versioning: enabled
+  archive_after_days: 90

@@ -1,0 +1,38 @@
+# Fonte: PNCP — Portal Nacional de Contratações Públicas
+# Contratos públicos federais/estaduais/municipais publicados na plataforma única.
+# API consulta v1, sem auth. Particiona por intervalo dataInicial/dataFinal mensal.
+name: pncp_contratos
+description: "Contratos públicos PNCP (objeto, fornecedor, valor, órgão)"
+type: rest_paginated_monthly
+priority: high
+sovereignty_class: public
+
+fetch_config:
+  url_template: "https://pncp.gov.br/api/consulta/v1/contratos"
+  date_format: "yyyymmdd"
+  page_param: "pagina"
+  page_size_param: "tamanhoPagina"
+  page_size: 500
+  data_field: "data"
+  date_initial_param: "dataInicial"
+  date_final_param: "dataFinal"
+  delay_ms: 400
+  max_pages_per_month: 200
+  headers:
+    Accept: "application/json"
+    User-Agent: "TransparenciaBR-Ingestor/1.0"
+
+# Schema relevante:
+#   numeroControlePNCP            — PK
+#   orgaoEntidade.cnpj/razaoSocial — comprador
+#   niFornecedor                   — CPF/CNPJ fornecedor (chave OpenCNPJ)
+#   nomeRazaoSocialFornecedor
+#   objetoContrato                 — texto p/ Vertex classify
+#   valorGlobal / valorInicial
+#   unidadeOrgao.codigoIbge / ufSigla / municipioNome
+#   anoContrato / dataAssinatura
+#   categoriaProcesso.nome
+
+retention:
+  raw_versioning: enabled
+  archive_after_days: 90
