@@ -1,28 +1,35 @@
 #!/bin/bash
-# Torna a pasta gs://datalake-tbr-clean/dashboard/ publicamente legível via IAM
-# (compatível com Uniform Bucket-Level Access — UBLA).
+# Cria bucket dedicado tbr-public-dashboard com leitura pública TOTAL.
+# Bucket separado preserva isolamento físico do datalake privado.
 #
-# Uso: bash scripts/setup_public_dashboard.sh
-#
-# Por que: o painel mobile (https://transparenciabr.web.app/sprint.html) precisa
-# fazer fetch do sprint_status.json sem auth. Como o bucket TBR-clean é UBLA,
-# não dá pra usar `gsutil acl ch` — tem que usar IAM em condition path.
+# Por que separado: GCP não aceita IAM condition em binding com allUsers
+# (LintValidationUnits/PublicResourceAllowConditionCheck). Solução oficial
+# Google: bucket dedicado pra conteúdo público.
 
 set -e
 
-BUCKET="datalake-tbr-clean"
+BUCKET="tbr-public-dashboard"
+LOCATION="${LOCATION:-us-central1}"
 
-echo "🔓 Liberando leitura pública APENAS de gs://$BUCKET/dashboard/*"
+echo "📦 Criando bucket público dedicado: gs://$BUCKET"
 
-# IAM condition: só objetos cujo nome começa com 'dashboard/'
+if gcloud storage buckets describe "gs://$BUCKET" >/dev/null 2>&1; then
+  echo "   Já existe — ok."
+else
+  gcloud storage buckets create "gs://$BUCKET" \
+    --location="$LOCATION" \
+    --uniform-bucket-level-access \
+    --public-access-prevention=inherited
+fi
+
+echo "🔓 Liberando leitura pública"
 gcloud storage buckets add-iam-policy-binding "gs://$BUCKET" \
   --member=allUsers \
-  --role=roles/storage.objectViewer \
-  --condition='^expression=resource.name.startsWith("projects/_/buckets/'"$BUCKET"'/objects/dashboard/"),title=public_dashboard,description=Painel mobile sprint TBR'
+  --role=roles/storage.objectViewer
 
 echo ""
-echo "✅ Leitura pública liberada SOMENTE em gs://$BUCKET/dashboard/"
-echo "   Resto do bucket continua privado."
+echo "✅ Bucket público pronto."
 echo ""
-echo "Teste rápido:"
-echo "  curl -sI https://storage.googleapis.com/$BUCKET/dashboard/sprint_status.json | head -3"
+echo "Teste:"
+echo "  echo '{\"test\":\"ok\"}' | gcloud storage cp - gs://$BUCKET/test.json"
+echo "  curl -sI https://storage.googleapis.com/$BUCKET/test.json"
