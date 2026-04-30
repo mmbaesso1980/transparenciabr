@@ -967,60 +967,69 @@ exports.seedUniverseRoster = functions
   .https.onRequest(async (req, res) => {
     res.set("Access-Control-Allow-Origin", "*");
     try {
-      // Câmara: deputados ativos via basedosdados (cadastro público).
-      // Senátores: usamos `basedosdados.br_senado_dados_abertos.senador` quando disponível;
-      // se a tabela não existir, ignoramos senátores e seguimos só com deputados.
-      const camaraQuery = `
-        WITH dep AS (
-          SELECT
-            CAST(id_deputado AS STRING) AS id,
-            ANY_VALUE(nome) AS nome,
-            ANY_VALUE(sigla_partido) AS partido,
-            ANY_VALUE(sigla_uf) AS uf,
-            'deputado' AS cargo
-          FROM \`basedosdados.br_camara_dados_abertos.deputado\`
-          GROUP BY id_deputado
-        )
-        SELECT id, nome, partido, uf, cargo FROM dep
-        WHERE nome IS NOT NULL AND id IS NOT NULL
-      `;
+      // Câmara: API oficial dadosabertos.camara.leg.br/api/v2/deputados (paginada).
+      // Senátores: legis.senado.leg.br/dadosabertos/senador/lista/atual.json (resposta única).
+      // Sem dependência de BigQuery — dados sempre frescos, fonte oficial.
+      const fetchJson = async (url, headers = {}) => {
+        const resp = await fetch(url, { headers: { Accept: "application/json", ...headers } });
+        if (!resp.ok) throw new Error(`${url} returned ${resp.status}`);
+        return resp.json();
+      };
 
-      const [camaraJob] = await bigquery.createQueryJob({ query: camaraQuery, location: "US" });
-      const [camaraRows] = await camaraJob.getQueryResults();
-
-      let senadoRows = [];
-      try {
-        const senadoQuery = `
-          SELECT
-            CAST(id_senador AS STRING) AS id,
-            ANY_VALUE(nome) AS nome,
-            ANY_VALUE(sigla_partido) AS partido,
-            ANY_VALUE(sigla_uf) AS uf,
-            'senador' AS cargo
-          FROM \`basedosdados.br_senado_dados_abertos.senador\`
-          GROUP BY id_senador
-          LIMIT 200
-        `;
-        const [sj] = await bigquery.createQueryJob({ query: senadoQuery, location: "US" });
-        const [sr] = await sj.getQueryResults();
-        senadoRows = sr;
-      } catch (e) {
-        console.warn("senadores não disponíveis em basedosdados:", e.message);
+      // Paginar a Câmara: 100 por página, pára quando não tem `next`.
+      const camaraDeputados = [];
+      let pagina = 1;
+      while (true) {
+        const url = `https://dadosabertos.camara.leg.br/api/v2/deputados?ordem=ASC&ordenarPor=nome&itens=100&pagina=${pagina}`;
+        const data = await fetchJson(url);
+        const dados = Array.isArray(data?.dados) ? data.dados : [];
+        for (const d of dados) {
+          camaraDeputados.push({
+            id: String(d.id || "").trim(),
+            nome: String(d.nome || "").trim(),
+            partido: String(d.siglaPartido || "").trim().toUpperCase(),
+            uf: String(d.siglaUf || "").trim().toUpperCase(),
+            urlFoto: d.urlFoto || "",
+            cargo: "deputado",
+          });
+        }
+        const hasNext = Array.isArray(data?.links) && data.links.some((l) => l.rel === "next");
+        if (!hasNext || dados.length === 0) break;
+        pagina++;
+        if (pagina > 30) break; // sanity
       }
 
-      const all = [...camaraRows, ...senadoRows].map((r) => ({
-        id: String(r.id || "").trim(),
-        nome: String(r.nome || "").trim(),
-        partido: String(r.partido || "").trim().toUpperCase(),
-        uf: String(r.uf || "").trim().toUpperCase(),
-        cargo: r.cargo,
-      })).filter((r) => r.id && r.nome);
+      // Senátores em exercício: uma única chamada.
+      const senadoresList = [];
+      try {
+        const sJson = await fetchJson(
+          "https://legis.senado.leg.br/dadosabertos/senador/lista/atual.json",
+        );
+        const arr = sJson?.ListaParlamentarEmExercicio?.Parlamentares?.Parlamentar;
+        const list = Array.isArray(arr) ? arr : arr ? [arr] : [];
+        for (const p of list) {
+          const ip = p?.IdentificacaoParlamentar || {};
+          senadoresList.push({
+            id: String(ip.CodigoParlamentar || "").trim(),
+            nome: String(ip.NomeParlamentar || "").trim(),
+            partido: String(ip.SiglaPartidoParlamentar || "").trim().toUpperCase(),
+            uf: String(ip.UfParlamentar || "").trim().toUpperCase(),
+            urlFoto: ip.UrlFotoParlamentar || "",
+            cargo: "senador",
+          });
+        }
+      } catch (e) {
+        console.warn("senadores não carregados:", e.message);
+      }
+
+      const all = [...camaraDeputados, ...senadoresList].filter((r) => r.id && r.nome);
 
       const payload = {
         generated_at: new Date().toISOString(),
         total: all.length,
-        deputados: camaraRows.length,
-        senadores: senadoRows.length,
+        deputados: camaraDeputados.length,
+        senadores: senadoresList.length,
+        fonte: "dadosabertos.camara.leg.br + legis.senado.leg.br",
         roster: all,
       };
 
@@ -1032,7 +1041,12 @@ exports.seedUniverseRoster = functions
         metadata: { cacheControl: "public, max-age=300" },
       });
 
-      res.json({ ok: true, total: all.length, deputados: camaraRows.length, senadores: senadoRows.length });
+      res.json({
+        ok: true,
+        total: all.length,
+        deputados: camaraDeputados.length,
+        senadores: senadoresList.length,
+      });
     } catch (err) {
       console.error("seedUniverseRoster error:", err);
       res.status(500).json({ ok: false, error: String(err.message || err) });
