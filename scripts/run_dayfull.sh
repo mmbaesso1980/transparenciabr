@@ -112,18 +112,21 @@ ingest transferegov_relatorio_gestao --snapshot "$SNAPSHOT_DATE"
 # ╚══════════════════════════════════════════════════════════════════════╝
 phase "🏛️ FASE 4/9 — Emendas Parlamentares (CGU)"
 if [ -z "${PORTAL_TRANSPARENCIA_API_KEY:-}" ]; then
-  # fallback: usa chave fixa em SECRETS.md
-  export PORTAL_TRANSPARENCIA_API_KEY="717a95e01b072090f41940282eab700a"
-fi
-for YEAR in $YEARS_EMENDAS; do
-  ingest emendas_parlamentares --year "$YEAR"
-done
+  echo "⚠️ PORTAL_TRANSPARENCIA_API_KEY não configurada."
+  echo "   Cadastro: https://portaldatransparencia.gov.br/api-de-dados/cadastrar-email"
+  echo "   Exporte: export PORTAL_TRANSPARENCIA_API_KEY=\"seu-token\""
+  echo "   Pulando Fase 4 (emendas parlamentares + CGU localidade) — G.O.A.T.: nenhuma chave no repositório."
+else
+  for YEAR in $YEARS_EMENDAS; do
+    ingest emendas_parlamentares --year "$YEAR"
+  done
 
-echo ""
-echo "→ CGU Emendas com localidade do gasto (para casar com PIX por município)"
-for YEAR in 2026 2025 2024; do
-  ingest cgu_emendas_localidade --year "$YEAR"
-done
+  echo ""
+  echo "→ CGU Emendas com localidade do gasto (para casar com PIX por município)"
+  for YEAR in 2026 2025 2024; do
+    ingest cgu_emendas_localidade --year "$YEAR"
+  done
+fi
 
 # ╔══════════════════════════════════════════════════════════════════════╗
 # ║ FASE 5 — FOLHAS (Câmara + Senado) — pré-req do F.L.A.V.I.O.          ║
