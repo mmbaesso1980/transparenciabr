@@ -29,9 +29,16 @@ const { v1beta1 } = aiplatform;
  */
 export const SUPREME_AGENT_BUILDER_ID = 'agent_1777236402725';
 
-const REASONING_ENGINE_RESOURCE =
-  process.env.VERTEX_REASONING_ENGINE_ID ??
-  'projects/89728155070/locations/us-west1/reasoningEngines/4398310393894666240';
+/** G.O.A.T. Pilar 3 — nunca hardcode de projeto/região/engine; só env. */
+function getReasoningEngineResource() {
+  const id = (process.env.VERTEX_REASONING_ENGINE_ID || '').trim();
+  if (!id) {
+    throw new Error(
+      'VERTEX_REASONING_ENGINE_ID is required (full resource name, e.g. projects/…/locations/…/reasoningEngines/…)',
+    );
+  }
+  return id;
+}
 
 const TIMEOUT_SECONDS = parseInt(
   process.env.VERTEX_TIMEOUT_SECONDS ?? '600',
@@ -122,7 +129,7 @@ export class VertexReasoningClient {
     await this.#client.initialize();
     this.#initialized = true;
     log('INFO', 'VertexReasoningClient initialised', {
-      resource: REASONING_ENGINE_RESOURCE,
+      resource: getReasoningEngineResource(),
     });
   }
 
@@ -149,7 +156,7 @@ export class VertexReasoningClient {
     });
 
     const request = {
-      reasoningEngine: REASONING_ENGINE_RESOURCE,
+      reasoningEngine: getReasoningEngineResource(),
       input: {
         input: prompt,
         ...(tools.length > 0 && { tools }),
