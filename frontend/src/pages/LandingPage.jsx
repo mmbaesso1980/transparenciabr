@@ -10,6 +10,7 @@ import PoliticianOrb from "../components/PoliticianOrb.jsx";
 import UserOrb from "../components/UserOrb.jsx";
 import LandingHeroGraph from "../components/landing/LandingHeroGraph.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
+import { INVESTIGATION_CATEGORIES } from "../constants/investigationCategories.js";
 import { useTransparencyReportsUniverso } from "../hooks/useTransparencyReportsUniverso.js";
 import { useUserCredits } from "../hooks/useUserCredits.js";
 
@@ -18,66 +19,6 @@ import { useUserCredits } from "../hooks/useUserCredits.js";
  * com orbes determinísticas (algoritmo CPF + score). Login pelo gate ou direto
  * via botões Google / e-mail.
  */
-
-// Categorias de investigação — orbes-portal estilo data.gov.uk.
-// `seed` é determinístico (mesma seed = mesma cor sempre).
-// `score` modula a urgência visual (90 = vermelho profundo · 35 = pastel).
-const INVESTIGATION_CATEGORIES = [
-  {
-    seed: "asmodeus.ceap",
-    score: 90,
-    label: "Cota CEAP",
-    headline: "R$ 4 bi/ano",
-    body: "Cada nota é suspeita até prova contrária. Locação, combustível, divulgação parlamentar — auditados nota a nota.",
-    to: "/ranking?modulo=ceap",
-    cta: "Investigar gastos",
-  },
-  {
-    seed: "asmodeus.patrimonio",
-    score: 78,
-    label: "Patrimônio TSE",
-    headline: "+1.200%",
-    body: "Crescimento patrimonial entre eleições. Bens declarados vs. faixa salarial — outliers expostos.",
-    to: "/ranking?modulo=patrimonio",
-    cta: "Ver enriquecimento",
-  },
-  {
-    seed: "asmodeus.gabinete",
-    score: 72,
-    label: "Folha do Gabinete",
-    headline: "21 secretários",
-    body: "Familiares, sócios e fantasmas no gabinete. Cruzamento CPF × empresa × parentesco.",
-    to: "/ranking?modulo=folha",
-    cta: "Mapear gabinete",
-  },
-  {
-    seed: "asmodeus.viagens",
-    score: 65,
-    label: "Viagens & Pedágios",
-    headline: "48 passagens",
-    body: "Carro alugado em Brasília, pedágio no Rio. SEM PARAR não mente — geolocalização forense.",
-    to: "/ranking?modulo=viagens",
-    cta: "Rastrear deslocamento",
-  },
-  {
-    seed: "asmodeus.emendas",
-    score: 82,
-    label: "Emendas & PIX",
-    headline: "R$ 50 bi",
-    body: "Emendas relator, individuais e PIX. Beneficiários terminais, ONGs sem CNAE, prefeituras-fachada.",
-    to: "/ranking?modulo=emendas",
-    cta: "Seguir o dinheiro",
-  },
-  {
-    seed: "asmodeus.contratos",
-    score: 60,
-    label: "Contratos PNCP",
-    headline: "3,7 mi licitações",
-    body: "Vencedores recorrentes, sobrepreço, dispensa indevida. OCR + Gemini sob direito administrativo.",
-    to: "/ranking?modulo=contratos",
-    cta: "Auditar licitações",
-  },
-];
 
 export default function LandingPage() {
   const navigate = useNavigate();

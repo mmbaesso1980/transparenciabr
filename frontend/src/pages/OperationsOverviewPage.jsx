@@ -4,7 +4,6 @@ import {
   Bell,
   CheckCircle2,
   Database,
-  FileSearch,
   Gauge,
   LayoutGrid,
   Radar,
@@ -15,6 +14,7 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 
+import { INVESTIGATION_CATEGORIES } from "../constants/investigationCategories.js";
 import {
   fetchAlertasBodesRecent,
   fetchPoliticosCollection,
@@ -163,6 +163,38 @@ export default function OperationsOverviewPage() {
             </span>
           </div>
         </header>
+
+        <section
+          id="auditoria"
+          className="scroll-mt-24 rounded-2xl border border-[#30363D]/80 bg-[#0D1117]/50 p-5 shadow-[0_18px_48px_rgba(0,0,0,0.35)]"
+        >
+          <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[#8B949E]">
+            Frentes de auditoria
+          </p>
+          <h2 className="mt-2 text-lg font-semibold tracking-tight text-[#F0F4FC]">
+            Atalhos do Universo
+          </h2>
+          <p className="mt-2 max-w-2xl text-sm text-[#8B949E]">
+            Âncoras a partir do grafo 3D. Cada cartão abre o ranking na frente correspondente.
+          </p>
+          <ul className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {INVESTIGATION_CATEGORIES.map((cat) => (
+              <li key={cat.seed} id={cat.dashboardHash} className="scroll-mt-28">
+                <Link
+                  to={cat.to}
+                  className="flex h-full flex-col rounded-xl border border-[#21262D] bg-[#080B14]/80 p-4 transition hover:border-[#58A6FF]/40 hover:bg-[#0D1117]/90"
+                >
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-[#58A6FF]">
+                    {cat.label}
+                  </p>
+                  <p className="mt-1 font-mono text-sm font-semibold text-[#F0F4FC]">{cat.headline}</p>
+                  <p className="mt-2 line-clamp-3 text-xs leading-relaxed text-[#8B949E]">{cat.body}</p>
+                  <span className="mt-3 text-[11px] font-semibold text-[#7DD3FC]">{cat.cta} →</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
 
         <section className="grid gap-4 md:grid-cols-3">
           <div className="rounded-2xl border border-[#30363D] bg-[#0D1117]/70 p-4 shadow-[0_18px_48px_rgba(0,0,0,0.45)]">
