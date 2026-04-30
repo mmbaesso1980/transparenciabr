@@ -29,9 +29,19 @@ const { v1beta1 } = aiplatform;
  */
 export const SUPREME_AGENT_BUILDER_ID = 'agent_1777236402725';
 
-const REASONING_ENGINE_RESOURCE =
-  process.env.VERTEX_REASONING_ENGINE_ID ??
-  'projects/89728155070/locations/us-west1/reasoningEngines/4398310393894666240';
+/**
+ * SecOps: nunca embutir project/reasoningEngine no repo — só via env.
+ * @returns {string}
+ */
+function getReasoningEngineResource() {
+  const id = process.env.VERTEX_REASONING_ENGINE_ID;
+  if (!id || String(id).trim() === '') {
+    throw new Error(
+      '[SecOps] VERTEX_REASONING_ENGINE_ID é obrigatório — defina o resource name completo do Reasoning Engine (Líder Supremo / deployment Gemini 2.5). Não use fallback hardcoded no repositório.',
+    );
+  }
+  return String(id).trim();
+}
 
 const TIMEOUT_SECONDS = parseInt(
   process.env.VERTEX_TIMEOUT_SECONDS ?? '600',
@@ -104,6 +114,8 @@ async function withBackoff(fn, maxRetries = MAX_RETRIES) {
 export class VertexReasoningClient {
   #client = null;
   #initialized = false;
+  /** @type {string|null} */
+  #reasoningEngineResource = null;
 
   /** @returns {boolean} */
   get isReady() {
@@ -115,6 +127,7 @@ export class VertexReasoningClient {
    * @returns {Promise<void>}
    */
   async init() {
+    this.#reasoningEngineResource = getReasoningEngineResource();
     this.#client = new v1beta1.ReasoningEngineExecutionServiceClient({
       apiEndpoint: 'us-west1-aiplatform.googleapis.com',
     });
@@ -122,7 +135,7 @@ export class VertexReasoningClient {
     await this.#client.initialize();
     this.#initialized = true;
     log('INFO', 'VertexReasoningClient initialised', {
-      resource: REASONING_ENGINE_RESOURCE,
+      resource: this.#reasoningEngineResource,
     });
   }
 
@@ -149,7 +162,7 @@ export class VertexReasoningClient {
     });
 
     const request = {
-      reasoningEngine: REASONING_ENGINE_RESOURCE,
+      reasoningEngine: this.#reasoningEngineResource,
       input: {
         input: prompt,
         ...(tools.length > 0 && { tools }),
