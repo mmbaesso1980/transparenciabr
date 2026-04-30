@@ -215,6 +215,78 @@ async function ingestCsvYearlyFile(source, args) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// FONTE: csv_static_file (snapshot único, sem partição por ano)
+// Usado para: funcionarios_camara, servidores_senado (folhas de pessoal).
+// Path GCS particionado por data de coleta (snapshot=YYYY-MM-DD).
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function ingestCsvStaticFile(source, args) {
+  const { name, fetch_config } = source;
+  const url = fetch_config.url;
+  const snapshotDate = (args.snapshot || new Date().toISOString().slice(0, 10));
+
+  logger.info('csv_static_start', { source: name, snapshot: snapshotDate, url });
+
+  const response = await fetchWithRetry(url, { headers: fetch_config.headers || {} }, 3);
+  const buffer = Buffer.from(await response.arrayBuffer());
+
+  // Salva raw imutável (sem normalizar, sem anonimizar)
+  const rawExt = fetch_config.file_extension || 'csv';
+  const rawPath = `${name}/snapshot=${snapshotDate}/raw.${rawExt}`;
+  const rawUrl = await uploadToGCS(RAW_BUCKET, rawPath, buffer,
+    response.headers.get('content-type') || 'application/octet-stream',
+    { source_url: url, snapshot: snapshotDate });
+
+  logger.info('csv_static_raw_saved', { source: name, snapshot: snapshotDate, url: rawUrl, size_bytes: buffer.length });
+
+  // Encoding fix
+  const { text, encoding_detected, confidence, note } = ensureUtf8(buffer);
+  logger.info('csv_static_encoding', { source: name, snapshot: snapshotDate, encoding_detected, confidence, note });
+
+  // Parse CSV
+  const { headers, records: rawRecords, errors: parseErrors } = parseCSV(text, {
+    delimiter: fetch_config.delimiter || undefined,
+  });
+
+  // Normalize + anonymize
+  const { cleanRecords, quarantine, redactions } = processBatch(rawRecords, {
+    schema: source.schema_strict || null,
+  });
+
+  // Upload clean
+  const cleanPath = `${name}/snapshot=${snapshotDate}/clean.ndjson`;
+  const cleanUrl = await uploadToGCS(CLEAN_BUCKET, cleanPath,
+    cleanRecords.map(r => JSON.stringify(r)).join('\n'),
+    'application/x-ndjson',
+    { records: String(cleanRecords.length), snapshot: snapshotDate });
+
+  // Upload quarantine
+  let quarantineUrl = null;
+  if (quarantine.length > 0) {
+    const quarantinePath = `${name}/snapshot=${snapshotDate}/quarantine.ndjson`;
+    quarantineUrl = await uploadToGCS(QUARANTINE_BUCKET, quarantinePath,
+      quarantine.map(r => JSON.stringify(r)).join('\n'),
+      'application/x-ndjson',
+      { records: String(quarantine.length), snapshot: snapshotDate });
+  }
+
+  logger.info('csv_static_done', {
+    source: name, snapshot: snapshotDate,
+    raw_records: rawRecords.length,
+    clean_records: cleanRecords.length,
+    quarantined: quarantine.length,
+    parse_errors: parseErrors?.length || 0,
+    redactions,
+    raw_url: rawUrl,
+    clean_url: cleanUrl,
+    quarantine_url: quarantineUrl,
+    encoding: encoding_detected,
+  });
+
+  return { records: cleanRecords.length, quarantined: quarantine.length, redactions };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // FONTE: rest_paginated (Portal Transparência, Senado, etc.)
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -395,6 +467,7 @@ async function ingestPostgrest(source, args) {
 
 const STRATEGIES = {
   csv_yearly_file: ingestCsvYearlyFile,
+  csv_static_file: ingestCsvStaticFile,
   rest_paginated: ingestRestPaginated,
   postgrest: ingestPostgrest,
 };
@@ -438,7 +511,10 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     process.exit(1);
   }
 
-  ingestSource(args.source, { year: args.year ? parseInt(args.year, 10) : undefined })
+  ingestSource(args.source, {
+    year: args.year ? parseInt(args.year, 10) : undefined,
+    snapshot: args.snapshot || undefined,
+  })
     .then(result => {
       console.error(`✅ ${args.source} done: ${result.records} records, quarantined: ${result.quarantined}, redactions: ${JSON.stringify(result.redactions)}`);
       process.exit(0);

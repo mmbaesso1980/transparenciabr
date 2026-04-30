@@ -1,0 +1,26 @@
+# Fonte: Servidores Comissionados do Senado Federal
+# Lista de comissionados (incl. lotação em gabinete de senador) — chave do F.L.A.V.I.O.
+# Snapshot único atualizado periodicamente.
+name: servidores_senado
+description: "Servidores comissionados do Senado: nome, cargo, lotação, vínculo, situação"
+type: csv_static_file
+priority: critical
+sovereignty_class: public
+forensic_protocol: FLAVIO
+
+fetch_config:
+  url: "https://adm.senado.gov.br/adm-dadosabertos/api/v1/servidores/servidores/comissionados/csv"
+  file_extension: "csv"
+  delimiter: ";"
+  encoding_hint: "iso-8859-1"
+  headers:
+    User-Agent: "TransparenciaBR-Ingestor/1.1"
+    Accept: "text/csv,application/csv,*/*"
+
+# Campos esperados (referência):
+# nome, vinculo, situacao, cargo, lotacao, data_admissao, data_desligamento
+
+retention:
+  raw_versioning: enabled
+  archive_after_days: 365
+  snapshot_strategy: weekly

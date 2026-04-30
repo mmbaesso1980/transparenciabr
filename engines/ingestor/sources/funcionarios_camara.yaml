@@ -1,0 +1,26 @@
+# Fonte: Funcionários da Câmara dos Deputados (todos os servidores)
+# Inclui secretários parlamentares — chave do Protocolo F.L.A.V.I.O.
+# Snapshot único atualizado periodicamente (sem partição por ano).
+name: funcionarios_camara
+description: "Folha de pessoal completa da Câmara: efetivos + comissionados + secretários parlamentares"
+type: csv_static_file
+priority: critical
+sovereignty_class: public
+forensic_protocol: FLAVIO
+
+fetch_config:
+  url: "https://dadosabertos.camara.leg.br/arquivos/funcionarios/csv/funcionarios.csv"
+  file_extension: "csv"
+  delimiter: ";"
+  encoding_hint: "iso-8859-1"  # padrão Câmara, normalizer detecta automaticamente
+  headers:
+    User-Agent: "TransparenciaBR-Ingestor/1.1 (+https://transparenciabr.web.app)"
+
+# Campos esperados (referência — o normalizer faz snake_case automaticamente):
+# nome, grupo (efetivo/comissionado/secretário parlamentar), cargo, lotacao,
+# dataNomeacao, dataExoneracao, situacao, vinculo
+
+retention:
+  raw_versioning: enabled  # versionamento GCS preserva snapshots históricos
+  archive_after_days: 365
+  snapshot_strategy: weekly  # baixar 1x/semana via Cloud Scheduler

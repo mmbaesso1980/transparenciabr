@@ -5,6 +5,11 @@
 
 set -e
 
+# Auto-shutdown ao final (evita VM ligada custando $$)
+AUTO_SHUTDOWN="${AUTO_SHUTDOWN:-1}"
+VM_NAME="${VM_NAME:-tbr-mainframe}"
+VM_ZONE="${VM_ZONE:-us-central1-a}"
+
 LOG_DIR="$HOME/transparenciabr/logs"
 mkdir -p "$LOG_DIR"
 
@@ -100,3 +105,72 @@ gsutil du -sh gs://datalake-tbr-raw/emendas_pix/ 2>/dev/null || echo "(Emendas P
 gsutil du -sh gs://datalake-tbr-clean/emendas_pix/ 2>/dev/null || echo "(Emendas PIX clean vazio)"
 gsutil du -sh gs://datalake-tbr-raw/emendas_parlamentares/ 2>/dev/null || echo "(Emendas Parlamentares raw vazio)"
 gsutil du -sh gs://datalake-tbr-clean/emendas_parlamentares/ 2>/dev/null || echo "(Emendas Parlamentares clean vazio)"
+
+# ─────────────────────────────────────────────────────────────────────
+# FASE 4 — FOLHA DE GABINETE (Câmara + Senado snapshots + CEAPS Senado)
+# ─────────────────────────────────────────────────────────────────────
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "👥 FASE 4/5 — Folha de Gabinete (Câmara + Senado)"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+cd "$HOME/transparenciabr/engines/ingestor"
+
+# Snapshot único — funcionários Câmara
+if node universal_ingestor.js --source funcionarios_camara --snapshot $(date +%Y-%m-%d); then
+  echo "✅ Funcionários Câmara OK"
+else
+  echo "❌ Funcionários Câmara falhou"
+fi
+
+# Snapshot único — servidores comissionados Senado
+if node universal_ingestor.js --source servidores_senado --snapshot $(date +%Y-%m-%d); then
+  echo "✅ Servidores Senado OK"
+else
+  echo "❌ Servidores Senado falhou"
+fi
+
+# CEAPS Senado anuais
+for YEAR in 2026 2025 2024 2023 2022 2021 2020; do
+  echo ""
+  echo "→ CEAPS Senado ano $YEAR"
+  if node universal_ingestor.js --source ceaps_senado --year $YEAR; then
+    echo "✅ CEAPS Senado $YEAR OK"
+  else
+    echo "❌ CEAPS Senado $YEAR falhou"
+  fi
+done
+
+# ─────────────────────────────────────────────────────────────────────
+# FASE 5 — MOTORES FORENSES (F.L.A.V.I.O. + SANGUE E PODER)
+# ─────────────────────────────────────────────────────────────────────
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "🕵️  FASE 5/5 — Motores Forenses"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+cd "$HOME/transparenciabr/engines/forensic"
+
+echo ""
+echo "→ F.L.A.V.I.O."
+node flavio.js --years 2024,2025,2026 || echo "❌ FLAVIO falhou"
+
+echo ""
+echo "→ SANGUE E PODER"
+node sangue_poder.js --years 2024,2025,2026 || echo "❌ SANGUE E PODER falhou"
+
+echo ""
+echo "📊 Output forense:"
+gsutil ls -lh "gs://datalake-tbr-clean/forensic/" 2>/dev/null || echo "(forensic vazio)"
+
+# ─────────────────────────────────────────────────────────────────────
+# AUTO-SHUTDOWN
+# ─────────────────────────────────────────────────────────────────────
+if [ "$AUTO_SHUTDOWN" = "1" ]; then
+  echo ""
+  echo "🛑 Auto-shutdown habilitado. Desligando VM ($VM_NAME, zona $VM_ZONE) em 5min..."
+  sleep 300
+  echo "💤 Stop agora."
+  gcloud compute instances stop "$VM_NAME" --zone="$VM_ZONE" --quiet 2>&1 || sudo shutdown -h now
+else
+  echo ""
+  echo "⏸️  AUTO_SHUTDOWN=0 — VM permanecerá ligada."
+fi

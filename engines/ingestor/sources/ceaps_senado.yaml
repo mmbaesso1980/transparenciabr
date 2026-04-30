@@ -1,0 +1,25 @@
+# Fonte: CEAPS - Cota para Exercício da Atividade Parlamentar (Senado)
+# Despesas indenizadas dos senadores. Análogo da CEAP da Câmara.
+# Disponibilizado em CSV anual via API administrativa.
+name: ceaps_senado
+description: "CEAPS - Despesas indenizadas dos senadores (anos 2008-presente)"
+type: csv_yearly_file
+priority: critical
+sovereignty_class: public
+
+fetch_config:
+  url_template: "https://adm.senado.gov.br/adm-dadosabertos/api/v1/senadores/despesas_ceaps/{year}/csv"
+  file_extension: "csv"
+  delimiter: ";"
+  encoding_hint: "iso-8859-1"
+  headers:
+    User-Agent: "TransparenciaBR-Ingestor/1.1"
+    Accept: "text/csv,application/csv,*/*"
+
+# Campos esperados (referência):
+# ANO, MES, SENADOR, TIPO_DESPESA, CNPJ_CPF, FORNECEDOR, DOCUMENTO,
+# DATA, DETALHAMENTO, VALOR_REEMBOLSADO, COD_DOCUMENTO
+
+retention:
+  raw_versioning: enabled
+  archive_after_days: 90
