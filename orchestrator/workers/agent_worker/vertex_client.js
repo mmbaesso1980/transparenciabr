@@ -29,9 +29,11 @@ const { v1beta1 } = aiplatform;
  */
 export const SUPREME_AGENT_BUILDER_ID = 'agent_1777236402725';
 
-const REASONING_ENGINE_RESOURCE =
-  process.env.VERTEX_REASONING_ENGINE_ID ??
-  'projects/89728155070/locations/us-west1/reasoningEngines/4398310393894666240';
+/**
+ * G.O.A.T. / SecOps: recurso Vertex Reasoning Engine do Líder Supremo (deploy Gemini 2.5 —
+ * Agent Builder `agent_1777236402725`) deve vir apenas de env — nunca project/ID fixo no repo.
+ */
+const REASONING_ENGINE_RESOURCE = (process.env.VERTEX_REASONING_ENGINE_ID || '').trim();
 
 const TIMEOUT_SECONDS = parseInt(
   process.env.VERTEX_TIMEOUT_SECONDS ?? '600',
@@ -115,6 +117,12 @@ export class VertexReasoningClient {
    * @returns {Promise<void>}
    */
   async init() {
+    if (!REASONING_ENGINE_RESOURCE) {
+      throw new Error(
+        'VERTEX_REASONING_ENGINE_ID is required (full resource name of the Líder Supremo Reasoning Engine; ' +
+          'see Agent Builder agent_1777236402725). No default is allowed in source.',
+      );
+    }
     this.#client = new v1beta1.ReasoningEngineExecutionServiceClient({
       apiEndpoint: 'us-west1-aiplatform.googleapis.com',
     });
