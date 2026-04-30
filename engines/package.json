@@ -22,7 +22,10 @@
     "test:watch": "vitest",
     "lint": "eslint ingestors __tests__ bigquery --max-warnings=0",
     "bq:refresh": "node bigquery/refresh_external_tables.js",
-    "prepare": "husky || true"
+    "prepare": "husky || true",
+    "ingest:ceap": "node ingestor/universal_ingestor.js --source ceap_camara",
+    "ingest:emendas-pix": "node ingestor/universal_ingestor.js --source emendas_pix",
+    "ingest:emendas-parl": "node ingestor/universal_ingestor.js --source emendas_parlamentares"
   },
   "dependencies": {
     "@google-cloud/bigquery": "^7.9.4",
@@ -31,6 +34,7 @@
     "@google-cloud/storage": "^7.19.0",
     "axios": "^1.7.9",
     "bottleneck": "^2.19.5",
+    "chardet": "^2.0.0",
     "csv-parse": "^5.6.0",
     "eslint": "^9.39.4",
     "fast-xml-parser": "^4.5.6",
@@ -38,6 +42,8 @@
     "ftp": "^0.3.10",
     "got": "^14.6.6",
     "husky": "^9.1.7",
+    "iconv-lite": "^0.6.3",
+    "js-yaml": "^4.1.0",
     "micromatch": "^4.0.8",
     "msw": "^2.13.6",
     "node-stream-zip": "^1.15.0",
@@ -45,6 +51,7 @@
     "p-limit": "^6.2.0",
     "p-queue": "^8.1.1",
     "ulid": "^2.4.0",
+    "unzipper": "^0.12.3",
     "vitest": "^2.1.9",
     "yargs": "^17.7.2"
   },

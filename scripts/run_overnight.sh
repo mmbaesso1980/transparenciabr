@@ -16,13 +16,14 @@ echo "🌙 SPRINT NOTURNO INICIADO: $(date)"
 echo "Log: $LOG_FILE"
 echo "============================================================"
 
-cd "$HOME/transparenciabr/engines/ingestor"
-
-# Garantir deps
-if [ ! -d node_modules ]; then
-  echo "Instalando dependências..."
+# Garantir deps na raiz engines/ (onde Node ESM resolve packages dos submódulos)
+cd "$HOME/transparenciabr/engines"
+if [ ! -d node_modules ] || [ ! -d node_modules/iconv-lite ]; then
+  echo "Instalando dependências em engines/ ..."
   npm install --silent
 fi
+
+cd "$HOME/transparenciabr/engines/ingestor"
 
 # Anos a ingerir (mais recentes primeiro — falha rápido se algo quebrar)
 YEARS_RECENT="2026 2025 2024 2023"
