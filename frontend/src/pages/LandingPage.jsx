@@ -7,9 +7,11 @@ import BrandLogo from "../components/BrandLogo.jsx";
 import CreditosGOD from "../components/CreditosGOD.jsx";
 import EmptyGraph from "../components/EmptyGraph.jsx";
 import PoliticianOrb from "../components/PoliticianOrb.jsx";
+import UserOrb from "../components/UserOrb.jsx";
 import LandingHeroGraph from "../components/landing/LandingHeroGraph.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useTransparencyReportsUniverso } from "../hooks/useTransparencyReportsUniverso.js";
+import { useUserCredits } from "../hooks/useUserCredits.js";
 
 /**
  * Vitrine pública (/) — universo 3D ao fundo, hero FOMO + 6 portais coloridos
@@ -79,7 +81,8 @@ const INVESTIGATION_CATEGORIES = [
 
 export default function LandingPage() {
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
+  const { credits } = useUserCredits();
   const { graphData, loading, error, findPoliticoByQuery } =
     useTransparencyReportsUniverso(180);
 
@@ -169,13 +172,31 @@ export default function LandingPage() {
         <BrandLogo to="/" variant="full" size="md" />
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <CreditosGOD />
-          <Link
-            to="/login"
-            aria-label="Acessar painel de analista"
-            className="inline-flex h-9 items-center gap-2 rounded-md bg-[#58A6FF] px-4 text-[13px] font-bold uppercase tracking-[0.12em] text-white shadow-[0_2px_12px_rgba(88,166,255,0.28)] transition hover:bg-[#79b8ff] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7DD3FC]"
-          >
-            Entrar
-          </Link>
+          {isAuthenticated ? (
+            <Link
+              to="/perfil"
+              aria-label="Abrir perfil e configurações"
+              className="group inline-flex h-9 items-center gap-2.5 rounded-full border border-[#30363D] bg-[#0d1117]/80 pl-1 pr-3.5 text-[13px] text-[#E6EDF3] shadow-sm transition hover:border-[#58A6FF]/60 hover:bg-[#0d1117] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7DD3FC]"
+            >
+              <UserOrb user={user} size={28} />
+              <span className="flex flex-col items-start leading-tight">
+                <span className="max-w-[140px] truncate text-[12.5px] font-semibold tracking-tight text-[#F0F4FC] sm:max-w-[200px]">
+                  {firstName(user) || "Analista"}
+                </span>
+                <span className="text-[10.5px] font-medium uppercase tracking-[0.12em] text-[#7DD3FC]/85">
+                  {Number.isFinite(credits) ? `${credits} créditos` : "carregando…"}
+                </span>
+              </span>
+            </Link>
+          ) : (
+            <Link
+              to="/login"
+              aria-label="Acessar painel de analista"
+              className="inline-flex h-9 items-center gap-2 rounded-md bg-[#58A6FF] px-4 text-[13px] font-bold uppercase tracking-[0.12em] text-white shadow-[0_2px_12px_rgba(88,166,255,0.28)] transition hover:bg-[#79b8ff] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7DD3FC]"
+            >
+              Entrar
+            </Link>
+          )}
         </div>
       </header>
 
@@ -199,14 +220,25 @@ export default function LandingPage() {
             qualquer mandato em 30 segundos — com contraditório ativo e fonte primária.
           </p>
 
-          {/* Selo FOMO — créditos diários */}
-          <div className="pointer-events-none mt-6 inline-flex items-center gap-2.5 rounded-full border border-[#FDE047]/35 bg-gradient-to-r from-[#FDE047]/15 via-[#FDBA74]/12 to-[#7DD3FC]/15 px-4 py-2 text-[12px] font-semibold tracking-wide text-[#FDE047] backdrop-blur-md">
-            <Zap className="size-3.5" strokeWidth={2.25} />
-            <span className="uppercase tracking-[0.18em]">300 créditos / dia</span>
-            <span className="text-[#AAB4C8] normal-case tracking-normal">
-              grátis ao logar · renovam todo dia
-            </span>
-          </div>
+          {/* Selo FOMO — créditos diários (oculto para logado) */}
+          {!isAuthenticated ? (
+            <div className="pointer-events-none mt-6 inline-flex items-center gap-2.5 rounded-full border border-[#FDE047]/35 bg-gradient-to-r from-[#FDE047]/15 via-[#FDBA74]/12 to-[#7DD3FC]/15 px-4 py-2 text-[12px] font-semibold tracking-wide text-[#FDE047] backdrop-blur-md">
+              <Zap className="size-3.5" strokeWidth={2.25} />
+              <span className="uppercase tracking-[0.18em]">300 créditos / dia</span>
+              <span className="text-[#AAB4C8] normal-case tracking-normal">
+                grátis ao logar · renovam todo dia
+              </span>
+            </div>
+          ) : (
+            // CTA primário para usuário já autenticado
+            <Link
+              to="/universo"
+              className="pointer-events-auto mt-7 inline-flex h-12 items-center gap-2.5 rounded-md bg-[#58A6FF] px-7 text-[14px] font-bold uppercase tracking-[0.14em] text-white shadow-[0_4px_24px_rgba(88,166,255,0.36)] transition hover:bg-[#79b8ff] hover:shadow-[0_6px_32px_rgba(88,166,255,0.5)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7DD3FC]"
+            >
+              Ir ao Universo
+              <ArrowRight className="size-4" strokeWidth={2.5} />
+            </Link>
+          )}
 
           {/* Busca — abre modal de gate ou navega ao dossiê */}
           <form
@@ -370,4 +402,14 @@ export default function LandingPage() {
       ) : null}
     </div>
   );
+}
+
+function firstName(user) {
+  if (!user) return "";
+  const display = (user.displayName || "").trim();
+  if (display) {
+    return display.split(/\s+/)[0];
+  }
+  const email = (user.email || "").trim();
+  return email.split("@")[0] || "";
 }
