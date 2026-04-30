@@ -6,12 +6,10 @@
  * and exponential back-off on quota errors.
  *
  * Environment variables:
- *   VERTEX_REASONING_ENGINE_ID  – full resource name override (optional)
+ *   VERTEX_REASONING_ENGINE_ID  – full resource name (required; no default in code)
  *   VERTEX_TIMEOUT_SECONDS      – per-request timeout in seconds (default 600)
  *   GCP_PROJECT_ID              – Google Cloud project ID
  */
-
-import { helpers } from '@google-cloud/aiplatform';
 
 // Dynamically import protobufjs Value helper from aiplatform bundle.
 // The actual gRPC client is accessed through the v1beta1 namespace.
@@ -29,9 +27,21 @@ const { v1beta1 } = aiplatform;
  */
 export const SUPREME_AGENT_BUILDER_ID = 'agent_1777236402725';
 
-const REASONING_ENGINE_RESOURCE =
-  process.env.VERTEX_REASONING_ENGINE_ID ??
-  'projects/89728155070/locations/us-west1/reasoningEngines/4398310393894666240';
+/**
+ * G.O.A.T. Pilar 3 — sem resource name hardcoded; apenas env (Terraform / Cloud Run).
+ * @returns {string}
+ */
+function getReasoningEngineResource() {
+  const id = String(process.env.VERTEX_REASONING_ENGINE_ID ?? '').trim();
+  if (!id) {
+    throw new Error(
+      'VERTEX_REASONING_ENGINE_ID ausente ou vazio — defina o resource name completo do Reasoning Engine (Líder Supremo).',
+    );
+  }
+  return id;
+}
+
+let cachedReasoningEngineResource = '';
 
 const TIMEOUT_SECONDS = parseInt(
   process.env.VERTEX_TIMEOUT_SECONDS ?? '600',
@@ -115,6 +125,7 @@ export class VertexReasoningClient {
    * @returns {Promise<void>}
    */
   async init() {
+    cachedReasoningEngineResource = getReasoningEngineResource();
     this.#client = new v1beta1.ReasoningEngineExecutionServiceClient({
       apiEndpoint: 'us-west1-aiplatform.googleapis.com',
     });
@@ -122,7 +133,7 @@ export class VertexReasoningClient {
     await this.#client.initialize();
     this.#initialized = true;
     log('INFO', 'VertexReasoningClient initialised', {
-      resource: REASONING_ENGINE_RESOURCE,
+      resource: cachedReasoningEngineResource,
     });
   }
 
@@ -149,7 +160,7 @@ export class VertexReasoningClient {
     });
 
     const request = {
-      reasoningEngine: REASONING_ENGINE_RESOURCE,
+      reasoningEngine: cachedReasoningEngineResource || getReasoningEngineResource(),
       input: {
         input: prompt,
         ...(tools.length > 0 && { tools }),
