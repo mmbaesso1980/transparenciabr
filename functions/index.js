@@ -913,3 +913,45 @@ exports.onDiarioAtoCreated = functions
 
 exports.grantRole = grantRoleModule.grantRole;
 exports.listMyClaims = grantRoleModule.listMyClaims;
+
+// ────────────────────────────────────────────────────────────────────────────
+// getSprintStatus — serve publicamente o JSON do status do sprint (Vertex Calibrada)
+// Lê de gs://datalake-tbr-clean/dashboard/sprint_status.json (privado), retorna JSON público.
+// Sem auth: ler o status do sprint é informação pública não sensível (volumes, contagens, hashes).
+// Diretiva Suprema preservada: ZERO Firestore — leitura direta do GCS via SDK autenticado da function.
+// ────────────────────────────────────────────────────────────────────────────
+exports.getSprintStatus = functions
+  .region("southamerica-east1")
+  .runWith({ memory: "256MB", timeoutSeconds: 30 })
+  .https.onRequest(async (req, res) => {
+    // CORS é permissivo: status é público por design
+    res.set("Access-Control-Allow-Origin", "*");
+    res.set("Access-Control-Allow-Methods", "GET");
+    res.set("Cache-Control", "public, max-age=30, s-maxage=60");
+    res.set("Content-Type", "application/json; charset=utf-8");
+
+    if (req.method !== "GET" && req.method !== "HEAD") {
+      res.status(405).json({ error: "Method not allowed" });
+      return;
+    }
+
+    try {
+      const { Storage } = require("@google-cloud/storage");
+      const storage = new Storage();
+      const file = storage.bucket("datalake-tbr-clean").file("dashboard/sprint_status.json");
+      const [exists] = await file.exists();
+      if (!exists) {
+        res.status(404).json({
+          error: "sprint_status.json ainda não publicado",
+          hint: "Aguarde o próximo build_status na VM tbr-mainframe",
+          generated_at: new Date().toISOString(),
+        });
+        return;
+      }
+      const [buf] = await file.download();
+      res.status(200).send(buf.toString("utf-8"));
+    } catch (err) {
+      console.error("getSprintStatus error:", err);
+      res.status(500).json({ error: "failed_to_read_status", detail: String(err.message || err) });
+    }
+  });

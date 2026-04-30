@@ -8,6 +8,17 @@
     ],
     "rewrites": [
       {
+        "source": "/api/sprint/status",
+        "function": {
+          "functionId": "getSprintStatus",
+          "region": "southamerica-east1"
+        }
+      },
+      {
+        "source": "/sprint",
+        "destination": "/sprint.html"
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }

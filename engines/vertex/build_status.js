@@ -15,7 +15,9 @@ import { writeFileSync } from 'node:fs';
 
 const BUCKET_RAW = 'datalake-tbr-raw';
 const BUCKET_CLEAN = 'datalake-tbr-clean';
-const BUCKET_PUBLIC = 'tbr-public-dashboard'; // bucket dedicado, 100% público
+// Sem bucket público — JSON é servido por Cloud Function HTTPS (functions/index.js → getSprintStatus)
+// Caminho privado dentro do clean bucket, lido pela function autenticada:
+const STATUS_OBJECT_PATH = `${BUCKET_CLEAN}/dashboard/sprint_status.json`;
 
 function gsCat(uri) {
   try { return execSync(`gsutil cat "${uri}" 2>/dev/null`, { encoding: 'utf-8', maxBuffer: 50 * 1024 * 1024 }); }
@@ -57,7 +59,7 @@ const ingestao = {
   ceaps_senado: {},
 };
 for (const year of ['2026', '2025', '2024', '2023', '2022', '2021', '2020']) {
-  ingestao.ceap[year] = { bytes: gsDu(`${BUCKET_CLEAN}/ceap/year=${year}/`) };
+  ingestao.ceap[year] = { bytes: gsDu(`${BUCKET_CLEAN}/ceap_camara/year=${year}/`) };
   ingestao.emendas_pix[year] = { bytes: gsDu(`${BUCKET_CLEAN}/emendas_pix/year=${year}/`) };
   ingestao.ceaps_senado[year] = { bytes: gsDu(`${BUCKET_CLEAN}/ceaps_senado/year=${year}/`) };
 }
@@ -110,6 +112,7 @@ const status = {
 
 const local = '/tmp/sprint_status.json';
 writeFileSync(local, JSON.stringify(status, null, 2));
-// Publica APENAS no bucket dedicado público (separação física do datalake privado)
-execSync(`gsutil -q -h "Cache-Control:public,max-age=60" -h "Content-Type:application/json" cp "${local}" "gs://${BUCKET_PUBLIC}/sprint_status.json"`);
-console.log(`✅ status publicado em https://storage.googleapis.com/${BUCKET_PUBLIC}/sprint_status.json`);
+// Publica em caminho privado do clean bucket; Cloud Function getSprintStatus serve publicamente via HTTPS.
+execSync(`gsutil -q -h "Cache-Control:no-cache" -h "Content-Type:application/json" cp "${local}" "gs://${STATUS_OBJECT_PATH}"`);
+console.log(`✅ status publicado em gs://${STATUS_OBJECT_PATH}`);
+console.log(`   acessível publicamente em: https://transparenciabr.web.app/api/sprint/status`);

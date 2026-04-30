@@ -86,7 +86,8 @@
 </div>
 
 <script>
-const STATUS_URL = 'https://storage.googleapis.com/tbr-public-dashboard/sprint_status.json';
+// Servido por Cloud Function getSprintStatus via rewrite em firebase.json (mesma origem — sem CORS)
+const STATUS_URL = '/api/sprint/status';
 const FALLBACK_URL = '/sprint_status.json'; // caso o Hosting tenha cópia local
 
 const $ = (id) => document.getElementById(id);
