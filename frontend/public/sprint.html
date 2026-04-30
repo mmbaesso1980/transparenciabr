@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<meta name="theme-color" content="#0a0e1a" />
+<title>Sprint TransparênciaBR — F.L.A.V.I.O. + SANGUE E PODER</title>
+<link rel="icon" href="/favicon.svg" />
+<style>
+  *,*::before,*::after{box-sizing:border-box}
+  :root{
+    --bg:#0a0e1a;--card:#0f1525;--border:#1d2742;--ink:#e6ecff;--mute:#7d8bb3;
+    --ok:#22c55e;--warn:#f59e0b;--err:#ef4444;--accent:#60a5fa;--gold:#fbbf24;
+  }
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+    -webkit-font-smoothing:antialiased;font-feature-settings:'tnum';
+    min-height:100vh;min-height:100dvh}
+  body{padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);}
+  .wrap{max-width:720px;margin:0 auto;padding:16px;padding-bottom:80px}
+  header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+  h1{font-size:18px;margin:0;font-weight:700;letter-spacing:-0.01em}
+  h1 .b{color:var(--accent)}
+  .pulse{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--ok);
+    box-shadow:0 0 0 0 rgba(34,197,94,.6);animation:pulse 1.6s infinite;margin-right:6px}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(34,197,94,.6)}70%{box-shadow:0 0 0 12px rgba(34,197,94,0)}100%{box-shadow:0 0 0 0 rgba(34,197,94,0)}}
+  .ts{font-size:11px;color:var(--mute);font-variant-numeric:tabular-nums}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:12px}
+  .card h2{font-size:13px;margin:0 0 10px;color:var(--mute);font-weight:600;text-transform:uppercase;letter-spacing:0.06em}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .stat{background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:10px;padding:10px}
+  .stat .k{font-size:10px;color:var(--mute);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px}
+  .stat .v{font-size:18px;font-weight:700;font-variant-numeric:tabular-nums}
+  .stat .v.big{font-size:24px}
+  .row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:14px}
+  .row:last-child{border-bottom:none}
+  .row .l{color:var(--mute)}
+  .row .r{font-weight:600;font-variant-numeric:tabular-nums}
+  .row .r.ok{color:var(--ok)}.row .r.warn{color:var(--warn)}.row .r.err{color:var(--err)}.row .r.acc{color:var(--accent)}
+  .bar{height:6px;background:var(--border);border-radius:3px;overflow:hidden;margin-top:8px}
+  .bar > i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--gold));border-radius:3px;transition:width .6s ease}
+  .badge{display:inline-block;padding:2px 8px;font-size:10px;font-weight:700;border-radius:999px;text-transform:uppercase;letter-spacing:0.05em}
+  .badge.live{background:rgba(34,197,94,.15);color:var(--ok)}
+  .badge.idle{background:rgba(125,139,179,.15);color:var(--mute)}
+  .badge.crit{background:rgba(239,68,68,.15);color:var(--err)}
+  .quote{font-size:11px;color:var(--mute);font-style:italic;text-align:center;margin-top:24px;line-height:1.5}
+  .err-msg{color:var(--err);font-size:13px;padding:12px;text-align:center}
+  .empty{color:var(--mute);font-size:13px;text-align:center;padding:8px 0}
+  .chip{display:inline-block;background:rgba(96,165,250,.1);color:var(--accent);
+    padding:2px 8px;font-size:11px;border-radius:999px;margin-right:4px;margin-bottom:4px;font-variant-numeric:tabular-nums}
+  details{margin-top:8px}
+  summary{cursor:pointer;color:var(--accent);font-size:12px;list-style:none;-webkit-tap-highlight-color:transparent}
+  summary::-webkit-details-marker{display:none}
+  summary::after{content:" ↓"}
+  details[open] summary::after{content:" ↑"}
+  .footer{position:fixed;left:0;right:0;bottom:0;background:rgba(10,14,26,.92);
+    backdrop-filter:blur(8px);border-top:1px solid var(--border);
+    padding:10px 16px calc(10px + env(safe-area-inset-bottom));font-size:11px;color:var(--mute);
+    display:flex;justify-content:space-between;align-items:center}
+  .footer button{background:var(--accent);border:none;color:#fff;padding:6px 12px;
+    border-radius:8px;font-size:11px;font-weight:600;cursor:pointer}
+  .footer button:active{transform:scale(0.96)}
+  @media (prefers-color-scheme: light){
+    /* mantém escuro mesmo em light: comando de guerra */
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1><span class="b">TBR</span> · Sprint Live</h1>
+    <span class="ts" id="ts"><span class="pulse"></span><span id="tstxt">conectando…</span></span>
+  </header>
+
+  <div id="root">
+    <div class="card"><div class="empty">Carregando status do Data Lake…</div></div>
+  </div>
+
+  <p class="quote">"Toda nota é suspeita até prova contrária.<br>Não fazemos denúncia — apresentamos fatos."</p>
+</div>
+
+<div class="footer">
+  <span id="age">—</span>
+  <button onclick="load(true)">Atualizar</button>
+</div>
+
+<script>
+const STATUS_URL = 'https://storage.googleapis.com/datalake-tbr-clean/dashboard/sprint_status.json';
+const FALLBACK_URL = '/sprint_status.json'; // caso o Hosting tenha cópia local
+
+const $ = (id) => document.getElementById(id);
+const fmtNum = (n) => (n ?? 0).toLocaleString('pt-BR');
+const fmtBRL = (n) => 'R$ ' + (n ?? 0).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2});
+let lastFetch = null;
+
+function ageStr(then){
+  if(!then) return '—';
+  const s = Math.max(0, Math.floor((Date.now() - then) / 1000));
+  if(s < 60) return `há ${s}s`;
+  if(s < 3600) return `há ${Math.floor(s/60)}min`;
+  return `há ${Math.floor(s/3600)}h`;
+}
+
+function card(title, body){ return `<div class="card"><h2>${title}</h2>${body}</div>`; }
+
+function renderIngestao(ing){
+  if(!ing) return card('Ingestão', '<div class="empty">sem dados</div>');
+  let html = '';
+  // CEAP por ano
+  const ceap = Object.entries(ing.ceap || {}).filter(([_,v]) => v.bytes > 0);
+  const ceapTotal = ceap.reduce((s,[_,v]) => s+v.bytes, 0);
+  html += `<div class="row"><span class="l">CEAP Câmara (total)</span><span class="r ${ceapTotal>0?'ok':''}">${ing.ceap?.['2025']?.human ? humanFromBytes(ceapTotal) : '—'}</span></div>`;
+  if(ceap.length){
+    html += '<div style="padding:6px 0">' + ceap.map(([y,v]) => `<span class="chip">${y}: ${v.human}</span>`).join('') + '</div>';
+  }
+  // Emendas PIX
+  const pix = Object.entries(ing.emendas_pix || {}).filter(([_,v]) => v.bytes > 0);
+  if(pix.length){
+    html += `<div class="row"><span class="l">Emendas PIX</span><span class="r ok">${pix.length} anos</span></div>`;
+  } else {
+    html += `<div class="row"><span class="l">Emendas PIX</span><span class="r">aguardando</span></div>`;
+  }
+  // CEAPS Senado
+  const senado = Object.entries(ing.ceaps_senado || {}).filter(([_,v]) => v.bytes > 0);
+  html += `<div class="row"><span class="l">CEAPS Senado</span><span class="r ${senado.length?'ok':''}">${senado.length ? senado.length+' anos' : 'aguardando'}</span></div>`;
+  // Folha
+  const fc = ing.funcionarios_camara?.bytes || 0;
+  const ss = ing.servidores_senado?.bytes || 0;
+  html += `<div class="row"><span class="l">Funcionários Câmara</span><span class="r ${fc?'ok':'warn'}">${fc ? ing.funcionarios_camara.human : 'aguardando'}</span></div>`;
+  html += `<div class="row"><span class="l">Servidores Senado</span><span class="r ${ss?'ok':'warn'}">${ss ? ing.servidores_senado.human : 'aguardando'}</span></div>`;
+  return card('📥 Ingestão · Data Lake', html);
+}
+
+function humanFromBytes(b){
+  if(b<1024) return b+' B';
+  if(b<1048576) return (b/1024).toFixed(1)+' KB';
+  if(b<1073741824) return (b/1048576).toFixed(1)+' MB';
+  return (b/1073741824).toFixed(2)+' GB';
+}
+
+function renderFlavio(f){
+  if(!f) return card('🕵️ F.L.A.V.I.O.', '<div class="empty">aguardando primeiro snapshot</div>');
+  const sev = f.por_severidade || {};
+  return card('🕵️ F.L.A.V.I.O. <span class="badge live">live</span>', `
+    <div class="grid3">
+      <div class="stat"><div class="k">suspeitos</div><div class="v big">${fmtNum(f.total_suspeitos || 0)}</div></div>
+      <div class="stat"><div class="k">crítica</div><div class="v" style="color:var(--err)">${fmtNum(sev.CRITICA || 0)}</div></div>
+      <div class="stat"><div class="k">alta</div><div class="v" style="color:var(--warn)">${fmtNum(sev.ALTA || 0)}</div></div>
+    </div>
+    <div class="row" style="margin-top:10px"><span class="l">snapshot</span><span class="r">${f.snapshot_date || '—'}</span></div>
+    <div class="row"><span class="l">parlamentares</span><span class="r acc">${fmtNum(f.parlamentares_envolvidos || 0)}</span></div>
+  `);
+}
+
+function renderSangue(s){
+  if(!s) return card('🩸 SANGUE E PODER', '<div class="empty">aguardando ingestão Receita Federal QSA + árvore TSE</div>');
+  return card('🩸 SANGUE E PODER <span class="badge live">live</span>', `
+    <div class="grid3">
+      <div class="stat"><div class="k">vínculos</div><div class="v big">${fmtNum(s.total_vinculos || 0)}</div></div>
+      <div class="stat"><div class="k">parlamentares</div><div class="v">${fmtNum(s.parlamentares_envolvidos || 0)}</div></div>
+      <div class="stat"><div class="k">CNPJs</div><div class="v">${fmtNum(s.cnpjs_envolvidos || 0)}</div></div>
+    </div>
+    <div class="row" style="margin-top:10px"><span class="l">valor suspeito</span><span class="r acc">${fmtBRL(s.valor_total_suspeito || 0)}</span></div>
+    <div class="row"><span class="l">threshold Jaccard</span><span class="r">${s.threshold || 0.8}</span></div>
+  `);
+}
+
+function renderVertex(v){
+  if(!v) return card('🤖 Vertex Classifier', '<div class="empty">aguardando primeira execução</div>');
+  const cats = v.por_categoria || {};
+  const top = Object.entries(cats).sort((a,b) => b[1]-a[1]).slice(0,5);
+  return card('🤖 Vertex Classifier <span class="badge live">live</span>', `
+    <div class="grid2">
+      <div class="stat"><div class="k">notas classificadas</div><div class="v big">${fmtNum(v.total || 0)}</div></div>
+      <div class="stat"><div class="k">duração</div><div class="v">${v.duracao_s || '—'}s</div></div>
+    </div>
+    <details><summary>Top categorias</summary>
+      ${top.map(([k,n]) => `<div class="row"><span class="l">${k}</span><span class="r">${fmtNum(n)}</span></div>`).join('')}
+    </details>
+  `);
+}
+
+function renderBuckets(b){
+  if(!b) return '';
+  return card('💾 Storage', `
+    <div class="grid2">
+      <div class="stat"><div class="k">raw bucket</div><div class="v">${b.raw}</div></div>
+      <div class="stat"><div class="k">clean bucket</div><div class="v">${b.clean}</div></div>
+    </div>
+  `);
+}
+
+async function load(force){
+  try{
+    const url = STATUS_URL + '?t=' + Date.now();
+    const r = await fetch(url, { cache: 'no-store' });
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const data = await r.json();
+    lastFetch = Date.now();
+    render(data);
+  } catch(e){
+    if(force) alert('Erro: ' + e.message);
+    if(!lastFetch){
+      $('root').innerHTML = `<div class="card"><div class="err-msg">⚠️ ${e.message}<br><br>O sprint pode ainda não ter publicado o primeiro status.<br>Aguarde alguns minutos e atualize.</div></div>`;
+    }
+  }
+}
+
+function render(d){
+  $('tstxt').textContent = d.generated_at_brt || 'agora';
+  const html = [
+    renderIngestao(d.ingestao),
+    renderFlavio(d.forenses?.flavio),
+    renderSangue(d.forenses?.sangue_poder),
+    renderVertex(d.vertex?.ceap_classified_2025),
+    renderBuckets(d.buckets),
+  ].join('');
+  $('root').innerHTML = html;
+}
+
+// auto-refresh
+function tickAge(){
+  $('age').textContent = lastFetch ? 'atualizado ' + ageStr(lastFetch) : 'aguardando primeira atualização';
+}
+setInterval(tickAge, 1000);
+setInterval(() => load(false), 30_000);
+load(false);
+</script>
+</body>
+</html>
