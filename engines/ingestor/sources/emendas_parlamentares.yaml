@@ -1,0 +1,27 @@
+# Fonte: Emendas Parlamentares — Portal da Transparência (CGU)
+# Emendas RP6/RP7/RP8/RP9/RP99 por parlamentar
+# Documentação: https://api.portaldatransparencia.gov.br/swagger-ui/index.html
+name: emendas_parlamentares
+description: "Emendas parlamentares federais (RP6/RP7/RP8/RP9/RP99) por autor/ano"
+type: rest_paginated
+priority: critical
+sovereignty_class: public
+
+fetch_config:
+  url_template: "https://api.portaldatransparencia.gov.br/api-de-dados/emendas?ano={year}"
+  page_param: pagina
+  page_start: 1
+  api_key_env: PORTAL_TRANSPARENCIA_API_KEY
+  api_key_header: chave-api-dados
+  delay_ms: 700  # Respeita rate limit 90 req/min (6h-24h) = 1 req cada 670ms; usa 700ms
+  max_pages: 5000  # safety cap
+  headers:
+    Accept: "application/json"
+    User-Agent: "TransparenciaBR-Ingestor/1.0"
+
+# Para usar: cadastre email em https://portaldatransparencia.gov.br/api-de-dados/cadastrar-email
+# e exporte: export PORTAL_TRANSPARENCIA_API_KEY="seu-token"
+
+retention:
+  raw_versioning: enabled
+  archive_after_days: 90

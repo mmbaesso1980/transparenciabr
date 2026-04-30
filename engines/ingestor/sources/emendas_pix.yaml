@@ -1,0 +1,26 @@
+# Fonte: Emendas PIX (Transferências Especiais EC 105/2019) — Transferegov
+# Endpoint público (PostgREST), sem auth.
+# Documentação: https://docs.api.transferegov.gestao.gov.br/transferenciasespeciais/
+name: emendas_pix
+description: "Emendas PIX (Transferências Especiais EC 105/2019) por ano"
+type: postgrest
+priority: critical
+sovereignty_class: public
+
+fetch_config:
+  url_template: "https://api.transferegov.gestao.gov.br/transferenciasespeciais/emenda"
+  year_param: ano_emenda
+  page_size: 5000
+  delay_ms: 300
+  headers:
+    Accept: "application/json"
+    User-Agent: "TransparenciaBR-Ingestor/1.0"
+
+# Endpoints relacionados (próximas iterações):
+#   /executor_especial      — dados bancários de quem recebe
+#   /plano_acao             — plano de aplicação dos recursos
+#   /relatorio_gestao_novo_especial — execução orçamentária
+
+retention:
+  raw_versioning: enabled
+  archive_after_days: 90

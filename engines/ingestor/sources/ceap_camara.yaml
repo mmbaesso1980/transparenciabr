@@ -1,0 +1,54 @@
+# Fonte: CEAP — Câmara dos Deputados
+# Cota para Exercício da Atividade Parlamentar (despesas indenizadas).
+# Disponível desde 2008. Arquivos CSV anuais sem auth.
+# Documentação: https://dadosabertos.camara.leg.br
+name: ceap_camara
+description: "CEAP - Despesas indenizadas dos deputados federais (anos 2008-presente)"
+type: csv_yearly_file
+priority: critical
+sovereignty_class: public  # 100% público, dados de agentes públicos
+
+fetch_config:
+  url_template: "https://www.camara.leg.br/cotas/Ano-{year}.csv.zip"
+  file_extension: "csv.zip"
+  delimiter: ";"
+  headers:
+    User-Agent: "TransparenciaBR-Ingestor/1.0 (+https://transparenciabr.web.app)"
+
+schema:
+  fields:
+    - txNomeParlamentar
+    - cpf
+    - ideCadastro
+    - nuCarteiraParlamentar
+    - nuLegislatura
+    - sgUF
+    - sgPartido
+    - codLegislatura
+    - numSubCota
+    - txtDescricao
+    - numEspecificacaoSubCota
+    - txtDescricaoEspecificacao
+    - txtFornecedor
+    - txtCNPJCPF
+    - txtNumero
+    - indTipoDocumento
+    - datEmissao
+    - vlrDocumento
+    - vlrGlosa
+    - vlrLiquido
+    - numMes
+    - numAno
+    - numParcela
+    - txtPassageiro
+    - txtTrecho
+    - numLote
+    - numRessarcimento
+    - vlrRestituicao
+    - nuDeputadoId
+    - ideDocumento
+    - urlDocumento
+
+retention:
+  raw_versioning: enabled
+  archive_after_days: 90
