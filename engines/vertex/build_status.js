@@ -110,5 +110,5 @@ const status = {
 const local = '/tmp/sprint_status.json';
 writeFileSync(local, JSON.stringify(status, null, 2));
 execSync(`gsutil -q -h "Cache-Control:public,max-age=60" -h "Content-Type:application/json" cp "${local}" "gs://${BUCKET_CLEAN}/dashboard/sprint_status.json"`);
-execSync(`gsutil -q acl ch -u AllUsers:R "gs://${BUCKET_CLEAN}/dashboard/sprint_status.json" || true`);
+// Bucket usa Uniform Bucket-Level Access — leitura pública é via IAM, configurada uma vez via setup_public_dashboard.sh
 console.log(`✅ status publicado em https://storage.googleapis.com/${BUCKET_CLEAN}/dashboard/sprint_status.json`);
