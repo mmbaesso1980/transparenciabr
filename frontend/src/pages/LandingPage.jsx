@@ -95,7 +95,7 @@ export default function LandingPage() {
   const { isAuthenticated, user } = useAuth();
   const { credits } = useUserCredits();
   const { graphData, loading, error, findPoliticoByQuery, rows } =
-    useTransparencyReportsUniverso(180);
+    useTransparencyReportsUniverso(600);
 
   const [query, setQuery] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);

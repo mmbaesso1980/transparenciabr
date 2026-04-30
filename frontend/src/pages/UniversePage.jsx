@@ -31,7 +31,7 @@ export default function UniversePage() {
   const creditDisplay = Number.isFinite(credits) ? credits : saldo;
 
   const { graphData, loading, error, findPoliticoByQuery, rows } =
-    useTransparencyReportsUniverso(180);
+    useTransparencyReportsUniverso(600);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [modalPolitico, setModalPolitico] = useState({ id: "", nome: "" });
@@ -210,50 +210,51 @@ export default function UniversePage() {
         className="pointer-events-none absolute inset-0 z-[5] bg-[radial-gradient(ellipse_at_center,transparent_0%,#02040a_72%),radial-gradient(circle_at_15%_85%,rgba(88,166,255,0.1),transparent_42%),radial-gradient(circle_at_90%_12%,rgba(239,68,68,0.06),transparent_38%)]"
       />
 
-      <header className="relative z-20 flex flex-wrap items-center justify-between gap-3 border-b border-[#30363D]/60 bg-[#02040a]/75 px-4 py-3 backdrop-blur-md sm:px-8">
+      <header className="relative z-20 flex items-center justify-between gap-3 border-b border-[#30363D]/60 bg-[#02040a]/75 px-4 py-3 backdrop-blur-md sm:px-8">
         <BrandLogo to="/" variant="full" size="md" />
         <nav
-          className="flex flex-wrap items-center gap-2 sm:gap-3"
+          className="flex items-center gap-2 sm:gap-2.5"
           aria-label="Navegação universo"
         >
           <Link
             to="/dashboard"
-            className="inline-flex h-9 items-center rounded-lg border border-[#58A6FF]/45 bg-transparent px-4 text-[11px] font-bold uppercase tracking-[0.16em] text-[#7DD3FC] shadow-[0_0_24px_rgba(88,166,255,0.12)] backdrop-blur-sm transition hover:border-[#7DD3FC]/70 hover:bg-[#58A6FF]/10 hover:text-[#F0F4FC] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7DD3FC]"
+            className="inline-flex h-9 items-center rounded-lg border border-[#58A6FF]/45 bg-transparent px-3.5 text-[11px] font-bold uppercase tracking-[0.16em] text-[#7DD3FC] shadow-[0_0_24px_rgba(88,166,255,0.12)] backdrop-blur-sm transition hover:border-[#7DD3FC]/70 hover:bg-[#58A6FF]/10 hover:text-[#F0F4FC] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7DD3FC] sm:px-4"
           >
             Painel
           </Link>
+          {isAuthenticated ? (
+            <Link
+              to="/perfil"
+              aria-label="Abrir perfil e configurações"
+              className="group inline-flex h-9 items-center gap-2.5 rounded-full border border-[#30363D] bg-[#0d1117]/80 pl-1 pr-3.5 text-[13px] text-[#E6EDF3] shadow-sm transition hover:border-[#58A6FF]/60 hover:bg-[#0d1117] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7DD3FC]"
+            >
+              <UserOrb user={user} size={28} />
+              <span className="hidden flex-col items-start leading-tight sm:flex">
+                <span className="max-w-[140px] truncate text-[12.5px] font-semibold tracking-tight text-[#F0F4FC] sm:max-w-[200px]">
+                  {firstName(user) || "Analista"}
+                </span>
+                <span className="text-[10.5px] font-medium uppercase tracking-[0.12em] text-[#7DD3FC]/85">
+                  {Number.isFinite(creditDisplay)
+                    ? `${creditDisplay.toLocaleString("pt-BR")} créditos`
+                    : "…"}
+                </span>
+              </span>
+            </Link>
+          ) : (
+            <Link
+              to="/login"
+              aria-label="Entrar — receber 300 créditos diários"
+              className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#F0F4FC] px-3.5 text-[11px] font-bold uppercase tracking-[0.16em] text-[#02040a] shadow-[0_0_24px_rgba(255,255,255,0.18)] transition hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7DD3FC] sm:px-4"
+            >
+              <LogIn className="size-3.5" strokeWidth={2.5} aria-hidden />
+              Entrar
+            </Link>
+          )}
         </nav>
-        {isAuthenticated ? (
-          <Link
-            to="/perfil"
-            aria-label="Abrir perfil e configurações"
-            className="group inline-flex h-9 items-center gap-2.5 rounded-full border border-[#30363D] bg-[#0d1117]/80 pl-1 pr-3.5 text-[13px] text-[#E6EDF3] shadow-sm transition hover:border-[#58A6FF]/60 hover:bg-[#0d1117] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7DD3FC]"
-          >
-            <UserOrb user={user} size={28} />
-            <span className="flex flex-col items-start leading-tight">
-              <span className="max-w-[140px] truncate text-[12.5px] font-semibold tracking-tight text-[#F0F4FC] sm:max-w-[200px]">
-                {firstName(user) || "Analista"}
-              </span>
-              <span className="text-[10.5px] font-medium uppercase tracking-[0.12em] text-[#7DD3FC]/85">
-                {Number.isFinite(creditDisplay)
-                  ? `${creditDisplay.toLocaleString("pt-BR")} créditos`
-                  : "…"}
-              </span>
-            </span>
-          </Link>
-        ) : (
-          <Link
-            to="/login"
-            aria-label="Entrar — receber 300 créditos diários"
-            className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#F0F4FC] px-4 text-[11px] font-bold uppercase tracking-[0.16em] text-[#02040a] shadow-[0_0_24px_rgba(255,255,255,0.18)] transition hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7DD3FC]"
-          >
-            <LogIn className="size-3.5" strokeWidth={2.5} aria-hidden />
-            Entrar
-          </Link>
-        )}
       </header>
 
-      <div className="pointer-events-none absolute inset-0 z-10 flex justify-between gap-3 p-3 pt-[4.25rem] sm:gap-4 sm:p-6 sm:pt-[4.75rem]">
+      {/* Bentos laterais — desktop apenas (sm+). No mobile viram strip horizontal mais abaixo. */}
+      <div className="pointer-events-none absolute inset-0 z-10 hidden justify-between gap-3 p-3 pt-[4.25rem] sm:flex sm:gap-4 sm:p-6 sm:pt-[4.75rem]">
         <aside className="pointer-events-auto flex max-h-[calc(100dvh-7.5rem)] w-[min(100%,280px)] flex-col gap-2.5 overflow-y-auto sm:gap-3">
           {LEFT_BENTO.map((cat) => (
             <Link
@@ -325,6 +326,40 @@ export default function UniversePage() {
             </Link>
           ))}
         </aside>
+      </div>
+
+      {/* Strip horizontal de bentos — mobile apenas (<sm). Acima da busca, sem cobrir canvas. */}
+      <div className="pointer-events-none absolute inset-x-0 bottom-[7.5rem] z-20 px-3 sm:hidden">
+        <div className="pointer-events-auto -mx-1 flex snap-x snap-mandatory gap-2.5 overflow-x-auto px-1 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {[...LEFT_BENTO, ...RIGHT_BENTO].map((cat) => (
+            <Link
+              key={`mobile-${cat.seed}`}
+              to={`/dashboard#${cat.dashboardHash}`}
+              className="group flex w-[78vw] max-w-[280px] shrink-0 snap-center items-start gap-2.5 rounded-2xl border border-[#21262D]/90 bg-[#080B14]/70 p-3 shadow-[0_12px_40px_rgba(0,0,0,0.5)] backdrop-blur-md transition active:scale-[0.99]"
+            >
+              <PoliticianOrb
+                identity={cat.seed}
+                score={cat.score}
+                size={42}
+                withRing
+                ariaLabel={`Orbe ${cat.label}`}
+                className="shrink-0"
+              />
+              <div className="min-w-0 flex-1">
+                <p className="text-[8.5px] font-semibold uppercase tracking-[0.18em] text-[#8B949E]">
+                  {cat.label}
+                </p>
+                <p className="font-data mt-0.5 truncate text-[13.5px] font-semibold tracking-tight text-[#F0F4FC]">
+                  {cat.headline}
+                </p>
+                <span className="mt-1 inline-flex items-center gap-1 text-[9.5px] font-semibold uppercase tracking-[0.14em] text-[#7DD3FC]">
+                  Painel
+                  <ArrowRight className="size-3" strokeWidth={2.25} />
+                </span>
+              </div>
+            </Link>
+          ))}
+        </div>
       </div>
 
       <div className="pointer-events-none fixed inset-x-0 bottom-0 z-30 flex justify-center px-4 pb-6 pt-16">

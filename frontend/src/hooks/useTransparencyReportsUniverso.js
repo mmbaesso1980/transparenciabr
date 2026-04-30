@@ -7,6 +7,7 @@ import {
   pickNome,
   pickPartidoSigla,
 } from "../utils/dataParsers.js";
+import { getPartyColors } from "../utils/partyColors.js";
 
 const COLLECTION = "transparency_reports";
 
@@ -128,23 +129,15 @@ export function buildGraphFromReports(rows) {
   /** @type {object[]} */
   const links = [];
 
-  const partyHue = (sigla) => {
-    let h = 0;
-    const s = String(sigla || "");
-    for (let i = 0; i < s.length; i++) {
-      h = (h + s.charCodeAt(i) * (i + 7)) % 360;
-    }
-    return 180 + (h % 160);
-  };
-
   for (const [, p] of parties) {
-    const hue = partyHue(p.label);
+    const colors = getPartyColors(p.label);
     nodes.push({
       id: p.id,
       label: p.label,
       tipo: "partido",
       tier: "grande",
-      partyHue: hue,
+      partyColor: colors.primary,
+      partyColorSecondary: colors.secondary || null,
       mass: 14,
     });
   }
