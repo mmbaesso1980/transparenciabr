@@ -162,14 +162,7 @@ export default function UniversePage() {
               </span>
             </span>
           </Link>
-        ) : (
-          <Link
-            to="/login"
-            className="inline-flex h-9 items-center gap-2 rounded-md bg-[#58A6FF] px-4 text-[13px] font-bold uppercase tracking-[0.12em] text-white shadow-[0_2px_12px_rgba(88,166,255,0.28)] transition hover:bg-[#79b8ff] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7DD3FC]"
-          >
-            Entrar
-          </Link>
-        )}
+        ) : null}
       </header>
 
       <div className="pointer-events-none absolute inset-0 z-10 flex justify-between gap-3 p-3 pt-[4.25rem] sm:gap-4 sm:p-6 sm:pt-[4.75rem]">
