@@ -34,7 +34,10 @@ export default function UserOrb({
     >
       <PoliticianOrb
         identity={identity}
-        score={0}
+        // Score visual fixo em 45 — dá saturacão vibrante sem semantizar risco
+        // (avatar do usuário não tem score forense). Cor real virará personalizável
+        // em /perfil baseada em respostas de inclinação política.
+        score={45}
         size={size}
         withRing
         ariaLabel="Avatar do usuário"
