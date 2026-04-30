@@ -447,9 +447,9 @@ function SceneContent({
     <>
       <group ref={groupRef}>
         <ambientLight intensity={0.22} />
-        <pointLight position={[20, 16, 24]} intensity={88} color="#58a6ff" distance={90} />
-        <pointLight position={[-18, -12, 20]} intensity={52} color="#f87171" distance={75} />
-        <pointLight position={[0, -24, 14]} intensity={38} color="#a78bfa" distance={68} />
+        <pointLight position={[28, 22, 34]} intensity={140} color="#58a6ff" distance={140} />
+        <pointLight position={[-26, -16, 28]} intensity={85} color="#f87171" distance={120} />
+        <pointLight position={[0, -32, 20]} intensity={60} color="#a78bfa" distance={110} />
 
         {linkSegments.map((seg, i) => (
           <FlowLink
@@ -573,7 +573,7 @@ const OrbMeshScene = forwardRef(function OrbMeshScene(
   return (
     <div className={`absolute inset-0 touch-none ${className}`}>
       <Canvas
-        camera={{ position: [0, 2.5, 28], fov: 46 }}
+        camera={{ position: [0, 4, 48], fov: 50 }}
         gl={{ antialias: true, alpha: false }}
         dpr={[1, 2]}
       >
