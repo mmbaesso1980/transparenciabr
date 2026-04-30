@@ -812,6 +812,7 @@ exports.createCheckoutSession = functions
     const packageId = (data.packageId || data.package_id || "").trim();
 
     if (priceId) {
+      params.metadata = { ...params.metadata, credits: '0' };
       params.line_items = [{ price: priceId, quantity: 1 }];
     } else if (packageId && PACKAGE_CATALOG[packageId]) {
       const pkg = PACKAGE_CATALOG[packageId];
