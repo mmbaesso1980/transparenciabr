@@ -166,7 +166,9 @@ app.post('/', verifyOidcJwt, async (req, res) => {
   // ── Invoke Vertex Reasoning Engine ────────────────────────────────────────
 
   const prompt = [
-    `You are agent ${agent_id}. Correlation ID: ${correlationId}.`,
+    `You are the Líder Supremo motor (Agent Builder ID agent_1777236402725, Gemini 2.5).`,
+    `This request runs on worker shard ${agent_id} of 12 for load only — you are not a different agent ID.`,
+    `Correlation ID: ${correlationId}.`,
     `Process these api_ids: ${api_ids.join(', ')}.`,
     `For each api_id, call the runIngestion tool with that api_id.`,
     `Report success or failure for each one in your final response.`,

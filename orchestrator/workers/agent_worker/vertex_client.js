@@ -6,12 +6,11 @@
  * and exponential back-off on quota errors.
  *
  * Environment variables:
- *   VERTEX_REASONING_ENGINE_ID  – full resource name override (optional)
+ *   VERTEX_REASONING_ENGINE_ID  – full resource name (required), e.g.
+ *                                 projects/PROJECT/locations/REGION/reasoningEngines/NUMERIC_ID
  *   VERTEX_TIMEOUT_SECONDS      – per-request timeout in seconds (default 600)
  *   GCP_PROJECT_ID              – Google Cloud project ID
  */
-
-import { helpers } from '@google-cloud/aiplatform';
 
 // Dynamically import protobufjs Value helper from aiplatform bundle.
 // The actual gRPC client is accessed through the v1beta1 namespace.
@@ -29,9 +28,26 @@ const { v1beta1 } = aiplatform;
  */
 export const SUPREME_AGENT_BUILDER_ID = 'agent_1777236402725';
 
-const REASONING_ENGINE_RESOURCE =
-  process.env.VERTEX_REASONING_ENGINE_ID ??
-  'projects/89728155070/locations/us-west1/reasoningEngines/4398310393894666240';
+/**
+ * @param {string} resourceName Full reasoning engine resource name
+ * @returns {string} Regional Vertex API host (e.g. us-central1-aiplatform.googleapis.com)
+ */
+function apiEndpointFromReasoningEngineResource(resourceName) {
+  const m = String(resourceName).match(/\/locations\/([^/]+)\//);
+  const location = m ? m[1] : 'us-central1';
+  return `${location}-aiplatform.googleapis.com`;
+}
+
+function requireReasoningEngineResource() {
+  const id = (process.env.VERTEX_REASONING_ENGINE_ID || '').trim();
+  if (!id) {
+    throw new Error(
+      'VERTEX_REASONING_ENGINE_ID ausente: defina o nome completo do recurso Reasoning Engine ' +
+        '(projects/.../locations/.../reasoningEngines/...). Não use fallback hardcoded (SecOps G.O.A.T.).',
+    );
+  }
+  return id;
+}
 
 const TIMEOUT_SECONDS = parseInt(
   process.env.VERTEX_TIMEOUT_SECONDS ?? '600',
@@ -104,6 +120,8 @@ async function withBackoff(fn, maxRetries = MAX_RETRIES) {
 export class VertexReasoningClient {
   #client = null;
   #initialized = false;
+  /** @type {string|null} */
+  #reasoningEngineResource = null;
 
   /** @returns {boolean} */
   get isReady() {
@@ -115,41 +133,45 @@ export class VertexReasoningClient {
    * @returns {Promise<void>}
    */
   async init() {
+    this.#reasoningEngineResource = requireReasoningEngineResource();
+    const apiEndpoint = apiEndpointFromReasoningEngineResource(this.#reasoningEngineResource);
     this.#client = new v1beta1.ReasoningEngineExecutionServiceClient({
-      apiEndpoint: 'us-west1-aiplatform.googleapis.com',
+      apiEndpoint,
     });
     // Eagerly warm up credentials
     await this.#client.initialize();
     this.#initialized = true;
     log('INFO', 'VertexReasoningClient initialised', {
-      resource: REASONING_ENGINE_RESOURCE,
+      resource: this.#reasoningEngineResource,
+      api_endpoint: apiEndpoint,
     });
   }
 
   /**
    * Invoke the Reasoning Engine with a text prompt and optional tool definitions.
    *
-   * @param {number} agentId   – 1-12 agent identifier
+   * @param {number} workerSlot – 1–12: shard de carga Pub/Sub (sessão); o motor Vertex é sempre o Líder Supremo ({@link SUPREME_AGENT_BUILDER_ID}).
    * @param {string} prompt    – instruction text sent to the reasoning engine
    * @param {Array<Record<string,unknown>>} [tools]  – optional tool declarations
    * @returns {Promise<{text:string, tool_calls: Array<{name:string, args:Record<string,unknown>}> }>}
    */
-  async invokeAgent(agentId, prompt, tools = []) {
+  async invokeAgent(workerSlot, prompt, tools = []) {
     if (!this.#initialized) {
       throw new Error('VertexReasoningClient not initialised — call init() first');
     }
 
-    const sessionId = `agent_${agentId}`;
+    const sessionId = `shard_${workerSlot}`;
 
     log('DEBUG', 'Invoking Reasoning Engine', {
-      agent_id: agentId,
+      worker_slot: workerSlot,
       session_id: sessionId,
+      lider_supremo_agent_builder_id: SUPREME_AGENT_BUILDER_ID,
       prompt_length: prompt.length,
       tool_count: tools.length,
     });
 
     const request = {
-      reasoningEngine: REASONING_ENGINE_RESOURCE,
+      reasoningEngine: this.#reasoningEngineResource,
       input: {
         input: prompt,
         ...(tools.length > 0 && { tools }),
@@ -189,7 +211,7 @@ export class VertexReasoningClient {
     });
 
     log('DEBUG', 'Reasoning Engine response received', {
-      agent_id: agentId,
+      worker_slot: workerSlot,
       session_id: sessionId,
       response_length: responseText.text.length,
       tool_calls: responseText.tool_calls.length,
