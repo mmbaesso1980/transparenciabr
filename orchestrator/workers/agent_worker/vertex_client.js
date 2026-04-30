@@ -29,9 +29,8 @@ const { v1beta1 } = aiplatform;
  */
 export const SUPREME_AGENT_BUILDER_ID = 'agent_1777236402725';
 
-const REASONING_ENGINE_RESOURCE =
-  process.env.VERTEX_REASONING_ENGINE_ID ??
-  'projects/89728155070/locations/us-west1/reasoningEngines/4398310393894666240';
+/** G.O.A.T. Pilar 3 — nunca hardcodar projeto/região/engine; só env. */
+const REASONING_ENGINE_RESOURCE = (process.env.VERTEX_REASONING_ENGINE_ID ?? '').trim();
 
 const TIMEOUT_SECONDS = parseInt(
   process.env.VERTEX_TIMEOUT_SECONDS ?? '600',
@@ -115,14 +114,24 @@ export class VertexReasoningClient {
    * @returns {Promise<void>}
    */
   async init() {
+    if (!REASONING_ENGINE_RESOURCE) {
+      throw new Error(
+        'VERTEX_REASONING_ENGINE_ID ausente — defina o nome completo do recurso Reasoning Engine ' +
+          '(deployment do Líder Supremo / agent_1777236402725). Ex.: projects/SEU_PROJETO/locations/REGION/reasoningEngines/ID',
+      );
+    }
+    const regionMatch = REASONING_ENGINE_RESOURCE.match(/locations\/([^/]+)\//);
+    const region = regionMatch?.[1] ?? 'us-west1';
+    const apiEndpoint = `${region}-aiplatform.googleapis.com`;
     this.#client = new v1beta1.ReasoningEngineExecutionServiceClient({
-      apiEndpoint: 'us-west1-aiplatform.googleapis.com',
+      apiEndpoint,
     });
     // Eagerly warm up credentials
     await this.#client.initialize();
     this.#initialized = true;
     log('INFO', 'VertexReasoningClient initialised', {
       resource: REASONING_ENGINE_RESOURCE,
+      api_endpoint: apiEndpoint,
     });
   }
 
