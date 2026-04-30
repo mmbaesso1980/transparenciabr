@@ -1,0 +1,3055 @@
+{
+  "schema_version": "2.0.0",
+  "namespace": "transparenciabr_l4",
+  "generated_at": "2026-04-30T21:29:35Z",
+  "generator": "engines/ingestors/registry_apis.json (manual L4 expansion)",
+  "description": "Registro de APIs para o pipeline L4 OCR Massivo — TransparênciaBR. Expande o arsenal_apis.json com entradas para DOU/INLABS, 27 DOEs estaduais, TSE ciclos, OFAC, SEC EDGAR, OpenSanctions, USASpending e World Bank.",
+  "apis": [
+    {
+      "id": "cgu_portal_transparencia",
+      "nome": "CGU — Portal da Transparência",
+      "descricao": "CGU — Portal da Transparência",
+      "grupo_id": "controle_federal",
+      "url": "https://api.portaldatransparencia.gov.br/api-de-dados/servidores",
+      "base_url": "https://api.portaldatransparencia.gov.br",
+      "auth_required": true,
+      "auth_env": "CGU_API_KEY",
+      "rate_limit_per_min": 500,
+      "paginated": true,
+      "gcs_path": "cgu/{endpoint_name}/{ano}/{mes}",
+      "format": "json",
+      "frequency": "continuous",
+      "endpoints": [
+        {
+          "name": "servidores_federais",
+          "path": "/api-de-dados/servidores",
+          "params_required": [],
+          "params_optional": [
+            "pagina",
+            "cpf",
+            "nome",
+            "codigoOrgao"
+          ]
+        },
+        {
+          "name": "viagens_servidores",
+          "path": "/api-de-dados/viagens",
+          "params_required": [
+            "dataIdaDe",
+            "dataIdaAte"
+          ],
+          "params_optional": [
+            "codigoOrgao",
+            "pagina"
+          ]
+        },
+        {
+          "name": "contratos_federais",
+          "path": "/api-de-dados/contratos",
+          "params_required": [
+            "dataInicial",
+            "dataFinal"
+          ],
+          "params_optional": [
+            "codigoOrgao",
+            "pagina"
+          ]
+        },
+        {
+          "name": "emendas_parlamentares",
+          "path": "/api-de-dados/emendas/parlamentar",
+          "params_required": [
+            "ano"
+          ],
+          "params_optional": [
+            "codigoFuncao",
+            "pagina"
+          ]
+        },
+        {
+          "name": "emendas_por_localidade",
+          "path": "/api-de-dados/emendas/localidade",
+          "params_required": [
+            "ano"
+          ],
+          "params_optional": [
+            "codigoIbge",
+            "pagina"
+          ]
+        },
+        {
+          "name": "convenios_federais",
+          "path": "/api-de-dados/convenios",
+          "params_required": [
+            "dataVigenciaInicial",
+            "dataVigenciaFinal"
+          ],
+          "params_optional": [
+            "codigoOrgao",
+            "pagina"
+          ]
+        },
+        {
+          "name": "gastos_diretos",
+          "path": "/api-de-dados/gastos-diretos",
+          "params_required": [
+            "mesAno"
+          ],
+          "params_optional": [
+            "codigoOrgao",
+            "pagina"
+          ]
+        },
+        {
+          "name": "licitacoes_federais",
+          "path": "/api-de-dados/licitacoes",
+          "params_required": [
+            "dataInicial",
+            "dataFinal"
+          ],
+          "params_optional": [
+            "codigoOrgao",
+            "pagina"
+          ]
+        },
+        {
+          "name": "empresas_inidoneas_suspensas",
+          "path": "/api-de-dados/ceis",
+          "params_required": [],
+          "params_optional": [
+            "cnpjCpf",
+            "pagina"
+          ]
+        },
+        {
+          "name": "empresas_punidas_anticorrupcao",
+          "path": "/api-de-dados/cnep",
+          "params_required": [],
+          "params_optional": [
+            "cnpjCpf",
+            "pagina"
+          ]
+        },
+        {
+          "name": "entidades_impedidas",
+          "path": "/api-de-dados/cepim",
+          "params_required": [],
+          "params_optional": [
+            "cnpj",
+            "pagina"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "pncp",
+      "nome": "PNCP — Portal Nacional de Contratações Públicas",
+      "descricao": "PNCP — Portal Nacional de Contratações Públicas",
+      "grupo_id": "compras_publicas",
+      "url": "https://pncp.gov.br/api/pncp/v1/contratos",
+      "base_url": "https://pncp.gov.br/api/pncp/v1",
+      "auth_required": false,
+      "auth_env": null,
+      "rate_limit_per_min": 60,
+      "paginated": true,
+      "gcs_path": "pncp/{endpoint_name}/{ano}/{mes}",
+      "format": "json",
+      "frequency": "continuous",
+      "endpoints": [
+        {
+          "name": "contratos_pncp",
+          "path": "/contratos",
+          "params_required": [
+            "dataInicial",
+            "dataFinal"
+          ],
+          "params_optional": [
+            "pagina",
+            "tamanhoPagina"
+          ]
+        },
+        {
+          "name": "contratacoes_publicacao",
+          "path": "/contratacoes/publicacao",
+          "params_required": [
+            "dataInicial",
+            "dataFinal"
+          ],
+          "params_optional": [
+            "pagina",
+            "tamanhoPagina"
+          ]
+        },
+        {
+          "name": "pca_plano_anual",
+          "path": "/planos-contratacao",
+          "params_required": [
+            "ano"
+          ],
+          "params_optional": [
+            "pagina",
+            "tamanhoPagina",
+            "codigoOrgao"
+          ]
+        },
+        {
+          "name": "pca_itens",
+          "path": "/planos-contratacao/{id}/itens",
+          "params_required": [
+            "id"
+          ],
+          "params_optional": [
+            "pagina"
+          ]
+        },
+        {
+          "name": "atas_registro_preco",
+          "path": "/atas",
+          "params_required": [
+            "dataInicial",
+            "dataFinal"
+          ],
+          "params_optional": [
+            "pagina",
+            "tamanhoPagina"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "transferegov",
+      "nome": "Transferegov — Emendas PIX (Transferências Especiais)",
+      "descricao": "Transferegov — Emendas PIX (Transferências Especiais)",
+      "grupo_id": "orcamento_federal",
+      "url": "https://api.transferegov.gestao.gov.br/transferenciasespeciais/emendas",
+      "base_url": "https://api.transferegov.gestao.gov.br/transferenciasespeciais",
+      "auth_required": false,
+      "auth_env": null,
+      "rate_limit_per_min": 120,
+      "paginated": true,
+      "gcs_path": "transferegov/{endpoint_name}/{ano}/{mes}",
+      "format": "json",
+      "frequency": "daily",
+      "endpoints": [
+        {
+          "name": "emendas_pix",
+          "path": "/emendas",
+          "params_required": [],
+          "params_optional": [
+            "ano",
+            "pagina"
+          ]
+        },
+        {
+          "name": "emenda_detalhe",
+          "path": "/emendas/{id}",
+          "params_required": [
+            "id"
+          ],
+          "params_optional": []
+        },
+        {
+          "name": "emenda_planos_acao",
+          "path": "/emendas/{id}/planos-acao",
+          "params_required": [
+            "id"
+          ],
+          "params_optional": []
+        },
+        {
+          "name": "executor_especial",
+          "path": "/executor_especial",
+          "params_required": [],
+          "params_optional": [
+            "pagina"
+          ]
+        },
+        {
+          "name": "relatorio_gestao",
+          "path": "/relatorio_gestao_novo_especial",
+          "params_required": [],
+          "params_optional": [
+            "pagina"
+          ]
+        },
+        {
+          "name": "municipios_transferegov",
+          "path": "/municipios",
+          "params_required": [],
+          "params_optional": []
+        }
+      ]
+    },
+    {
+      "id": "tcu",
+      "nome": "TCU — Tribunal de Contas da União",
+      "descricao": "TCU — Tribunal de Contas da União",
+      "grupo_id": "controle_externo",
+      "url": "https://contas.tcu.gov.br/ords/api/publica/sancoes",
+      "base_url": "https://contas.tcu.gov.br/ords/api",
+      "auth_required": false,
+      "auth_env": null,
+      "rate_limit_per_min": 120,
+      "paginated": true,
+      "gcs_path": "tcu/{endpoint_name}/{ano}/{mes}",
+      "format": "json",
+      "frequency": "daily",
+      "endpoints": [
+        {
+          "name": "tcu_sancoes",
+          "path": "/publica/sancoes",
+          "params_required": [],
+          "params_optional": [
+            "pagina",
+            "cpfCnpj"
+          ]
+        },
+        {
+          "name": "tcu_cadirreg",
+          "path": "/publica/cadirreg",
+          "params_required": [],
+          "params_optional": [
+            "pagina",
+            "cnpj"
+          ]
+        },
+        {
+          "name": "tcu_pessoas_juridicas",
+          "path": "/publica/pj",
+          "params_required": [],
+          "params_optional": [
+            "pagina"
+          ]
+        },
+        {
+          "name": "tcu_sessoes",
+          "path": "/publica/sessoes",
+          "params_required": [],
+          "params_optional": [
+            "data",
+            "pagina"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tcu_acordaos",
+      "nome": "TCU — Acórdãos (sistema de busca)",
+      "descricao": "TCU — Acórdãos (sistema de busca)",
+      "grupo_id": "controle_externo",
+      "url": "https://dados-abertos.apps.tcu.gov.br/api/acordao/recupera-acordaos",
+      "base_url": "https://dados-abertos.apps.tcu.gov.br",
+      "auth_required": false,
+      "auth_env": null,
+      "rate_limit_per_min": 60,
+      "paginated": true,
+      "gcs_path": "tcu/acordaos/{ano}/{mes}",
+      "format": "json",
+      "frequency": "daily",
+      "endpoints": [
+        {
+          "name": "tcu_acordaos_busca",
+          "path": "/api/acordao/recupera-acordaos",
+          "params_required": [],
+          "params_optional": [
+            "termo",
+            "dataInicio",
+            "dataFim",
+            "pagina"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "senado_federal",
+      "nome": "Senado Federal — Dados Abertos",
+      "descricao": "Senado Federal — Dados Abertos",
+      "grupo_id": "poder_legislativo",
+      "url": "https://legis.senado.leg.br/dadosabertos/senador/lista/atual",
+      "base_url": "https://legis.senado.leg.br/dadosabertos",
+      "auth_required": false,
+      "auth_env": null,
+      "rate_limit_per_min": 100,
+      "paginated": false,
+      "gcs_path": "senado/{endpoint_name}/{ano}/{mes}",
+      "format": "json",
+      "frequency": "daily",
+      "endpoints": [
+        {
+          "name": "senadores_lista_atual",
+          "path": "/senador/lista/atual",
+          "params_required": [],
+          "params_optional": []
+        },
+        {
+          "name": "senador_perfil",
+          "path": "/senador/{codigo}",
+          "params_required": [
+            "codigo"
+          ],
+          "params_optional": []
+        },
+        {
+          "name": "senador_despesas",
+          "path": "/senador/{codigo}/despesas",
+          "params_required": [
+            "codigo"
+          ],
+          "params_optional": [
+            "ano",
+            "mes"
+          ]
+        },
+        {
+          "name": "senador_votacoes",
+          "path": "/senador/{codigo}/votacoes",
+          "params_required": [
+            "codigo"
+          ],
+          "params_optional": [
+            "ano"
+          ]
+        },
+        {
+          "name": "senador_autorias",
+          "path": "/senador/{codigo}/autorias",
+          "params_required": [
+            "codigo"
+          ],
+          "params_optional": []
+        },
+        {
+          "name": "votacoes_plenario",
+          "path": "/plenario/votacoes/{ano}",
+          "params_required": [
+            "ano"
+          ],
+          "params_optional": []
+        },
+        {
+          "name": "votacao_detalhe",
+          "path": "/plenario/votacao/{codigo}",
+          "params_required": [
+            "codigo"
+          ],
+          "params_optional": []
+        },
+        {
+          "name": "agenda_reuniao_data",
+          "path": "/agendareuniao/{AAAAMMDD}.json",
+          "params_required": [
+            "AAAAMMDD"
+          ],
+          "params_optional": []
+        },
+        {
+          "name": "agenda_reuniao_30d",
+          "path": "/agendareuniao/atual",
+          "params_required": [],
+          "params_optional": []
+        },
+        {
+          "name": "agenda_plenario",
+          "path": "/agenda/{data}",
+          "params_required": [
+            "data"
+          ],
+          "params_optional": []
+        }
+      ]
+    },
+    {
+      "id": "tse_dados_abertos",
+      "nome": "TSE — Dados Abertos (portal bulk downloads)",
+      "descricao": "TSE — Dados Abertos (portal bulk downloads)",
+      "grupo_id": "eleicoes",
+      "url": "https://dadosabertos.tse.jus.br/dataset/votacao-candidato-munzona/resource/votacao_candidato_munzona_{ano}.zip",
+      "base_url": "https://dadosabertos.tse.jus.br",
+      "auth_required": false,
+      "auth_env": null,
+      "rate_limit_per_min": 30,
+      "paginated": false,
+      "gcs_path": "tse/{endpoint_name}/{ano}",
+      "format": "zip",
+      "frequency": "one_shot",
+      "endpoints": [
+        {
+          "name": "tse_votacao_munzona",
+          "path": "/dataset/votacao-candidato-munzona/resource/votacao_candidato_munzona_{ano}.zip",
+          "params_required": [
+            "ano"
+          ],
+          "params_optional": []
+        },
+        {
+          "name": "tse_bens_candidatos",
+          "path": "/dataset/bem-candidato/resource/bem_candidato_{ano}.zip",
+          "params_required": [
+            "ano"
+          ],
+          "params_optional": []
+        },
+        {
+          "name": "tse_prestacao_contas",
+          "path": "/dataset/prestacao-contas-eleitorais/resource/prestacao_contas_{ano}.zip",
+          "params_required": [
+            "ano"
+          ],
+          "params_optional": []
+        }
+      ]
+    },
+    {
+      "id": "tse_divulga_cand",
+      "nome": "TSE — DivulgaCandContas (API REST doadores/fornecedores)",
+      "descricao": "TSE — DivulgaCandContas (API REST doadores/fornecedores)",
+      "grupo_id": "eleicoes",
+      "url": "https://divulgacandcontas.tse.jus.br/divulga/rest/v1/candidatura/listar/{ano}/{siglaUf}/0/0/0/0/0",
+      "base_url": "https://divulgacandcontas.tse.jus.br",
+      "auth_required": false,
+      "auth_env": null,
+      "rate_limit_per_min": 60,
+      "paginated": false,
+      "gcs_path": "tse/divulga/{endpoint_name}/{ano}",
+      "format": "json",
+      "frequency": "daily",
+      "endpoints": [
+        {
+          "name": "tse_candidatos",
+          "path": "/divulga/rest/v1/candidatura/listar/{ano}/{siglaUf}/0/0/0/0/0",
+          "params_required": [
+            "ano",
+            "siglaUf"
+          ],
+          "params_optional": []
+        },
+        {
+          "name": "tse_receitas_candidato",
+          "path": "/divulga/rest/v1/receitas/{ano}/{siglaUf}/{idCandidato}",
+          "params_required": [
+            "ano",
+            "siglaUf",
+            "idCandidato"
+          ],
+          "params_optional": []
+        },
+        {
+          "name": "tse_despesas_candidato",
+          "path": "/divulga/rest/v1/despesas/{ano}/{siglaUf}/{idCandidato}",
+          "params_required": [
+            "ano",
+            "siglaUf",
+            "idCandidato"
+          ],
+          "params_optional": []
+        }
+      ]
+    },
+    {
+      "id": "receita_cnpj",
+      "nome": "Receita Federal — Dados Abertos CNPJ (dump completo ~85 GB)",
+      "descricao": "Receita Federal — Dados Abertos CNPJ (dump completo ~85 GB)",
+      "grupo_id": "cadastros",
+      "url": "https://arquivos.receitafederal.gov.br/dados/cnpj/dados_abertos_cnpj/{ano}-{mes}/Empresas{n}.zip",
+      "base_url": "https://arquivos.receitafederal.gov.br",
+      "auth_required": false,
+      "auth_env": null,
+      "rate_limit_per_min": 10,
+      "paginated": false,
+      "gcs_path": "receita/cnpj/{endpoint_name}/{ano}/{mes}",
+      "format": "zip",
+      "frequency": "one_shot",
+      "endpoints": [
+        {
+          "name": "cnpj_empresas",
+          "path": "/dados/cnpj/dados_abertos_cnpj/{ano}-{mes}/Empresas{n}.zip",
+          "params_required": [
+            "ano",
+            "mes",
+            "n"
+          ],
+          "params_optional": []
+        },
+        {
+          "name": "cnpj_estabelecimentos",
+          "path": "/dados/cnpj/dados_abertos_cnpj/{ano}-{mes}/Estabelecimentos{n}.zip",
+          "params_required": [
+            "ano",
+            "mes",
+            "n"
+          ],
+          "params_optional": []
+        },
+        {
+          "name": "cnpj_socios",
+          "path": "/dados/cnpj/dados_abertos_cnpj/{ano}-{mes}/Socios{n}.zip",
+          "params_required": [
+            "ano",
+            "mes",
+            "n"
+          ],
+          "params_optional": []
+        },
+        {
+          "name": "cnpj_simples",
+          "path": "/dados/cnpj/dados_abertos_cnpj/{ano}-{mes}/Simples.zip",
+          "params_required": [
+            "ano",
+            "mes"
+          ],
+          "params_optional": []
+        }
+      ]
+    },
+    {
+      "id": "opencnpj",
+      "nome": "OpenCNPJ — Consulta individual CNPJ + CNO Obras",
+      "descricao": "OpenCNPJ — Consulta individual CNPJ + CNO Obras",
+      "grupo_id": "cadastros",
+      "url": "https://api.opencnpj.org/{cnpj}",
+      "base_url": "https://api.opencnpj.org",
+      "auth_required": false,
+      "auth_env": null,
+      "rate_limit_per_min": 30,
+      "paginated": false,
+      "gcs_path": "opencnpj/consultas/{ano}/{mes}",
+      "format": "json",
+      "frequency": "continuous",
+      "endpoints": [
+        {
+          "name": "opencnpj_consulta",
+          "path": "/{cnpj}",
+          "params_required": [
+            "cnpj"
+          ],
+          "params_optional": []
+        }
+      ]
+    },
+    {
+      "id": "brasilapi",
+      "nome": "BrasilAPI — CNPJ, CEP, bancos, feriados, DDD, câmbio, PIX",
+      "descricao": "BrasilAPI — CNPJ, CEP, bancos, feriados, DDD, câmbio, PIX",
+      "grupo_id": "utilitarios",
+      "url": "https://brasilapi.com.br/api/cnpj/v1/{cnpj}",
+      "base_url": "https://brasilapi.com.br/api",
+      "auth_required": false,
+      "auth_env": null,
+      "rate_limit_per_min": 100,
+      "paginated": false,
+      "gcs_path": "brasilapi/{endpoint_name}/{ano}/{mes}",
+      "format": "json",
+      "frequency": "daily",
+      "endpoints": [
+        {
+          "name": "brasilapi_cnpj",
+          "path": "/cnpj/v1/{cnpj}",
+          "params_required": [
+            "cnpj"
+          ],
+          "params_optional": []
+        },
+        {
+          "name": "brasilapi_cep",
+          "path": "/cep/v2/{cep}",
+          "params_required": [
+            "cep"
+          ],
+          "params_optional": []
+        },
+        {
+          "name": "brasilapi_bancos",
+          "path": "/banks/v1",
+          "params_required": [],
+          "params_optional": []
+        },
+        {
+          "name": "brasilapi_feriados",
+          "path": "/feriados/v1/{ano}",
+          "params_required": [
+            "ano"
+          ],
+          "params_optional": []
+        },
+        {
+          "name": "brasilapi_pix_participantes",
+          "path": "/pix/v1/participants",
+          "params_required": [],
+          "params_optional": []
+        },
+        {
+          "name": "brasilapi_cambio",
+          "path": "/exchange/v1/latest/{moeda}",
+          "params_required": [
+            "moeda"
+          ],
+          "params_optional": []
+        },
+        {
+          "name": "brasilapi_ddd",
+          "path": "/ddd/v1/{ddd}",
+          "params_required": [
+            "ddd"
+          ],
+          "params_optional": []
+        },
+        {
+          "name": "brasilapi_taxas",
+          "path": "/taxas/v1",
+          "params_required": [],
+          "params_optional": []
+        }
+      ]
+    },
+    {
+      "id": "minhareceita",
+      "nome": "MinhaReceita — Dados Receita Federal formatados",
+      "descricao": "MinhaReceita — Dados Receita Federal formatados",
+      "grupo_id": "cadastros",
+      "url": "https://minhareceita.org/{cnpj}",
+      "base_url": "https://minhareceita.org",
+      "auth_required": false,
+      "auth_env": null,
+      "rate_limit_per_min": 30,
+      "paginated": false,
+      "gcs_path": "minhareceita/cnpj/{ano}/{mes}",
+      "format": "json",
+      "frequency": "continuous",
+      "endpoints": [
+        {
+          "name": "minhareceita_cnpj",
+          "path": "/{cnpj}",
+          "params_required": [
+            "cnpj"
+          ],
+          "params_optional": []
+        }
+      ]
+    },
+    {
+      "id": "brasil_io",
+      "nome": "Brasil.IO — QSA (Sócios empresas)",
+      "descricao": "Brasil.IO — QSA (Sócios empresas)",
+      "grupo_id": "cadastros",
+      "url": "https://brasil.io/api/dataset/socios-brasil/empresas/data/",
+      "base_url": "https://brasil.io/api",
+      "auth_required": false,
+      "auth_env": null,
+      "rate_limit_per_min": 60,
+      "paginated": false,
+      "gcs_path": "brasil_io/{endpoint_name}/{ano}/{mes}",
+      "format": "json",
+      "frequency": "daily",
+      "endpoints": [
+        {
+          "name": "brasil_io_empresas",
+          "path": "/dataset/socios-brasil/empresas/data/",
+          "params_required": [],
+          "params_optional": [
+            "search",
+            "cnpj",
+            "page"
+          ]
+        },
+        {
+          "name": "brasil_io_socios",
+          "path": "/dataset/socios-brasil/socios/data/",
+          "params_required": [],
+          "params_optional": [
+            "search",
+            "cpf",
+            "page"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "inlabs_dou",
+      "nome": "INLABS — Diário Oficial da União (XML estruturado)",
+      "descricao": "INLABS — Diário Oficial da União (XML estruturado)",
+      "grupo_id": "diarios_oficiais",
+      "url": "https://inlabs.in.gov.br/open-data/index.php",
+      "base_url": "https://inlabs.in.gov.br",
+      "auth_required": true,
+      "auth_env": "INLABS_API_KEY",
+      "rate_limit_per_min": 60,
+      "paginated": true,
+      "gcs_path": "dou/inlabs/{ano}/{mes}",
+      "format": "xml",
+      "frequency": "daily",
+      "endpoints": [
+        {
+          "name": "dou_index_diario",
+          "path": "/open-data/index.php",
+          "params_required": [
+            "data"
+          ],
+          "params_optional": [
+            "secao"
+          ]
+        },
+        {
+          "name": "dou_artigos",
+          "path": "/open-data/articles.php",
+          "params_required": [
+            "data"
+          ],
+          "params_optional": [
+            "secao",
+            "pagina"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "querido_diario",
+      "nome": "Querido Diário — Diários Oficiais Municipais (2.700+ municípios)",
+      "descricao": "Querido Diário — Diários Oficiais Municipais (2.700+ municípios)",
+      "grupo_id": "diarios_oficiais",
+      "url": "https://queridodiario.ok.org.br/api/gazettes",
+      "base_url": "https://queridodiario.ok.org.br/api",
+      "auth_required": false,
+      "auth_env": null,
+      "rate_limit_per_min": 60,
+      "paginated": true,
+      "gcs_path": "diarios/querido_diario/{ano}/{mes}",
+      "format": "json",
+      "frequency": "continuous",
+      "endpoints": [
+        {
+          "name": "qd_gazettes",
+          "path": "/gazettes",
+          "params_required": [],
+          "params_optional": [
+            "territory_id",
+            "since",
+            "until",
+            "querystring",
+            "offset",
+            "size"
+          ]
+        },
+        {
+          "name": "qd_gazette_detalhe",
+          "path": "/gazettes/{gazette_id}",
+          "params_required": [
+            "gazette_id"
+          ],
+          "params_optional": []
+        },
+        {
+          "name": "qd_cidades",
+          "path": "/cities",
+          "params_required": [],
+          "params_optional": [
+            "territory_id",
+            "page",
+            "size"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "basedosdados_dou",
+      "nome": "Base dos Dados — DOU (BigQuery público)",
+      "descricao": "Base dos Dados — DOU (BigQuery público)",
+      "grupo_id": "diarios_oficiais",
+      "url": "https://basedosdados.org/api/v1/dataset/0bd844d9-454a-4c47-83e2-fc15df4f5ed7",
+      "base_url": "https://basedosdados.org",
+      "auth_required": true,
+      "auth_env": "GOOGLE_APPLICATION_CREDENTIALS",
+      "rate_limit_per_min": 100,
+      "paginated": false,
+      "gcs_path": "diarios/bdd_dou/{ano}/{mes}",
+      "format": "json",
+      "frequency": "daily",
+      "endpoints": [
+        {
+          "name": "bdd_dou_dataset",
+          "path": "/api/v1/dataset/0bd844d9-454a-4c47-83e2-fc15df4f5ed7",
+          "params_required": [],
+          "params_optional": []
+        }
+      ]
+    },
+    {
+      "id": "ibge_localidades",
+      "nome": "IBGE — Localidades e municípios",
+      "descricao": "IBGE — Localidades e municípios",
+      "grupo_id": "geografia",
+      "url": "https://servicodados.ibge.gov.br/api/v1/localidades/municipios",
+      "base_url": "https://servicodados.ibge.gov.br/api/v1",
+      "auth_required": false,
+      "auth_env": null,
+      "rate_limit_per_min": 200,
+      "paginated": false,
+      "gcs_path": "ibge/localidades/{endpoint_name}/{ano}",
+      "format": "json",
+      "frequency": "one_shot",
+      "endpoints": [
+        {
+          "name": "ibge_municipios",
+          "path": "/localidades/municipios",
+          "params_required": [],
+          "params_optional": []
+        },
+        {
+          "name": "ibge_estados",
+          "path": "/localidades/estados",
+          "params_required": [],
+          "params_optional": []
+        },
+        {
+          "name": "ibge_regioes",
+          "path": "/localidades/regioes",
+          "params_required": [],
+          "params_optional": []
+        },
+        {
+          "name": "ibge_distritos",
+          "path": "/localidades/distritos",
+          "params_required": [],
+          "params_optional": []
+        }
+      ]
+    },
+    {
+      "id": "ibge_malhas",
+      "nome": "IBGE — Malhas geoespaciais (GeoJSON)",
+      "descricao": "IBGE — Malhas geoespaciais (GeoJSON)",
+      "grupo_id": "geografia",
+      "url": "https://servicodados.ibge.gov.br/api/v3/malhas/municipios/{codigo}",
+      "base_url": "https://servicodados.ibge.gov.br/api/v3",
+      "auth_required": false,
+      "auth_env": null,
+      "rate_limit_per_min": 60,
+      "paginated": false,
+      "gcs_path": "ibge/malhas/{endpoint_name}/{ano}",
+      "format": "json",
+      "frequency": "one_shot",
+      "endpoints": [
+        {
+          "name": "ibge_malha_municipio",
+          "path": "/malhas/municipios/{codigo}",
+          "params_required": [
+            "codigo"
+          ],
+          "params_optional": [
+            "formato",
+            "qualidade"
+          ]
+        },
+        {
+          "name": "ibge_malha_estado",
+          "path": "/malhas/estados/{codigo}",
+          "params_required": [
+            "codigo"
+          ],
+          "params_optional": [
+            "formato"
+          ]
+        },
+        {
+          "name": "ibge_malha_brasil",
+          "path": "/malhas/paises/BR",
+          "params_required": [],
+          "params_optional": [
+            "formato"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ibge_sidra",
+      "nome": "IBGE — SIDRA (séries temporais e tabelas temáticas)",
+      "descricao": "IBGE — SIDRA (séries temporais e tabelas temáticas)",
+      "grupo_id": "estatisticas",
+      "url": "https://apisidra.ibge.gov.br/values/t/9514/n6/all/v/93/p/last%201",
+      "base_url": "https://apisidra.ibge.gov.br",
+      "auth_required": false,
+      "auth_env": null,
+      "rate_limit_per_min": 120,
+      "paginated": false,
+      "gcs_path": "ibge/sidra/{endpoint_name}/{ano}",
+      "format": "json",
+      "frequency": "daily",
+      "endpoints": [
+        {
+          "name": "sidra_censo_2022_populacao",
+          "path": "/values/t/9514/n6/all/v/93/p/last%201",
+          "params_required": [],
+          "params_optional": []
+        },
+        {
+          "name": "sidra_estimativa_populacao",
+          "path": "/values/t/6579/n6/all/v/9324/p/last%201",
+          "params_required": [],
+          "params_optional": []
+        },
+        {
+          "name": "sidra_domicilios",
+          "path": "/values/t/9605/n6/all/v/all/p/last%201",
+          "params_required": [],
+          "params_optional": []
+        },
+        {
+          "name": "sidra_mortalidade_infantil",
+          "path": "/values/t/7358/n6/all/v/all/p/last%201",
+          "params_required": [],
+          "params_optional": []
+        },
+        {
+          "name": "sidra_pib_percapita",
+          "path": "/values/t/6691/n6/all/v/all/p/last%201",
+          "params_required": [],
+          "params_optional": []
+        },
+        {
+          "name": "sidra_area_municipio",
+          "path": "/values/t/1209/n6/all/v/all/p/last%201",
+          "params_required": [],
+          "params_optional": []
+        }
+      ]
+    },
+    {
+      "id": "ibge_projecoes",
+      "nome": "IBGE — Projeções populacionais",
+      "descricao": "IBGE — Projeções populacionais",
+      "grupo_id": "estatisticas",
+      "url": "https://servicodados.ibge.gov.br/api/v1/projecoes/populacao/{cod}",
+      "base_url": "https://servicodados.ibge.gov.br/api/v1",
+      "auth_required": false,
+      "auth_env": null,
+      "rate_limit_per_min": 100,
+      "paginated": false,
+      "gcs_path": "ibge/projecoes/{ano}",
+      "format": "json",
+      "frequency": "one_shot",
+      "endpoints": [
+        {
+          "name": "ibge_projecao_pop",
+          "path": "/projecoes/populacao/{cod}",
+          "params_required": [
+            "cod"
+          ],
+          "params_optional": []
+        }
+      ]
+    },
+    {
+      "id": "datasus_cnes",
+      "nome": "DATASUS/CNES — Cadastro Nacional de Estabelecimentos de Saúde",
+      "descricao": "DATASUS/CNES — Cadastro Nacional de Estabelecimentos de Saúde",
+      "grupo_id": "saude",
+      "url": "https://cnes.datasus.gov.br/pages/estabelecimento/buscar",
+      "base_url": "https://cnes.datasus.gov.br",
+      "auth_required": false,
+      "auth_env": null,
+      "rate_limit_per_min": 60,
+      "paginated": true,
+      "gcs_path": "datasus/cnes/{endpoint_name}/{ano}/{mes}",
+      "format": "json",
+      "frequency": "daily",
+      "endpoints": [
+        {
+          "name": "cnes_estabelecimentos",
+          "path": "/pages/estabelecimento/buscar",
+          "params_required": [],
+          "params_optional": [
+            "municipio",
+            "uf",
+            "pagina"
+          ]
+        },
+        {
+          "name": "cnes_profissionais",
+          "path": "/pages/profissional/buscar",
+          "params_required": [],
+          "params_optional": [
+            "municipio",
+            "uf",
+            "pagina"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "elasticnes",
+      "nome": "ElastiCNES — Leitos por especialidade",
+      "descricao": "ElastiCNES — Leitos por especialidade",
+      "grupo_id": "saude",
+      "url": "https://elasticnes.saude.gov.br/api/cnes/estabelecimentos",
+      "base_url": "https://elasticnes.saude.gov.br",
+      "auth_required": false,
+      "auth_env": null,
+      "rate_limit_per_min": 60,
+      "paginated": true,
+      "gcs_path": "datasus/elasticnes/{endpoint_name}/{ano}/{mes}",
+      "format": "json",
+      "frequency": "daily",
+      "endpoints": [
+        {
+          "name": "elasticnes_estabelecimentos",
+          "path": "/api/cnes/estabelecimentos",
+          "params_required": [],
+          "params_optional": [
+            "municipio",
+            "especialidade",
+            "pagina"
+          ]
+        },
+        {
+          "name": "elasticnes_leitos",
+          "path": "/api/cnes/leitos",
+          "params_required": [],
+          "params_optional": [
+            "municipio",
+            "tipo_leito",
+            "pagina"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cnes_ftp_dbc",
+      "nome": "CNES FTP — Microdados DBC mensais",
+      "descricao": "CNES FTP — Microdados DBC mensais",
+      "grupo_id": "saude",
+      "url": "ftp://ftp.datasus.gov.br/dissemin/publicos/CNES/200508_/Dados/ST{uf}{aamm}.dbc",
+      "base_url": "ftp://ftp.datasus.gov.br",
+      "auth_required": false,
+      "auth_env": null,
+      "rate_limit_per_min": 5,
+      "paginated": false,
+      "gcs_path": "datasus/cnes/ftp/{endpoint_name}/{ano}/{mes}",
+      "format": "dbc",
+      "frequency": "daily",
+      "endpoints": [
+        {
+          "name": "cnes_dbc_estabelecimentos",
+          "path": "/dissemin/publicos/CNES/200508_/Dados/ST{uf}{aamm}.dbc",
+          "params_required": [
+            "uf",
+            "aamm"
+          ],
+          "params_optional": []
+        },
+        {
+          "name": "cnes_dbc_leitos",
+          "path": "/dissemin/publicos/CNES/200508_/Dados/LT{uf}{aamm}.dbc",
+          "params_required": [
+            "uf",
+            "aamm"
+          ],
+          "params_optional": []
+        },
+        {
+          "name": "cnes_dbc_profissionais",
+          "path": "/dissemin/publicos/CNES/200508_/Dados/PF{uf}{aamm}.dbc",
+          "params_required": [
+            "uf",
+            "aamm"
+          ],
+          "params_optional": []
+        }
+      ]
+    },
+    {
+      "id": "opendatasus",
+      "nome": "OpenDataSUS — Datasets abertos do Ministério da Saúde",
+      "descricao": "OpenDataSUS — Datasets abertos do Ministério da Saúde",
+      "grupo_id": "saude",
+      "url": "https://opendatasus.saude.gov.br/api/3/action/package_list",
+      "base_url": "https://opendatasus.saude.gov.br",
+      "auth_required": false,
+      "auth_env": null,
+      "rate_limit_per_min": 30,
+      "paginated": false,
+      "gcs_path": "datasus/opendatasus/{endpoint_name}/{ano}",
+      "format": "json",
+      "frequency": "daily",
+      "endpoints": [
+        {
+          "name": "opendatasus_datasets",
+          "path": "/api/3/action/package_list",
+          "params_required": [],
+          "params_optional": []
+        },
+        {
+          "name": "opendatasus_dataset_detalhe",
+          "path": "/api/3/action/package_show",
+          "params_required": [
+            "id"
+          ],
+          "params_optional": []
+        }
+      ]
+    },
+    {
+      "id": "inep_censo_escolar",
+      "nome": "INEP — Censo Escolar Microdados",
+      "descricao": "INEP — Censo Escolar Microdados",
+      "grupo_id": "educacao",
+      "url": "https://www.gov.br/inep/pt-br/acesso-a-informacao/dados-abertos/censo-escolar/{ano}",
+      "base_url": "https://www.gov.br/inep/pt-br/acesso-a-informacao/dados-abertos",
+      "auth_required": false,
+      "auth_env": null,
+      "rate_limit_per_min": 10,
+      "paginated": false,
+      "gcs_path": "inep/censo_escolar/{ano}",
+      "format": "zip",
+      "frequency": "one_shot",
+      "endpoints": [
+        {
+          "name": "inep_censo_escolar",
+          "path": "/censo-escolar/{ano}",
+          "params_required": [
+            "ano"
+          ],
+          "params_optional": []
+        }
+      ]
+    },
+    {
+      "id": "inep_ideb",
+      "nome": "INEP — IDEB (Índice de Desenvolvimento da Educação Básica)",
+      "descricao": "INEP — IDEB (Índice de Desenvolvimento da Educação Básica)",
+      "grupo_id": "educacao",
+      "url": "https://www.gov.br/inep/pt-br/acesso-a-informacao/dados-abertos/ideb/{ano}",
+      "base_url": "https://www.gov.br/inep/pt-br/acesso-a-informacao/dados-abertos",
+      "auth_required": false,
+      "auth_env": null,
+      "rate_limit_per_min": 10,
+      "paginated": false,
+      "gcs_path": "inep/ideb/{ano}",
+      "format": "zip",
+      "frequency": "one_shot",
+      "endpoints": [
+        {
+          "name": "inep_ideb_municipios",
+          "path": "/ideb/{ano}",
+          "params_required": [
+            "ano"
+          ],
+          "params_optional": []
+        }
+      ]
+    },
+    {
+      "id": "inep_catalogo_escolas",
+      "nome": "INEP — Catálogo de Escolas",
+      "descricao": "INEP — Catálogo de Escolas",
+      "grupo_id": "educacao",
+      "url": "https://www.gov.br/inep/pt-br/acesso-a-informacao/dados-abertos/catalogo-de-escolas",
+      "base_url": "https://www.gov.br/inep/pt-br/acesso-a-informacao/dados-abertos",
+      "auth_required": false,
+      "auth_env": null,
+      "rate_limit_per_min": 10,
+      "paginated": false,
+      "gcs_path": "inep/catalogo_escolas/{ano}",
+      "format": "csv",
+      "frequency": "one_shot",
+      "endpoints": [
+        {
+          "name": "inep_escolas",
+          "path": "/catalogo-de-escolas",
+          "params_required": [],
+          "params_optional": []
+        }
+      ]
+    },
+    {
+      "id": "inep_educacao_api",
+      "nome": "API Educação Inteligente (3rd party INEP)",
+      "descricao": "API Educação Inteligente (3rd party INEP)",
+      "grupo_id": "educacao",
+      "url": "https://educacao.dadosabertosbr.org/api/escolas",
+      "base_url": "https://educacao.dadosabertosbr.org/api",
+      "auth_required": false,
+      "auth_env": null,
+      "rate_limit_per_min": 60,
+      "paginated": true,
+      "gcs_path": "inep/educacao_api/{ano}",
+      "format": "json",
+      "frequency": "daily",
+      "endpoints": [
+        {
+          "name": "escolas_list",
+          "path": "/escolas",
+          "params_required": [],
+          "params_optional": [
+            "municipio",
+            "uf",
+            "pagina"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "snis_sinisa",
+      "nome": "SNIS/SINISA — Saneamento básico nacional",
+      "descricao": "SNIS/SINISA — Saneamento básico nacional",
+      "grupo_id": "saneamento",
+      "url": "https://app4.mdr.gov.br/serieHistorica/",
+      "base_url": "https://app4.mdr.gov.br",
+      "auth_required": false,
+      "auth_env": null,
+      "rate_limit_per_min": 30,
+      "paginated": false,
+      "gcs_path": "saneamento/snis/{ano}",
+      "format": "csv",
+      "frequency": "one_shot",
+      "endpoints": [
+        {
+          "name": "snis_serie_historica",
+          "path": "/serieHistorica/",
+          "params_required": [],
+          "params_optional": [
+            "municipio",
+            "uf",
+            "ano",
+            "servico"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ana_hidroweb",
+      "nome": "ANA — Hidroweb (séries hidrológicas)",
+      "descricao": "ANA — Hidroweb (séries hidrológicas)",
+      "grupo_id": "ambiente",
+      "url": "https://snirh.gov.br/hidroweb/serieshistoricas",
+      "base_url": "https://snirh.gov.br/hidroweb",
+      "auth_required": false,
+      "auth_env": null,
+      "rate_limit_per_min": 30,
+      "paginated": false,
+      "gcs_path": "ambiente/ana/hidroweb/{ano}",
+      "format": "csv",
+      "frequency": "daily",
+      "endpoints": [
+        {
+          "name": "hidroweb_series",
+          "path": "/serieshistoricas",
+          "params_required": [],
+          "params_optional": [
+            "codEstacao",
+            "dataIni",
+            "dataFim",
+            "tipoDados"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "atlas_brasil",
+      "nome": "Atlas Brasil — IDHM e 200 indicadores municipais",
+      "descricao": "Atlas Brasil — IDHM e 200 indicadores municipais",
+      "grupo_id": "desenvolvimento_humano",
+      "url": "https://www.atlasbrasil.org.br/acervo/atlas",
+      "base_url": "https://www.atlasbrasil.org.br",
+      "auth_required": false,
+      "auth_env": null,
+      "rate_limit_per_min": 30,
+      "paginated": false,
+      "gcs_path": "atlas_brasil/{ano}",
+      "format": "csv",
+      "frequency": "one_shot",
+      "endpoints": [
+        {
+          "name": "atlas_brasil_download",
+          "path": "/acervo/atlas",
+          "params_required": [],
+          "params_optional": [
+            "ano"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rais",
+      "nome": "RAIS — Relação Anual de Informações Sociais (emprego formal)",
+      "descricao": "RAIS — Relação Anual de Informações Sociais (emprego formal)",
+      "grupo_id": "trabalho_renda",
+      "url": "https://www.gov.br/trabalho-e-emprego/pt-br/acesso-a-informacao/estatisticas-trabalho/rais/{ano}",
+      "base_url": "https://www.gov.br/trabalho-e-emprego/pt-br/acesso-a-informacao/estatisticas-trabalho",
+      "auth_required": false,
+      "auth_env": null,
+      "rate_limit_per_min": 10,
+      "paginated": false,
+      "gcs_path": "trabalho/rais/{ano}",
+      "format": "zip",
+      "frequency": "one_shot",
+      "endpoints": [
+        {
+          "name": "rais_microdados",
+          "path": "/rais/{ano}",
+          "params_required": [
+            "ano"
+          ],
+          "params_optional": []
+        }
+      ]
+    },
+    {
+      "id": "caged",
+      "nome": "CAGED — Cadastro Geral de Empregados e Desempregados",
+      "descricao": "CAGED — Cadastro Geral de Empregados e Desempregados",
+      "grupo_id": "trabalho_renda",
+      "url": "https://www.gov.br/trabalho-e-emprego/pt-br/acesso-a-informacao/estatisticas-trabalho/caged/{ano}/{mes}",
+      "base_url": "https://www.gov.br/trabalho-e-emprego/pt-br/acesso-a-informacao/estatisticas-trabalho",
+      "auth_required": false,
+      "auth_env": null,
+      "rate_limit_per_min": 10,
+      "paginated": false,
+      "gcs_path": "trabalho/caged/{ano}/{mes}",
+      "format": "zip",
+      "frequency": "daily",
+      "endpoints": [
+        {
+          "name": "caged_mensal",
+          "path": "/caged/{ano}/{mes}",
+          "params_required": [
+            "ano",
+            "mes"
+          ],
+          "params_optional": []
+        }
+      ]
+    },
+    {
+      "id": "basedosdados_rais",
+      "nome": "Base dos Dados — RAIS (BigQuery público, vínculos 1985→atual)",
+      "descricao": "Base dos Dados — RAIS (BigQuery público, vínculos 1985→atual)",
+      "grupo_id": "trabalho_renda",
+      "url": "https://basedosdados.org/api/v1/dataset/br_me_rais",
+      "base_url": "https://basedosdados.org",
+      "auth_required": true,
+      "auth_env": "GOOGLE_APPLICATION_CREDENTIALS",
+      "rate_limit_per_min": 50,
+      "paginated": false,
+      "gcs_path": "trabalho/bdd_rais/{ano}",
+      "format": "json",
+      "frequency": "one_shot",
+      "endpoints": [
+        {
+          "name": "bdd_rais",
+          "path": "/api/v1/dataset/br_me_rais",
+          "params_required": [],
+          "params_optional": []
+        }
+      ]
+    },
+    {
+      "id": "siop",
+      "nome": "SIOP — Execução Orçamentária (SPARQL/RDF)",
+      "descricao": "SIOP — Execução Orçamentária (SPARQL/RDF)",
+      "grupo_id": "orcamento_federal",
+      "url": "https://www1.siop.planejamento.gov.br/sparql/",
+      "base_url": "https://www1.siop.planejamento.gov.br",
+      "auth_required": false,
+      "auth_env": null,
+      "rate_limit_per_min": 30,
+      "paginated": false,
+      "gcs_path": "orcamento/siop/{ano}/{mes}",
+      "format": "json",
+      "frequency": "daily",
+      "endpoints": [
+        {
+          "name": "siop_execucao_orcamentaria",
+          "path": "/sparql/",
+          "params_required": [
+            "query"
+          ],
+          "params_optional": [
+            "format"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "siafi",
+      "nome": "SIAFI — Execução Orçamentária (certificado digital)",
+      "descricao": "SIAFI — Execução Orçamentária (certificado digital)",
+      "grupo_id": "orcamento_federal",
+      "url": "https://www.gov.br/tesouronacional/pt-br/assuntos/contabilidade-e-custos/tabelas-de-dados-e-arquivos/siafi",
+      "base_url": "https://www.gov.br/tesouronacional",
+      "auth_required": true,
+      "auth_env": "SIAFI_CERT_PATH",
+      "rate_limit_per_min": 30,
+      "paginated": false,
+      "gcs_path": "orcamento/siafi/{ano}/{mes}",
+      "format": "csv",
+      "frequency": "daily",
+      "endpoints": [
+        {
+          "name": "siafi_modulo_orcamentario",
+          "path": "/pt-br/assuntos/contabilidade-e-custos/tabelas-de-dados-e-arquivos/siafi",
+          "params_required": [],
+          "params_optional": [
+            "ano",
+            "mes"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ocds_compras_br",
+      "nome": "OCDS — Open Contracting Data Standard (Compras.gov.br)",
+      "descricao": "OCDS — Open Contracting Data Standard (Compras.gov.br)",
+      "grupo_id": "compras_publicas",
+      "url": "https://data.open-contracting.org/en/search/",
+      "base_url": "https://data.open-contracting.org",
+      "auth_required": false,
+      "auth_env": null,
+      "rate_limit_per_min": 60,
+      "paginated": false,
+      "gcs_path": "compras/ocds/br/{ano}/{mes}",
+      "format": "json",
+      "frequency": "daily",
+      "endpoints": [
+        {
+          "name": "ocds_registros_br",
+          "path": "/en/search/",
+          "params_required": [],
+          "params_optional": [
+            "country",
+            "page",
+            "format"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ocds_ocp_registry",
+      "nome": "OCP Data Registry — 50+ países (Open Contracting Partnership)",
+      "descricao": "OCP Data Registry — 50+ países (Open Contracting Partnership)",
+      "grupo_id": "compras_publicas",
+      "url": "https://data.open-contracting.org/api/publications/",
+      "base_url": "https://data.open-contracting.org",
+      "auth_required": false,
+      "auth_env": null,
+      "rate_limit_per_min": 60,
+      "paginated": false,
+      "gcs_path": "compras/ocds/internacional/{ano}/{mes}",
+      "format": "json",
+      "frequency": "daily",
+      "endpoints": [
+        {
+          "name": "ocp_publications",
+          "path": "/api/publications/",
+          "params_required": [],
+          "params_optional": [
+            "country",
+            "page"
+          ]
+        },
+        {
+          "name": "ocp_search",
+          "path": "/en/search/",
+          "params_required": [],
+          "params_optional": [
+            "country",
+            "q",
+            "page"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "banco_mundial",
+      "nome": "Banco Mundial — World Bank Data API (16.000+ indicadores)",
+      "descricao": "Banco Mundial — World Bank Data API (16.000+ indicadores)",
+      "grupo_id": "organismos_internacionais",
+      "url": "https://api.worldbank.org/v2/country/BR/indicator/{indicador}",
+      "base_url": "https://api.worldbank.org/v2",
+      "auth_required": false,
+      "auth_env": null,
+      "rate_limit_per_min": 100,
+      "paginated": false,
+      "gcs_path": "internacional/banco_mundial/{endpoint_name}/{ano}",
+      "format": "json",
+      "frequency": "daily",
+      "endpoints": [
+        {
+          "name": "wb_indicador_brasil",
+          "path": "/country/BR/indicator/{indicador}",
+          "params_required": [
+            "indicador"
+          ],
+          "params_optional": [
+            "date",
+            "format",
+            "page",
+            "per_page"
+          ]
+        },
+        {
+          "name": "wb_indicador_global",
+          "path": "/country/all/indicator/{indicador}",
+          "params_required": [
+            "indicador"
+          ],
+          "params_optional": [
+            "date",
+            "format",
+            "page",
+            "per_page"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "fmi",
+      "nome": "FMI — International Monetary Fund Data API",
+      "descricao": "FMI — International Monetary Fund Data API",
+      "grupo_id": "organismos_internacionais",
+      "url": "https://data.imf.org/api/CompactData/{dataset}/{freq}.{country}.{indicador}",
+      "base_url": "https://data.imf.org/api",
+      "auth_required": false,
+      "auth_env": null,
+      "rate_limit_per_min": 30,
+      "paginated": false,
+      "gcs_path": "internacional/fmi/{endpoint_name}/{ano}",
+      "format": "json",
+      "frequency": "daily",
+      "endpoints": [
+        {
+          "name": "fmi_compact_data",
+          "path": "/CompactData/{dataset}/{freq}.{country}.{indicador}",
+          "params_required": [
+            "dataset",
+            "freq",
+            "country",
+            "indicador"
+          ],
+          "params_optional": [
+            "startPeriod",
+            "endPeriod"
+          ]
+        },
+        {
+          "name": "fmi_datasets",
+          "path": "/Dataflow",
+          "params_required": [],
+          "params_optional": []
+        }
+      ]
+    },
+    {
+      "id": "ocde",
+      "nome": "OCDE — OECD SDMX-JSON Data API",
+      "descricao": "OCDE — OECD SDMX-JSON Data API",
+      "grupo_id": "organismos_internacionais",
+      "url": "https://stats.oecd.org/SDMX-JSON/data/{dataset}/all/all",
+      "base_url": "https://stats.oecd.org/SDMX-JSON/data",
+      "auth_required": false,
+      "auth_env": null,
+      "rate_limit_per_min": 30,
+      "paginated": false,
+      "gcs_path": "internacional/ocde/{endpoint_name}/{ano}",
+      "format": "json",
+      "frequency": "daily",
+      "endpoints": [
+        {
+          "name": "ocde_dataset",
+          "path": "/{dataset}/all/all",
+          "params_required": [
+            "dataset"
+          ],
+          "params_optional": [
+            "startTime",
+            "endTime",
+            "dimensionAtObservation"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "transparency_intl",
+      "nome": "Transparency International — CPI (Corruption Perceptions Index)",
+      "descricao": "Transparency International — CPI (Corruption Perceptions Index)",
+      "grupo_id": "organismos_internacionais",
+      "url": "https://transparency.org/en/cpi/table",
+      "base_url": "https://transparency.org",
+      "auth_required": false,
+      "auth_env": null,
+      "rate_limit_per_min": 10,
+      "paginated": false,
+      "gcs_path": "internacional/transparency_intl/{ano}",
+      "format": "json",
+      "frequency": "one_shot",
+      "endpoints": [
+        {
+          "name": "ti_cpi_tabela",
+          "path": "/en/cpi/table",
+          "params_required": [],
+          "params_optional": [
+            "ano"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "basedosdados_bq",
+      "nome": "Base dos Dados — BigQuery (datasets nomeados, atalho universal)",
+      "descricao": "Base dos Dados — BigQuery (datasets nomeados, atalho universal)",
+      "grupo_id": "agregador",
+      "url": "https://basedosdados.org/api/v1/dataset/br_bd_diretorios_brasil",
+      "base_url": "https://basedosdados.org",
+      "auth_required": true,
+      "auth_env": "GOOGLE_APPLICATION_CREDENTIALS",
+      "rate_limit_per_min": 100,
+      "paginated": false,
+      "gcs_path": "basedosdados/{endpoint_name}/{ano}",
+      "format": "json",
+      "frequency": "daily",
+      "endpoints": [
+        {
+          "name": "bdd_diretorios",
+          "path": "/api/v1/dataset/br_bd_diretorios_brasil",
+          "params_required": [],
+          "params_optional": []
+        },
+        {
+          "name": "bdd_populacao_ibge",
+          "path": "/api/v1/dataset/br_ibge_populacao",
+          "params_required": [],
+          "params_optional": []
+        },
+        {
+          "name": "bdd_ideb",
+          "path": "/api/v1/dataset/br_inep_ideb",
+          "params_required": [],
+          "params_optional": []
+        },
+        {
+          "name": "bdd_snis",
+          "path": "/api/v1/dataset/br_mdr_snis",
+          "params_required": [],
+          "params_optional": []
+        },
+        {
+          "name": "bdd_rais_vinculos",
+          "path": "/api/v1/dataset/br_me_rais",
+          "params_required": [],
+          "params_optional": []
+        },
+        {
+          "name": "bdd_dou",
+          "path": "/api/v1/dataset/br_imprensa_nacional_dou",
+          "params_required": [],
+          "params_optional": []
+        }
+      ]
+    },
+    {
+      "id": "newsapi",
+      "nome": "NewsAPI — Manchetes Brasil (notícias)",
+      "descricao": "NewsAPI — Manchetes Brasil (notícias)",
+      "grupo_id": "noticias",
+      "url": "https://newsapi.org/v2/top-headlines",
+      "base_url": "https://newsapi.org/v2",
+      "auth_required": true,
+      "auth_env": "NEWSAPI_KEY",
+      "rate_limit_per_min": 100,
+      "paginated": false,
+      "gcs_path": "noticias/newsapi/{ano}/{mes}",
+      "format": "json",
+      "frequency": "daily",
+      "endpoints": [
+        {
+          "name": "newsapi_manchetes_br",
+          "path": "/top-headlines",
+          "params_required": [
+            "country"
+          ],
+          "params_optional": [
+            "category",
+            "q",
+            "pageSize",
+            "page"
+          ]
+        },
+        {
+          "name": "newsapi_tudo",
+          "path": "/everything",
+          "params_required": [
+            "q"
+          ],
+          "params_optional": [
+            "from",
+            "to",
+            "language",
+            "sortBy",
+            "pageSize",
+            "page"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "mediastack",
+      "nome": "Mediastack — API de Notícias BR",
+      "descricao": "Mediastack — API de Notícias BR",
+      "grupo_id": "noticias",
+      "url": "https://api.mediastack.com/v1/news",
+      "base_url": "https://api.mediastack.com",
+      "auth_required": true,
+      "auth_env": "MEDIASTACK_API_KEY",
+      "rate_limit_per_min": 500,
+      "paginated": true,
+      "gcs_path": "noticias/mediastack/{ano}/{mes}",
+      "format": "json",
+      "frequency": "daily",
+      "endpoints": [
+        {
+          "name": "mediastack_noticias_br",
+          "path": "/v1/news",
+          "params_required": [],
+          "params_optional": [
+            "countries",
+            "keywords",
+            "languages",
+            "date",
+            "offset",
+            "limit"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "conecta_gov",
+      "nome": "Conecta.gov.br — Catálogo de APIs Governamentais (200+ APIs)",
+      "descricao": "Conecta.gov.br — Catálogo de APIs Governamentais (200+ APIs)",
+      "grupo_id": "utilitarios",
+      "url": "https://www.gov.br/conecta/catalogo/apis/",
+      "base_url": "https://www.gov.br/conecta/catalogo/apis",
+      "auth_required": false,
+      "auth_env": null,
+      "rate_limit_per_min": 30,
+      "paginated": false,
+      "gcs_path": "utilitarios/conecta_gov/{ano}",
+      "format": "json",
+      "frequency": "one_shot",
+      "endpoints": [
+        {
+          "name": "conecta_gov_catalogo",
+          "path": "/",
+          "params_required": [],
+          "params_optional": []
+        }
+      ]
+    },
+    {
+      "id": "dados_gov_br",
+      "nome": "dados.gov.br — Portal Brasileiro de Dados Abertos",
+      "descricao": "dados.gov.br — Portal Brasileiro de Dados Abertos",
+      "grupo_id": "utilitarios",
+      "url": "https://dados.gov.br/api/3/action/package_list",
+      "base_url": "https://dados.gov.br",
+      "auth_required": false,
+      "auth_env": null,
+      "rate_limit_per_min": 60,
+      "paginated": false,
+      "gcs_path": "utilitarios/dados_gov/{ano}",
+      "format": "json",
+      "frequency": "daily",
+      "endpoints": [
+        {
+          "name": "dados_gov_datasets",
+          "path": "/api/3/action/package_list",
+          "params_required": [],
+          "params_optional": []
+        },
+        {
+          "name": "dados_gov_busca",
+          "path": "/api/3/action/package_search",
+          "params_required": [],
+          "params_optional": [
+            "q",
+            "rows",
+            "start"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "datasus_tabnet",
+      "nome": "DATASUS — TabNet (SIM, SIH, SINASC, SINAN, SIA — CGI/FTP)",
+      "descricao": "DATASUS — TabNet (SIM, SIH, SINASC, SINAN, SIA — CGI/FTP)",
+      "grupo_id": "saude",
+      "url": "ftp://ftp.datasus.gov.br/dissemin/publicos/SIM/CID10/DORES/DO{uf}{aa}.dbc",
+      "base_url": "ftp://ftp.datasus.gov.br",
+      "auth_required": false,
+      "auth_env": null,
+      "rate_limit_per_min": 5,
+      "paginated": false,
+      "gcs_path": "datasus/tabnet/{endpoint_name}/{ano}/{mes}",
+      "format": "dbc",
+      "frequency": "daily",
+      "endpoints": [
+        {
+          "name": "datasus_sim_obitos",
+          "path": "/dissemin/publicos/SIM/CID10/DORES/DO{uf}{aa}.dbc",
+          "params_required": [
+            "uf",
+            "aa"
+          ],
+          "params_optional": []
+        },
+        {
+          "name": "datasus_sinasc_nascimentos",
+          "path": "/dissemin/publicos/SINASC/NOV/DNRES/DN{uf}{ano}.dbc",
+          "params_required": [
+            "uf",
+            "ano"
+          ],
+          "params_optional": []
+        },
+        {
+          "name": "datasus_sih_internacoes",
+          "path": "/dissemin/publicos/SIHSUS/1992_/Dados/RD{uf}{aamm}.dbc",
+          "params_required": [
+            "uf",
+            "aamm"
+          ],
+          "params_optional": []
+        }
+      ]
+    },
+    {
+      "id": "ocds_uk",
+      "nome": "OCDS — Reino Unido (Find a Tender)",
+      "descricao": "OCDS — Reino Unido (Find a Tender)",
+      "grupo_id": "compras_internacionais",
+      "url": "https://www.find-tender.service.gov.uk/api/1.0/ocdsRecordPackages",
+      "base_url": "https://www.find-tender.service.gov.uk",
+      "auth_required": false,
+      "auth_env": null,
+      "rate_limit_per_min": 30,
+      "paginated": false,
+      "gcs_path": "compras/ocds/uk/{ano}/{mes}",
+      "format": "json",
+      "frequency": "daily",
+      "endpoints": [
+        {
+          "name": "ocds_uk_record_packages",
+          "path": "/api/1.0/ocdsRecordPackages",
+          "params_required": [],
+          "params_optional": [
+            "publishedFrom",
+            "publishedTo",
+            "page"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "apitube",
+      "nome": "APITube — Notícias em vídeo BR",
+      "descricao": "APITube — Notícias em vídeo BR",
+      "grupo_id": "noticias",
+      "url": "https://apitube.io/v1/news/everything",
+      "base_url": "https://apitube.io",
+      "auth_required": true,
+      "auth_env": "APITUBE_API_KEY",
+      "rate_limit_per_min": 200,
+      "paginated": false,
+      "gcs_path": "noticias/apitube/{ano}/{mes}",
+      "format": "json",
+      "frequency": "daily",
+      "endpoints": [
+        {
+          "name": "apitube_noticias",
+          "path": "/v1/news/everything",
+          "params_required": [],
+          "params_optional": [
+            "country",
+            "language",
+            "q",
+            "dateFrom",
+            "dateTo",
+            "limit"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "basedosdados_ideb",
+      "nome": "Base dos Dados — IDEB (BigQuery, INEP processado)",
+      "descricao": "Base dos Dados — IDEB (BigQuery, INEP processado)",
+      "grupo_id": "educacao",
+      "url": "https://basedosdados.org/api/v1/dataset/br_inep_ideb",
+      "base_url": "https://basedosdados.org",
+      "auth_required": true,
+      "auth_env": "GOOGLE_APPLICATION_CREDENTIALS",
+      "rate_limit_per_min": 50,
+      "paginated": false,
+      "gcs_path": "educacao/bdd_ideb/{ano}",
+      "format": "json",
+      "frequency": "one_shot",
+      "endpoints": [
+        {
+          "name": "bdd_ideb_municipios",
+          "path": "/api/v1/dataset/br_inep_ideb",
+          "params_required": [],
+          "params_optional": []
+        }
+      ]
+    },
+    {
+      "id": "basedosdados_snis",
+      "nome": "Base dos Dados — SNIS (BigQuery, saneamento processado)",
+      "descricao": "Base dos Dados — SNIS (BigQuery, saneamento processado)",
+      "grupo_id": "saneamento",
+      "url": "https://basedosdados.org/api/v1/dataset/br_mdr_snis",
+      "base_url": "https://basedosdados.org",
+      "auth_required": true,
+      "auth_env": "GOOGLE_APPLICATION_CREDENTIALS",
+      "rate_limit_per_min": 50,
+      "paginated": false,
+      "gcs_path": "saneamento/bdd_snis/{ano}",
+      "format": "json",
+      "frequency": "one_shot",
+      "endpoints": [
+        {
+          "name": "bdd_snis_municipios",
+          "path": "/api/v1/dataset/br_mdr_snis",
+          "params_required": [],
+          "params_optional": []
+        }
+      ]
+    },
+    {
+      "id": "imprensa_nacional",
+      "nome": "Imprensa Nacional — Leitura do DOU (portal aberto)",
+      "descricao": "Fallback aberto quando INLABS_API_KEY não disponível",
+      "grupo_id": "diarios_oficiais",
+      "url": "https://www.in.gov.br/leiturajornal",
+      "base_url": "https://www.in.gov.br",
+      "auth_required": false,
+      "auth_env": null,
+      "rate_limit_per_min": 30,
+      "paginated": false,
+      "gcs_path": "diarios/dou/{secao}/{ano}/{mes}/{dia}",
+      "format": "zip",
+      "frequency": "daily",
+      "endpoints": [
+        {
+          "name": "dou_leitura_jornal",
+          "path": "/leiturajornal",
+          "params_required": [],
+          "params_optional": [
+            "data",
+            "secao"
+          ]
+        },
+        {
+          "name": "dou_download_zip_diario",
+          "path": "/leiturajornal/download/{data}/{secao}.zip",
+          "params_required": [
+            "data",
+            "secao"
+          ],
+          "params_optional": []
+        }
+      ]
+    },
+    {
+      "id": "doe_ac",
+      "nome": "DOE Acre",
+      "descricao": "DOE Acre",
+      "grupo_id": "diarios_oficiais_estaduais",
+      "url": "https://diario.ac.gov.br/",
+      "base_url": "https://diario.ac.gov.br",
+      "auth_required": false,
+      "auth_env": null,
+      "rate_limit_per_min": 20,
+      "paginated": false,
+      "gcs_path": "diarios/estaduais/AC/{ano}/{mes}",
+      "format": "pdf",
+      "frequency": "daily",
+      "endpoints": [
+        {
+          "name": "doe_ac_portal",
+          "path": "/",
+          "params_required": [],
+          "params_optional": [
+            "data",
+            "edicao"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "doe_al",
+      "nome": "DOE Alagoas",
+      "descricao": "DOE Alagoas",
+      "grupo_id": "diarios_oficiais_estaduais",
+      "url": "https://www.diariooficial.al.gov.br/",
+      "base_url": "https://www.diariooficial.al.gov.br",
+      "auth_required": false,
+      "auth_env": null,
+      "rate_limit_per_min": 20,
+      "paginated": false,
+      "gcs_path": "diarios/estaduais/AL/{ano}/{mes}",
+      "format": "pdf",
+      "frequency": "daily",
+      "endpoints": [
+        {
+          "name": "doe_al_portal",
+          "path": "/",
+          "params_required": [],
+          "params_optional": [
+            "data",
+            "edicao"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "doe_am",
+      "nome": "DOE Amazonas",
+      "descricao": "DOE Amazonas",
+      "grupo_id": "diarios_oficiais_estaduais",
+      "url": "https://www.doe.am.gov.br/",
+      "base_url": "https://www.doe.am.gov.br",
+      "auth_required": false,
+      "auth_env": null,
+      "rate_limit_per_min": 20,
+      "paginated": false,
+      "gcs_path": "diarios/estaduais/AM/{ano}/{mes}",
+      "format": "pdf",
+      "frequency": "daily",
+      "endpoints": [
+        {
+          "name": "doe_am_portal",
+          "path": "/",
+          "params_required": [],
+          "params_optional": [
+            "data",
+            "edicao"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "doe_ap",
+      "nome": "DOE Amapá",
+      "descricao": "DOE Amapá",
+      "grupo_id": "diarios_oficiais_estaduais",
+      "url": "https://diario.ap.gov.br/",
+      "base_url": "https://diario.ap.gov.br",
+      "auth_required": false,
+      "auth_env": null,
+      "rate_limit_per_min": 20,
+      "paginated": false,
+      "gcs_path": "diarios/estaduais/AP/{ano}/{mes}",
+      "format": "pdf",
+      "frequency": "daily",
+      "endpoints": [
+        {
+          "name": "doe_ap_portal",
+          "path": "/",
+          "params_required": [],
+          "params_optional": [
+            "data",
+            "edicao"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "doe_ba",
+      "nome": "DOE Bahia",
+      "descricao": "DOE Bahia",
+      "grupo_id": "diarios_oficiais_estaduais",
+      "url": "https://dool.egba.ba.gov.br/",
+      "base_url": "https://dool.egba.ba.gov.br",
+      "auth_required": false,
+      "auth_env": null,
+      "rate_limit_per_min": 20,
+      "paginated": false,
+      "gcs_path": "diarios/estaduais/BA/{ano}/{mes}",
+      "format": "pdf",
+      "frequency": "daily",
+      "endpoints": [
+        {
+          "name": "doe_ba_portal",
+          "path": "/",
+          "params_required": [],
+          "params_optional": [
+            "data",
+            "edicao"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "doe_ce",
+      "nome": "DOE Ceará",
+      "descricao": "DOE Ceará",
+      "grupo_id": "diarios_oficiais_estaduais",
+      "url": "https://doe.seplag.ce.gov.br/",
+      "base_url": "https://doe.seplag.ce.gov.br",
+      "auth_required": false,
+      "auth_env": null,
+      "rate_limit_per_min": 20,
+      "paginated": false,
+      "gcs_path": "diarios/estaduais/CE/{ano}/{mes}",
+      "format": "pdf",
+      "frequency": "daily",
+      "endpoints": [
+        {
+          "name": "doe_ce_portal",
+          "path": "/",
+          "params_required": [],
+          "params_optional": [
+            "data",
+            "edicao"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "doe_df",
+      "nome": "DOE Distrito Federal",
+      "descricao": "DOE Distrito Federal",
+      "grupo_id": "diarios_oficiais_estaduais",
+      "url": "https://www.dodf.df.gov.br/",
+      "base_url": "https://www.dodf.df.gov.br",
+      "auth_required": false,
+      "auth_env": null,
+      "rate_limit_per_min": 20,
+      "paginated": false,
+      "gcs_path": "diarios/estaduais/DF/{ano}/{mes}",
+      "format": "pdf",
+      "frequency": "daily",
+      "endpoints": [
+        {
+          "name": "doe_df_portal",
+          "path": "/",
+          "params_required": [],
+          "params_optional": [
+            "data",
+            "edicao"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "doe_es",
+      "nome": "DOE Espírito Santo",
+      "descricao": "DOE Espírito Santo",
+      "grupo_id": "diarios_oficiais_estaduais",
+      "url": "https://ioes.dio.es.gov.br/",
+      "base_url": "https://ioes.dio.es.gov.br",
+      "auth_required": false,
+      "auth_env": null,
+      "rate_limit_per_min": 20,
+      "paginated": false,
+      "gcs_path": "diarios/estaduais/ES/{ano}/{mes}",
+      "format": "pdf",
+      "frequency": "daily",
+      "endpoints": [
+        {
+          "name": "doe_es_portal",
+          "path": "/",
+          "params_required": [],
+          "params_optional": [
+            "data",
+            "edicao"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "doe_go",
+      "nome": "DOE Goiás",
+      "descricao": "DOE Goiás",
+      "grupo_id": "diarios_oficiais_estaduais",
+      "url": "https://www.diariodoestado.go.gov.br/",
+      "base_url": "https://www.diariodoestado.go.gov.br",
+      "auth_required": false,
+      "auth_env": null,
+      "rate_limit_per_min": 20,
+      "paginated": false,
+      "gcs_path": "diarios/estaduais/GO/{ano}/{mes}",
+      "format": "pdf",
+      "frequency": "daily",
+      "endpoints": [
+        {
+          "name": "doe_go_portal",
+          "path": "/",
+          "params_required": [],
+          "params_optional": [
+            "data",
+            "edicao"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "doe_ma",
+      "nome": "DOE Maranhão",
+      "descricao": "DOE Maranhão",
+      "grupo_id": "diarios_oficiais_estaduais",
+      "url": "https://www.imprensaoficial.ma.gov.br/",
+      "base_url": "https://www.imprensaoficial.ma.gov.br",
+      "auth_required": false,
+      "auth_env": null,
+      "rate_limit_per_min": 20,
+      "paginated": false,
+      "gcs_path": "diarios/estaduais/MA/{ano}/{mes}",
+      "format": "pdf",
+      "frequency": "daily",
+      "endpoints": [
+        {
+          "name": "doe_ma_portal",
+          "path": "/",
+          "params_required": [],
+          "params_optional": [
+            "data",
+            "edicao"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "doe_mg",
+      "nome": "DOE Minas Gerais",
+      "descricao": "TODO: confirmar URL vigente",
+      "grupo_id": "diarios_oficiais_estaduais",
+      "url": "https://www.iopmg.com.br/",
+      "base_url": "https://www.iopmg.com.br",
+      "auth_required": false,
+      "auth_env": null,
+      "rate_limit_per_min": 20,
+      "paginated": false,
+      "gcs_path": "diarios/estaduais/MG/{ano}/{mes}",
+      "format": "pdf",
+      "frequency": "daily",
+      "endpoints": [
+        {
+          "name": "doe_mg_portal",
+          "path": "/",
+          "params_required": [],
+          "params_optional": [
+            "data",
+            "edicao"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "doe_ms",
+      "nome": "DOE Mato Grosso do Sul",
+      "descricao": "DOE Mato Grosso do Sul",
+      "grupo_id": "diarios_oficiais_estaduais",
+      "url": "https://www.diarioms.com.br/",
+      "base_url": "https://www.diarioms.com.br",
+      "auth_required": false,
+      "auth_env": null,
+      "rate_limit_per_min": 20,
+      "paginated": false,
+      "gcs_path": "diarios/estaduais/MS/{ano}/{mes}",
+      "format": "pdf",
+      "frequency": "daily",
+      "endpoints": [
+        {
+          "name": "doe_ms_portal",
+          "path": "/",
+          "params_required": [],
+          "params_optional": [
+            "data",
+            "edicao"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "doe_mt",
+      "nome": "DOE Mato Grosso",
+      "descricao": "DOE Mato Grosso",
+      "grupo_id": "diarios_oficiais_estaduais",
+      "url": "https://www.iomat.mt.gov.br/",
+      "base_url": "https://www.iomat.mt.gov.br",
+      "auth_required": false,
+      "auth_env": null,
+      "rate_limit_per_min": 20,
+      "paginated": false,
+      "gcs_path": "diarios/estaduais/MT/{ano}/{mes}",
+      "format": "pdf",
+      "frequency": "daily",
+      "endpoints": [
+        {
+          "name": "doe_mt_portal",
+          "path": "/",
+          "params_required": [],
+          "params_optional": [
+            "data",
+            "edicao"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "doe_pa",
+      "nome": "DOE Pará",
+      "descricao": "DOE Pará",
+      "grupo_id": "diarios_oficiais_estaduais",
+      "url": "https://www.ioepa.com.br/",
+      "base_url": "https://www.ioepa.com.br",
+      "auth_required": false,
+      "auth_env": null,
+      "rate_limit_per_min": 20,
+      "paginated": false,
+      "gcs_path": "diarios/estaduais/PA/{ano}/{mes}",
+      "format": "pdf",
+      "frequency": "daily",
+      "endpoints": [
+        {
+          "name": "doe_pa_portal",
+          "path": "/",
+          "params_required": [],
+          "params_optional": [
+            "data",
+            "edicao"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "doe_pb",
+      "nome": "DOE Paraíba",
+      "descricao": "DOE Paraíba",
+      "grupo_id": "diarios_oficiais_estaduais",
+      "url": "https://www.diariooficial.pb.gov.br/",
+      "base_url": "https://www.diariooficial.pb.gov.br",
+      "auth_required": false,
+      "auth_env": null,
+      "rate_limit_per_min": 20,
+      "paginated": false,
+      "gcs_path": "diarios/estaduais/PB/{ano}/{mes}",
+      "format": "pdf",
+      "frequency": "daily",
+      "endpoints": [
+        {
+          "name": "doe_pb_portal",
+          "path": "/",
+          "params_required": [],
+          "params_optional": [
+            "data",
+            "edicao"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "doe_pe",
+      "nome": "DOE Pernambuco",
+      "descricao": "TODO: verificar redirect",
+      "grupo_id": "diarios_oficiais_estaduais",
+      "url": "https://legis.pe.gov.br/diario//",
+      "base_url": "https://legis.pe.gov.br/diario/",
+      "auth_required": false,
+      "auth_env": null,
+      "rate_limit_per_min": 20,
+      "paginated": false,
+      "gcs_path": "diarios/estaduais/PE/{ano}/{mes}",
+      "format": "pdf",
+      "frequency": "daily",
+      "endpoints": [
+        {
+          "name": "doe_pe_portal",
+          "path": "/",
+          "params_required": [],
+          "params_optional": [
+            "data",
+            "edicao"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "doe_pi",
+      "nome": "DOE Piauí",
+      "descricao": "DOE Piauí",
+      "grupo_id": "diarios_oficiais_estaduais",
+      "url": "https://www.diariooficial.pi.gov.br/",
+      "base_url": "https://www.diariooficial.pi.gov.br",
+      "auth_required": false,
+      "auth_env": null,
+      "rate_limit_per_min": 20,
+      "paginated": false,
+      "gcs_path": "diarios/estaduais/PI/{ano}/{mes}",
+      "format": "pdf",
+      "frequency": "daily",
+      "endpoints": [
+        {
+          "name": "doe_pi_portal",
+          "path": "/",
+          "params_required": [],
+          "params_optional": [
+            "data",
+            "edicao"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "doe_pr",
+      "nome": "DOE Paraná",
+      "descricao": "DOE Paraná",
+      "grupo_id": "diarios_oficiais_estaduais",
+      "url": "https://www.dioe.pr.gov.br/",
+      "base_url": "https://www.dioe.pr.gov.br",
+      "auth_required": false,
+      "auth_env": null,
+      "rate_limit_per_min": 20,
+      "paginated": false,
+      "gcs_path": "diarios/estaduais/PR/{ano}/{mes}",
+      "format": "pdf",
+      "frequency": "daily",
+      "endpoints": [
+        {
+          "name": "doe_pr_portal",
+          "path": "/",
+          "params_required": [],
+          "params_optional": [
+            "data",
+            "edicao"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "doe_rj",
+      "nome": "DOE Rio de Janeiro",
+      "descricao": "DOE Rio de Janeiro",
+      "grupo_id": "diarios_oficiais_estaduais",
+      "url": "https://www.iodjerj.rj.gov.br/",
+      "base_url": "https://www.iodjerj.rj.gov.br",
+      "auth_required": false,
+      "auth_env": null,
+      "rate_limit_per_min": 20,
+      "paginated": false,
+      "gcs_path": "diarios/estaduais/RJ/{ano}/{mes}",
+      "format": "pdf",
+      "frequency": "daily",
+      "endpoints": [
+        {
+          "name": "doe_rj_portal",
+          "path": "/",
+          "params_required": [],
+          "params_optional": [
+            "data",
+            "edicao"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "doe_rn",
+      "nome": "DOE Rio Grande do Norte",
+      "descricao": "DOE Rio Grande do Norte",
+      "grupo_id": "diarios_oficiais_estaduais",
+      "url": "https://www.diariooficial.rn.gov.br/",
+      "base_url": "https://www.diariooficial.rn.gov.br",
+      "auth_required": false,
+      "auth_env": null,
+      "rate_limit_per_min": 20,
+      "paginated": false,
+      "gcs_path": "diarios/estaduais/RN/{ano}/{mes}",
+      "format": "pdf",
+      "frequency": "daily",
+      "endpoints": [
+        {
+          "name": "doe_rn_portal",
+          "path": "/",
+          "params_required": [],
+          "params_optional": [
+            "data",
+            "edicao"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "doe_ro",
+      "nome": "DOE Rondônia",
+      "descricao": "DOE Rondônia",
+      "grupo_id": "diarios_oficiais_estaduais",
+      "url": "https://www.diof.ro.gov.br/",
+      "base_url": "https://www.diof.ro.gov.br",
+      "auth_required": false,
+      "auth_env": null,
+      "rate_limit_per_min": 20,
+      "paginated": false,
+      "gcs_path": "diarios/estaduais/RO/{ano}/{mes}",
+      "format": "pdf",
+      "frequency": "daily",
+      "endpoints": [
+        {
+          "name": "doe_ro_portal",
+          "path": "/",
+          "params_required": [],
+          "params_optional": [
+            "data",
+            "edicao"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "doe_rr",
+      "nome": "DOE Roraima",
+      "descricao": "TODO: verificar URL",
+      "grupo_id": "diarios_oficiais_estaduais",
+      "url": "https://www.diarioderoraima.rr.gov.br/",
+      "base_url": "https://www.diarioderoraima.rr.gov.br",
+      "auth_required": false,
+      "auth_env": null,
+      "rate_limit_per_min": 20,
+      "paginated": false,
+      "gcs_path": "diarios/estaduais/RR/{ano}/{mes}",
+      "format": "pdf",
+      "frequency": "daily",
+      "endpoints": [
+        {
+          "name": "doe_rr_portal",
+          "path": "/",
+          "params_required": [],
+          "params_optional": [
+            "data",
+            "edicao"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "doe_rs",
+      "nome": "DOE Rio Grande do Sul",
+      "descricao": "DOE Rio Grande do Sul",
+      "grupo_id": "diarios_oficiais_estaduais",
+      "url": "https://www.iob.rs.gov.br/",
+      "base_url": "https://www.iob.rs.gov.br",
+      "auth_required": false,
+      "auth_env": null,
+      "rate_limit_per_min": 20,
+      "paginated": false,
+      "gcs_path": "diarios/estaduais/RS/{ano}/{mes}",
+      "format": "pdf",
+      "frequency": "daily",
+      "endpoints": [
+        {
+          "name": "doe_rs_portal",
+          "path": "/",
+          "params_required": [],
+          "params_optional": [
+            "data",
+            "edicao"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "doe_sc",
+      "nome": "DOE Santa Catarina",
+      "descricao": "DOE Santa Catarina",
+      "grupo_id": "diarios_oficiais_estaduais",
+      "url": "https://doe.sea.sc.gov.br/",
+      "base_url": "https://doe.sea.sc.gov.br",
+      "auth_required": false,
+      "auth_env": null,
+      "rate_limit_per_min": 20,
+      "paginated": false,
+      "gcs_path": "diarios/estaduais/SC/{ano}/{mes}",
+      "format": "pdf",
+      "frequency": "daily",
+      "endpoints": [
+        {
+          "name": "doe_sc_portal",
+          "path": "/",
+          "params_required": [],
+          "params_optional": [
+            "data",
+            "edicao"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "doe_se",
+      "nome": "DOE Sergipe",
+      "descricao": "TODO: confirmar URL de download",
+      "grupo_id": "diarios_oficiais_estaduais",
+      "url": "https://www.se.gov.br/diario-oficial/",
+      "base_url": "https://www.se.gov.br/diario-oficial",
+      "auth_required": false,
+      "auth_env": null,
+      "rate_limit_per_min": 20,
+      "paginated": false,
+      "gcs_path": "diarios/estaduais/SE/{ano}/{mes}",
+      "format": "pdf",
+      "frequency": "daily",
+      "endpoints": [
+        {
+          "name": "doe_se_portal",
+          "path": "/",
+          "params_required": [],
+          "params_optional": [
+            "data",
+            "edicao"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "doe_sp",
+      "nome": "DOE São Paulo",
+      "descricao": "DOE São Paulo",
+      "grupo_id": "diarios_oficiais_estaduais",
+      "url": "https://www.imprensaoficial.com.br/",
+      "base_url": "https://www.imprensaoficial.com.br",
+      "auth_required": false,
+      "auth_env": null,
+      "rate_limit_per_min": 20,
+      "paginated": false,
+      "gcs_path": "diarios/estaduais/SP/{ano}/{mes}",
+      "format": "pdf",
+      "frequency": "daily",
+      "endpoints": [
+        {
+          "name": "doe_sp_portal",
+          "path": "/",
+          "params_required": [],
+          "params_optional": [
+            "data",
+            "edicao"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "doe_to",
+      "nome": "DOE Tocantins",
+      "descricao": "DOE Tocantins",
+      "grupo_id": "diarios_oficiais_estaduais",
+      "url": "https://diario.to.gov.br/",
+      "base_url": "https://diario.to.gov.br",
+      "auth_required": false,
+      "auth_env": null,
+      "rate_limit_per_min": 20,
+      "paginated": false,
+      "gcs_path": "diarios/estaduais/TO/{ano}/{mes}",
+      "format": "pdf",
+      "frequency": "daily",
+      "endpoints": [
+        {
+          "name": "doe_to_portal",
+          "path": "/",
+          "params_required": [],
+          "params_optional": [
+            "data",
+            "edicao"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tse_candidaturas",
+      "nome": "TSE — Candidaturas (DivulgaCandContas REST v1)",
+      "descricao": "Ciclos: 2018, 2020, 2022, 2024",
+      "grupo_id": "eleicoes",
+      "url": "https://divulgacandcontas.tse.jus.br/divulga/rest/v1/candidatura/listar/{ano}/{siglaUf}/0/0/0/0/0",
+      "base_url": "https://divulgacandcontas.tse.jus.br",
+      "auth_required": false,
+      "auth_env": null,
+      "rate_limit_per_min": 60,
+      "paginated": false,
+      "gcs_path": "tse/candidaturas/{ano}/{siglaUf}",
+      "format": "json",
+      "frequency": "por_ciclo_eleitoral",
+      "endpoints": [
+        {
+          "name": "tse_lista_candidatos",
+          "path": "/divulga/rest/v1/candidatura/listar/{ano}/{siglaUf}/0/0/0/0/0",
+          "params_required": [
+            "ano",
+            "siglaUf"
+          ],
+          "params_optional": []
+        },
+        {
+          "name": "tse_detalhe_candidato",
+          "path": "/divulga/rest/v1/candidatura/buscar/{ano}/{siglaUf}/{id}",
+          "params_required": [
+            "ano",
+            "siglaUf",
+            "id"
+          ],
+          "params_optional": []
+        },
+        {
+          "name": "tse_lista_partidos",
+          "path": "/divulga/rest/v1/partido/listar/eleicoes/{ano}",
+          "params_required": [
+            "ano"
+          ],
+          "params_optional": []
+        }
+      ]
+    },
+    {
+      "id": "ofac_sdn",
+      "nome": "OFAC — Specially Designated Nationals (SDN XML)",
+      "descricao": "Ingestão diária obrigatória para cruzamento em tempo real",
+      "grupo_id": "sancoes_internacionais",
+      "url": "https://www.treasury.gov/ofac/downloads/sdn.xml",
+      "base_url": "https://www.treasury.gov",
+      "auth_required": false,
+      "auth_env": null,
+      "rate_limit_per_min": 10,
+      "paginated": false,
+      "gcs_path": "sancoes/ofac/{ano}/{mes}/{dia}",
+      "format": "xml",
+      "frequency": "daily",
+      "endpoints": [
+        {
+          "name": "ofac_sdn_full",
+          "path": "/ofac/downloads/sdn.xml",
+          "params_required": [],
+          "params_optional": []
+        },
+        {
+          "name": "ofac_sdn_advanced",
+          "path": "/ofac/downloads/sdn_advanced.xml",
+          "params_required": [],
+          "params_optional": []
+        },
+        {
+          "name": "ofac_consolidated",
+          "path": "/ofac/downloads/consolidated.xml",
+          "params_required": [],
+          "params_optional": []
+        }
+      ]
+    },
+    {
+      "id": "sec_edgar",
+      "nome": "SEC EDGAR — Filings de empresas (cruzamento BR)",
+      "descricao": "Apenas empresas BR com ADR ou listagem dupla; usar CIK list pré-filtrada",
+      "grupo_id": "filings_internacionais",
+      "url": "https://data.sec.gov/submissions/CIK{cik}.json",
+      "base_url": "https://data.sec.gov",
+      "auth_required": true,
+      "auth_env": "SEC_EDGAR_USER_AGENT",
+      "rate_limit_per_min": 10,
+      "paginated": false,
+      "gcs_path": "sec_edgar/filings/{cik}/{ano}",
+      "format": "json",
+      "frequency": "weekly",
+      "endpoints": [
+        {
+          "name": "edgar_submissions",
+          "path": "/submissions/CIK{cik}.json",
+          "params_required": [
+            "cik"
+          ],
+          "params_optional": []
+        },
+        {
+          "name": "edgar_company_facts",
+          "path": "/companyfacts/CIK{cik}.json",
+          "params_required": [
+            "cik"
+          ],
+          "params_optional": []
+        },
+        {
+          "name": "edgar_xbrl_concept",
+          "path": "/api/xbrl/companyconcept/CIK{cik}/{taxonomy}/{concept}.json",
+          "params_required": [
+            "cik",
+            "taxonomy",
+            "concept"
+          ],
+          "params_optional": []
+        }
+      ]
+    },
+    {
+      "id": "opensanctions",
+      "nome": "OpenSanctions — Base global de sanções e PEPs",
+      "descricao": "OpenSanctions — Base global de sanções e PEPs",
+      "grupo_id": "sancoes_internacionais",
+      "url": "https://api.opensanctions.org/entities/",
+      "base_url": "https://api.opensanctions.org",
+      "auth_required": true,
+      "auth_env": "OPENSANCTIONS_API_KEY",
+      "rate_limit_per_min": 100,
+      "paginated": true,
+      "gcs_path": "sancoes/opensanctions/{dataset}/{ano}/{mes}",
+      "format": "json",
+      "frequency": "daily",
+      "endpoints": [
+        {
+          "name": "opensanctions_entities",
+          "path": "/entities/",
+          "params_required": [],
+          "params_optional": [
+            "q",
+            "dataset",
+            "schema",
+            "countries",
+            "topics",
+            "limit",
+            "offset"
+          ]
+        },
+        {
+          "name": "opensanctions_entity_detalhe",
+          "path": "/entities/{entity_id}",
+          "params_required": [
+            "entity_id"
+          ],
+          "params_optional": []
+        },
+        {
+          "name": "opensanctions_datasets",
+          "path": "/datasets/",
+          "params_required": [],
+          "params_optional": []
+        },
+        {
+          "name": "opensanctions_match",
+          "path": "/match/default",
+          "params_required": [],
+          "params_optional": [
+            "q",
+            "schema"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "usaspending",
+      "nome": "USASpending — Gastos federais dos EUA (cruzamento contratos BR)",
+      "descricao": "USASpending — Gastos federais dos EUA (cruzamento contratos BR)",
+      "grupo_id": "filings_internacionais",
+      "url": "https://api.usaspending.gov/api/v2/search/spending_by_award/",
+      "base_url": "https://api.usaspending.gov",
+      "auth_required": false,
+      "auth_env": null,
+      "rate_limit_per_min": 1000,
+      "paginated": false,
+      "gcs_path": "usaspending/{endpoint_name}/{ano}",
+      "format": "json",
+      "frequency": "weekly",
+      "endpoints": [
+        {
+          "name": "usaspending_awards",
+          "path": "/api/v2/search/spending_by_award/",
+          "params_required": [
+            "filters"
+          ],
+          "params_optional": [
+            "fields",
+            "sort",
+            "order",
+            "limit",
+            "page"
+          ]
+        },
+        {
+          "name": "usaspending_agencies",
+          "path": "/api/v2/references/toptier_agencies/",
+          "params_required": [],
+          "params_optional": []
+        }
+      ]
+    },
+    {
+      "id": "worldbank",
+      "nome": "World Bank — Indicadores macroeconômicos (BR + globais)",
+      "descricao": "Adicionar ?format=json em todos os requests",
+      "grupo_id": "estatisticas",
+      "url": "https://api.worldbank.org/v2/country/BR/indicator/{indicator}",
+      "base_url": "https://api.worldbank.org",
+      "auth_required": false,
+      "auth_env": null,
+      "rate_limit_per_min": 100,
+      "paginated": false,
+      "gcs_path": "worldbank/{indicator}/{ano}",
+      "format": "json",
+      "frequency": "daily",
+      "endpoints": [
+        {
+          "name": "wb_indicator_br",
+          "path": "/v2/country/BR/indicator/{indicator}",
+          "params_required": [
+            "indicator"
+          ],
+          "params_optional": [
+            "format",
+            "date",
+            "per_page",
+            "page"
+          ]
+        },
+        {
+          "name": "wb_country_br",
+          "path": "/v2/country/BR",
+          "params_required": [],
+          "params_optional": [
+            "format"
+          ]
+        },
+        {
+          "name": "wb_indicators_catalog",
+          "path": "/v2/indicator",
+          "params_required": [],
+          "params_optional": [
+            "format",
+            "per_page",
+            "page"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "coaf_publico",
+      "nome": "COAF — Conselho de Controle de Atividades Financeiras (dados públicos)",
+      "descricao": "TODO: verificar se COAF disponibiliza API REST ou apenas portal HTML; atualizar se API REST for publicada",
+      "grupo_id": "controle_federal",
+      "url": "https://www.gov.br/coaf/pt-br/dados-abertos",
+      "base_url": "https://www.gov.br/coaf",
+      "auth_required": false,
+      "auth_env": null,
+      "rate_limit_per_min": 20,
+      "paginated": false,
+      "gcs_path": "coaf/relatorios/{ano}",
+      "format": "pdf",
+      "frequency": "yearly",
+      "endpoints": [
+        {
+          "name": "coaf_dados_abertos_portal",
+          "path": "/pt-br/dados-abertos",
+          "params_required": [],
+          "params_optional": []
+        },
+        {
+          "name": "coaf_relatorio_atividades",
+          "path": "/pt-br/dados-abertos/relatorio-de-atividades",
+          "params_required": [],
+          "params_optional": [
+            "ano"
+          ]
+        }
+      ]
+    }
+  ]
+}
