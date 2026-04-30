@@ -1,5 +1,5 @@
-import { ArrowRight, Loader2, Lock, Search } from "lucide-react";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { ArrowRight, Loader2, Lock, LogIn, Search } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link, useNavigate } from "react-router-dom";
 
@@ -27,13 +27,60 @@ export default function UniversePage() {
   const { credits } = useUserCredits();
   const creditDisplay = Number.isFinite(credits) ? credits : saldo;
 
-  const { graphData, loading, error, findPoliticoByQuery } =
+  const { graphData, loading, error, findPoliticoByQuery, rows } =
     useTransparencyReportsUniverso(180);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [modalPolitico, setModalPolitico] = useState({ id: "", nome: "" });
   const [searchQuery, setSearchQuery] = useState("");
   const [searchFocused, setSearchFocused] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const suggestionsRef = useRef(null);
+
+  // Autocomplete — 8 sugestões com nome+partido+UF, busca por substring acento-insensitive.
+  const suggestions = useMemo(() => {
+    const needle = String(searchQuery || "")
+      .trim()
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
+    if (needle.length < 2 || !rows?.length) return [];
+    const out = [];
+    for (const row of rows) {
+      if (out.length >= 8) break;
+      const id = String(row.id ?? "").trim();
+      const nome = String(
+        row.nome_eleitoral ?? row.nome_parlamentar ?? row.nomeParlamentar ?? row.nome ?? "",
+      ).trim();
+      if (!id || !nome) continue;
+      const hay = nome
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
+      if (hay.includes(needle)) {
+        out.push({
+          id,
+          nome: nome.slice(0, 80),
+          partido: String(row.sigla_partido ?? row.partido ?? "").slice(0, 8),
+          uf: String(row.uf ?? row.sigla_uf ?? "").slice(0, 2),
+        });
+      }
+    }
+    return out;
+  }, [searchQuery, rows]);
+
+  // Fecha dropdown ao clicar fora.
+  useEffect(() => {
+    if (!showSuggestions) return;
+    const onDocClick = (ev) => {
+      if (!suggestionsRef.current) return;
+      if (!suggestionsRef.current.contains(ev.target)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener("mousedown", onDocClick);
+    return () => document.removeEventListener("mousedown", onDocClick);
+  }, [showSuggestions]);
 
   const emptyGraph =
     !loading && (!graphData.nodes?.length || error === "firebase_unavailable");
@@ -90,6 +137,7 @@ export default function UniversePage() {
   const handleSearchSubmit = useCallback(
     async (e) => {
       e.preventDefault();
+      setShowSuggestions(false);
       const match = findPoliticoByQuery(searchQuery);
       if (!match) {
         setModalPolitico({ id: "", nome: "" });
@@ -100,6 +148,16 @@ export default function UniversePage() {
       openGate(match.nome, match.id);
     },
     [findPoliticoByQuery, openGate, searchQuery],
+  );
+
+  const handleSelectSuggestion = useCallback(
+    async (sug) => {
+      setSearchQuery(sug.nome);
+      setShowSuggestions(false);
+      await graphRef.current?.flyToPoliticianId?.(sug.id);
+      openGate(sug.nome, sug.id);
+    },
+    [openGate],
   );
 
   const loginHref = useMemo(() => {
@@ -162,7 +220,16 @@ export default function UniversePage() {
               </span>
             </span>
           </Link>
-        ) : null}
+        ) : (
+          <Link
+            to="/login"
+            aria-label="Entrar — receber 300 créditos diários"
+            className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#F0F4FC] px-4 text-[11px] font-bold uppercase tracking-[0.16em] text-[#02040a] shadow-[0_0_24px_rgba(255,255,255,0.18)] transition hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7DD3FC]"
+          >
+            <LogIn className="size-3.5" strokeWidth={2.5} aria-hidden />
+            Entrar
+          </Link>
+        )}
       </header>
 
       <div className="pointer-events-none absolute inset-0 z-10 flex justify-between gap-3 p-3 pt-[4.25rem] sm:gap-4 sm:p-6 sm:pt-[4.75rem]">
@@ -240,42 +307,87 @@ export default function UniversePage() {
       </div>
 
       <div className="pointer-events-none fixed inset-x-0 bottom-0 z-30 flex justify-center px-4 pb-6 pt-16">
-        <form
-          onSubmit={handleSearchSubmit}
-          className={`pointer-events-auto w-full max-w-2xl transition duration-300 ${
+        <div
+          ref={suggestionsRef}
+          className={`pointer-events-auto relative w-full max-w-2xl transition duration-300 ${
             searchFocused ? "scale-[1.02]" : "scale-100"
           }`}
         >
-          <div className="rounded-2xl border border-white/[0.12] bg-[#0d1117]/72 p-2 shadow-[0_24px_80px_rgba(0,0,0,0.55),0_0_0_1px_rgba(88,166,255,0.08)] backdrop-blur-xl">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch sm:gap-0">
-              <label className="sr-only" htmlFor="universe-forensic-search">
-                Pesquisa forense no universo
-              </label>
-              <input
-                id="universe-forensic-search"
-                type="search"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onFocus={() => setSearchFocused(true)}
-                onBlur={() => setSearchFocused(false)}
-                placeholder="O que você procura? (Ex: Nome do político, CNPJ...)"
-                autoComplete="off"
-                className="min-h-12 flex-1 rounded-xl border border-transparent bg-[#080b14]/92 px-4 text-base text-[#F0F4FC] outline-none ring-0 placeholder:text-[#6e7681] focus:border-[#58A6FF]/45 sm:rounded-l-xl sm:rounded-r-none sm:px-5"
-              />
-              <button
-                type="submit"
-                className="inline-flex min-h-12 shrink-0 items-center justify-center gap-2 rounded-xl bg-[#58A6FF] px-6 text-sm font-bold uppercase tracking-wide text-[#02040a] shadow-[0_0_28px_rgba(88,166,255,0.35)] transition hover:bg-[#79b8ff] sm:rounded-l-none sm:rounded-r-xl"
-              >
-                {loading ? (
-                  <Loader2 className="size-5 animate-spin" aria-hidden />
-                ) : (
-                  <Search className="size-5" strokeWidth={2} aria-hidden />
-                )}
-                Ir
-              </button>
+          {showSuggestions && suggestions.length > 0 ? (
+            <ul
+              role="listbox"
+              aria-label="Sugestões de políticos"
+              className="absolute bottom-full left-0 right-0 mb-2 max-h-[60vh] overflow-y-auto rounded-2xl border border-white/[0.12] bg-[#0d1117]/95 p-1.5 shadow-[0_24px_80px_rgba(0,0,0,0.7),0_0_0_1px_rgba(88,166,255,0.12)] backdrop-blur-xl"
+            >
+              {suggestions.map((sug) => (
+                <li key={sug.id}>
+                  <button
+                    type="button"
+                    role="option"
+                    aria-selected="false"
+                    onMouseDown={(ev) => ev.preventDefault()}
+                    onClick={() => handleSelectSuggestion(sug)}
+                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition hover:bg-[#58A6FF]/10 focus:bg-[#58A6FF]/12 focus:outline-none"
+                  >
+                    <PoliticianOrb
+                      identity={sug.id}
+                      score={45}
+                      size={32}
+                      ariaLabel={`Orbe ${sug.nome}`}
+                      className="shrink-0"
+                    />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[13px] font-semibold text-[#F0F4FC]">
+                        {sug.nome}
+                      </span>
+                      <span className="mt-0.5 block text-[10.5px] font-medium uppercase tracking-[0.14em] text-[#7DD3FC]/85">
+                        {[sug.partido, sug.uf].filter(Boolean).join(" · ") || "Parlamentar"}
+                      </span>
+                    </span>
+                    <ArrowRight className="size-4 shrink-0 text-[#7DD3FC]" strokeWidth={2} />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          <form onSubmit={handleSearchSubmit}>
+            <div className="rounded-2xl border border-white/[0.12] bg-[#0d1117]/72 p-2 shadow-[0_24px_80px_rgba(0,0,0,0.55),0_0_0_1px_rgba(88,166,255,0.08)] backdrop-blur-xl">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch sm:gap-0">
+                <label className="sr-only" htmlFor="universe-forensic-search">
+                  Pesquisa forense no universo
+                </label>
+                <input
+                  id="universe-forensic-search"
+                  type="search"
+                  value={searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    setShowSuggestions(true);
+                  }}
+                  onFocus={() => {
+                    setSearchFocused(true);
+                    setShowSuggestions(true);
+                  }}
+                  onBlur={() => setSearchFocused(false)}
+                  placeholder="O que você procura? (Ex: Nome do político, CNPJ...)"
+                  autoComplete="off"
+                  className="min-h-12 flex-1 rounded-xl border border-transparent bg-[#080b14]/92 px-4 text-base text-[#F0F4FC] outline-none ring-0 placeholder:text-[#6e7681] focus:border-[#58A6FF]/45 sm:rounded-l-xl sm:rounded-r-none sm:px-5"
+                />
+                <button
+                  type="submit"
+                  className="inline-flex min-h-12 shrink-0 items-center justify-center gap-2 rounded-xl bg-[#58A6FF] px-6 text-sm font-bold uppercase tracking-wide text-[#02040a] shadow-[0_0_28px_rgba(88,166,255,0.35)] transition hover:bg-[#79b8ff] sm:rounded-l-none sm:rounded-r-xl"
+                >
+                  {loading ? (
+                    <Loader2 className="size-5 animate-spin" aria-hidden />
+                  ) : (
+                    <Search className="size-5" strokeWidth={2} aria-hidden />
+                  )}
+                  Ir
+                </button>
+              </div>
             </div>
-          </div>
-        </form>
+          </form>
+        </div>
       </div>
 
       {modalOpen ? (
