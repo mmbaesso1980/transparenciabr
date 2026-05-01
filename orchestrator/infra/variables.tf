@@ -36,9 +36,9 @@ variable "vertex_reasoning_engine_id" {
 }
 
 variable "vertex_reasoning_engine_numeric_id" {
-  description = "Numeric Reasoning Engine ID segment (same deployment as Líder Supremo agent_1777236402725). Used only when vertex_reasoning_engine_id is empty."
+  description = "Numeric Reasoning Engine ID segment (same deployment as Líder Supremo agent_1777236402725). Used only when vertex_reasoning_engine_id is empty. Set explicitly in tfvars — no default in repo (SecOps)."
   type        = string
-  default     = "4398310393894666240"
+  default     = ""
 }
 
 variable "orchestrator_source_zip" {

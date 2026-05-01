@@ -6,7 +6,7 @@
  * and exponential back-off on quota errors.
  *
  * Environment variables:
- *   VERTEX_REASONING_ENGINE_ID  – full resource name override (optional)
+ *   VERTEX_REASONING_ENGINE_ID  – full resource name (required; no default in repo)
  *   VERTEX_TIMEOUT_SECONDS      – per-request timeout in seconds (default 600)
  *   GCP_PROJECT_ID              – Google Cloud project ID
  */
@@ -29,9 +29,16 @@ const { v1beta1 } = aiplatform;
  */
 export const SUPREME_AGENT_BUILDER_ID = 'agent_1777236402725';
 
-const REASONING_ENGINE_RESOURCE =
-  process.env.VERTEX_REASONING_ENGINE_ID ??
-  'projects/89728155070/locations/us-west1/reasoningEngines/4398310393894666240';
+/** Full resource name only via env — nunca hardcode de project/location/engine (SecOps G.O.A.T.). */
+function getReasoningEngineResource() {
+  const id = (process.env.VERTEX_REASONING_ENGINE_ID ?? '').trim();
+  if (!id) {
+    throw new Error(
+      'VERTEX_REASONING_ENGINE_ID ausente — defina o nome completo do Reasoning Engine (deploy do Líder Supremo agent_1777236402725).',
+    );
+  }
+  return id;
+}
 
 const TIMEOUT_SECONDS = parseInt(
   process.env.VERTEX_TIMEOUT_SECONDS ?? '600',
@@ -104,6 +111,8 @@ async function withBackoff(fn, maxRetries = MAX_RETRIES) {
 export class VertexReasoningClient {
   #client = null;
   #initialized = false;
+  /** @type {string|null} */
+  #reasoningEngineResource = null;
 
   /** @returns {boolean} */
   get isReady() {
@@ -115,6 +124,7 @@ export class VertexReasoningClient {
    * @returns {Promise<void>}
    */
   async init() {
+    this.#reasoningEngineResource = getReasoningEngineResource();
     this.#client = new v1beta1.ReasoningEngineExecutionServiceClient({
       apiEndpoint: 'us-west1-aiplatform.googleapis.com',
     });
@@ -122,7 +132,7 @@ export class VertexReasoningClient {
     await this.#client.initialize();
     this.#initialized = true;
     log('INFO', 'VertexReasoningClient initialised', {
-      resource: REASONING_ENGINE_RESOURCE,
+      resource: this.#reasoningEngineResource,
     });
   }
 
@@ -140,6 +150,10 @@ export class VertexReasoningClient {
     }
 
     const sessionId = `agent_${agentId}`;
+    const reasoningEngine = this.#reasoningEngineResource;
+    if (!reasoningEngine) {
+      throw new Error('VertexReasoningClient: reasoning engine resource missing — call init()');
+    }
 
     log('DEBUG', 'Invoking Reasoning Engine', {
       agent_id: agentId,
@@ -149,7 +163,7 @@ export class VertexReasoningClient {
     });
 
     const request = {
-      reasoningEngine: REASONING_ENGINE_RESOURCE,
+      reasoningEngine,
       input: {
         input: prompt,
         ...(tools.length > 0 && { tools }),
@@ -206,6 +220,7 @@ export class VertexReasoningClient {
     if (this.#client) {
       await this.#client.close();
       this.#initialized = false;
+      this.#reasoningEngineResource = null;
     }
   }
 }

@@ -21,10 +21,11 @@ datalake_bucket = "tbr-datalake-raw-prod"
 # Format: projects/PROJECT_ID/secrets/SECRET_NAME/versions/latest
 lgpd_salt_secret_name = "projects/transparenciabr-prod/secrets/lgpd-salt/versions/latest"
 
-# Optional: full Reasoning Engine resource (Líder Supremo / agent_1777236402725). If empty, Terraform
-# uses vertex_reasoning_engine_numeric_id with project_id + region.
-# vertex_reasoning_engine_id = "projects/transparenciabr-prod/locations/us-west1/reasoningEngines/4398310393894666240"
-vertex_reasoning_engine_numeric_id = "4398310393894666240"
+# Obrigatório: um dos dois — recurso Vertex do deploy do Líder Supremo (agent_1777236402725).
+# Opção A — nome completo:
+# vertex_reasoning_engine_id = "projects/YOUR_PROJECT/locations/us-west1/reasoningEngines/YOUR_NUMERIC_ID"
+# Opção B — só o ID numérico (Terraform monta o path com project_id + region):
+vertex_reasoning_engine_numeric_id = "YOUR_NUMERIC_REASONING_ENGINE_ID"
 
 # Path to CI-built Cloud Function source zip (relative to infra/ directory)
 orchestrator_source_zip = "../../dist/orchestrator-trigger.zip"

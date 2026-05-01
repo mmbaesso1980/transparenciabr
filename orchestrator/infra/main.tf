@@ -42,6 +42,14 @@ locals {
   function_name = "orchestrator-trigger"
   # Vertex Reasoning Engine correspondente ao Líder Supremo (Agent Builder agent_1777236402725).
   vertex_reasoning_engine_resource = var.vertex_reasoning_engine_id != "" ? var.vertex_reasoning_engine_id : "projects/${var.project_id}/locations/${var.region}/reasoningEngines/${var.vertex_reasoning_engine_numeric_id}"
+  _vertex_engine_configured = trimspace(var.vertex_reasoning_engine_id) != "" || trimspace(var.vertex_reasoning_engine_numeric_id) != ""
+}
+
+check "vertex_engine_configured" {
+  assert {
+    condition     = local._vertex_engine_configured
+    error_message = "Defina vertex_reasoning_engine_id (nome completo) ou vertex_reasoning_engine_numeric_id no terraform.tfvars — valores de engine não podem ficar implícitos no repositório (G.O.A.T. SecOps)."
+  }
 }
 
 ###############################################################################
