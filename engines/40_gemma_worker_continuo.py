@@ -361,6 +361,10 @@ def _carregar_ceap_bq(anos: List[int]) -> List[Dict[str, Any]]:
         "Todas as fontes BQ indisponíveis. "
         "Verifique permissões e se transparenciabr.ceap_despesas foi criada."
     )
+    # Anti-loop-vazio: se BQ totalmente indisponível, dorme 5min antes de tentar de novo.
+    # Sem isso o worker entra em loop rápido consumindo CPU à toa.
+    logger.warning("Dormindo 300s para evitar loop vazio. Reduzir intervalo só quando BQ estiver populada.")
+    time.sleep(300)
     return []
 
 
@@ -955,6 +959,9 @@ def _handler_detect_repeated_amounts(tarefa: Dict, cliente: OllamaClient) -> int
 # ─────────────────────────────────────────────────────────────────────────────
 
 def _stub_handler(tarefa: Dict, cliente: OllamaClient, nome: str) -> int:
+    # Anti-loop-vazio: stubs DORMEM 30s pra não saturar logs e não mascarar trabalho real.
+    # Quando Vertex implementa o handler, esta linha desaparece naturalmente.
+    time.sleep(30)
     """Stub genérico: registra a tarefa e aguarda implementação futura (gerada pelo Vertex)."""
     logger.info(
         "STUB '%s': tarefa recebida mas não implementada. "
