@@ -89,4 +89,70 @@ export function getPartySecondary(sigla) {
   return getPartyColors(sigla).secondary || null;
 }
 
+/* ------------------------------------------------------------------ */
+/* Halo / nebulosa cósmica do partido — dessaturado.                  */
+/* ------------------------------------------------------------------ */
+
+function hexToRgb(hex) {
+  const m = String(hex || "").trim().match(/^#?([0-9a-f]{6})$/i);
+  if (!m) return { r: 107, g: 114, b: 128 };
+  const v = parseInt(m[1], 16);
+  return { r: (v >> 16) & 255, g: (v >> 8) & 255, b: v & 255 };
+}
+
+function rgbToHsl({ r, g, b }) {
+  const R = r / 255, G = g / 255, B = b / 255;
+  const max = Math.max(R, G, B), min = Math.min(R, G, B);
+  const l = (max + min) / 2;
+  let h = 0, s = 0;
+  if (max !== min) {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    switch (max) {
+      case R: h = ((G - B) / d + (G < B ? 6 : 0)); break;
+      case G: h = ((B - R) / d + 2); break;
+      default: h = ((R - G) / d + 4);
+    }
+    h *= 60;
+  }
+  return { h, s: s * 100, l: l * 100 };
+}
+
+function hslToHex(h, s, l) {
+  const H = ((h % 360) + 360) % 360 / 360;
+  const S = Math.max(0, Math.min(1, s / 100));
+  const L = Math.max(0, Math.min(1, l / 100));
+  const q = L < 0.5 ? L * (1 + S) : L + S - L * S;
+  const p = 2 * L - q;
+  const conv = (t) => {
+    let tt = t;
+    if (tt < 0) tt += 1;
+    if (tt > 1) tt -= 1;
+    if (tt < 1 / 6) return p + (q - p) * 6 * tt;
+    if (tt < 1 / 2) return q;
+    if (tt < 2 / 3) return p + (q - p) * (2 / 3 - tt) * 6;
+    return p;
+  };
+  const r = conv(H + 1 / 3);
+  const g = conv(H);
+  const b = conv(H - 1 / 3);
+  const toHex = (x) => Math.round(x * 255).toString(16).padStart(2, "0");
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+}
+
+/**
+ * Retorna a cor de halo/nebulosa do partido — versão dessaturada (saturação ~40%
+ * da original) e levemente clareada para ficar como nuvem cósmica difusa.
+ * A cor partidária original (saturada) continua sendo usada apenas em hover/highlight.
+ * @param {string} sigla
+ * @returns {string} hex
+ */
+export function partyHaloColor(sigla) {
+  const { primary } = getPartyColors(sigla);
+  const hsl = rgbToHsl(hexToRgb(primary));
+  const desS = hsl.s * 0.42;          // dessatura ~58%
+  const desL = Math.min(78, hsl.l + 12); // clareia
+  return hslToHex(hsl.h, desS, desL);
+}
+
 export default PARTY_COLORS;
