@@ -29,9 +29,8 @@ const { v1beta1 } = aiplatform;
  */
 export const SUPREME_AGENT_BUILDER_ID = 'agent_1777236402725';
 
-const REASONING_ENGINE_RESOURCE =
-  process.env.VERTEX_REASONING_ENGINE_ID ??
-  'projects/89728155070/locations/us-west1/reasoningEngines/4398310393894666240';
+/** Sem fallback hardcoded de projeto GCP — definir VERTEX_REASONING_ENGINE_ID no ambiente (SecOps). */
+const REASONING_ENGINE_RESOURCE = process.env.VERTEX_REASONING_ENGINE_ID ?? '';
 
 const TIMEOUT_SECONDS = parseInt(
   process.env.VERTEX_TIMEOUT_SECONDS ?? '600',
@@ -115,6 +114,11 @@ export class VertexReasoningClient {
    * @returns {Promise<void>}
    */
   async init() {
+    if (!REASONING_ENGINE_RESOURCE || !String(REASONING_ENGINE_RESOURCE).trim()) {
+      throw new Error(
+        'VERTEX_REASONING_ENGINE_ID ausente — configure o nome completo do Reasoning Engine (Líder Supremo agent_1777236402725).',
+      );
+    }
     this.#client = new v1beta1.ReasoningEngineExecutionServiceClient({
       apiEndpoint: 'us-west1-aiplatform.googleapis.com',
     });
