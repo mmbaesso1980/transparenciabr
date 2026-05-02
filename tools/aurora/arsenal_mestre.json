@@ -273,6 +273,54 @@
           "/api/cnpj/v1/{cnpj}"
         ]
       ]
+    },
+    "querido_diario": {
+      "base": "https://queridodiario.ok.org.br/api",
+      "auth": false,
+      "rate_per_min": 30,
+      "priority": "CRITICAL",
+      "endpoints": [
+        [
+          "gazettes_recentes",
+          "/gazettes?since={d1}&until={d2}&page={page}&size=100"
+        ],
+        [
+          "gazettes_search_general",
+          "/gazettes?querystring=licita%C3%A7%C3%A3o&since={d1}&until={d2}&page={page}&size=100"
+        ],
+        [
+          "cities",
+          "/cities"
+        ],
+        [
+          "territories",
+          "/territories"
+        ]
+      ]
+    },
+    "dou": {
+      "base": "https://www.in.gov.br/leiturajornal",
+      "auth": false,
+      "rate_per_min": 20,
+      "priority": "HIGH",
+      "endpoints": [
+        [
+          "publicacoes",
+          "?secao=do1&data={d2_iso}&page={page}"
+        ]
+      ]
+    },
+    "tse": {
+      "base": "https://divulgacandcontas.tse.jus.br/divulga/rest/v1",
+      "auth": false,
+      "rate_per_min": 20,
+      "priority": "HIGH",
+      "endpoints": [
+        [
+          "candidato",
+          "/candidatura/buscar/2022/2022802018/2022802018/candidato/{seq}"
+        ]
+      ]
     }
   }
 }

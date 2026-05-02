@@ -85,21 +85,25 @@ async def crawl_endpoint(client: httpx.AsyncClient, grupo: str, group_meta: dict
                 log.warning(f"⏭  {grupo}/{name}: skipped (no PORTAL_KEY)")
                 return
             headers[group_meta["auth_header"]] = args.portal_key
+    headers.setdefault("User-Agent", "TransparenciaBR/1.0 (+https://github.com/mmbaesso1980/transparenciabr)")
 
     # Placeholders
     today = datetime.now(timezone.utc).date()
     d2 = today.strftime("%d/%m/%Y")
     d1 = (today - timedelta(days=30)).strftime("%d/%m/%Y")
+    d2_iso = today.strftime("%Y-%m-%d")
+    d1_iso = (today - timedelta(days=30)).strftime("%Y-%m-%d")
     ano = today.year
     path_filled = path.format(
         page="{page}", ano=ano, mes=today.month,
-        d1=d1, d2=d2, autor="", funcao="", orgao="", mod="1",
+        d1=d1, d2=d2, d1_iso=d1_iso, d2_iso=d2_iso,
+        autor="", funcao="", orgao="", mod="1",
         id="X", codigo="X", id_emenda="X", id_municipio="X",
-        cod_mun="X", cnpj="X", numero="X", uid="X",
+        cod_mun="X", cnpj="X", numero="X", uid="X", seq="X",
     )
 
     # Endpoints com placeholders não-substituíveis (ex: {id}) — pulamos por enquanto
-    if "{" in path_filled:
+    if "{" in path_filled.replace("{page}", ""):
         log.info(f"⏭  {grupo}/{name}: skipped (needs runtime params)")
         return
 
