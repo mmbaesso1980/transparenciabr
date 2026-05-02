@@ -112,8 +112,8 @@ ingest transferegov_relatorio_gestao --snapshot "$SNAPSHOT_DATE"
 # ╚══════════════════════════════════════════════════════════════════════╝
 phase "🏛️ FASE 4/9 — Emendas Parlamentares (CGU)"
 if [ -z "${PORTAL_TRANSPARENCIA_API_KEY:-}" ]; then
-  # fallback: usa chave fixa em SECRETS.md
-  export PORTAL_TRANSPARENCIA_API_KEY="717a95e01b072090f41940282eab700a"
+  echo "ERRO SecOps (G.O.A.T.): defina PORTAL_TRANSPARENCIA_API_KEY no ambiente ou no Secret Manager — nunca commitar chaves no repositório."
+  exit 1
 fi
 for YEAR in $YEARS_EMENDAS; do
   ingest emendas_parlamentares --year "$YEAR"
