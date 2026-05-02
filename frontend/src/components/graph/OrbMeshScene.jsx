@@ -9,10 +9,9 @@ import {
 } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Line, OrbitControls } from "@react-three/drei";
+import { Bloom, EffectComposer } from "@react-three/postprocessing";
 import * as THREE from "three";
 
-import { getRiskColor } from "../../utils/colorUtils.js";
-import { getPoliticianOrbStops } from "../../utils/politicianColor.js";
 import { partyHaloColor, getPartyPrimary } from "../../utils/partyColors.js";
 import StarField from "./StarField.jsx";
 
@@ -265,69 +264,6 @@ function stopsForNode(node) {
 }
 
 /* ------------------------------------------------------------------ */
-/* Cache global de texturas radial-gradient (mesmo padrão da SVG 2D)   */
-/* ------------------------------------------------------------------ */
-
-const ORB_TEX_CACHE = new Map();
-
-function makeOrbTexture({ inner, accent, outer }) {
-  const key = `${inner}|${accent}|${outer}`;
-  const cached = ORB_TEX_CACHE.get(key);
-  if (cached) return cached;
-
-  const size = 256;
-  const canvas = document.createElement("canvas");
-  canvas.width = size;
-  canvas.height = size;
-  const ctx = canvas.getContext("2d");
-
-  // Fundo do "espaço" da textura (transparente para a esfera assumir o look completo).
-  ctx.clearRect(0, 0, size, size);
-
-  // Gradient base — espelha PoliticianOrb.jsx (cx=35%, cy=35%, r=75%).
-  const cx = size * 0.35;
-  const cy = size * 0.35;
-  const r = size * 0.75;
-  const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
-  grad.addColorStop(0.0, hexA(inner, 0.98));
-  grad.addColorStop(0.55, hexA(accent, 0.92));
-  grad.addColorStop(1.0, hexA(outer, 1.0));
-  ctx.fillStyle = grad;
-  ctx.beginPath();
-  ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Highlight branco (cx=32%, cy=28%, r=22%) — também idêntico ao SVG 2D.
-  const hx = size * 0.32;
-  const hy = size * 0.28;
-  const hr = size * 0.22;
-  const hl = ctx.createRadialGradient(hx, hy, 0, hx, hy, hr);
-  hl.addColorStop(0.0, "rgba(255,255,255,0.55)");
-  hl.addColorStop(1.0, "rgba(255,255,255,0)");
-  ctx.fillStyle = hl;
-  ctx.beginPath();
-  ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
-  ctx.fill();
-
-  const tex = new THREE.CanvasTexture(canvas);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  tex.anisotropy = 4;
-  tex.needsUpdate = true;
-  ORB_TEX_CACHE.set(key, tex);
-  return tex;
-}
-
-function hexA(hex, a) {
-  const m = String(hex || "").trim().match(/^#?([0-9a-f]{6})$/i);
-  if (!m) return `rgba(255,255,255,${a})`;
-  const v = parseInt(m[1], 16);
-  const r = (v >> 16) & 255;
-  const g = (v >> 8) & 255;
-  const b = v & 255;
-  return `rgba(${r},${g},${b},${a})`;
-}
-
-/* ------------------------------------------------------------------ */
 /* Halo / nebulosa difusa — sprite com gradiente radial branco         */
 /* tingido pela cor desaturada do partido (additive blending).         */
 /* ------------------------------------------------------------------ */
@@ -410,7 +346,75 @@ function CosmicFilament({ from, to, focus, dim, hot }) {
 }
 
 /* ------------------------------------------------------------------ */
-/* Orbe individual — replica visual do PoliticianOrb em 3D + halo      */
+/* Shader — replica PoliticianOrb 2D (gradiente + highlight + fresnel)   */
+/* ------------------------------------------------------------------ */
+
+const orbVertexShader = `
+  varying vec3 vNormal;
+  varying vec3 vWorldPosition;
+  varying vec2 vUv;
+  void main() {
+    vNormal = normalize(normalMatrix * normal);
+    vUv = uv;
+    vec4 worldPos = modelMatrix * vec4(position, 1.0);
+    vWorldPosition = worldPos.xyz;
+    gl_Position = projectionMatrix * viewMatrix * worldPos;
+  }
+`;
+
+const orbFragmentShader = `
+  uniform vec3 uInner;
+  uniform vec3 uAccent;
+  uniform vec3 uOuter;
+  uniform float uTime;
+  uniform float uBrightness;
+  varying vec3 vNormal;
+  varying vec3 vWorldPosition;
+  varying vec2 vUv;
+
+  float hash(vec2 p) {
+    return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
+  }
+  float noise(vec2 p) {
+    vec2 i = floor(p), f = fract(p);
+    vec2 u = f * f * (3.0 - 2.0 * f);
+    return mix(mix(hash(i), hash(i + vec2(1, 0)), u.x),
+               mix(hash(i + vec2(0, 1)), hash(i + vec2(1, 1)), u.x), u.y);
+  }
+
+  void main() {
+    vec2 sph = vUv;
+    vec2 innerLight = vec2(0.35, 0.65);
+    float distInner = distance(sph, innerLight) / 0.75;
+    float gradT = smoothstep(0.0, 1.0, distInner);
+
+    vec3 col;
+    if (gradT < 0.55) {
+      col = mix(uInner, uAccent, smoothstep(0.0, 0.55, gradT));
+    } else {
+      col = mix(uAccent, uOuter, smoothstep(0.55, 1.0, gradT));
+    }
+
+    vec2 hlPos = vec2(0.32, 0.72);
+    float distHl = distance(sph, hlPos) / 0.22;
+    float hl = smoothstep(1.0, 0.0, distHl) * 0.55;
+    col = mix(col, vec3(1.0), hl);
+
+    vec3 viewDir = normalize(cameraPosition - vWorldPosition);
+    float fresnel = 1.0 - max(dot(viewDir, vNormal), 0.0);
+    fresnel = pow(fresnel, 2.5);
+    col += fresnel * 0.18 * uAccent;
+
+    float swirl = noise(sph * 4.0 + uTime * 0.05) * 0.04;
+    col += vec3(swirl);
+
+    col *= uBrightness;
+    gl_FragColor = vec4(col, 1.0);
+  }
+`;
+
+/* ------------------------------------------------------------------ */
+/* Orbe individual — shader + halo (mesma identidade que PoliticianOrb)   */
 /* ------------------------------------------------------------------ */
 
 function CosmicOrb({
@@ -424,17 +428,34 @@ function CosmicOrb({
   onClick,
   onPointerOver,
   onPointerOut,
+  onPointerMove,
 }) {
   const stops = useMemo(() => stopsForNode(node), [node]);
-  const tex = useMemo(() => makeOrbTexture(stops), [stops]);
   const halo = useMemo(() => getHaloTexture(), []);
 
   const meshRef = useRef(null);
   const matRef = useRef(null);
   const haloRef = useRef(null);
 
-  // Pulso suave em alto risco — modula scale + emissive.
-  useFrame((_, dt) => {
+  const uniforms = useMemo(
+    () => ({
+      uInner: { value: new THREE.Color(stops.inner) },
+      uAccent: { value: new THREE.Color(stops.accent) },
+      uOuter: { value: new THREE.Color(stops.outer) },
+      uTime: { value: 0 },
+      uBrightness: { value: brightness },
+    }),
+    [stops.inner, stops.accent, stops.outer],
+  );
+
+  useEffect(() => {
+    if (!matRef.current) return;
+    matRef.current.uniforms.uInner.value.set(stops.inner);
+    matRef.current.uniforms.uAccent.value.set(stops.accent);
+    matRef.current.uniforms.uOuter.value.set(stops.outer);
+  }, [stops.inner, stops.accent, stops.outer]);
+
+  useFrame(({ clock }) => {
     if (!meshRef.current) return;
     const baseScale = scale;
     const hr = isHighRisk(node);
@@ -442,20 +463,21 @@ function CosmicOrb({
     const s = hr ? baseScale * (1 + Math.sin(t * 3.2) * 0.06) : baseScale;
     meshRef.current.scale.setScalar(s);
     if (matRef.current) {
-      const e = brightness * (hr ? 1 + Math.sin(t * 3.2) * 0.18 : 1);
-      matRef.current.emissiveIntensity = e;
+      const u = matRef.current.uniforms;
+      u.uTime.value = clock.elapsedTime;
+      const br =
+        brightness * (hr ? 1 + Math.sin(t * 3.2) * 0.18 : 1);
+      u.uBrightness.value = br;
     }
     if (haloRef.current?.material) {
       haloRef.current.material.opacity = haloIntensity;
     }
   });
 
-  // Tamanho real da esfera (raio base 0.42 igual ao código antigo).
   const orbRadius = 0.42;
 
   return (
     <group position={position}>
-      {/* Halo / nebulosa do partido — sprite grande, additive, dessaturado. */}
       <sprite ref={haloRef} scale={[orbRadius * scale * 7, orbRadius * scale * 7, 1]}>
         <spriteMaterial
           map={halo}
@@ -468,7 +490,6 @@ function CosmicOrb({
         />
       </sprite>
 
-      {/* Esfera cósmica — radial gradient ESTILO PoliticianOrb 2D. */}
       <mesh
         ref={meshRef}
         scale={scale}
@@ -480,21 +501,21 @@ function CosmicOrb({
           e.stopPropagation();
           onPointerOver?.(e, node);
         }}
+        onPointerMove={(e) => {
+          e.stopPropagation();
+          onPointerMove?.(e, node);
+        }}
         onPointerOut={(e) => {
           e.stopPropagation();
           onPointerOut?.(e, node);
         }}
       >
-        <sphereGeometry args={[orbRadius, 28, 28]} />
-        <meshStandardMaterial
+        <sphereGeometry args={[orbRadius, 64, 64]} />
+        <shaderMaterial
           ref={matRef}
-          map={tex}
-          emissiveMap={tex}
-          emissive="#ffffff"
-          emissiveIntensity={brightness}
-          roughness={0.42}
-          metalness={0.18}
-          toneMapped
+          vertexShader={orbVertexShader}
+          fragmentShader={orbFragmentShader}
+          uniforms={uniforms}
         />
       </mesh>
     </group>
@@ -502,42 +523,98 @@ function CosmicOrb({
 }
 
 /* ------------------------------------------------------------------ */
+/* Câmera — drift orbital + fly-through + reset (sem spring extra dep) */
+/* ------------------------------------------------------------------ */
 
-function CameraRig({ controlsRef, flyStateRef }) {
+function cubicBezierEase(x1, y1, x2, y2, x) {
+  const cx = 3 * x1;
+  const bx = 3 * (x2 - x1) - cx;
+  const ax = 1 - cx - bx;
+  const cy = 3 * y1;
+  const by = 3 * (y2 - y1) - cy;
+  const ay = 1 - cy - by;
+  const sx = (t) => ((ax * t + bx) * t + cx) * t;
+  const sy = (t) => ((ay * t + by) * t + cy) * t;
+  let t = x;
+  for (let i = 0; i < 8; i++) {
+    const xEst = sx(t) - x;
+    const dx = 3 * ax * t * t + 2 * bx * t + cx;
+    if (Math.abs(dx) < 1e-6) break;
+    t -= xEst / dx;
+    t = Math.max(0, Math.min(1, t));
+  }
+  return sy(Math.max(0, Math.min(1, t)));
+}
+
+function ImmersiveCamera({
+  controlsRef,
+  cameraAnimRef,
+  focusTarget,
+}) {
   const { camera } = useThree();
+  const tmpFrom = useMemo(() => new THREE.Vector3(), []);
+  const tmpTo = useMemo(() => new THREE.Vector3(), []);
+  const tmpLookFrom = useMemo(() => new THREE.Vector3(), []);
+  const tmpLookTo = useMemo(() => new THREE.Vector3(), []);
+
   useFrame((_, delta) => {
-    const st = flyStateRef.current;
-    if (!st.active || !controlsRef.current) return;
-    const damping = 1 - Math.exp(-4.2 * delta);
-    camera.position.lerp(st.camPos, damping);
-    controlsRef.current.target.lerp(st.lookAt, damping);
-    controlsRef.current.update();
-    const done =
-      camera.position.distanceTo(st.camPos) < 0.15 &&
-      controlsRef.current.target.distanceTo(st.lookAt) < 0.12;
-    if (done || performance.now() - st.startedAt > 4500) {
-      st.active = false;
-      st.onComplete?.();
-      st.onComplete = null;
+    if (!controlsRef.current) return;
+    const controls = controlsRef.current;
+    const anim = cameraAnimRef.current;
+
+    if (!anim.active) return;
+
+    const now = performance.now();
+    const elapsed = now - anim.t0;
+    const rawT = Math.min(1, elapsed / anim.duration);
+    const u = cubicBezierEase(0.22, 1, 0.36, 1, rawT);
+    tmpFrom.copy(anim.startCam);
+    tmpTo.copy(anim.endCam);
+    tmpLookFrom.copy(anim.startLook);
+    tmpLookTo.copy(anim.endLook);
+    camera.position.lerpVectors(tmpFrom, tmpTo, u);
+    controls.target.lerpVectors(tmpLookFrom, tmpLookTo, u);
+    controls.update();
+    if (rawT >= 1) {
+      anim.active = false;
+      camera.position.copy(anim.endCam);
+      controls.target.copy(anim.endLook);
+      controls.update();
+      const cb = anim.onComplete;
+      anim.onComplete = null;
+      cb?.();
     }
   });
+
   return null;
 }
 
-/* ------------------------------------------------------------------ */
-
-function SceneContent({ graphData, onNodeClick, flyApiRef }) {
+function SceneContent({
+  graphData,
+  onNodeClick,
+  flyApiRef,
+  onOrbHover,
+}) {
   const groupRef = useRef(null);
   const controlsRef = useRef(null);
   const nodes = graphData?.nodes ?? [];
   const links = graphData?.links ?? [];
   const [hoveredPartyId, setHoveredPartyId] = useState(null);
   const pulseT = useRef(0);
-  const flyStateRef = useRef({
+
+  const [camBusy, setCamBusy] = useState(false);
+  const [driftPaused, setDriftPaused] = useState(false);
+
+  const DRIFT_RADIUS = 28;
+
+  const cameraAnimRef = useRef({
     active: false,
-    camPos: new THREE.Vector3(),
-    lookAt: new THREE.Vector3(),
-    startedAt: 0,
+    t0: 0,
+    duration: 1200,
+    startCam: new THREE.Vector3(),
+    endCam: new THREE.Vector3(),
+    startLook: new THREE.Vector3(),
+    endLook: new THREE.Vector3(),
     onComplete: null,
   });
 
@@ -607,16 +684,69 @@ function SceneContent({ graphData, onNodeClick, flyApiRef }) {
     return out;
   }, [links, nodes, posById, hoveredPartyId, polToParty, haloColorByParty]);
 
-  const beginFlyToWorld = useCallback((worldPos, onComplete) => {
-    const look = worldPos.clone();
-    const camPos = look.clone().add(new THREE.Vector3(0, 1.2, 9.5));
-    const st = flyStateRef.current;
-    st.camPos.copy(camPos);
-    st.lookAt.copy(look);
-    st.startedAt = performance.now();
-    st.active = true;
-    st.onComplete = onComplete;
+  const beginCameraAnim = useCallback((endCam, endLook, durationMs, onComplete) => {
+    if (!controlsRef.current?.object) return;
+    const ctrls = controlsRef.current;
+    const camObj = ctrls.object;
+    const anim = cameraAnimRef.current;
+    anim.startCam.copy(camObj.position);
+    anim.startLook.copy(ctrls.target);
+    anim.endCam.copy(endCam);
+    anim.endLook.copy(endLook);
+    anim.duration = durationMs;
+    anim.t0 = performance.now();
+    anim.active = true;
+    setCamBusy(true);
+    anim.onComplete = () => {
+      setCamBusy(false);
+      onComplete?.();
+    };
   }, []);
+
+  const beginFlyToWorld = useCallback(
+    (worldPos, onArrive) => {
+      const target = worldPos.clone();
+      const dir = target.clone();
+      if (dir.lengthSq() < 1e-8) {
+        dir.set(0, 0.25, 1);
+      }
+      dir.normalize();
+      const endCam = target.clone().add(dir.multiplyScalar(4));
+      beginCameraAnim(endCam, target, 1200, onArrive);
+    },
+    [beginCameraAnim],
+  );
+
+  const resetCameraToDrift = useCallback(() => {
+    if (!controlsRef.current?.object) return;
+    const ctrls = controlsRef.current;
+    const camObj = ctrls.object;
+    const camDir = camObj.position.clone().normalize();
+    const homeCam = camDir.multiplyScalar(DRIFT_RADIUS);
+    homeCam.y += Math.sin(performance.now() * 0.0004) * 0.6;
+    const homeLook = new THREE.Vector3(0, 0, 0);
+    beginCameraAnim(homeCam, homeLook, 1500, () => {});
+  }, [beginCameraAnim]);
+
+  const clearFocus = useCallback(() => {
+    resetCameraToDrift();
+  }, [resetCameraToDrift]);
+
+  useEffect(() => {
+    const api = flyApiRef.current;
+    api.clearFocus = clearFocus;
+    return () => {
+      delete api.clearFocus;
+    };
+  }, [flyApiRef, clearFocus]);
+
+  useEffect(() => {
+    const onKey = (ev) => {
+      if (ev.key === "Escape") clearFocus();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [clearFocus]);
 
   useEffect(() => {
     const api = flyApiRef.current;
@@ -641,30 +771,51 @@ function SceneContent({ graphData, onNodeClick, flyApiRef }) {
 
   useFrame((_, delta) => {
     pulseT.current += delta;
-    if (groupRef.current) {
-      // Rotação muito lenta — sensação de cosmos que respira, não carrossel.
-      groupRef.current.rotation.y += delta * 0.012;
-    }
   });
 
-  const handleClick = useCallback(
+  const handleOrbClick = useCallback(
     (e, node) => {
       e.stopPropagation();
-      if (typeof onNodeClick === "function") onNodeClick(node);
+      if (!node) return;
+      const p = posById.get(node.id);
+      if (!p) return;
+      beginFlyToWorld(p, () => {
+        if (node.tipo === "partido") return;
+        if (typeof onNodeClick === "function") onNodeClick(node);
+      });
     },
-    [onNodeClick],
+    [beginFlyToWorld, onNodeClick, posById],
   );
 
-  const onOver = useCallback((e, node) => {
-    e.stopPropagation();
-    document.body.style.cursor = "pointer";
-    if (node?.tipo === "partido") setHoveredPartyId(String(node.id));
-  }, []);
-  const onOut = useCallback((e, node) => {
-    e.stopPropagation();
-    document.body.style.cursor = "auto";
-    if (node?.tipo === "partido") setHoveredPartyId(null);
-  }, []);
+  const onOver = useCallback(
+    (e, node) => {
+      e.stopPropagation();
+      document.body.style.cursor = "pointer";
+      if (node?.tipo === "partido") setHoveredPartyId(String(node.id));
+      onOrbHover?.(node, { x: e.clientX, y: e.clientY });
+    },
+    [onOrbHover],
+  );
+
+  const onMove = useCallback(
+    (e, node) => {
+      e.stopPropagation();
+      onOrbHover?.(node, { x: e.clientX, y: e.clientY });
+    },
+    [onOrbHover],
+  );
+
+  const onOut = useCallback(
+    (e, node) => {
+      e.stopPropagation();
+      document.body.style.cursor = "auto";
+      if (node?.tipo === "partido") setHoveredPartyId(null);
+      onOrbHover?.(null, null);
+    },
+    [onOrbHover],
+  );
+
+  const controlsInteractive = !camBusy;
 
   return (
     <>
@@ -730,8 +881,9 @@ function SceneContent({ graphData, onNodeClick, flyApiRef }) {
               haloIntensity={haloIntensity}
               brightness={brightness}
               pulse={pulseT}
-              onClick={handleClick}
+              onClick={handleOrbClick}
               onPointerOver={onOver}
+              onPointerMove={onMove}
               onPointerOut={onOut}
             />
           );
@@ -739,20 +891,28 @@ function SceneContent({ graphData, onNodeClick, flyApiRef }) {
 
         <OrbitControls
           ref={controlsRef}
-          enablePan
-          screenSpacePanning
-          minDistance={4}
-          maxDistance={160}
+          enablePan={false}
+          minDistance={8}
+          maxDistance={60}
           minPolarAngle={0}
           maxPolarAngle={Math.PI}
           enableDamping
           dampingFactor={0.08}
           rotateSpeed={0.85}
           zoomSpeed={0.9}
-          panSpeed={0.9}
+          enabled={controlsInteractive}
+          autoRotate={!driftPaused && controlsInteractive}
+          autoRotateSpeed={0.35}
+          onStart={() => setDriftPaused(true)}
+          onEnd={() => {
+            window.setTimeout(() => setDriftPaused(false), 800);
+          }}
         />
       </group>
-      <CameraRig controlsRef={controlsRef} flyStateRef={flyStateRef} />
+      <ImmersiveCamera
+        controlsRef={controlsRef}
+        cameraAnimRef={cameraAnimRef}
+      />
     </>
   );
 }
@@ -760,7 +920,7 @@ function SceneContent({ graphData, onNodeClick, flyApiRef }) {
 /* ------------------------------------------------------------------ */
 
 const OrbMeshScene = forwardRef(function OrbMeshScene(
-  { graphData, onNodeClick, empty = false, className = "" },
+  { graphData, onNodeClick, onOrbHover, empty = false, className = "" },
   ref,
 ) {
   const flyApiRef = useRef({});
@@ -776,6 +936,9 @@ const OrbMeshScene = forwardRef(function OrbMeshScene(
           ? id
           : `pol_${id}`;
         return flyApiRef.current.flyToNodeId(polGraphId);
+      },
+      clearCameraFocus() {
+        flyApiRef.current.clearFocus?.();
       },
     }),
     [graphData],
@@ -793,9 +956,10 @@ const OrbMeshScene = forwardRef(function OrbMeshScene(
   return (
     <div className={`absolute inset-0 touch-none ${className}`}>
       <Canvas
-        camera={{ position: [0, 6, 70], fov: 55 }}
+        camera={{ position: [0, 0, 28], fov: 55 }}
         gl={{ antialias: true, alpha: false }}
         dpr={[1, 2]}
+        onPointerMissed={() => flyApiRef.current.clearFocus?.()}
       >
         <color attach="background" args={["#02040a"]} />
         {/* Fog cósmico — orbes distantes desbotam suavemente. */}
@@ -806,7 +970,16 @@ const OrbMeshScene = forwardRef(function OrbMeshScene(
           graphData={graphData}
           onNodeClick={onNodeClick}
           flyApiRef={flyApiRef}
+          onOrbHover={onOrbHover}
         />
+        <EffectComposer>
+          <Bloom
+            intensity={0.45}
+            luminanceThreshold={0.6}
+            luminanceSmoothing={0.4}
+            mipmapBlur
+          />
+        </EffectComposer>
       </Canvas>
     </div>
   );
