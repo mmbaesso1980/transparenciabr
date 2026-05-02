@@ -17,7 +17,7 @@
  * Custo estimado (Flash batch, R$ ≈ USD 5):
  *   ~3M notas CEAP histórico ≈ R$ 50–80 (vs R$ 600+ síncrono Pro)
  *
- * Modelo: publishers/google/models/gemini-2.5-flash (batch prediction)
+ * Modelo: publishers/google/models/gemini-2.5-pro (batch prediction; G.O.A.T. — mesmo motor do Líder Supremo)
  */
 
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
@@ -31,7 +31,7 @@ const __dirname = dirname(__filename);
 // ---------- CONFIG ----------
 const PROJECT_ID = process.env.GCP_PROJECT_ID || 'transparenciabr';
 const LOCATION = process.env.VERTEX_LOCATION || 'us-central1';
-const MODEL = 'gemini-2.5-flash';
+const MODEL = process.env.CEAP_VERTEX_CLASSIFY_MODEL || process.env.VERTEX_MODEL || 'gemini-2.5-pro';
 const BUCKET_CLEAN = 'datalake-tbr-clean';
 const SNAPSHOT_DATE = new Date().toISOString().slice(0, 10);
 const TMP_DIR = '/tmp/tbr_vertex_classify';
