@@ -4,6 +4,8 @@ import { Helmet } from "react-helmet-async";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 
 import BrandLogo from "../components/BrandLogo.jsx";
+import OrbTooltip from "../components/graph/OrbTooltip.jsx";
+import UniverseTopBar from "../components/graph/UniverseTopBar.jsx";
 import LandingHeroGraph from "../components/landing/LandingHeroGraph.jsx";
 import PoliticianOrb from "../components/PoliticianOrb.jsx";
 import UserOrb from "../components/UserOrb.jsx";
@@ -30,8 +32,11 @@ export default function UniversePage() {
   const { credits } = useUserCredits();
   const creditDisplay = Number.isFinite(credits) ? credits : saldo;
 
-  const { graphData, loading, error, findPoliticoByQuery, roster } =
+  const { graphData, loading, error, findPoliticoByQuery, roster, total } =
     useUniverseRoster();
+
+  const [hoveredOrbNode, setHoveredOrbNode] = useState(null);
+  const [hoverOrbPos, setHoverOrbPos] = useState(null);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [modalPolitico, setModalPolitico] = useState({ id: "", nome: "" });
@@ -199,6 +204,10 @@ export default function UniversePage() {
           ref={graphRef}
           graphData={graphData}
           onNodeClick={handleNodeClick}
+          onOrbHover={(node, pos) => {
+            setHoveredOrbNode(node);
+            setHoverOrbPos(pos);
+          }}
           empty={emptyGraph}
         />
       </div>
@@ -207,6 +216,8 @@ export default function UniversePage() {
         aria-hidden
         className="pointer-events-none absolute inset-0 z-[5] bg-[radial-gradient(ellipse_at_center,transparent_0%,#02040a_72%),radial-gradient(circle_at_15%_85%,rgba(88,166,255,0.1),transparent_42%),radial-gradient(circle_at_90%_12%,rgba(239,68,68,0.06),transparent_38%)]"
       />
+
+      <UniverseTopBar totalParlamentares={total ?? 594} />
 
       <header className="relative z-20 flex items-center justify-between gap-3 border-b border-[#30363D]/60 bg-[#02040a]/75 px-4 py-3 backdrop-blur-md sm:px-8">
         <BrandLogo to="/" variant="full" size="md" />
@@ -250,6 +261,8 @@ export default function UniversePage() {
           )}
         </nav>
       </header>
+
+      <OrbTooltip node={hoveredOrbNode} position={hoverOrbPos} />
 
       {/* Bentos laterais — desktop apenas (sm+). No mobile viram strip horizontal mais abaixo. */}
       <div className="pointer-events-none absolute inset-0 z-10 hidden justify-between gap-3 p-3 pt-[4.25rem] sm:flex sm:gap-4 sm:p-6 sm:pt-[4.75rem]">

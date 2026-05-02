@@ -23,6 +23,7 @@
     "@tanstack/react-query-persist-client": "^5.100.5",
     "deck.gl": "^9.3.1",
     "firebase": "^11.7.0",
+    "framer-motion": "^12.23.12",
     "html2pdf.js": "^0.14.0",
     "lucide-react": "^0.544.0",
     "maplibre-gl": "^5.24.0",
