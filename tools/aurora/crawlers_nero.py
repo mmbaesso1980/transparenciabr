@@ -61,6 +61,65 @@ async def fetch_paginated(client: httpx.AsyncClient, base: str, path: str, heade
         await asyncio.sleep(interval)
     return out
 
+# Mapeamento (grupo, endpoint) -> subdir RAW EXISTENTE no datalake-tbr-raw.
+# Respeita estrutura ja' criada para nao poluir o lake com duplicatas.
+PATH_MAP = {
+    ("camara", "deputados"):                      "funcionarios_camara",
+    ("camara", "despesas"):                       "ceap_camara",
+    ("camara", "eventos"):                        "funcionarios_camara/eventos",
+    ("camara", "orgaos"):                         "funcionarios_camara/orgaos",
+    ("camara", "frentes"):                        "funcionarios_camara/frentes",
+    ("camara", "ocupacoes"):                      "funcionarios_camara/ocupacoes",
+    ("camara", "mandatosExternos"):               "funcionarios_camara/mandatos",
+    ("camara", "profissoes"):                     "funcionarios_camara/profissoes",
+    ("camara", "historico"):                      "funcionarios_camara/historico",
+    ("senado", "senadores_atual"):                "servidores_senado",
+    ("senado", "senador_dados"):                  "servidores_senado/dados",
+    ("senado", "senador_apartes"):                "ceaps_senado/apartes",
+    ("senado", "senador_discursos"):              "ceaps_senado/discursos",
+    ("senado", "senador_votacoes"):               "ceaps_senado/votacoes",
+    ("senado", "senador_relatorias"):             "ceaps_senado/relatorias",
+    ("portal_transparencia", "servidores"):       "funcionarios_camara/cgu_servidores",
+    ("portal_transparencia", "viagens"):          "funcionarios_camara/cgu_viagens",
+    ("portal_transparencia", "emendas_parlamentar"): "emendas_parlamentares",
+    ("portal_transparencia", "emendas_localidade"): "cgu_emendas_localidade",
+    ("portal_transparencia", "contratos"):        "pncp_contratos/cgu",
+    ("portal_transparencia", "convenios"):        "transferegov_relatorio_gestao/convenios",
+    ("portal_transparencia", "gastos_diretos"):   "transferegov_relatorio_gestao/gastos",
+    ("portal_transparencia", "licitacoes"):       "pncp_contratos/licitacoes",
+    ("portal_transparencia", "ceis"):              "sancoes/ceis",
+    ("portal_transparencia", "cnep"):              "sancoes/cnep",
+    ("portal_transparencia", "cepim"):             "sancoes/cepim",
+    ("pncp", "contratos_publicacao"):              "pncp_contratos",
+    ("pncp", "contratacoes_publicacao"):           "pncp_contratos/contratacoes",
+    ("pncp", "planos_contratacao"):                "pncp_contratos/planos",
+    ("pncp", "planos_itens"):                      "pncp_contratos/planos_itens",
+    ("pncp", "atas"):                              "pncp_contratos/atas",
+    ("transferegov", "emendas_pix"):               "emendas_pix",
+    ("transferegov", "detalhes_emenda"):           "emendas_pix/detalhes",
+    ("transferegov", "planos_acao"):               "emendas_pix_planos",
+    ("transferegov", "executor_especial"):         "emendas_pix_executor",
+    ("transferegov", "municipios"):                "transferegov_relatorio_gestao/municipios",
+    ("tcu", "acordaos"):                           "sancoes/tcu_acordaos",
+    ("tcu", "pj_publica"):                         "sancoes/tcu_pj",
+    ("tcu", "sancoes"):                            "sancoes/tcu_sancoes",
+    ("tcu", "cadirreg"):                           "sancoes/tcu_cadirreg",
+    ("querido_diario", "gazettes_recentes"):       "querido_diario/recentes",
+    ("querido_diario", "gazettes_search_general"): "querido_diario/search",
+    ("querido_diario", "cities"):                  "querido_diario/cities",
+    ("querido_diario", "territories"):             "querido_diario/territories",
+    ("dou", "publicacoes"):                        "querido_diario/dou",
+    ("datasus", "estabelecimentos"):               "saude/cnes_estabelecimentos",
+    ("datasus", "leitos"):                         "saude/cnes_leitos",
+    ("datasus", "profissionais"):                  "saude/cnes_profissionais",
+    ("ibge", "municipios"):                        "ibge/municipios",
+    ("ibge", "estados"):                           "ibge/estados",
+    ("ibge", "populacao"):                         "ibge/populacao",
+    ("atlas_brasil", "idh_municipio"):             "ibge/idh",
+    ("brasilapi_cnpj", "cnpj"):                    "funcionarios_camara/cnpjs",
+    ("tse", "candidato"):                          "funcionarios_camara/tse_candidatos",
+}
+
 async def upload_gcs(grupo: str, endpoint: str, items: list[dict]) -> None:
     if not items:
         return
@@ -69,7 +128,10 @@ async def upload_gcs(grupo: str, endpoint: str, items: list[dict]) -> None:
     with gzip.open(tmp, "wt") as f:
         for it in items:
             f.write(json.dumps(it, ensure_ascii=False) + "\n")
-    dest = f"{GCS_RAW}/{grupo}/{endpoint}/{ts}.jsonl.gz"
+    # Usa subdir EXISTENTE do datalake quando possivel (PATH_MAP),
+    # senao cria estrutura nova com prefix "_aurora_" (visivel pra reorganizar depois).
+    subdir = PATH_MAP.get((grupo, endpoint), f"_aurora_{grupo}/{endpoint}")
+    dest = f"{GCS_RAW}/{subdir}/aurora_{ts}.jsonl.gz"
     proc = await asyncio.create_subprocess_shell(f"gsutil -q cp {tmp} {dest}")
     await proc.wait()
     Path(tmp).unlink(missing_ok=True)
