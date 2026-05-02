@@ -1,0 +1,278 @@
+{
+  "version": "v4-nero-2026-05-02",
+  "groups": {
+    "camara": {
+      "base": "https://dadosabertos.camara.leg.br/api/v2",
+      "auth": false,
+      "rate_per_min": 60,
+      "priority": "CRITICAL",
+      "endpoints": [
+        [
+          "deputados",
+          "/deputados?ordem=ASC&ordenarPor=nome&itens=100&pagina={page}"
+        ],
+        [
+          "despesas",
+          "/deputados/{id}/despesas?ano={ano}&mes={mes}&itens=100"
+        ],
+        [
+          "eventos",
+          "/deputados/{id}/eventos?itens=100"
+        ],
+        [
+          "orgaos",
+          "/deputados/{id}/orgaos?itens=100"
+        ],
+        [
+          "frentes",
+          "/deputados/{id}/frentes?itens=100"
+        ],
+        [
+          "ocupacoes",
+          "/deputados/{id}/ocupacoes"
+        ],
+        [
+          "mandatosExternos",
+          "/deputados/{id}/mandatosExternos"
+        ],
+        [
+          "profissoes",
+          "/deputados/{id}/profissoes"
+        ],
+        [
+          "historico",
+          "/deputados/{id}/historico"
+        ]
+      ]
+    },
+    "senado": {
+      "base": "https://legis.senado.leg.br/dadosabertos",
+      "auth": false,
+      "rate_per_min": 30,
+      "priority": "CRITICAL",
+      "endpoints": [
+        [
+          "senadores_atual",
+          "/senador/lista/atual"
+        ],
+        [
+          "senador_dados",
+          "/senador/{codigo}"
+        ],
+        [
+          "senador_apartes",
+          "/senador/{codigo}/apartes"
+        ],
+        [
+          "senador_discursos",
+          "/senador/{codigo}/discursos"
+        ],
+        [
+          "senador_votacoes",
+          "/senador/{codigo}/votacoes"
+        ],
+        [
+          "senador_relatorias",
+          "/senador/{codigo}/relatorias"
+        ]
+      ]
+    },
+    "portal_transparencia": {
+      "base": "https://api.portaldatransparencia.gov.br/api-de-dados",
+      "auth": true,
+      "auth_header": "chave-api-dados",
+      "rate_per_min": 30,
+      "priority": "CRITICAL",
+      "endpoints": [
+        [
+          "servidores",
+          "/servidores?pagina={page}"
+        ],
+        [
+          "viagens",
+          "/viagens?dataIdaDe={d1}&dataIdaAte={d2}&pagina={page}"
+        ],
+        [
+          "emendas_parlamentar",
+          "/emendas?ano={ano}&autor={autor}&pagina={page}"
+        ],
+        [
+          "emendas_localidade",
+          "/emendas?ano={ano}&codigoFuncao={funcao}&pagina={page}"
+        ],
+        [
+          "contratos",
+          "/contratos?dataInicial={d1}&dataFinal={d2}&pagina={page}"
+        ],
+        [
+          "convenios",
+          "/convenios?dataInicial={d1}&dataFinal={d2}&pagina={page}"
+        ],
+        [
+          "gastos_diretos",
+          "/despesas/recursos-recebidos?codigoOrgao={orgao}&pagina={page}"
+        ],
+        [
+          "licitacoes",
+          "/licitacoes?dataInicial={d1}&dataFinal={d2}&pagina={page}"
+        ],
+        [
+          "ceis",
+          "/ceis?pagina={page}"
+        ],
+        [
+          "cnep",
+          "/cnep?pagina={page}"
+        ],
+        [
+          "cepim",
+          "/cepim?pagina={page}"
+        ]
+      ]
+    },
+    "pncp": {
+      "base": "https://pncp.gov.br/api",
+      "auth": false,
+      "rate_per_min": 60,
+      "priority": "CRITICAL",
+      "endpoints": [
+        [
+          "contratos_publicacao",
+          "/consulta/v1/contratos?dataInicial={d1}&dataFinal={d2}&pagina={page}"
+        ],
+        [
+          "contratacoes_publicacao",
+          "/consulta/v1/contratacoes/publicacao?dataInicial={d1}&dataFinal={d2}&codigoModalidadeContratacao={mod}&pagina={page}"
+        ],
+        [
+          "planos_contratacao",
+          "/consulta/v1/pca/usuario?anoPca={ano}&idUsuario={uid}&pagina={page}"
+        ],
+        [
+          "planos_itens",
+          "/consulta/v1/pca/{ano}/{cnpj}/{numero}/itens"
+        ],
+        [
+          "atas",
+          "/consulta/v1/atas?dataInicial={d1}&dataFinal={d2}&pagina={page}"
+        ]
+      ]
+    },
+    "transferegov": {
+      "base": "https://api.transferegov.gestao.gov.br",
+      "auth": false,
+      "rate_per_min": 30,
+      "priority": "CRITICAL",
+      "endpoints": [
+        [
+          "emendas_pix",
+          "/transferenciasespeciais/emenda?ano={ano}"
+        ],
+        [
+          "detalhes_emenda",
+          "/transferenciasespeciais/emenda/{id_emenda}"
+        ],
+        [
+          "planos_acao",
+          "/transferenciasespeciais/plano_acao?id_emenda={id_emenda}"
+        ],
+        [
+          "executor_especial",
+          "/transferenciasespeciais/executor_especial?id_municipio={id_mun}"
+        ],
+        [
+          "municipios",
+          "/transferenciasespeciais/municipio"
+        ]
+      ]
+    },
+    "tcu": {
+      "base": "https://contas.tcu.gov.br/ords",
+      "auth": false,
+      "rate_per_min": 30,
+      "priority": "HIGH",
+      "endpoints": [
+        [
+          "acordaos",
+          "/condenacao/consulta/acordaos?ano={ano}"
+        ],
+        [
+          "pj_publica",
+          "/condenacao/consulta/pj-publica"
+        ],
+        [
+          "sancoes",
+          "/condenacao/consulta/sancoes-vigentes"
+        ],
+        [
+          "cadirreg",
+          "/condenacao/consulta/cadirreg"
+        ]
+      ]
+    },
+    "datasus": {
+      "base": "https://elasticnes.saude.gov.br",
+      "auth": false,
+      "rate_per_min": 20,
+      "priority": "MEDIUM",
+      "endpoints": [
+        [
+          "estabelecimentos",
+          "/api/cnes/estabelecimento"
+        ],
+        [
+          "leitos",
+          "/api/cnes/leitos"
+        ],
+        [
+          "profissionais",
+          "/api/cnes/profissional"
+        ]
+      ]
+    },
+    "ibge": {
+      "base": "https://servicodados.ibge.gov.br/api",
+      "auth": false,
+      "rate_per_min": 60,
+      "priority": "REFERENCE",
+      "endpoints": [
+        [
+          "municipios",
+          "/v1/localidades/municipios"
+        ],
+        [
+          "estados",
+          "/v1/localidades/estados"
+        ],
+        [
+          "populacao",
+          "/v3/agregados/9514/periodos/2022/variaveis/93"
+        ]
+      ]
+    },
+    "atlas_brasil": {
+      "base": "http://www.atlasbrasil.org.br",
+      "auth": false,
+      "rate_per_min": 10,
+      "priority": "REFERENCE",
+      "endpoints": [
+        [
+          "idh_municipio",
+          "/api/data/{cod_mun}"
+        ]
+      ]
+    },
+    "brasilapi_cnpj": {
+      "base": "https://brasilapi.com.br",
+      "auth": false,
+      "rate_per_min": 60,
+      "priority": "HIGH",
+      "endpoints": [
+        [
+          "cnpj",
+          "/api/cnpj/v1/{cnpj}"
+        ]
+      ]
+    }
+  }
+}
