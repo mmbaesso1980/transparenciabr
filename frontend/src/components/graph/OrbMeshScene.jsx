@@ -9,9 +9,9 @@ import {
 } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Line, OrbitControls } from "@react-three/drei";
-import { Bloom, EffectComposer } from "@react-three/postprocessing";
 import * as THREE from "three";
 
+import { getPoliticianOrbStops } from "../../utils/politicianColor.js";
 import { partyHaloColor, getPartyPrimary } from "../../utils/partyColors.js";
 import StarField from "./StarField.jsx";
 
@@ -363,9 +363,11 @@ const orbVertexShader = `
 `;
 
 const orbFragmentShader = `
+  precision mediump float;
   uniform vec3 uInner;
   uniform vec3 uAccent;
   uniform vec3 uOuter;
+  uniform vec3 uCameraPosition;
   uniform float uTime;
   uniform float uBrightness;
   varying vec3 vNormal;
@@ -400,7 +402,7 @@ const orbFragmentShader = `
     float hl = smoothstep(1.0, 0.0, distHl) * 0.55;
     col = mix(col, vec3(1.0), hl);
 
-    vec3 viewDir = normalize(cameraPosition - vWorldPosition);
+    vec3 viewDir = normalize(uCameraPosition - vWorldPosition);
     float fresnel = 1.0 - max(dot(viewDir, vNormal), 0.0);
     fresnel = pow(fresnel, 2.5);
     col += fresnel * 0.18 * uAccent;
@@ -425,6 +427,7 @@ function CosmicOrb({
   haloIntensity,
   brightness,
   pulse,
+  cameraPositionUniform,
   onClick,
   onPointerOver,
   onPointerOut,
@@ -442,10 +445,11 @@ function CosmicOrb({
       uInner: { value: new THREE.Color(stops.inner) },
       uAccent: { value: new THREE.Color(stops.accent) },
       uOuter: { value: new THREE.Color(stops.outer) },
+      uCameraPosition: cameraPositionUniform,
       uTime: { value: 0 },
       uBrightness: { value: brightness },
     }),
-    [stops.inner, stops.accent, stops.outer],
+    [stops.inner, stops.accent, stops.outer, cameraPositionUniform],
   );
 
   useEffect(() => {
@@ -516,6 +520,7 @@ function CosmicOrb({
           vertexShader={orbVertexShader}
           fragmentShader={orbFragmentShader}
           uniforms={uniforms}
+          toneMapped
         />
       </mesh>
     </group>
@@ -595,8 +600,18 @@ function SceneContent({
   flyApiRef,
   onOrbHover,
 }) {
+  const { camera } = useThree();
   const groupRef = useRef(null);
   const controlsRef = useRef(null);
+  const orbCameraUniform = useMemo(
+    () => ({ value: new THREE.Vector3() }),
+    [],
+  );
+
+  useFrame(() => {
+    orbCameraUniform.value.copy(camera.position);
+  });
+
   const nodes = graphData?.nodes ?? [];
   const links = graphData?.links ?? [];
   const [hoveredPartyId, setHoveredPartyId] = useState(null);
@@ -721,7 +736,11 @@ function SceneContent({
     if (!controlsRef.current?.object) return;
     const ctrls = controlsRef.current;
     const camObj = ctrls.object;
-    const camDir = camObj.position.clone().normalize();
+    const camDir = camObj.position.clone();
+    if (camDir.lengthSq() < 1e-6) {
+      camDir.set(0, 0.15, 1);
+    }
+    camDir.normalize();
     const homeCam = camDir.multiplyScalar(DRIFT_RADIUS);
     homeCam.y += Math.sin(performance.now() * 0.0004) * 0.6;
     const homeLook = new THREE.Vector3(0, 0, 0);
@@ -881,6 +900,7 @@ function SceneContent({
               haloIntensity={haloIntensity}
               brightness={brightness}
               pulse={pulseT}
+              cameraPositionUniform={orbCameraUniform}
               onClick={handleOrbClick}
               onPointerOver={onOver}
               onPointerMove={onMove}
@@ -957,8 +977,13 @@ const OrbMeshScene = forwardRef(function OrbMeshScene(
     <div className={`absolute inset-0 touch-none ${className}`}>
       <Canvas
         camera={{ position: [0, 0, 28], fov: 55 }}
-        gl={{ antialias: true, alpha: false }}
-        dpr={[1, 2]}
+        gl={{
+          antialias: true,
+          alpha: false,
+          powerPreference: "high-performance",
+          failIfMajorPerformanceCaveat: false,
+        }}
+        dpr={[1, 1.75]}
         onPointerMissed={() => flyApiRef.current.clearFocus?.()}
       >
         <color attach="background" args={["#02040a"]} />
@@ -972,14 +997,6 @@ const OrbMeshScene = forwardRef(function OrbMeshScene(
           flyApiRef={flyApiRef}
           onOrbHover={onOrbHover}
         />
-        <EffectComposer>
-          <Bloom
-            intensity={0.45}
-            luminanceThreshold={0.6}
-            luminanceSmoothing={0.4}
-            mipmapBlur
-          />
-        </EffectComposer>
       </Canvas>
     </div>
   );
