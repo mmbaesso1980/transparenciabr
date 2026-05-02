@@ -60,11 +60,12 @@ def load_config() -> VertexConfig:
         raise RuntimeError(
             "GCP_PROJECT_ID não definido — Vertex AI requer projeto explícito.",
         )
+    supreme = (os.environ.get("VERTEX_AGENT_ID") or "").strip() or "agent_1777236402725"
     return VertexConfig(
         project=project,
         location=os.environ.get("VERTEX_LOCATION", DEFAULT_LOCATION).strip() or DEFAULT_LOCATION,
         model=os.environ.get("VERTEX_MODEL", DEFAULT_MODEL).strip() or DEFAULT_MODEL,
-        agent_id=(os.environ.get("VERTEX_AGENT_ID") or "").strip() or None,
+        agent_id=supreme,
         timeout_sec=float(os.environ.get("VERTEX_REQUEST_TIMEOUT", "60")),
     )
 

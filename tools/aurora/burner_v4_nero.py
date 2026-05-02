@@ -38,8 +38,10 @@ GCS_RAW = os.getenv("GCS_RAW", "gs://datalake-tbr-raw")
 GCS_CLEAN = os.getenv("GCS_CLEAN", "gs://datalake-tbr-clean")
 VERTEX_PROJECT = os.getenv("VERTEX_PROJECT", "transparenciabr")
 VERTEX_LOCATION = os.getenv("VERTEX_LOCATION", "us-central1")
-VERTEX_FLASH = "gemini-2.0-flash-001"
-VERTEX_PRO = "gemini-2.5-pro"
+# G.O.A.T.: motor alinhado ao Líder Supremo (Agent Builder agent_1777236402725) — sem Gemini 2.0 legado.
+SUPREME_AGENT_ID = os.getenv("VERTEX_SUPREME_AGENT_ID", "agent_1777236402725")
+VERTEX_FLASH = os.getenv("VERTEX_FLASH_MODEL", "gemini-2.5-flash")
+VERTEX_PRO = os.getenv("VERTEX_PRO_MODEL", "gemini-2.5-pro")
 
 # Heurística regex pré-LLM — score 0-100
 RISK_PATTERNS = [
@@ -122,11 +124,13 @@ def _init_vertex():
     _vertex_initialized = True
 
 async def vertex_flash(nota: dict, score_l4: int) -> dict:
-    """Reanálise via Gemini 2.0 Flash. Só roda se score_l4 >= 85 (gate)."""
+    """Reanálise via Gemini 2.5 Flash (mesma linha de governaça do Líder Supremo). Só roda se score_l4 >= 85 (gate)."""
     _init_vertex()
     from vertexai.preview.generative_models import GenerativeModel
     model = GenerativeModel(VERTEX_FLASH)
-    prompt = f"""Auditor TCU. Reanalise esta nota CEAP e dê JSON:
+    prompt = f"""Você opera em conformidade com o motor do Líder Supremo (Vertex Agent ID {SUPREME_AGENT_ID}).
+
+Auditor TCU. Reanalise esta nota CEAP e dê JSON:
 {{ "score": 0-100, "categoria": "...", "alerta": "...", "fundamento_legal": "Art. X / Resolução Y" }}
 
 Nota: fornecedor={nota.get('txtFornecedor')} desc={nota.get('txtDescricao')} valor=R${nota.get('vlrLiquido')} score_l4={score_l4}
@@ -140,11 +144,13 @@ Nota: fornecedor={nota.get('txtFornecedor')} desc={nota.get('txtDescricao')} val
         return {"score": score_l4, "categoria": "outros", "alerta": "flash_parse_error"}
 
 async def vertex_pro(nota: dict, score_flash: int) -> dict:
-    """Forense profundo via 2.5 Pro. Só roda se score_flash >= 92."""
+    """Forense profundo via Gemini 2.5 Pro (Líder Supremo agent_1777236402725). Só roda se score_flash >= 92."""
     _init_vertex()
     from vertexai.preview.generative_models import GenerativeModel
     model = GenerativeModel(VERTEX_PRO)
-    prompt = f"""Você é juiz do TCU. Faça o parecer técnico desta nota CEAP no formato:
+    prompt = f"""Você opera em conformidade com o motor do Líder Supremo (Vertex Agent ID {SUPREME_AGENT_ID}).
+
+Você é juiz do TCU. Faça o parecer técnico desta nota CEAP no formato:
 {{
   "veredicto": "irregular|suspeito|regular_com_ressalvas|regular",
   "fundamento_legal": "...",
