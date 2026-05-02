@@ -51,10 +51,23 @@ async def fetch_paginated(client: httpx.AsyncClient, base: str, path: str, heade
             log.warning(f"{path} p{page}: {e}")
             break
 
-        items = data.get("dados") or data.get("results") or data.get("items") or (data if isinstance(data, list) else [])
+        # Aceita: {dados:[...]}, {results:[...]}, {items:[...]}, lista direta, ou dict com 'data'
+        if isinstance(data, list):
+            items = data
+            single_page = True  # APIs que retornam lista direta normalmente nao paginam
+        elif isinstance(data, dict):
+            items = data.get("dados") or data.get("results") or data.get("items") or data.get("data") or []
+            single_page = False
+            if not isinstance(items, list):
+                items = []
+        else:
+            items = []
+            single_page = True
         if not items:
             break
         out.extend(items)
+        if single_page:
+            break
         page += 1
         if page > 200:  # hard cap
             break
@@ -195,6 +208,8 @@ async def main():
 
     arsenal = json.loads(Path(args.arsenal).read_text())
     groups = arsenal["groups"]
+    # DOU retorna HTML (nao JSON) - precisa scraper proprio, removido por enquanto
+    groups.pop("dou", None)
     if args.groups:
         wanted = set(args.groups.split(","))
         groups = {k: v for k, v in groups.items() if k in wanted}
