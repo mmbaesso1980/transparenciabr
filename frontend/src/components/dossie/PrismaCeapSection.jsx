@@ -1,19 +1,20 @@
 import { useMemo } from "react";
 
 import {
-  buildInvestigacaoPrismaFallback220645,
-} from "../../data/prismaPadraoOuro220645.js";
+  LEGACY_PRISMA_FETCH_KEY,
+  LEGACY_PRISMA_HEALTH_KEY,
+} from "../../constants/legacyFieldNames.js";
 
 /**
- * Ordem tática dos 12 agentes A.S.M.O.D.E.U.S. (UI).
+ * Ordem dos 12 módulos CEAP / investigação (UI).
  * Dados: `transparency_reports` → `investigacao_prisma_ceap` (motor Node) + merge narrativa ID 220645.
  */
 const PRISMAS_ORDER = [
   { key: "BENFORD", label: "BENFORD", subtitle: "Estatística · Lei de Benford" },
   { key: "ORACULO", label: "ORÁCULO", subtitle: "Semântica · Gemini" },
   { key: "SANGUE_PODER", label: "SANGUE E PODER", subtitle: "Nepotismo · QSA" },
-  { key: "FLAVIO", label: "F.L.A.V.I.O.", subtitle: "Logística · agenda" },
-  { key: "DRACULA", label: "D.R.A.C.U.L.A.", subtitle: "Saúde · CNAE / ANVISA" },
+  { key: "FETCH_API", label: "FETCH-API", subtitle: "Logística · agenda" },
+  { key: "CRAWLER", label: "CRAWLER", subtitle: "Saúde · CNAE / ANVISA" },
   { key: "ESPECTRO", label: "E.S.P.E.C.T.R.O.", subtitle: "Coerência legislativa" },
   { key: "ARIMA", label: "ARIMA", subtitle: "Anomalias temporais" },
   { key: "KMEANS", label: "K-MEANS", subtitle: "Clusters de risco" },
@@ -74,6 +75,13 @@ function mergePrismaForPolitico(record, politicoId) {
     } else {
       mergedPrismas[k] = { ...base, ...fromApi };
     }
+  }
+
+  if (!mergedPrismas.FETCH_API && mergedPrismas[LEGACY_PRISMA_FETCH_KEY]) {
+    mergedPrismas.FETCH_API = mergedPrismas[LEGACY_PRISMA_FETCH_KEY];
+  }
+  if (!mergedPrismas.CRAWLER && mergedPrismas[LEGACY_PRISMA_HEALTH_KEY]) {
+    mergedPrismas.CRAWLER = mergedPrismas[LEGACY_PRISMA_HEALTH_KEY];
   }
 
   return {
@@ -217,7 +225,7 @@ export default function PrismaCeapSection({ record, politicoId = "" }) {
       `}</style>
       <div className="border-b border-[#2d0808] pb-4">
         <h2 className="text-2xl font-bold tracking-tight text-[#f85149] md:text-3xl">
-          {bundle?.titulo_relatorio ?? "A.S.M.O.D.E.U.S. · 12 Prismas"}
+          {bundle?.titulo_relatorio ?? "AURORA · 12 módulos CEAP"}
         </h2>
         {bundle?.subtitulo_relatorio ? (
           <p className="mt-2 text-base font-medium leading-relaxed text-[#8B949E] md:text-lg">

@@ -1,5 +1,7 @@
 import { FileText, ShieldCheck } from "lucide-react";
 
+import { LEGACY_ANALISE_FIELD } from "../../constants/legacyFieldNames.js";
+
 function splitParagraphs(text) {
   return String(text || "")
     .split(/\n{2,}/)
@@ -13,7 +15,8 @@ export default function PremiumDossierSection({ record = null }) {
     record?.llm_summary ??
     record?.relatorio_premium ??
     record?.analise_semantica?.resumo_auditoria ??
-    record?.analise_asmodeus?.resumoAuditoria ??
+    record?.analise_aurora?.resumoAuditoria ??
+    record?.[LEGACY_ANALISE_FIELD]?.resumoAuditoria ??
     "";
   const contexto = record?.perfil_contextual;
   const paragraphs = splitParagraphs(text);

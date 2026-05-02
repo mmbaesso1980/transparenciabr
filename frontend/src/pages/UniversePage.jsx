@@ -19,7 +19,7 @@ const LEFT_BENTO = INVESTIGATION_CATEGORIES.slice(0, 3);
 const RIGHT_BENTO = INVESTIGATION_CATEGORIES.slice(3, 6);
 
 /**
- * Centro visual ASMODEUS — grafo 3D, âncoras para o painel, busca forense com fly-to.
+ * Centro visual AURORA — grafo 3D, âncoras para o painel, busca forense com fly-to.
  */
 export default function UniversePage() {
   const navigate = useNavigate();

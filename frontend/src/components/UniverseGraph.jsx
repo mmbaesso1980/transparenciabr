@@ -111,7 +111,7 @@ function InstancedSpheres({
       mesh.setMatrixAt(i, temp.matrix);
 
       // Cor por político = hash determinístico do CPF/ID modulado pelo score forense.
-      // Garante orbe única por pessoa, vibrante quando score sobe (ASMODEUS).
+      // Garante orbe única por pessoa, vibrante quando score sobe (engine forense).
       const ident = identities?.[i];
       const colorHex = ident
         ? getPoliticianHex(ident, scores[i])

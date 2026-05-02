@@ -52,7 +52,7 @@ export function pickRiskScore(data) {
   return null;
 }
 
-/** Malha CNES × PNCP (Operação DRACULA) — objeto ou ausência. */
+/** Malha CNES × PNCP (módulo CRAWLER — saúde / fornecedores) — objeto ou ausência. */
 export function pickMalhaSaude(record) {
   if (!record || typeof record !== "object") return null;
   const m = record.malha_saude ?? record.malhaSaude;

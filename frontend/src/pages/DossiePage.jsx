@@ -488,7 +488,6 @@ export default function DossiePage() {
               <CeapMonitorSection
                 investigations={investigations}
                 ceapResumo={displayRecord?.ceap_resumo}
-                analiseAsmodeus={displayRecord?.analise_asmodeus}
                 godMode={godMode}
                 oracleUnlocked={oracleUnlocked}
                 onUnlockAll={handleOraclePay}

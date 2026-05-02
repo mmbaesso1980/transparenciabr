@@ -151,7 +151,7 @@ export default function OperationsOverviewPage() {
               Centro de Operações
             </h1>
             <p className="mt-2 max-w-xl text-sm text-[#8B949E]">
-              Cockpit situacional do A.S.M.O.D.E.U.S.: ingestao, OCR, analise
+              Cockpit situacional AURORA: ingestao, OCR, analise
               semantica, BQML e sincronizacao Firestore em uma unica linha de
               comando visual.
             </p>

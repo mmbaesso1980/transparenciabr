@@ -159,7 +159,7 @@ export default function DossierPremiumInsights({ record }) {
               Conexões suspeitas
             </h2>
             <p className="text-sm text-[#8B949E]">
-              Heurística OSS/saúde + valor — validar com CNES (D.R.A.C.U.L.A.)
+              Heurística OSS/saúde + valor — validar com CNES (módulo CRAWLER)
             </p>
           </div>
         </div>

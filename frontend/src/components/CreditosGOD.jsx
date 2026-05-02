@@ -39,7 +39,7 @@ export default function CreditosGOD({ className = "" }) {
   return (
     <div
       className={`inline-flex h-9 items-center gap-2 rounded-lg border border-[#58A6FF]/35 bg-[#0D1117]/80 px-3 text-xs font-data font-semibold text-[#E6EDF3] shadow-[0_0_24px_rgba(88,166,255,0.15)] backdrop-blur-md ${className}`}
-      title="Saldo de créditos — protocolo A.S.M.O.D.E.U.S."
+      title="Saldo de créditos — engine AURORA"
     >
       <Coins className="size-3.5 shrink-0 text-[#FBD87F]" strokeWidth={2} aria-hidden />
       <span>

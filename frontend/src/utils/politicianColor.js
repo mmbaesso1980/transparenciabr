@@ -2,7 +2,7 @@
  * Algoritmo determinístico de cor por político.
  *
  * Cada político recebe uma "orbe" única gerada a partir do CPF (ou ID Câmara)
- * + modulada pelo score forense ASMODEUS. A mesma pessoa SEMPRE recebe a mesma cor.
+ * + modulada pelo score forense AURORA. A mesma pessoa SEMPRE recebe a mesma cor.
  *
  * Princípios:
  *  - Hue base derivado do hash do CPF/ID — distribui 5.500+ políticos uniformemente
@@ -63,7 +63,7 @@ function clampScore(score) {
  * Gera as componentes HSL de um político.
  *
  * @param {string|number} identity  CPF, ID Câmara ou ID estável do político
- * @param {number} score  Score ASMODEUS (0..100). Default 0 = limpo.
+ * @param {number} score  Score de risco AURORA (0..100). Default 0 = limpo.
  * @returns {{
  *   primary: string, secondary: string, accent: string,
  *   primaryHsl: {h:number,s:number,l:number},

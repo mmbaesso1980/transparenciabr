@@ -56,12 +56,12 @@ const REDIRECT_AFTER_LOGIN = "/universo";
 
 // Mini-orbes do painel atmosférico — mesmas seeds dos 6 portais da landing.
 const ATMOSPHERE_ORBS = [
-  { seed: "asmodeus.ceap", score: 90 },
-  { seed: "asmodeus.patrimonio", score: 78 },
-  { seed: "asmodeus.gabinete", score: 72 },
-  { seed: "asmodeus.viagens", score: 65 },
-  { seed: "asmodeus.emendas", score: 82 },
-  { seed: "asmodeus.contratos", score: 60 },
+  { seed: "aurora.ceap", score: 90 },
+  { seed: "aurora.patrimonio", score: 78 },
+  { seed: "aurora.gabinete", score: 72 },
+  { seed: "aurora.viagens", score: 65 },
+  { seed: "aurora.emendas", score: 82 },
+  { seed: "aurora.contratos", score: 60 },
 ];
 
 export default function LoginPage() {
