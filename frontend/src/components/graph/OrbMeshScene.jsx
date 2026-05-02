@@ -12,6 +12,7 @@ import { Line, OrbitControls } from "@react-three/drei";
 import { Bloom, EffectComposer } from "@react-three/postprocessing";
 import * as THREE from "three";
 
+import { getPoliticianOrbStops } from "../../utils/politicianColor.js";
 import { partyHaloColor, getPartyPrimary } from "../../utils/partyColors.js";
 import StarField from "./StarField.jsx";
 
