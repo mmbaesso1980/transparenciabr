@@ -6,7 +6,9 @@ import RouteFallback from "./components/RouteFallback.jsx";
 import { AuthProvider } from "./context/AuthContext.jsx";
 import { CameraFocusProvider } from "./context/CameraFocusContext.jsx";
 import { CreditosGODProvider } from "./context/CreditosGODContext.jsx";
+import AlvosPage from "./pages/AlvosPage.jsx";
 import LandingPage from "./pages/LandingPage.jsx";
+import PainelMestrePage from "./pages/PainelMestrePage.jsx";
 import MetodologiaPage from "./pages/MetodologiaPage.jsx";
 import PrivacidadePage from "./pages/PrivacidadePage.jsx";
 import SobrePage from "./pages/SobrePage.jsx";
@@ -40,6 +42,8 @@ export default function App() {
               <Routes>
                 <Route path="/" element={<LandingPage />} />
                 <Route path="/universo" element={<UniversePage />} />
+                <Route path="/painel" element={<PainelMestrePage />} />
+                <Route path="/alvos" element={<AlvosPage />} />
                 <Route path="/sobre" element={<SobrePage />} />
                 <Route path="/metodologia" element={<MetodologiaPage />} />
                 <Route path="/termos" element={<TermosPage />} />

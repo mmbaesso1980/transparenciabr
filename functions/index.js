@@ -1086,3 +1086,94 @@ exports.getUniverseRoster = functions
       res.status(500).json({ error: "failed_to_read_roster", detail: String(err.message || err) });
     }
   });
+
+// ────────────────────────────────────────────────────────────────────────
+// Painel Mestre + Hotpage Alvos — agregação on-the-fly de ceap_classified (GCS).
+// ZERO Firestore.
+// ────────────────────────────────────────────────────────────────────────
+const {
+  scanCeapClassified,
+  loadRosterMap,
+  formatDashboardPayload,
+  formatAlvosPayload,
+} = require("./src/datalake/ceapClassifiedAggregates.js");
+
+const KPI_CACHE =
+  "public, max-age=300, s-maxage=900, stale-while-revalidate=120";
+
+exports.getDashboardKPIs = functions
+  .region("southamerica-east1")
+  .runWith({ memory: "512MB", timeoutSeconds: 120 })
+  .https.onRequest(async (req, res) => {
+    res.set("Access-Control-Allow-Origin", "*");
+    res.set("Access-Control-Allow-Methods", "GET");
+    res.set("Cache-Control", KPI_CACHE);
+    res.set("Content-Type", "application/json; charset=utf-8");
+
+    if (req.method !== "GET" && req.method !== "HEAD") {
+      res.status(405).json({ error: "Method not allowed" });
+      return;
+    }
+
+    try {
+      const { Storage } = require("@google-cloud/storage");
+      const storage = new Storage();
+      const scan = await scanCeapClassified(storage);
+      let rosterTotal = 594;
+      const rosterFile = storage.bucket("datalake-tbr-clean").file("universe/roster.json");
+      const [rex] = await rosterFile.exists();
+      if (rex) {
+        const [b] = await rosterFile.download();
+        try {
+          const j = JSON.parse(b.toString("utf-8"));
+          if (Number.isFinite(Number(j.total))) rosterTotal = Number(j.total);
+          else if (Array.isArray(j.roster)) rosterTotal = j.roster.length;
+        } catch (_) {
+          /* ignore */
+        }
+      }
+      const body = formatDashboardPayload(scan, rosterTotal);
+      res.status(200).json(body);
+    } catch (err) {
+      console.error("getDashboardKPIs error:", err);
+      res.status(503).json({
+        error: "datalake unavailable",
+        detail: String(err.message || err),
+      });
+    }
+  });
+
+exports.getAlvos = functions
+  .region("southamerica-east1")
+  .runWith({ memory: "512MB", timeoutSeconds: 120 })
+  .https.onRequest(async (req, res) => {
+    res.set("Access-Control-Allow-Origin", "*");
+    res.set("Access-Control-Allow-Methods", "GET");
+    res.set("Cache-Control", KPI_CACHE);
+    res.set("Content-Type", "application/json; charset=utf-8");
+
+    if (req.method !== "GET" && req.method !== "HEAD") {
+      res.status(405).json({ error: "Method not allowed" });
+      return;
+    }
+
+    const limitRaw = Number(req.query.limit);
+    const limit = Math.min(200, Math.max(1, Number.isFinite(limitRaw) ? limitRaw : 50));
+    const minRaw = Number(req.query.min_score);
+    const minScore = Math.min(100, Math.max(0, Number.isFinite(minRaw) ? minRaw : 0));
+
+    try {
+      const { Storage } = require("@google-cloud/storage");
+      const storage = new Storage();
+      const scan = await scanCeapClassified(storage);
+      const rosterMap = await loadRosterMap(storage);
+      const body = formatAlvosPayload(scan, rosterMap, limit, minScore);
+      res.status(200).json(body);
+    } catch (err) {
+      console.error("getAlvos error:", err);
+      res.status(503).json({
+        error: "datalake unavailable",
+        detail: String(err.message || err),
+      });
+    }
+  });
