@@ -2,7 +2,7 @@ import { Activity, Stethoscope } from "lucide-react";
 import { useMemo } from "react";
 
 /**
- * D.R.A.C.U.L.A. — leitura da malha de saúde (1× no documento `politicos` / `malha_saude`).
+ * CRAWLER — leitura da malha de saúde (1× no documento `politicos` / `malha_saude`).
  *
  * @param {{ politico?: Record<string, unknown> | null }} props
  */

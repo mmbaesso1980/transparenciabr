@@ -29,12 +29,12 @@ export const PRISMAS_TEXTO_220645 = {
     relatorio:
       'A varredura de Processamento de Linguagem Natural (NLP) identificou uma reiteração de descrições genéricas nas notas fiscais de maior valor, tais como "Prestação de serviços de consultoria" e "Serviços de comunicação", sem o detalhamento da entrega do produto (deliverable). A ausência de lastro descritivo dificulta a comprovação da materialidade do serviço prestado ao gabinete.',
   },
-  FLAVIO: {
+  FETCH_API: {
     status: "PROCESSANDO CRUZAMENTO",
     relatorio:
       "O motor está atualmente mapeando as coordenadas de emissão das notas fiscais de alimentação e combustíveis contra a agenda oficial e os registros de votação no plenário. [Aguardando integração final da API de voos para validar deslocamentos reais vs. reembolsos em bases eleitorais cruzadas].",
   },
-  DRACULA: {
+  CRAWLER: {
     status: "LIMPO",
     relatorio:
       "Não foram identificados repasses de verbas da CEAP para empresas cujos CNAEs primários ou secundários estejam atrelados à área da saúde, clínicas ou distribuição de insumos médicos que exijam regulamentação da ANVISA.",
@@ -77,7 +77,7 @@ export const PRISMAS_TEXTO_220645 = {
 };
 
 export const RESUMO_EXECUTIVO_220645 =
-  'No recorte do mandato vigente, o motor A.S.M.O.D.E.U.S. consolidou a ingestão completa dos documentos da CEAP vinculados à parlamentar. O perfil de gastos apresenta forte concentração na rubrica "Divulgação da Atividade Parlamentar". O Score de Integridade atual indica necessidade de auditoria aprofundada devido a anomalias matemáticas detectadas no fluxo de notas fiscais e concentrações atípicas de repasses para fornecedores específicos. A parlamentar atua com alta visibilidade em pautas identitárias, enquadrando-se no espectro de Esquerda/Progressismo, o que exige correlação entre os gastos de divulgação e as entregas legislativas da Comissão da Mulher.';
+  'No recorte do mandato vigente, a engine AURORA consolidou a ingestão completa dos documentos da CEAP vinculados à parlamentar. O perfil de gastos apresenta forte concentração na rubrica "Divulgação da Atividade Parlamentar". O Score de Integridade atual indica necessidade de auditoria aprofundada devido a anomalias matemáticas detectadas no fluxo de notas fiscais e concentrações atípicas de repasses para fornecedores específicos. A parlamentar atua com alta visibilidade em pautas identitárias, enquadrando-se no espectro de Esquerda/Progressismo, o que exige correlação entre os gastos de divulgação e as entregas legislativas da Comissão da Mulher.';
 
 export const NOTA_COMPLIANCE_220645 =
   "Diretiva 004 — Compliance Legal: A leitura acima é produto de análise algorítmica e heurística extrajudicial sobre dados públicos. O apontamento de anomalias estatísticas constitui material de inteligência e controle social, não configurando imputação formal de crime sem o devido processo legal.";
@@ -100,7 +100,7 @@ export function buildInvestigacaoPrismaFallback220645() {
     motor: "frontend_fallback_static",
     avisos: [NOTA_COMPLIANCE_220645],
     resumo_executivo: RESUMO_EXECUTIVO_220645,
-    titulo_relatorio: "DOSSIÊ FORENSE: RELATÓRIO DE INTELIGÊNCIA A.S.M.O.D.E.U.S.",
+    titulo_relatorio: "DOSSIÊ FORENSE: RELATÓRIO DE INTELIGÊNCIA AURORA",
     subtitulo_relatorio:
       "Alvo da Auditoria: Deputada Federal Érika Hilton (ID: 220645) · Base: CEAP · Status: Análise de Risco Nível 5 (Varredura Completa)",
     prismas,

@@ -7,6 +7,10 @@ import { AuthProvider } from "./context/AuthContext.jsx";
 import { CameraFocusProvider } from "./context/CameraFocusContext.jsx";
 import { CreditosGODProvider } from "./context/CreditosGODContext.jsx";
 import LandingPage from "./pages/LandingPage.jsx";
+import MetodologiaPage from "./pages/MetodologiaPage.jsx";
+import PrivacidadePage from "./pages/PrivacidadePage.jsx";
+import SobrePage from "./pages/SobrePage.jsx";
+import TermosPage from "./pages/TermosPage.jsx";
 import UniversePage from "./pages/UniversePage.jsx";
 
 const DashboardLayout = lazy(() => import("./layouts/DashboardLayout.jsx"));
@@ -36,6 +40,10 @@ export default function App() {
               <Routes>
                 <Route path="/" element={<LandingPage />} />
                 <Route path="/universo" element={<UniversePage />} />
+                <Route path="/sobre" element={<SobrePage />} />
+                <Route path="/metodologia" element={<MetodologiaPage />} />
+                <Route path="/termos" element={<TermosPage />} />
+                <Route path="/privacidade" element={<PrivacidadePage />} />
                 <Route path="/login" element={<LoginPage />} />
 
                 <Route path="/dossie/:id" element={<DossiePage />} />

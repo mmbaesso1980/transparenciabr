@@ -83,7 +83,7 @@ const METRICS = [
 // `score` modula a urgência visual (90 = vermelho profundo · 35 = pastel).
 const INVESTIGATION_CATEGORIES = [
   {
-    seed: "asmodeus.ceap",
+    seed: "aurora.ceap",
     score: 90,
     label: "Cota CEAP",
     headline: "R$ 4 bi/ano",
@@ -92,7 +92,7 @@ const INVESTIGATION_CATEGORIES = [
     cta: "Investigar gastos",
   },
   {
-    seed: "asmodeus.patrimonio",
+    seed: "aurora.patrimonio",
     score: 78,
     label: "Patrimônio TSE",
     headline: "+1.200%",
@@ -101,7 +101,7 @@ const INVESTIGATION_CATEGORIES = [
     cta: "Ver enriquecimento",
   },
   {
-    seed: "asmodeus.gabinete",
+    seed: "aurora.gabinete",
     score: 72,
     label: "Folha do Gabinete",
     headline: "21 secretários",
@@ -110,7 +110,7 @@ const INVESTIGATION_CATEGORIES = [
     cta: "Mapear gabinete",
   },
   {
-    seed: "asmodeus.viagens",
+    seed: "aurora.viagens",
     score: 65,
     label: "Viagens & Pedágios",
     headline: "48 passagens",
@@ -119,7 +119,7 @@ const INVESTIGATION_CATEGORIES = [
     cta: "Rastrear deslocamento",
   },
   {
-    seed: "asmodeus.emendas",
+    seed: "aurora.emendas",
     score: 82,
     label: "Emendas & PIX",
     headline: "R$ 50 bi",
@@ -128,7 +128,7 @@ const INVESTIGATION_CATEGORIES = [
     cta: "Seguir o dinheiro",
   },
   {
-    seed: "asmodeus.contratos",
+    seed: "aurora.contratos",
     score: 60,
     label: "Contratos PNCP",
     headline: "3,7 mi licitações",

@@ -52,10 +52,10 @@ function humanFromBytes(b){
   return (b/1073741824).toFixed(2)+' GB';
 }
 
-function renderFlavio(f){
-  if(!f) return card('🕵️ F.L.A.V.I.O.', '<div class="empty">aguardando primeiro snapshot</div>');
+function renderFetchApi(f){
+  if(!f) return card('🕵️ FETCH-API', '<div class="empty">aguardando primeiro snapshot</div>');
   const sev = f.por_severidade || {};
-  return card('🕵️ F.L.A.V.I.O. <span class="badge live">live</span>', `
+  return card('🕵️ FETCH-API <span class="badge live">live</span>', `
     <div class="grid3">
       <div class="stat"><div class="k">suspeitos</div><div class="v big">${fmtNum(f.total_suspeitos || 0)}</div></div>
       <div class="stat"><div class="k">crítica</div><div class="v" style="color:var(--err)">${fmtNum(sev.CRITICA || 0)}</div></div>
@@ -124,7 +124,7 @@ function render(d){
   $('tstxt').textContent = d.generated_at_brt || 'agora';
   const html = [
     renderIngestao(d.ingestao),
-    renderFlavio(d.forenses?.flavio),
+    renderFetchApi(d.forenses?.flavio),
     renderSangue(d.forenses?.sangue_poder),
     renderVertex(d.vertex?.ceap_classified_2025),
     renderBuckets(d.buckets),
