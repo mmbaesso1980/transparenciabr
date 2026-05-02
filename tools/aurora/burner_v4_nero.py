@@ -33,7 +33,7 @@ logging.basicConfig(
 log = logging.getLogger("nero")
 
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://127.0.0.1:11434")
-OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "gemma2:27b")
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "gemma2:27b-instruct-q4_K_M")
 GCS_RAW = os.getenv("GCS_RAW", "gs://datalake-tbr-raw")
 GCS_CLEAN = os.getenv("GCS_CLEAN", "gs://datalake-tbr-clean")
 VERTEX_PROJECT = os.getenv("VERTEX_PROJECT", "transparenciabr")
@@ -187,11 +187,11 @@ async def fetch_despesas(client: httpx.AsyncClient, dep_id: int, ano: int) -> li
     return notas
 
 async def upload_gcs(jsonl_text: str, dep_id: int):
-    """Upload via gsutil (síncrono mas rápido). Salva em ceap_classified/."""
+    """Upload via gcloud storage (gsutil deprecated). Salva em ceap_classified/."""
     tmp = f"/tmp/dep_{dep_id}.jsonl"
     Path(tmp).write_text(jsonl_text)
-    cmd = f"gsutil -q cp {tmp} {GCS_CLEAN}/ceap_classified/{dep_id}.jsonl"
-    proc = await asyncio.create_subprocess_shell(cmd)
+    cmd = f"gcloud storage cp {tmp} {GCS_CLEAN}/ceap_classified/{dep_id}.jsonl --quiet"
+    proc = await asyncio.create_subprocess_shell(cmd, stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.DEVNULL)
     await proc.wait()
     Path(tmp).unlink(missing_ok=True)
 
@@ -262,18 +262,48 @@ async def main():
         log.error("MAX 6 workers — a L4 trava acima disso. Abortando.")
         sys.exit(1)
 
-    # Carregar roster
-    proc = await asyncio.create_subprocess_shell(f"gsutil cat {args.roster}", stdout=asyncio.subprocess.PIPE)
-    out, _ = await proc.communicate()
-    roster = json.loads(out)
-    deputados = sorted([d for d in roster if d.get("camara_id")], key=lambda d: d.get("camara_id", 0))
+    # Carregar roster (formato real: dict com chave 'roster' contendo lista)
+    proc = await asyncio.create_subprocess_shell(f"gcloud storage cat {args.roster}", stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
+    out, err = await proc.communicate()
+    if proc.returncode != 0:
+        log.error(f"Falha lendo roster: {err.decode()[:500]}")
+        sys.exit(2)
+    roster_doc = json.loads(out)
+    if isinstance(roster_doc, dict) and "roster" in roster_doc:
+        roster_list = roster_doc["roster"]
+    elif isinstance(roster_doc, list):
+        roster_list = roster_doc
+    else:
+        log.error(f"Formato de roster inesperado: {type(roster_doc).__name__}")
+        sys.exit(2)
+
+    # Aceita 'id' (str) OU 'camara_id' (int) e filtra apenas deputados
+    def _norm_id(d):
+        raw = d.get("camara_id") or d.get("id")
+        try:
+            return int(raw) if raw is not None else None
+        except (TypeError, ValueError):
+            return None
+
+    deputados = []
+    for d in roster_list:
+        if not isinstance(d, dict):
+            continue
+        if d.get("cargo") and d.get("cargo") != "deputado":
+            continue  # pula senadores nesse burner (CEAP é só da Câmara)
+        cid = _norm_id(d)
+        if cid:
+            d["_dep_id"] = cid
+            deputados.append(d)
+    deputados.sort(key=lambda d: d["_dep_id"])
+
     if args.start_from:
         deputados = deputados[args.start_from:]
     log.info(f"NERO start: {len(deputados)} deputados · {args.workers} workers · ano={args.ano} · flash={args.vertex_flash} · pro={args.vertex_pro}")
 
     sem = asyncio.Semaphore(args.workers)
     async with httpx.AsyncClient(http2=True, limits=httpx.Limits(max_connections=50)) as client:
-        tasks = [process_deputado(client, sem, d["camara_id"], args.ano, args.batch, args.vertex_flash == "on", args.vertex_pro == "on") for d in deputados]
+        tasks = [process_deputado(client, sem, d["_dep_id"], args.ano, args.batch, args.vertex_flash == "on", args.vertex_pro == "on") for d in deputados]
         await asyncio.gather(*tasks, return_exceptions=True)
 
     log.info("NERO complete.")
