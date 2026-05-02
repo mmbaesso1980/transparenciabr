@@ -34,7 +34,7 @@ sudo mkdir -p /var/log/tbr && sudo chown $(whoami) /var/log/tbr
 export PORTAL_KEY="SUA_CHAVE_AQUI"   # se não tiver, deixa vazio — pula 11 endpoints
 
 # 7. DISPARAR OS 4 PROCESSOS EM PARALELO (saturando tudo)
-nohup python3 burner_v4_nero.py --workers 6 --batch 50 --vertex-flash on --vertex-pro on > /var/log/tbr/burner.out 2>&1 &
+nohup python3 burner_v4_nero.py --workers 6 --batch 50 --vertex-screen on --vertex-deep on > /var/log/tbr/burner.out 2>&1 &
 echo "burner PID: $!"
 
 nohup python3 crawlers_nero.py --arsenal arsenal_mestre.json --interval-min 60 > /var/log/tbr/crawlers.out 2>&1 &

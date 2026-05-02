@@ -24,7 +24,7 @@ cd "$HOME/transparenciabr/engines"
 cd "$HOME/transparenciabr/engines/vertex"
 
 echo ""
-echo "▶ Classificador CEAP (Gemini 2.5 Flash)"
+echo "▶ Classificador CEAP (Gemini 2.5 Pro — motor Líder Supremo agent_1777236402725)"
 node classify_ceap.js --year "$YEAR" --max "$MAX" --batch-size 50 || echo "❌ classify falhou"
 
 echo ""

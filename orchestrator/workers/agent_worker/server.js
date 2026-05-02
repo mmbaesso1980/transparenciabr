@@ -22,7 +22,7 @@
 
 import express from 'express';
 import { createVerifier } from 'fast-jwt';
-import { VertexReasoningClient } from './vertex_client.js';
+import { VertexReasoningClient, SUPREME_AGENT_BUILDER_ID } from './vertex_client.js';
 import { runIngestion } from './ingestor_proxy.js';
 
 // ─── Logging ──────────────────────────────────────────────────────────────────
@@ -166,7 +166,8 @@ app.post('/', verifyOidcJwt, async (req, res) => {
   // ── Invoke Vertex Reasoning Engine ────────────────────────────────────────
 
   const prompt = [
-    `You are agent ${agent_id}. Correlation ID: ${correlationId}.`,
+    `Inference is consolidated under Vertex Líder Supremo Agent Builder ID ${SUPREME_AGENT_BUILDER_ID} (Gemini 2.5).`,
+    `Pub/Sub shard label ${agent_id} is routing-only (not an alternate agent). Correlation ID: ${correlationId}.`,
     `Process these api_ids: ${api_ids.join(', ')}.`,
     `For each api_id, call the runIngestion tool with that api_id.`,
     `Report success or failure for each one in your final response.`,

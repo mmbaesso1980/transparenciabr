@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-AURORA Burner v4 NERO — Saturação total da L4 + Vertex Flash + Vertex Pro
-=========================================================================
-Arquitetura:
+AURORA Burner v4 NERO — Saturação total da L4 + Vertex Gemini 2.5 Pro (motor único)
+====================================================================================
+Arquitetura (G.O.A.T. — Líder Supremo agent_1777236402725 / gemini-2.5-pro):
   - 6 streams Ollama paralelos (asyncio + httpx) — saturam a L4 em ~95-100%
   - Batch 50 notas/chamada — paraleliza dentro do Gemma 27B q4
-  - Vertex Flash sempre ON pra score regex >= 85 (alto risco)
-  - Vertex 2.5 Pro paralelo pra score Flash >= 92 (forense)
+  - Vertex triagem (2.5 Pro) quando score local >= 85 (alto risco)
+  - Vertex parecer profundo (2.5 Pro) quando score da triagem >= 92 (forense)
   - Output: gs://datalake-tbr-clean/ceap_classified/{deputado_id}.jsonl
   - Logs em /var/log/tbr/burner.log + STDOUT
 
@@ -14,7 +14,7 @@ Hardware alvo: g2-standard-8 (8 vCPU · 32 GB RAM · 1× L4 24 GB)
 NUNCA usar mais de 6 streams Ollama (a L4 trava acima disso).
 
 Uso:
-  python3 burner_v4_nero.py --workers 6 --batch 50 --vertex-flash on --vertex-pro on
+  python3 burner_v4_nero.py --workers 6 --batch 50 --vertex-screen on --vertex-deep on
 """
 from __future__ import annotations
 import asyncio, json, os, re, sys, time, argparse, logging, signal
@@ -38,8 +38,9 @@ GCS_RAW = os.getenv("GCS_RAW", "gs://datalake-tbr-raw")
 GCS_CLEAN = os.getenv("GCS_CLEAN", "gs://datalake-tbr-clean")
 VERTEX_PROJECT = os.getenv("VERTEX_PROJECT", "transparenciabr")
 VERTEX_LOCATION = os.getenv("VERTEX_LOCATION", "us-central1")
-VERTEX_FLASH = "gemini-2.0-flash-001"
-VERTEX_PRO = "gemini-2.5-pro"
+# Motor único Vertex — alinhado ao Líder Supremo (Agent Builder agent_1777236402725).
+VERTEX_MODEL = os.getenv("VERTEX_MODEL", "gemini-2.5-pro")
+SUPREME_AGENT_ID = "agent_1777236402725"
 
 # Heurística regex pré-LLM — score 0-100
 RISK_PATTERNS = [
@@ -110,7 +111,7 @@ async def ollama_batch(client: httpx.AsyncClient, notas: list[dict]) -> list[dic
         return [{"score": regex_score(n), "categoria": "outros", "alerta": ""} for n in notas]
 
 # ---------------------------------------------------------------------------
-# Vertex Flash + Pro (lazy import — só se ON)
+# Vertex Gemini 2.5 Pro — duas passagens de prompt (lazy import — só se ON)
 # ---------------------------------------------------------------------------
 _vertex_initialized = False
 def _init_vertex():
@@ -121,12 +122,13 @@ def _init_vertex():
     aiplatform.init(project=VERTEX_PROJECT, location=VERTEX_LOCATION)
     _vertex_initialized = True
 
-async def vertex_flash(nota: dict, score_l4: int) -> dict:
-    """Reanálise via Gemini 2.0 Flash. Só roda se score_l4 >= 85 (gate)."""
+async def vertex_screen(nota: dict, score_l4: int) -> dict:
+    """Triagem via Gemini 2.5 Pro (motor Líder Supremo agent_1777236402725). Gate: score_l4 >= 85."""
     _init_vertex()
     from vertexai.preview.generative_models import GenerativeModel
-    model = GenerativeModel(VERTEX_FLASH)
-    prompt = f"""Auditor TCU. Reanalise esta nota CEAP e dê JSON:
+    model = GenerativeModel(VERTEX_MODEL)
+    prompt = f"""Você é o motor Gemini 2.5 Pro do Líder Supremo (Agent ID {SUPREME_AGENT_ID}). Auditor TCU.
+Reanalise esta nota CEAP e dê JSON:
 {{ "score": 0-100, "categoria": "...", "alerta": "...", "fundamento_legal": "Art. X / Resolução Y" }}
 
 Nota: fornecedor={nota.get('txtFornecedor')} desc={nota.get('txtDescricao')} valor=R${nota.get('vlrLiquido')} score_l4={score_l4}
@@ -136,15 +138,15 @@ Nota: fornecedor={nota.get('txtFornecedor')} desc={nota.get('txtDescricao')} val
     try:
         return json.loads(resp.text)
     except Exception as e:
-        log.warning(f"Flash parse fail: {e}")
-        return {"score": score_l4, "categoria": "outros", "alerta": "flash_parse_error"}
+        log.warning(f"Vertex screen parse fail: {e}")
+        return {"score": score_l4, "categoria": "outros", "alerta": "vertex_screen_parse_error"}
 
-async def vertex_pro(nota: dict, score_flash: int) -> dict:
-    """Forense profundo via 2.5 Pro. Só roda se score_flash >= 92."""
+async def vertex_deep(nota: dict, score_screen: int) -> dict:
+    """Parecer forense via Gemini 2.5 Pro. Gate: score_screen >= 92."""
     _init_vertex()
     from vertexai.preview.generative_models import GenerativeModel
-    model = GenerativeModel(VERTEX_PRO)
-    prompt = f"""Você é juiz do TCU. Faça o parecer técnico desta nota CEAP no formato:
+    model = GenerativeModel(VERTEX_MODEL)
+    prompt = f"""Você é o motor Gemini 2.5 Pro do Líder Supremo (Agent ID {SUPREME_AGENT_ID}). Juiz do TCU. Faça o parecer técnico desta nota CEAP no formato:
 {{
   "veredicto": "irregular|suspeito|regular_com_ressalvas|regular",
   "fundamento_legal": "...",
@@ -159,8 +161,8 @@ Nota: {json.dumps(nota, ensure_ascii=False)}
     try:
         return json.loads(resp.text)
     except Exception as e:
-        log.warning(f"Pro parse fail: {e}")
-        return {"veredicto": "regular_com_ressalvas", "score_final": score_flash}
+        log.warning(f"Vertex deep parse fail: {e}")
+        return {"veredicto": "regular_com_ressalvas", "score_final": score_screen}
 
 # ---------------------------------------------------------------------------
 # Pipeline por deputado
@@ -195,7 +197,7 @@ async def upload_gcs(jsonl_text: str, dep_id: int):
     await proc.wait()
     Path(tmp).unlink(missing_ok=True)
 
-async def process_deputado(client: httpx.AsyncClient, sem: asyncio.Semaphore, dep_id: int, ano: int, batch_size: int, use_flash: bool, use_pro: bool):
+async def process_deputado(client: httpx.AsyncClient, sem: asyncio.Semaphore, dep_id: int, ano: int, batch_size: int, use_screen: bool, use_deep: bool):
     async with sem:
         t0 = time.time()
         notas = await fetch_despesas(client, dep_id, ano)
@@ -217,23 +219,23 @@ async def process_deputado(client: httpx.AsyncClient, sem: asyncio.Semaphore, de
                 n["_categoria_l4"] = s.get("categoria", "outros")
                 n["_alerta_l4"] = s.get("alerta", "")
 
-        # Vertex Flash (paralelo, só score_l4 >= 85)
-        if use_flash:
+        # Vertex triagem 2.5 Pro (paralelo, só score_l4 >= 85)
+        if use_screen:
             high_risk = [n for n in notas if n["_score_l4"] >= 85]
             if high_risk:
-                results = await asyncio.gather(*(vertex_flash(n, n["_score_l4"]) for n in high_risk[:200]), return_exceptions=True)
+                results = await asyncio.gather(*(vertex_screen(n, n["_score_l4"]) for n in high_risk[:200]), return_exceptions=True)
                 for n, r in zip(high_risk[:200], results):
                     if isinstance(r, dict):
-                        n["_flash"] = r
+                        n["_vertex_screen"] = r
 
-        # Vertex Pro (forense, só Flash >= 92)
-        if use_pro:
-            forense = [n for n in notas if n.get("_flash", {}).get("score", 0) >= 92]
+        # Vertex parecer profundo (só triagem >= 92)
+        if use_deep:
+            forense = [n for n in notas if n.get("_vertex_screen", {}).get("score", 0) >= 92]
             if forense:
-                results = await asyncio.gather(*(vertex_pro(n, n["_flash"]["score"]) for n in forense[:50]), return_exceptions=True)
+                results = await asyncio.gather(*(vertex_deep(n, n["_vertex_screen"]["score"]) for n in forense[:50]), return_exceptions=True)
                 for n, r in zip(forense[:50], results):
                     if isinstance(r, dict):
-                        n["_pro"] = r
+                        n["_vertex_deep"] = r
 
         # Linha JSONL
         for n in notas:
@@ -252,8 +254,8 @@ async def main():
     ap.add_argument("--workers", type=int, default=6, help="Streams Ollama paralelos (max 6 na L4)")
     ap.add_argument("--batch", type=int, default=50)
     ap.add_argument("--ano", type=int, default=2025)
-    ap.add_argument("--vertex-flash", choices=["on", "off"], default="on")
-    ap.add_argument("--vertex-pro", choices=["on", "off"], default="on")
+    ap.add_argument("--vertex-screen", choices=["on", "off"], default="on", help="Triagem Vertex Gemini 2.5 Pro (gate score local >= 85)")
+    ap.add_argument("--vertex-deep", choices=["on", "off"], default="on", help="Parecer forense Vertex Gemini 2.5 Pro (gate triagem >= 92)")
     ap.add_argument("--roster", default="gs://datalake-tbr-clean/universe/roster.json")
     ap.add_argument("--start-from", type=int, default=0, help="Skip primeiros N deputados")
     args = ap.parse_args()
@@ -299,11 +301,11 @@ async def main():
 
     if args.start_from:
         deputados = deputados[args.start_from:]
-    log.info(f"NERO start: {len(deputados)} deputados · {args.workers} workers · ano={args.ano} · flash={args.vertex_flash} · pro={args.vertex_pro}")
+    log.info(f"NERO start: {len(deputados)} deputados · {args.workers} workers · ano={args.ano} · vertex_screen={args.vertex_screen} · vertex_deep={args.vertex_deep}")
 
     sem = asyncio.Semaphore(args.workers)
     async with httpx.AsyncClient(http2=True, limits=httpx.Limits(max_connections=50)) as client:
-        tasks = [process_deputado(client, sem, d["_dep_id"], args.ano, args.batch, args.vertex_flash == "on", args.vertex_pro == "on") for d in deputados]
+        tasks = [process_deputado(client, sem, d["_dep_id"], args.ano, args.batch, args.vertex_screen == "on", args.vertex_deep == "on") for d in deputados]
         await asyncio.gather(*tasks, return_exceptions=True)
 
     log.info("NERO complete.")

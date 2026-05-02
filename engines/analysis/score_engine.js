@@ -406,7 +406,7 @@ export async function callVertex(payload) {
   try   { parsed = JSON.parse(content); }
   catch { parsed = { texto_bruto: content }; }
 
-  // Estima custo: US$ 0.00125/1k tokens input + US$ 0.00375/1k tokens output (Gemini 1.5 Pro)
+  // Estima custo: US$ 0.00125/1k tokens input + US$ 0.00375/1k tokens output (aprox. Gemini 2.5 Pro — revisar preços GCP)
   const inputTokens  = data?.usageMetadata?.promptTokenCount     || 0;
   const outputTokens = data?.usageMetadata?.candidatesTokenCount || 0;
   const custoUsd     = (inputTokens * 0.00000125) + (outputTokens * 0.00000375);

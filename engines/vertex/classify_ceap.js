@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * VERTEX CLASSIFIER — Taxonomia de notas CEAP via Gemini 2.5 Flash (BATCH).
+ * VERTEX CLASSIFIER — Taxonomia de notas CEAP via Gemini 2.5 Pro (batch / Vertex; mesmo motor do Líder Supremo agent_1777236402725).
  *
  * DIRETIVA SUPREMA RESPEITADA: "Rota Vertex Calibrada"
  *   - Vertex SÓ vê texto público (txtdescricao da CEAP, nome de fornecedor)

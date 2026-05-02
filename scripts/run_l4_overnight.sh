@@ -11,7 +11,7 @@
 # Diretivas supremas:
 #   - ZERO Firestore. Destino exclusivo: GCS Data Lake.
 #   - L4 nunca ociosa: Gemma 27B local pra forensics.
-#   - Vertex Gemini Flash apenas pra texto público (CEAP txtdescricao).
+#   - Vertex Gemini 2.5 Pro apenas pra texto público (CEAP txtdescricao; Líder Supremo agent_1777236402725).
 #   - Auto-shutdown ao final (economia).
 
 set -e
@@ -75,7 +75,7 @@ AUTO_SHUTDOWN=0 bash "$HOME/transparenciabr/scripts/run_overnight.sh" || \
   echo "⚠️ run_overnight teve falhas — seguindo pra Vertex mesmo assim"
 
 # ─────────────────────────────────────────────────────────────
-# FASE 6 — VERTEX CALIBRADO (Gemini 2.5 Flash classifica CEAP público)
+# FASE 6 — VERTEX CALIBRADO (Gemini 2.5 Pro classifica CEAP público)
 # ─────────────────────────────────────────────────────────────
 echo ""
 echo "🤖 FASE 6 — Vertex classify_ceap (anos 2024-2026)"
