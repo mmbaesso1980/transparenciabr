@@ -1093,7 +1093,9 @@ exports.getUniverseRoster = functions
 // ────────────────────────────────────────────────────────────────────────
 const {
   scanCeapClassified,
+  loadRosterMap,
   formatDashboardPayload,
+  formatAlvosPayload,
 } = require("./src/datalake/ceapClassifiedAggregates.js");
 
 const KPI_CACHE =
@@ -1134,6 +1136,41 @@ exports.getDashboardKPIs = functions
       res.status(200).json(body);
     } catch (err) {
       console.error("getDashboardKPIs error:", err);
+      res.status(503).json({
+        error: "datalake unavailable",
+        detail: String(err.message || err),
+      });
+    }
+  });
+
+exports.getAlvos = functions
+  .region("southamerica-east1")
+  .runWith({ memory: "512MB", timeoutSeconds: 120 })
+  .https.onRequest(async (req, res) => {
+    res.set("Access-Control-Allow-Origin", "*");
+    res.set("Access-Control-Allow-Methods", "GET");
+    res.set("Cache-Control", KPI_CACHE);
+    res.set("Content-Type", "application/json; charset=utf-8");
+
+    if (req.method !== "GET" && req.method !== "HEAD") {
+      res.status(405).json({ error: "Method not allowed" });
+      return;
+    }
+
+    const limitRaw = Number(req.query.limit);
+    const limit = Math.min(200, Math.max(1, Number.isFinite(limitRaw) ? limitRaw : 50));
+    const minRaw = Number(req.query.min_score);
+    const minScore = Math.min(100, Math.max(0, Number.isFinite(minRaw) ? minRaw : 0));
+
+    try {
+      const { Storage } = require("@google-cloud/storage");
+      const storage = new Storage();
+      const scan = await scanCeapClassified(storage);
+      const rosterMap = await loadRosterMap(storage);
+      const body = formatAlvosPayload(scan, rosterMap, limit, minScore);
+      res.status(200).json(body);
+    } catch (err) {
+      console.error("getAlvos error:", err);
       res.status(503).json({
         error: "datalake unavailable",
         detail: String(err.message || err),
