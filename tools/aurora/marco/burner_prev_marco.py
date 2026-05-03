@@ -179,10 +179,14 @@ async def gemma_classify(client: httpx.AsyncClient, lead: dict, sem: asyncio.Sem
                     "prompt": prompt,
                     "format": "json",
                     "stream": False,
-                    "options": {"temperature": 0.2, "num_predict": 400},
+                    "options": {
+                        "temperature": 0.2,
+                        "num_predict": 250,  # TURBO: corta resposta
+                        "num_ctx": 2048,     # TURBO: contexto enxuto
+                    },
                     "keep_alive": -1
                 },
-                timeout=120
+                timeout=180
             )
             r.raise_for_status()
             data = r.json()
