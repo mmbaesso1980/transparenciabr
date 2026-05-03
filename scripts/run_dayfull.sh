@@ -112,8 +112,8 @@ ingest transferegov_relatorio_gestao --snapshot "$SNAPSHOT_DATE"
 # ╚══════════════════════════════════════════════════════════════════════╝
 phase "🏛️ FASE 4/9 — Emendas Parlamentares (CGU)"
 if [ -z "${PORTAL_TRANSPARENCIA_API_KEY:-}" ]; then
-  # fallback: usa chave fixa em SECRETS.md
-  export PORTAL_TRANSPARENCIA_API_KEY="717a95e01b072090f41940282eab700a"
+  echo "❌ PORTAL_TRANSPARENCIA_API_KEY não definida — defina no ambiente ou ~/.bashrc (Portal da Transparência CGU). Sem fallback hardcoded (SecOps)."
+  exit 1
 fi
 for YEAR in $YEARS_EMENDAS; do
   ingest emendas_parlamentares --year "$YEAR"

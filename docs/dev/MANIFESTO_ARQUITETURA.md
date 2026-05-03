@@ -45,7 +45,7 @@ Este projeto opera sobre **infraestrutura própria do Comandante Baesso**. Não 
 - Auth: Firebase Auth
 
 ### Camada 7 — Vertex AI (escalonamento)
-- Agent Builder principal: `agent_1777236402725` (auditor-chefe Gemini 1.5 Pro)
+- Agent Builder principal / Líder Supremo: `agent_1777236402725` (motor único **Gemini 2.5 Pro** — G.O.A.T.)
 - Reasoning engines para findings críticos
 - Hard-stop financeiro: **US$ 50/dia**
 
@@ -57,7 +57,7 @@ Fontes públicas (Câmara API, DOU, TSE, etc.)
 gs://datalake-tbr-raw/
    ↓ AURORA Engine (L4 + Gemma 27B local)
    ├─ 95% baixo/médio risco → gs://datalake-tbr-clean/
-   └─ 5% alto risco → Vertex AI Gemini 1.5 Pro → laudo PDF → gs://datalake-tbr-clean/reports/
+   └─ 5% alto risco → Vertex AI Gemini 2.5 Pro (`agent_1777236402725`) → laudo PDF → gs://datalake-tbr-clean/reports/
 gs://datalake-tbr-clean/
    ↓ Cloud Functions (REST API)
 Frontend React (transparenciabr.web.app)
@@ -68,7 +68,7 @@ Usuário final + paywall
 ## Regras de Decisão para Agente Vertex
 
 1. **Volume massivo + repetitivo (OCR, classificação CEAP, etc.)** → use a L4 (Gemma local), nunca proponha Vertex pago.
-2. **Análise profunda de caso isolado, redação jurídica** → escale para Vertex Gemini 1.5 Pro.
+2. **Análise profunda de caso isolado, redação jurídica** → escale para Vertex Gemini 2.5 Pro (Líder Supremo `agent_1777236402725`).
 3. **Frontend, lógica de negócio, código React** → você executa diretamente, sem custo de inference.
 4. **Acesso a dados** → sempre via GCS path canônico ou Cloud Function existente. Nunca proponha leitura direta do Firestore para dados de auditoria.
 5. **Persistência de aceites/auditoria** → SEMPRE GCS, nunca Firestore.
