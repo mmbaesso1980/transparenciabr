@@ -353,12 +353,12 @@ async def gemma_classify(client, lead, sem):
                     "stream": False,
                     "options": {
                         "temperature": 0.2,
-                        "num_predict": 250,  # TURBO
+                        "num_predict": 150,  # TURBO: classificação não precisa de 250
                         "num_ctx": 2048,
                     },
                     "keep_alive": -1
                 },
-                timeout=180
+                timeout=httpx.Timeout(600.0, connect=15.0)  # 10min total
             )
             r.raise_for_status()
             data = r.json()
@@ -393,7 +393,8 @@ async def saturate_gemma(in_jsonl: Path, out_jsonl: Path, workers: int):
     ok = 0
     t0 = datetime.now()
     try:
-        async with httpx.AsyncClient() as client:
+        limits = httpx.Limits(max_connections=200, max_keepalive_connections=64)
+        async with httpx.AsyncClient(timeout=httpx.Timeout(600.0, connect=15.0), limits=limits) as client:
             tasks = [asyncio.create_task(gemma_classify(client, l, sem)) for l in leads]
             for coro in asyncio.as_completed(tasks):
                 r = await coro

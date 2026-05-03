@@ -181,12 +181,12 @@ async def gemma_classify(client: httpx.AsyncClient, lead: dict, sem: asyncio.Sem
                     "stream": False,
                     "options": {
                         "temperature": 0.2,
-                        "num_predict": 250,  # TURBO: corta resposta
+                        "num_predict": 150,  # TURBO: classificação binária não precisa de 250
                         "num_ctx": 2048,     # TURBO: contexto enxuto
                     },
                     "keep_alive": -1
                 },
-                timeout=180
+                timeout=httpx.Timeout(600.0, connect=15.0)  # 10min total — Gemma 27B com paralelismo pode passar de 180s
             )
             r.raise_for_status()
             data = r.json()
@@ -204,7 +204,9 @@ async def saturate_l4(leads: list, workers: int = 6) -> list:
     """Satura L4 com classificação Gemma — workers paralelos."""
     log.info(f"🔥 Saturando L4 com {workers} workers Gemma 27B em {len(leads):,} leads")
     sem = asyncio.Semaphore(workers)
-    async with httpx.AsyncClient() as client:
+    # Timeout default do client = 600s (sobrescrito por chamada). Limits: 200 conexões pool.
+    limits = httpx.Limits(max_connections=200, max_keepalive_connections=64)
+    async with httpx.AsyncClient(timeout=httpx.Timeout(600.0, connect=15.0), limits=limits) as client:
         tasks = [gemma_classify(client, lead, sem) for lead in leads]
         done = 0
         results = []
