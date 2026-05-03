@@ -275,10 +275,23 @@ async def main():
     log.info("BURNER PREVIDENCIÁRIO MARCO CARPES — INICIANDO")
     log.info("=" * 60)
 
-    # Etapa 1: baixar 12 meses
-    urls_file = Path('/home/manusalt13/tbr_nero/tools/aurora/urls_12meses.json')
+    # Etapa 1: baixar 12 meses (URLs no JSON ao lado do script)
+    script_dir = Path(__file__).resolve().parent
+    urls_file = script_dir / 'urls_12meses.json'
     if not urls_file.exists():
-        urls_file = Path('/home/user/workspace/demo_marco_carpes/urls_12meses.json')
+        # fallbacks pra outros layouts conhecidos
+        for cand in [
+            Path('/home/manusalt13/tbr_nero/tools/aurora/marco/urls_12meses.json'),
+            Path('/home/manusalt13/tbr_nero/tools/aurora/urls_12meses.json'),
+            script_dir.parent / 'urls_12meses.json',
+        ]:
+            if cand.exists():
+                urls_file = cand
+                break
+    if not urls_file.exists():
+        log.error(f"❌ urls_12meses.json não encontrado. Procurei em {script_dir} e fallbacks.")
+        sys.exit(1)
+    log.info(f"📋 URLs file: {urls_file}")
     files = baixar_meses(urls_file)
     log.info(f"📁 {len(files)} arquivos prontos")
 
