@@ -351,7 +351,11 @@ async def gemma_classify(client, lead, sem):
                     "prompt": prompt,
                     "format": "json",
                     "stream": False,
-                    "options": {"temperature": 0.2, "num_predict": 350},
+                    "options": {
+                        "temperature": 0.2,
+                        "num_predict": 250,  # TURBO
+                        "num_ctx": 2048,
+                    },
                     "keep_alive": -1
                 },
                 timeout=180
