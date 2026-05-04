@@ -4,8 +4,10 @@ import { Helmet } from "react-helmet-async";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 
 import BrandLogo from "../components/BrandLogo.jsx";
+import MissionControlFooter from "../components/MissionControlFooter.jsx";
 import OrbTooltip from "../components/graph/OrbTooltip.jsx";
 import UniverseTopBar from "../components/graph/UniverseTopBar.jsx";
+import UniverseSearchInput from "../components/UniverseSearchInput.jsx";
 import LandingHeroGraph from "../components/landing/LandingHeroGraph.jsx";
 import PoliticianOrb from "../components/PoliticianOrb.jsx";
 import UserOrb from "../components/UserOrb.jsx";
@@ -35,6 +37,7 @@ export default function UniversePage() {
   const { graphData, loading, error, findPoliticoByQuery, roster, total } =
     useUniverseRoster();
 
+  const [universeMode, setUniverseMode] = useState("default");
   const [hoveredOrbNode, setHoveredOrbNode] = useState(null);
   const [hoverOrbPos, setHoverOrbPos] = useState(null);
 
@@ -156,6 +159,21 @@ export default function UniversePage() {
     [openGate, resolvePoliticoIdFromNode],
   );
 
+  // Busca via overlay UniverseSearchInput — fly-to da câmera e PRONTO.
+  // O dossiê só abre por clique deliberado na orbe (preserva FOMO).
+  const handleSearch = useCallback(
+    async (term) => {
+      const match = findPoliticoByQuery(term);
+      if (!match) {
+        setModalPolitico({ id: "", nome: "" });
+        setModalOpen(true);
+        return;
+      }
+      await graphRef.current?.flyToPoliticianId?.(match.id);
+    },
+    [findPoliticoByQuery],
+  );
+
   // Busca SEM bypass: fly-to da câmera e PRONTO. O dossiê só abre por clique
   // deliberado na orbe (preserva FOMO da coreografia universo).
   const handleSearchSubmit = useCallback(
@@ -261,6 +279,16 @@ export default function UniversePage() {
           )}
         </nav>
       </header>
+
+      <UniverseSearchInput
+        onSearchSubmit={handleSearch}
+        placeholder="Buscar político ou fornecedor..."
+      />
+
+      <MissionControlFooter
+        currentMode={universeMode}
+        onModeChange={setUniverseMode}
+      />
 
       <OrbTooltip node={hoveredOrbNode} position={hoverOrbPos} />
 
