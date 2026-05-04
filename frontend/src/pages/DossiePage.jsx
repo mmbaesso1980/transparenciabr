@@ -1,5 +1,6 @@
 import {
   AlertTriangle,
+  ArrowDown,
   BarChart3,
   Globe,
   Radar,
@@ -262,6 +263,45 @@ export default function DossiePage() {
     return normalized;
   }, [displayRecord]);
 
+  const bentoBoxes = useMemo(
+    () => [
+      {
+        k: "Valor CEAP (datalake)",
+        v:
+          ceapKpi?.valor_total_classificado_brl != null
+            ? new Intl.NumberFormat("pt-BR", {
+                style: "currency",
+                currency: "BRL",
+                maximumFractionDigits: 0,
+              }).format(Number(ceapKpi.valor_total_classificado_brl))
+            : "—",
+        sub: "Soma classificada GCS",
+      },
+      {
+        k: "HHI fornecedores",
+        v:
+          ceapKpi?.hhi_fornecedores != null
+            ? Number(ceapKpi.hhi_fornecedores).toLocaleString("pt-BR", { maximumFractionDigits: 0 })
+            : "—",
+        sub: "Concentração 0–10000",
+      },
+      {
+        k: "Diversidade (Shannon)",
+        v:
+          ceapKpi?.diversidade_categorias_shannon_bits != null
+            ? `${Number(ceapKpi.diversidade_categorias_shannon_bits).toFixed(2)} bits`
+            : "—",
+        sub: "Por categoria de gasto",
+      },
+      {
+        k: "Alertas no dossiê",
+        v: String(alerts.length),
+        sub: "Anexados ao relatório",
+      },
+    ],
+    [ceapKpi, alerts.length],
+  );
+
   const pageTitle = nomeExibicao
     ? riskValue != null
       ? `Dossiê: ${nomeExibicao} · Índice de Risco ${Math.round(Number(riskValue))} | TransparênciaBR`
@@ -350,6 +390,94 @@ export default function DossiePage() {
         </div>
 
         <div className="relative z-10 min-w-0 w-full max-w-full">
+          {/* Hero hotpage — resumo visual antes do painel completo */}
+          <section className="border-b border-[#30363D]/80 bg-gradient-to-b from-[#111827]/90 to-transparent px-4 py-8 sm:px-6">
+            <div className="mx-auto grid max-w-[1600px] gap-6 lg:grid-cols-12">
+              <div className="flex flex-col gap-4 lg:col-span-4">
+                <div className="flex items-start gap-4">
+                  {photoAbs ? (
+                    <img
+                      src={photoAbs}
+                      alt={nomeExibicao || "Parlamentar"}
+                      className="size-24 shrink-0 rounded-2xl border border-[#30363D] object-cover shadow-lg"
+                    />
+                  ) : (
+                    <div className="flex size-24 shrink-0 items-center justify-center rounded-2xl border border-[#30363D] bg-[#161B22] font-mono text-2xl text-[#58A6FF]">
+                      {(nomeExibicao || "?").slice(0, 1)}
+                    </div>
+                  )}
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-[#8B949E]">
+                      Hotpage parlamentar
+                    </p>
+                    <h2 className="truncate text-2xl font-bold text-[#F0F4FC] sm:text-3xl">
+                      {nomeExibicao || "—"}
+                    </h2>
+                    {partidoSigla ? (
+                      <p className="mt-1 text-sm text-[#8B949E]">{partidoSigla}</p>
+                    ) : null}
+                    <p className="mt-2 font-mono text-[11px] text-[#484F58]">ID {politicoId}</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    document.getElementById("dossie-premium-cta")?.scrollIntoView({ behavior: "smooth" })
+                  }
+                  className="inline-flex w-fit items-center gap-2 rounded-full border border-[#d4af37]/50 bg-[#d4af37]/10 px-4 py-2 text-xs font-bold uppercase tracking-widest text-[#fde68a] transition hover:bg-[#d4af37]/20"
+                >
+                  Dossiê premium — {ORACLE_LABORATORIO_CREDITS} créditos
+                  <ArrowDown className="size-3.5" aria-hidden />
+                </button>
+              </div>
+
+              <div className="glass-card flex min-h-[14rem] flex-col justify-center rounded-2xl border border-[#30363D] p-4 lg:col-span-4">
+                <p className="text-center text-[11px] font-semibold uppercase tracking-wider text-[#8B949E]">
+                  Índice de exposição
+                </p>
+                <div className="mt-2 flex justify-center">
+                  {riskValue != null ? (
+                    <ExposureGauge value={riskValue} />
+                  ) : (
+                    <p className="py-8 text-center text-sm text-[#8B949E]">Índice indisponível neste registo.</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2 lg:col-span-4 lg:grid-cols-1">
+                {[
+                  {
+                    k: "AURORA (datalake)",
+                    v:
+                      ceapKpi?.indice_risco_aurora != null
+                        ? String(ceapKpi.indice_risco_aurora)
+                        : "—",
+                    sub: "Índice CEAP classificado (GCS)",
+                  },
+                  {
+                    k: "Notas alto risco",
+                    v: ceapKpi?.qtd_notas_alto_risco != null ? String(ceapKpi.qtd_notas_alto_risco) : "—",
+                    sub: "Score ≥ 85",
+                  },
+                  {
+                    k: "Créditos disponíveis",
+                    v: credits === null ? "…" : String(credits),
+                    sub: "Laboratório: 200 créditos",
+                  },
+                ].map((box) => (
+                  <div
+                    key={box.k}
+                    className="rounded-xl border border-[#30363D]/80 bg-[#0D1117]/80 px-4 py-3 shadow-inner"
+                  >
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-[#8B949E]">{box.k}</p>
+                    <p className="mt-1 font-mono text-2xl font-bold text-[#58A6FF]">{box.v}</p>
+                    <p className="mt-1 text-[11px] text-[#6e7681]">{box.sub}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+
           {/* Linha 1 — cabeçalho Bentobox fixo */}
           <header className="sticky top-0 z-50 border-b border-[#30363D] bg-[#0B0F1A]/93 backdrop-blur-lg">
             <div className="mx-auto flex min-w-0 max-w-[1600px] flex-wrap items-center gap-3 px-4 py-3 sm:gap-4 sm:px-6 sm:py-4">
@@ -420,6 +548,24 @@ export default function DossiePage() {
               politicoId={politicoId}
               loading={ceapKpiLoading}
             />
+
+            <section
+              className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"
+              aria-label="Indicadores forenses em destaque"
+            >
+              {bentoBoxes.map((b) => (
+                <div
+                  key={b.k}
+                  className="rounded-2xl border border-[#30363D]/80 bg-[#111827]/70 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
+                >
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-[#8B949E]">
+                    {b.k}
+                  </p>
+                  <p className="mt-2 font-mono text-xl font-bold text-[#58A6FF]">{b.v}</p>
+                  <p className="mt-1 text-[11px] text-[#6e7681]">{b.sub}</p>
+                </div>
+              ))}
+            </section>
 
             {/* Linha 2 — índice forense + bússola */}
             <div className="grid min-w-0 gap-4 md:grid-cols-2">
@@ -604,7 +750,7 @@ export default function DossiePage() {
             <HealthAuditSection politico={displayRecord} />
 
             {/* Linha 5 — paywall 200 créditos */}
-            <div className="min-w-0 pb-4">
+            <div id="dossie-premium-cta" className="min-w-0 scroll-mt-28 pb-4">
               <div className="mb-4 flex flex-wrap items-center gap-2">
                 <Sparkles className="size-4 text-[#7DD3FC]" strokeWidth={1.75} />
                 <div>

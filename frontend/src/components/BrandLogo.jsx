@@ -23,7 +23,7 @@ const SIZE_MAP = {
  * }} props
  */
 export default function BrandLogo({
-  to = "/dashboard",
+  to = "/",
   asStatic = false,
   className = "",
   variant = "full",

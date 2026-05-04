@@ -1,5 +1,5 @@
 /**
- * Seis frentes de auditoria — mesma semântica na landing e no Universo (âncoras → /dashboard#…).
+ * Seis frentes de auditoria — mesma semântica na landing e no Universo (âncoras → /universo?modulo=…).
  */
 export const INVESTIGATION_CATEGORIES = [
   {
@@ -8,7 +8,7 @@ export const INVESTIGATION_CATEGORIES = [
     label: "Cota CEAP",
     headline: "R$ 4 bi/ano",
     body: "Cada nota é suspeita até prova contrária. Locação, combustível, divulgação parlamentar — auditados nota a nota.",
-    to: "/ranking?modulo=ceap",
+    to: "/universo?modulo=ceap",
     dashboardHash: "ceap",
     cta: "Investigar gastos",
   },
@@ -18,7 +18,7 @@ export const INVESTIGATION_CATEGORIES = [
     label: "Patrimônio TSE",
     headline: "+1.200%",
     body: "Crescimento patrimonial entre eleições. Bens declarados vs. faixa salarial — outliers expostos.",
-    to: "/ranking?modulo=patrimonio",
+    to: "/universo?modulo=patrimonio",
     dashboardHash: "patrimonio",
     cta: "Ver enriquecimento",
   },
@@ -28,7 +28,7 @@ export const INVESTIGATION_CATEGORIES = [
     label: "Folha do Gabinete",
     headline: "21 secretários",
     body: "Familiares, sócios e fantasmas no gabinete. Cruzamento CPF × empresa × parentesco.",
-    to: "/ranking?modulo=folha",
+    to: "/universo?modulo=folha",
     dashboardHash: "folha",
     cta: "Mapear gabinete",
   },
@@ -38,7 +38,7 @@ export const INVESTIGATION_CATEGORIES = [
     label: "Viagens & Pedágios",
     headline: "48 passagens",
     body: "Carro alugado em Brasília, pedágio no Rio. SEM PARAR não mente — geolocalização forense.",
-    to: "/ranking?modulo=viagens",
+    to: "/universo?modulo=viagens",
     dashboardHash: "viagens",
     cta: "Rastrear deslocamento",
   },
@@ -48,7 +48,7 @@ export const INVESTIGATION_CATEGORIES = [
     label: "Emendas & PIX",
     headline: "R$ 50 bi",
     body: "Emendas relator, individuais e PIX. Beneficiários terminais, ONGs sem CNAE, prefeituras-fachada.",
-    to: "/ranking?modulo=emendas",
+    to: "/universo?modulo=emendas",
     dashboardHash: "emendas",
     cta: "Seguir o dinheiro",
   },
@@ -58,7 +58,7 @@ export const INVESTIGATION_CATEGORIES = [
     label: "Contratos PNCP",
     headline: "3,7 mi licitações",
     body: "Vencedores recorrentes, sobrepreço, dispensa indevida. OCR + Gemini sob direito administrativo.",
-    to: "/ranking?modulo=contratos",
+    to: "/universo?modulo=contratos",
     dashboardHash: "contratos",
     cta: "Auditar licitações",
   },

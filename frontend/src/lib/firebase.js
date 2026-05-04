@@ -445,7 +445,7 @@ export async function fetchAlertasBodesRecent(limitCount = 400) {
  * Agrega contagens por UF usando o mapa vindo de `fetchPoliticoUfMap`.
  */
 /**
- * Login Google — necessário para o painel /radar/dossiers (UID estável vs. anónimo).
+ * Login Google — necessário para áreas autenticadas (UID estável vs. anónimo).
  */
 export async function signInWithGoogle() {
   const auth = getFirebaseAuth();

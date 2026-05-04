@@ -1,5 +1,5 @@
-import { AlertTriangle } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Activity, AlertTriangle, Radio, Shield } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
 
@@ -69,36 +69,84 @@ export default function AlertasPage() {
     };
   }, []);
 
+  const kpis = useMemo(() => {
+    const n = rows.length;
+    const tipos = new Set(rows.map((a) => String(a.tipo_risco ?? a.tipo ?? "").trim()).filter(Boolean));
+    const comUf = rows.filter((a) => {
+      const pid = String(a.politico_id ?? a.parlamentar_id ?? "").trim();
+      return pid && ufMap[pid];
+    }).length;
+    return { n, tipos: tipos.size, comUf };
+  }, [rows, ufMap]);
+
   return (
     <div className="min-h-full bg-[#080B14] px-4 py-6 text-[#F0F4FC] sm:px-6">
       <Helmet>
-        <title>Alertas forenses | TransparênciaBR</title>
+        <title>SOC — Alertas forenses | TransparênciaBR</title>
         <meta
           name="description"
-          content="Lista recente da coleção alertas_bodes — motor BigQuery + Gemini."
+          content="Missão SOC: feed alertas_bodes, KPIs de incidentes e ligação ao mapa forense."
         />
       </Helmet>
 
       <header className="mx-auto flex max-w-6xl flex-wrap items-end justify-between gap-4 border-b border-[#30363D] pb-4">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.35em] text-[#8B949E]">
-            Sala de vigilância
+            Missão SOC
           </p>
           <div className="mt-1 flex items-center gap-2">
-            <AlertTriangle className="size-5 text-[#f85149]" strokeWidth={1.75} />
-            <h1 className="text-2xl font-semibold tracking-tight">Alertas recentes</h1>
+            <Radio className="size-5 text-[#f85149]" strokeWidth={1.75} />
+            <h1 className="text-2xl font-semibold tracking-tight">Centro de operações — alertas</h1>
           </div>
           <p className="mt-2 max-w-2xl text-sm text-[#8B949E]">
-            Documentos na coleção{" "}
-            <span className="font-mono text-[#C9D1D9]">alertas_bodes</span> após sincronização do
-            BigQuery (<span className="font-mono text-[#a371f7]">engines/05_sync_bodes.py</span>).
+            Coleção <span className="font-mono text-[#C9D1D9]">alertas_bodes</span> após sync BigQuery. Use o
+            mapa para geointeligência agregada.
           </p>
         </div>
-        <div className="font-mono text-xs text-[#8B949E]">
-          Total:{" "}
-          <span className="text-[#58A6FF]">{loading ? "…" : rows.length}</span>
-        </div>
+        <Link
+          to="/mapa"
+          className="rounded-lg border border-[#30363D] px-3 py-2 text-sm font-semibold text-[#58A6FF] hover:border-[#58A6FF]/45"
+        >
+          Mapa forense →
+        </Link>
       </header>
+
+      <div className="mx-auto mt-6 grid max-w-6xl gap-3 sm:grid-cols-3">
+        {[
+          {
+            label: "Eventos na fila",
+            value: loading ? "…" : String(kpis.n),
+            icon: Activity,
+            sub: "Últimos registos carregados",
+          },
+          {
+            label: "Tipos distintos",
+            value: loading ? "…" : String(kpis.tipos),
+            icon: Shield,
+            sub: "Classificação motor",
+          },
+          {
+            label: "Com UF mapeada",
+            value: loading ? "…" : String(kpis.comUf),
+            icon: AlertTriangle,
+            sub: "Cruzamento politicos",
+          },
+        ].map((k) => (
+          <div
+            key={k.label}
+            className="flex items-start gap-3 rounded-xl border border-[#30363D] bg-[#0D1117]/80 p-4"
+          >
+            <k.icon className="mt-0.5 size-5 shrink-0 text-[#58A6FF]" strokeWidth={1.75} />
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-[#8B949E]">
+                {k.label}
+              </p>
+              <p className="font-mono text-2xl font-bold text-[#F0F4FC]">{k.value}</p>
+              <p className="text-[11px] text-[#6e7681]">{k.sub}</p>
+            </div>
+          </div>
+        ))}
+      </div>
 
       {error === "missing_config" ? (
         <p className="mx-auto mt-10 max-w-lg text-center text-sm text-[#8B949E]">
@@ -134,7 +182,7 @@ export default function AlertasPage() {
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="rounded bg-[#21262D] px-2 py-0.5 font-mono text-[10px] uppercase tracking-wide text-[#f85149]">
+                        <span className="rounded bg-[#21262D] px-2 py-0.5 font-data text-[10px] uppercase tracking-wide text-[#f85149]">
                           {tipo}
                         </span>
                         {sev ? (

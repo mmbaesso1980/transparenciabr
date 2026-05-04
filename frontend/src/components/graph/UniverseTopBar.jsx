@@ -20,10 +20,10 @@ export default function UniverseTopBar({ totalParlamentares = 594 }) {
         </div>
         <div className="h-4 w-px bg-white/15" />
         <Link
-          to="/dashboard"
+          to="/status"
           className="group flex items-center gap-2 text-sm font-semibold text-orange-400 transition-colors hover:text-orange-300"
         >
-          Ir para o Painel
+          Ir para o status
           <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
         </Link>
       </div>
