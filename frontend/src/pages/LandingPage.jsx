@@ -10,6 +10,7 @@ import PoliticianOrb from "../components/PoliticianOrb.jsx";
 import UserOrb from "../components/UserOrb.jsx";
 import LandingHeroGraph from "../components/landing/LandingHeroGraph.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
+import { useLandingKPIs } from "../hooks/useLandingKPIs.js";
 import { useUniverseRoster } from "../hooks/useUniverseRoster.js";
 import { useUserCredits } from "../hooks/useUserCredits.js";
 
@@ -23,57 +24,59 @@ import { useUserCredits } from "../hooks/useUserCredits.js";
 // `seed` é determinístico (mesma seed = mesma cor sempre).
 // `score` modula a urgência visual (90 = vermelho profundo · 35 = pastel).
 // Todas levam ao /universo (gate de login dispara via UniversePage).
+// `headline` agora vem de useLandingKPIs() em runtime; o `id` mapeia o card
+// para a chave correspondente no payload do hook.
 const INVESTIGATION_CATEGORIES = [
   {
+    id: "ceap",
     seed: "aurora.ceap",
     score: 90,
     label: "Cota CEAP",
-    headline: "R$ 4 bi/ano",
     body: "Cada nota é suspeita até prova contrária. Locação, combustível, divulgação — auditados nota a nota.",
     to: "/universo?frente=ceap",
     cta: "Abrir no Universo",
   },
   {
+    id: "patrimonio",
     seed: "aurora.patrimonio",
     score: 78,
     label: "Patrimônio TSE",
-    headline: "+1.200%",
     body: "Crescimento patrimonial entre eleições. Bens declarados vs. faixa salarial — outliers expostos.",
     to: "/universo?frente=patrimonio",
     cta: "Abrir no Universo",
   },
   {
+    id: "gabinete",
     seed: "aurora.gabinete",
     score: 72,
     label: "Folha do Gabinete",
-    headline: "21 secretários",
     body: "Familiares, sócios e fantasmas no gabinete. Cruzamento CPF × empresa × parentesco.",
     to: "/universo?frente=gabinete",
     cta: "Abrir no Universo",
   },
   {
+    id: "viagens",
     seed: "aurora.viagens",
     score: 65,
     label: "Viagens & Pedágios",
-    headline: "48 passagens",
     body: "Carro alugado em Brasília, pedágio no Rio. SEM PARAR não mente — geolocalização aberta.",
     to: "/universo?frente=viagens",
     cta: "Abrir no Universo",
   },
   {
+    id: "emendas",
     seed: "aurora.emendas",
     score: 82,
     label: "Emendas & PIX",
-    headline: "R$ 50 bi",
     body: "Emendas relator, individuais e PIX. Beneficiários terminais, ONGs sem CNAE, prefeituras-fachada.",
     to: "/universo?frente=emendas",
     cta: "Abrir no Universo",
   },
   {
+    id: "contratos",
     seed: "aurora.contratos",
     score: 60,
     label: "Contratos PNCP",
-    headline: "3,7 mi licitações",
     body: "Vencedores recorrentes, sobrepreço, dispensa indevida. OCR + Gemini sob direito administrativo.",
     to: "/universo?frente=contratos",
     cta: "Abrir no Universo",
@@ -96,6 +99,20 @@ export default function LandingPage() {
   const { credits } = useUserCredits();
   const { graphData, loading, error, findPoliticoByQuery, roster } =
     useUniverseRoster();
+  const { headlines: kpiHeadlines, lastUpdated: kpiLastUpdated, isFresh: kpiFresh } =
+    useLandingKPIs();
+  const updatedBadge = (() => {
+    if (!kpiFresh || !kpiLastUpdated) return null;
+    try {
+      const d = new Date(kpiLastUpdated);
+      const diffH = (Date.now() - d.getTime()) / 36e5;
+      if (diffH < 24) return "Atualizado hoje";
+      if (diffH < 48) return "Atualizado ontem";
+      return `Atualizado em ${d.toLocaleDateString("pt-BR")}`;
+    } catch {
+      return null;
+    }
+  })();
 
   const [query, setQuery] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -385,10 +402,12 @@ export default function LandingPage() {
                 conectam no mesmo dossiê — sem pular de aba, sem perder o fio.
               </p>
             </div>
-            <span className="inline-flex items-center gap-2 rounded-full border border-[#FDE047]/30 bg-[#FDE047]/10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-[#FDE047]">
-              <Sparkles className="size-3" />
-              Atualizado hoje
-            </span>
+            {updatedBadge ? (
+              <span className="inline-flex items-center gap-2 rounded-full border border-[#FDE047]/30 bg-[#FDE047]/10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-[#FDE047]">
+                <Sparkles className="size-3" />
+                {updatedBadge}
+              </span>
+            ) : null}
           </div>
 
           <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -412,7 +431,7 @@ export default function LandingPage() {
                         {cat.label}
                       </p>
                       <p className="font-data mt-1 text-2xl font-semibold tracking-tight text-[#F0F4FC]">
-                        {cat.headline}
+                        {kpiHeadlines[cat.id] ?? "—"}
                       </p>
                     </div>
                   </div>

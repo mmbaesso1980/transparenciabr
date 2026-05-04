@@ -5,6 +5,7 @@ import {
   GoogleAuthProvider,
   signInWithEmailAndPassword,
   signInWithPopup,
+  signInWithRedirect,
   signOut as firebaseSignOut,
 } from "firebase/auth";
 import {
@@ -197,7 +198,12 @@ export async function ensureUsuarioDoc(uid, options = {}) {
     if (Number(data.creditos ?? 0) < 9999) patch.creditos = 9999;
   } else {
     if (data.last_login_date !== today) {
-      patch.creditos = DAILY_FREEMIUM_CREDITS;
+      // GUARDA: só repõe freemium diário se o saldo atual estiver ABAIXO dele.
+      // Créditos comprados via Stripe (>300) são preservados intactos.
+      const currentCredits = Number(data.creditos ?? 0);
+      if (currentCredits < DAILY_FREEMIUM_CREDITS) {
+        patch.creditos = DAILY_FREEMIUM_CREDITS;
+      }
       patch.last_login_date = today;
     }
   }
@@ -446,7 +452,21 @@ export async function signInWithGoogle() {
   if (!auth) throw new Error("firebase_auth_unavailable");
   const provider = new GoogleAuthProvider();
   provider.setCustomParameters({ prompt: "select_account" });
-  await signInWithPopup(auth, provider);
+  try {
+    await signInWithPopup(auth, provider);
+  } catch (err) {
+    // Fallback para popup-blocked / ambientes mobile (Safari iOS)
+    const code = err?.code || "";
+    if (
+      code === "auth/popup-blocked" ||
+      code === "auth/popup-closed-by-user" ||
+      code === "auth/cancelled-popup-request"
+    ) {
+      await signInWithRedirect(auth, provider);
+      return null; // redirect — currentUser só estará disponível após volta
+    }
+    throw err;
+  }
   return auth.currentUser;
 }
 
