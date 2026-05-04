@@ -36,6 +36,13 @@
         }
       },
       {
+        "source": "/api/vertex/ask",
+        "function": {
+          "functionId": "askVertexAgent",
+          "region": "southamerica-east1"
+        }
+      },
+      {
         "source": "/sprint",
         "destination": "/sprint.html"
       },

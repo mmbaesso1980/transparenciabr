@@ -155,7 +155,7 @@ export default function PainelMestrePage() {
   const lat = forense.latencia_media_horas_ingestao_classif;
   const prof = Number(forense.profundidade_cobertura_notas_por_parlamentar);
   const serie = forense.valor_financeiro_classificado_serie_anual_brl || [];
-  const notasAno = forense.notas_por_ano || [];
+  const notasAno = Array.isArray(forense.notas_por_ano) ? forense.notas_por_ano : [];
 
   const valorTotal = Number(data?.valor_total_classificado_brl);
   const valorAlto = Number(data?.valor_alto_risco_brl);

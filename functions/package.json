@@ -6,7 +6,7 @@
   },
   "main": "index.js",
   "scripts": {
-    "build": "node --check index.js && node --check src/radar/diarioScanner.js && node --check src/admin/grantRole.js",
+    "build": "node --check index.js && node --check src/radar/diarioScanner.js && node --check src/admin/grantRole.js && node --check src/vertex/askVertexAgent.js",
     "serve": "firebase emulators:start --only functions",
     "deploy": "firebase deploy --only functions"
   },
@@ -16,7 +16,9 @@
     "@genkit-ai/vertexai": "^1.32.0",
     "@google-cloud/aiplatform": "^6.6.0",
     "@google-cloud/bigquery": "^8.1.1",
+    "@google-cloud/dialogflow-cx": "^4.10.0",
     "@google-cloud/documentai": "^9.6.0",
+    "@google-cloud/storage": "^7.19.0",
     "@google/generative-ai": "^0.21.0",
     "firebase-admin": "^12.6.0",
     "firebase-functions": "^6.1.0",
