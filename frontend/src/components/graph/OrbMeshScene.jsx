@@ -21,14 +21,14 @@ import StarField from "./StarField.jsx";
 
 function fibonacciPoint(i, n, radius) {
   if (n < 1) return new THREE.Vector3(0, 0, radius);
-  const idx = i + 0.5;
-  const phi = Math.acos(1 - (2 * idx) / Math.max(n, 1));
-  const theta = Math.PI * (1 + Math.sqrt(5)) * idx;
-  const sinPhi = Math.sin(phi);
+  const y = 1 - (2 * i) / Math.max(n - 1, 1);  // -1..+1 garantido
+  const radiusAtY = Math.sqrt(Math.max(0, 1 - y * y));
+  const goldenAngle = Math.PI * (3 - Math.sqrt(5));
+  const theta = goldenAngle * i;
   return new THREE.Vector3(
-    radius * sinPhi * Math.cos(theta),
-    radius * sinPhi * Math.sin(theta),
-    radius * Math.cos(phi),
+    radius * radiusAtY * Math.cos(theta),
+    radius * y,
+    radius * radiusAtY * Math.sin(theta),
   );
 }
 
