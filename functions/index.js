@@ -1226,3 +1226,10 @@ exports.getDossieCeapKPIs = functions
 
 const { mountAskVertexAgent } = require("./src/vertex/askVertexAgent.js");
 mountAskVertexAgent(functions, exports);
+
+// ── Módulo Leads / Paywall ────────────────────────────────────────────────
+// Cloud Functions HTTP callable do paywall de contatos + petição automática.
+// Documentação: functions/src/leads/README.md
+const leadsPaywall = require("./src/leads");
+exports.openContactBigData = leadsPaywall.openContactBigData;
+exports.generateInitialPetition = leadsPaywall.generateInitialPetition;
