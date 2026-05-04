@@ -63,11 +63,19 @@ jobs:
       - name: Anti-bundle-vazio (sanity check)
         working-directory: frontend
         run: |
-          if grep -q 'apiKey:""' dist/assets/*.js 2>/dev/null; then
-            echo "::error::Bundle saiu com apiKey vazia — verifique secrets VITE_FIREBASE_*"
+          # Vite/Rolldown emite template literals (crases), não aspas duplas.
+          # Checa ambos os formatos para qualquer combinação de empty-string.
+          if grep -qE 'apiKey:(""|``|'\'''\'')' dist/assets/*.js 2>/dev/null; then
+            echo "::error::Bundle saiu com apiKey vazia — verifique se os secrets VITE_FIREBASE_* estão preenchidos no GitHub Settings → Secrets and variables → Actions"
+            grep -oE '.{8}apiKey:[^,]{0,30}' dist/assets/*.js | head -3
             exit 1
           fi
-          echo "✅ Bundle injetou apiKey real"
+          # Confirmação positiva: existe pelo menos uma apiKey não-vazia
+          if ! grep -qE 'apiKey:`AIza[A-Za-z0-9_-]{20,}`' dist/assets/*.js 2>/dev/null; then
+            echo "::error::Bundle não contém apiKey válida no formato AIza..."
+            exit 1
+          fi
+          echo "✅ Bundle injetou apiKey real (formato AIza... detectado)"
 
       - name: Auth GCP (Service Account)
         uses: google-github-actions/auth@v2
