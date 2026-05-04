@@ -15,6 +15,27 @@
         }
       },
       {
+        "source": "/api/datalake/dashboard-kpis",
+        "function": {
+          "functionId": "getDashboardKPIs",
+          "region": "southamerica-east1"
+        }
+      },
+      {
+        "source": "/api/datalake/alvos",
+        "function": {
+          "functionId": "getAlvos",
+          "region": "southamerica-east1"
+        }
+      },
+      {
+        "source": "/api/datalake/dossie-ceap",
+        "function": {
+          "functionId": "getDossieCeapKPIs",
+          "region": "southamerica-east1"
+        }
+      },
+      {
         "source": "/sprint",
         "destination": "/sprint.html"
       },
