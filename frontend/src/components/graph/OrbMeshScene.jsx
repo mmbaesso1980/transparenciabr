@@ -14,23 +14,14 @@ import * as THREE from "three";
 import { getPoliticianOrbStops } from "../../utils/politicianColor.js";
 import { partyHaloColor, getPartyPrimary } from "../../utils/partyColors.js";
 import StarField from "./StarField.jsx";
+import {
+  fibonacciPoint,
+  layoutGalaxyPositions,
+} from "./galaxyLayout.js";
 
 /* ------------------------------------------------------------------ */
-/* Geometria utilitária                                                */
+/* Geometria utilitária  (fibonacciPoint importado de galaxyLayout.js) */
 /* ------------------------------------------------------------------ */
-
-function fibonacciPoint(i, n, radius) {
-  if (n < 1) return new THREE.Vector3(0, 0, radius);
-  const y = 1 - (2 * i) / Math.max(n - 1, 1);  // -1..+1 garantido
-  const radiusAtY = Math.sqrt(Math.max(0, 1 - y * y));
-  const goldenAngle = Math.PI * (3 - Math.sqrt(5));
-  const theta = goldenAngle * i;
-  return new THREE.Vector3(
-    radius * radiusAtY * Math.cos(theta),
-    radius * y,
-    radius * radiusAtY * Math.sin(theta),
-  );
-}
 
 function tierScale(node) {
   switch (node?.tier) {
@@ -43,183 +34,6 @@ function tierScale(node) {
     default:
       return 0.85;
   }
-}
-
-function buildGraphIndices(nodes, links) {
-  const polToParty = new Map();
-  const polToSuppliers = new Map();
-
-  for (const L of links) {
-    const sid = String(typeof L.source === "object" ? L.source?.id : L.source);
-    const tid = String(typeof L.target === "object" ? L.target?.id : L.target);
-    if (sid.startsWith("party_") && tid.startsWith("pol_")) {
-      polToParty.set(tid, sid);
-    }
-    if (sid.startsWith("pol_") && !tid.startsWith("pol_")) {
-      const tNode = nodes.find((n) => n.id === tid);
-      if (tNode?.tipo === "fornecedor") {
-        if (!polToSuppliers.has(sid)) polToSuppliers.set(sid, []);
-        polToSuppliers.get(sid).push(tid);
-      }
-    }
-  }
-
-  return { polToParty, polToSuppliers };
-}
-
-/* PRNG determinístico — string -> [0,1) */
-function hash01(str) {
-  let h = 0x811c9dc5;
-  const s = String(str || "");
-  for (let i = 0; i < s.length; i++) {
-    h ^= s.charCodeAt(i);
-    h = Math.imul(h, 0x01000193) >>> 0;
-  }
-  return (h >>> 0) / 4294967296;
-}
-
-/* Gaussiana box-muller a partir de duas amostras [0,1). */
-function gauss(u1, u2) {
-  const a = Math.sqrt(-2 * Math.log(Math.max(1e-9, u1)));
-  return a * Math.cos(2 * Math.PI * u2);
-}
-
-/**
- * LAYOUT GALÁCTICO POR PARTIDO
- *
- * Cada partido vira uma "galáxia": um anchor 3D distribuído por Fibonacci numa
- * casca esférica. Parlamentares são pontos gaussianos em torno do anchor (cluster
- * cósmico). Fornecedores ficam em pequena órbita ao redor do político.
- *
- * Não há mais anel rígido — a sensação é de aglomerados galácticos no espaço.
- */
-export function layoutGalaxyPositions(nodes, links) {
-  const posById = new Map();
-  const { polToParty, polToSuppliers } = buildGraphIndices(nodes, links);
-
-  const parties = nodes.filter((n) => n.tipo === "partido");
-  const nP = parties.length;
-
-  // Anchors dos partidos — esfera de raio 38, Fibonacci para boa distribuição.
-  const partyAnchors = new Map();
-  for (let i = 0; i < nP; i++) {
-    const node = parties[i];
-    const base = fibonacciPoint(i, Math.max(nP, 1), 38);
-    // Pequeno jitter determinístico para evitar simetria perfeita.
-    const jx = (hash01(`${node.id}:x`) - 0.5) * 4;
-    const jy = (hash01(`${node.id}:y`) - 0.5) * 4;
-    const jz = (hash01(`${node.id}:z`) - 0.5) * 4;
-    const anchor = base.clone().add(new THREE.Vector3(jx, jy, jz));
-    partyAnchors.set(node.id, anchor);
-    posById.set(node.id, anchor.clone());
-  }
-
-  // Agrupa políticos por partido.
-  const polNodes = nodes.filter((n) => n.tipo === "politico");
-  const polByParty = new Map();
-  for (const pol of polNodes) {
-    const partyId = polToParty.get(pol.id);
-    if (!partyId) continue;
-    if (!polByParty.has(partyId)) polByParty.set(partyId, []);
-    polByParty.get(partyId).push(pol);
-  }
-
-  // Para cada cluster, distribui parlamentares com gaussiana 3D.
-  for (const [partyId, plist] of polByParty) {
-    const anchor = partyAnchors.get(partyId);
-    if (!anchor) continue;
-    // Sigma cresce levemente com o tamanho do partido (cluster maior).
-    const sigma = 4.5 + Math.min(plist.length, 90) * 0.06;
-
-    plist.forEach((pol, j) => {
-      const seed = String(pol.id);
-      // 6 amostras independentes -> 3 gaussianas
-      const gx = gauss(hash01(`${seed}:gx1`), hash01(`${seed}:gx2`));
-      const gy = gauss(hash01(`${seed}:gy1`), hash01(`${seed}:gy2`));
-      const gz = gauss(hash01(`${seed}:gz1`), hash01(`${seed}:gz2`));
-
-      // Clamp para evitar outliers exagerados (galáxias visíveis, não diáspora).
-      const clamp = (x) => Math.max(-2.6, Math.min(2.6, x));
-      const offset = new THREE.Vector3(
-        clamp(gx) * sigma,
-        clamp(gy) * sigma,
-        clamp(gz) * sigma,
-      );
-
-      // Pequena dependência do índice para "achatar" o cluster levemente,
-      // dando aspecto de galáxia espiral em vez de esfera perfeita.
-      const flatten = 0.62 + (j % 7) * 0.04;
-      offset.y *= flatten;
-
-      const polPos = anchor.clone().add(offset);
-      posById.set(pol.id, polPos);
-
-      // Fornecedores do político — mini-órbita.
-      const supIds = polToSuppliers.get(pol.id) || [];
-      const m = supIds.length;
-      if (m > 0) {
-        const dirOut = polPos.clone().sub(anchor);
-        if (dirOut.lengthSq() < 1e-6) dirOut.set(1, 0, 0);
-        dirOut.normalize();
-        const tmp = Math.abs(dirOut.y) > 0.9
-          ? new THREE.Vector3(1, 0, 0)
-          : new THREE.Vector3(0, 1, 0);
-        const u = new THREE.Vector3().crossVectors(tmp, dirOut).normalize();
-        const v = new THREE.Vector3().crossVectors(dirOut, u).normalize();
-        for (let k = 0; k < m; k++) {
-          const ang = (k / m) * Math.PI * 2;
-          const rS = 1.6;
-          const sPos = polPos
-            .clone()
-            .add(u.clone().multiplyScalar(Math.cos(ang) * rS))
-            .add(v.clone().multiplyScalar(Math.sin(ang) * rS));
-          posById.set(supIds[k], sPos);
-        }
-      }
-    });
-  }
-
-  // Políticos órfãos (sem partido conhecido) — campo dispersou em casca interna.
-  const orphanPols = polNodes.filter((p) => !polToParty.has(p.id));
-  orphanPols.forEach((pol, idx) => {
-    const p = fibonacciPoint(idx, Math.max(orphanPols.length, 1), 18);
-    const j = new THREE.Vector3(
-      (hash01(`${pol.id}:ox`) - 0.5) * 4,
-      (hash01(`${pol.id}:oy`) - 0.5) * 4,
-      (hash01(`${pol.id}:oz`) - 0.5) * 4,
-    );
-    const polPos = p.add(j);
-    posById.set(pol.id, polPos);
-
-    const supIds = polToSuppliers.get(pol.id) || [];
-    if (supIds.length) {
-      const dirOut = polPos.clone().normalize();
-      const tmp = Math.abs(dirOut.y) > 0.9
-        ? new THREE.Vector3(1, 0, 0)
-        : new THREE.Vector3(0, 1, 0);
-      const u = new THREE.Vector3().crossVectors(tmp, dirOut).normalize();
-      const v = new THREE.Vector3().crossVectors(dirOut, u).normalize();
-      supIds.forEach((sid, k) => {
-        const ang = (k / supIds.length) * Math.PI * 2;
-        posById.set(
-          sid,
-          polPos
-            .clone()
-            .add(u.clone().multiplyScalar(Math.cos(ang) * 1.4))
-            .add(v.clone().multiplyScalar(Math.sin(ang) * 1.4)),
-        );
-      });
-    }
-  });
-
-  // Garantia: todo node tem posição.
-  for (const node of nodes) {
-    if (!posById.has(node.id)) {
-      posById.set(node.id, fibonacciPoint(0, 1, 14));
-    }
-  }
-
-  return posById;
 }
 
 /** @deprecated mantido por compat. */
@@ -478,7 +292,7 @@ function CosmicOrb({
     }
   });
 
-  const orbRadius = 0.42;
+  const orbRadius = 0.55;
 
   return (
     <group position={position}>
@@ -620,7 +434,7 @@ function SceneContent({
   const [camBusy, setCamBusy] = useState(false);
   const [driftPaused, setDriftPaused] = useState(false);
 
-  const DRIFT_RADIUS = 28;
+  const DRIFT_RADIUS = 55;
 
   const cameraAnimRef = useRef({
     active: false,
@@ -726,7 +540,7 @@ function SceneContent({
         dir.set(0, 0.25, 1);
       }
       dir.normalize();
-      const endCam = target.clone().add(dir.multiplyScalar(4));
+      const endCam = target.clone().add(dir.multiplyScalar(22));
       beginCameraAnim(endCam, target, 1200, onArrive);
     },
     [beginCameraAnim],
@@ -912,8 +726,8 @@ function SceneContent({
         <OrbitControls
           ref={controlsRef}
           enablePan={false}
-          minDistance={8}
-          maxDistance={60}
+          minDistance={20}
+          maxDistance={90}
           minPolarAngle={0}
           maxPolarAngle={Math.PI}
           enableDamping
@@ -976,7 +790,7 @@ const OrbMeshScene = forwardRef(function OrbMeshScene(
   return (
     <div className={`absolute inset-0 touch-none ${className}`}>
       <Canvas
-        camera={{ position: [0, 0, 28], fov: 55 }}
+        camera={{ position: [0, 5, 55], fov: 55 }}
         gl={{
           antialias: true,
           alpha: false,
