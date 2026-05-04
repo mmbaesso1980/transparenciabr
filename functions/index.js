@@ -1096,6 +1096,7 @@ const {
   loadRosterMap,
   formatDashboardPayload,
   formatAlvosPayload,
+  formatDossieCeapPayload,
 } = require("./src/datalake/ceapClassifiedAggregates.js");
 
 const KPI_CACHE =
@@ -1120,6 +1121,7 @@ exports.getDashboardKPIs = functions
       const storage = new Storage();
       const scan = await scanCeapClassified(storage);
       let rosterTotal = 594;
+      let rosterMap = new Map();
       const rosterFile = storage.bucket("datalake-tbr-clean").file("universe/roster.json");
       const [rex] = await rosterFile.exists();
       if (rex) {
@@ -1131,8 +1133,9 @@ exports.getDashboardKPIs = functions
         } catch (_) {
           /* ignore */
         }
+        rosterMap = await loadRosterMap(storage);
       }
-      const body = formatDashboardPayload(scan, rosterTotal);
+      const body = formatDashboardPayload(scan, rosterTotal, rosterMap);
       res.status(200).json(body);
     } catch (err) {
       console.error("getDashboardKPIs error:", err);
@@ -1161,16 +1164,59 @@ exports.getAlvos = functions
     const limit = Math.min(200, Math.max(1, Number.isFinite(limitRaw) ? limitRaw : 50));
     const minRaw = Number(req.query.min_score);
     const minScore = Math.min(100, Math.max(0, Number.isFinite(minRaw) ? minRaw : 0));
+    const sortKey = String(req.query.sort || "notas_alto_risco").trim();
 
     try {
       const { Storage } = require("@google-cloud/storage");
       const storage = new Storage();
       const scan = await scanCeapClassified(storage);
       const rosterMap = await loadRosterMap(storage);
-      const body = formatAlvosPayload(scan, rosterMap, limit, minScore);
+      const body = formatAlvosPayload(scan, rosterMap, limit, minScore, sortKey);
       res.status(200).json(body);
     } catch (err) {
       console.error("getAlvos error:", err);
+      res.status(503).json({
+        error: "datalake unavailable",
+        detail: String(err.message || err),
+      });
+    }
+  });
+
+exports.getDossieCeapKPIs = functions
+  .region("southamerica-east1")
+  .runWith({ memory: "512MB", timeoutSeconds: 120 })
+  .https.onRequest(async (req, res) => {
+    res.set("Access-Control-Allow-Origin", "*");
+    res.set("Access-Control-Allow-Methods", "GET");
+    res.set("Cache-Control", KPI_CACHE);
+    res.set("Content-Type", "application/json; charset=utf-8");
+
+    if (req.method !== "GET" && req.method !== "HEAD") {
+      res.status(405).json({ error: "Method not allowed" });
+      return;
+    }
+
+    const id = String(req.query.id || "").trim();
+    if (!id) {
+      res.status(400).json({ error: "missing_id", hint: "Use ?id=204554" });
+      return;
+    }
+
+    try {
+      const { Storage } = require("@google-cloud/storage");
+      const storage = new Storage();
+      const scan = await scanCeapClassified(storage);
+      const body = formatDossieCeapPayload(scan, id);
+      if (!body) {
+        res.status(404).json({
+          error: "no_ceap_classified",
+          detail: "Nenhuma nota classificada encontrada para este ID no prefixo ceap_classified/",
+        });
+        return;
+      }
+      res.status(200).json(body);
+    } catch (err) {
+      console.error("getDossieCeapKPIs error:", err);
       res.status(503).json({
         error: "datalake unavailable",
         detail: String(err.message || err),

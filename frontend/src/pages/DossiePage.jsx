@@ -12,6 +12,7 @@ import { Helmet } from "react-helmet-async";
 import { useParams } from "react-router-dom";
 
 import PremiumGate from "../components/PremiumGate.jsx";
+import DossieForensicStrip from "../components/forensic/DossieForensicStrip.jsx";
 import BrandLogo from "../components/BrandLogo.jsx";
 import ExposureGauge from "../components/ExposureGauge.jsx";
 import PanelSkeleton from "../components/dossie/PanelSkeleton.jsx";
@@ -31,6 +32,7 @@ import PrismaCeapSection from "../components/dossie/PrismaCeapSection.jsx";
 import BrazilHeatmap from "../components/BrazilHeatmap.jsx";
 import NetworkGraph from "../components/dossie/NetworkGraph.jsx";
 import DossierPremiumInsights from "../components/dossie/DossierPremiumInsights.jsx";
+import useDossieCeapKPIs from "../hooks/useDossieCeapKPIs.js";
 import { useUserCredits } from "../hooks/useUserCredits.js";
 import { useUserClaims } from "../hooks/useUserClaims.js";
 import {
@@ -99,6 +101,7 @@ export default function DossiePage() {
   const [pdfError, setPdfError] = useState(null);
   const [pdfBusy, setPdfBusy] = useState(false);
   const reportQuery = useTransparencyReport(politicoId);
+  const { data: ceapKpi, loading: ceapKpiLoading } = useDossieCeapKPIs(politicoId);
 
   const displayRecord = useMemo(() => enrichPoliticoRecord(record), [record]);
 
@@ -336,7 +339,7 @@ export default function DossiePage() {
         <meta property="og:type" content="article" />
       </Helmet>
 
-      <div className="relative isolate min-h-full w-full min-w-0 max-w-full overflow-x-hidden bg-[#0A0E17] pb-12 text-[#F0F4FC]">
+      <div className="relative isolate min-h-full w-full min-w-0 max-w-full overflow-x-hidden bg-[#0B0F1A] pb-12 text-[#F0F4FC]">
         <div
           aria-hidden
           className="pointer-events-none fixed inset-0 overflow-hidden"
@@ -348,7 +351,7 @@ export default function DossiePage() {
 
         <div className="relative z-10 min-w-0 w-full max-w-full">
           {/* Linha 1 — cabeçalho Bentobox fixo */}
-          <header className="sticky top-0 z-50 border-b border-[#30363D] bg-[#0A0E17]/93 backdrop-blur-lg">
+          <header className="sticky top-0 z-50 border-b border-[#30363D] bg-[#0B0F1A]/93 backdrop-blur-lg">
             <div className="mx-auto flex min-w-0 max-w-[1600px] flex-wrap items-center gap-3 px-4 py-3 sm:gap-4 sm:px-6 sm:py-4">
               <BrandLogo to="/" variant="dark" size="md" withGlow className="hidden md:flex" />
               {photoAbs ? (
@@ -412,6 +415,12 @@ export default function DossiePage() {
           </header>
 
           <div className="dossie-page-body mx-auto min-w-0 w-full max-w-[1600px] space-y-6 px-4 pt-6 sm:px-6 text-lg leading-relaxed text-[#C9D1D9]">
+            <DossieForensicStrip
+              kpi={ceapKpi}
+              politicoId={politicoId}
+              loading={ceapKpiLoading}
+            />
+
             {/* Linha 2 — índice forense + bússola */}
             <div className="grid min-w-0 gap-4 md:grid-cols-2">
               <section className="glass-card flex min-h-[26rem] flex-col overflow-hidden p-0">
