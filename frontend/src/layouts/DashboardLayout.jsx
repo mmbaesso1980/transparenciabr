@@ -29,8 +29,8 @@ export default function DashboardLayout() {
         aria-label="Navegação principal"
       >
         <NavLink
-          to="/dashboard"
-          title="Operações"
+          to="/status"
+          title="Status"
           className={({ isActive }) =>
             [
               "flex size-10 items-center justify-center rounded-xl border transition-colors",
@@ -58,8 +58,8 @@ export default function DashboardLayout() {
           <Coins className="size-[1.35rem]" strokeWidth={1.75} />
         </NavLink>
         <NavLink
-          to="/ranking"
-          title="Entidades"
+          to="/universo"
+          title="Universo"
           className={({ isActive }) =>
             [
               "flex size-10 items-center justify-center rounded-xl border transition-colors",
@@ -99,7 +99,7 @@ export default function DashboardLayout() {
         <header className="sticky top-0 z-30 flex min-h-14 shrink-0 flex-wrap items-center justify-between gap-4 border-b border-[var(--border-subtle)] bg-[var(--bg-deep)]/92 px-4 py-2 backdrop-blur-md sm:px-6">
           <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center sm:gap-6">
             <BrandLogo
-              to="/dashboard"
+              to="/status"
               variant="dark"
               size="md"
               withGlow
@@ -114,11 +114,11 @@ export default function DashboardLayout() {
             aria-label="Secções do painel"
           >
             <CreditosGOD />
-            <NavLink to="/dashboard" className={navTabClass}>
-              Operações
+            <NavLink to="/status" className={navTabClass}>
+              Status
             </NavLink>
-            <NavLink to="/ranking" className={navTabClass}>
-              Entidades
+            <NavLink to="/universo" className={navTabClass}>
+              Universo
             </NavLink>
             <NavLink to="/mapa" className={navTabClass}>
               Mapa
@@ -129,11 +129,11 @@ export default function DashboardLayout() {
             <NavLink to="/creditos" className={navTabClass}>
               Financeiro
             </NavLink>
-            <NavLink to="/radar/dossiers" className={navTabClass}>
-              Análise de risco
+            <NavLink to="/radar-legal" className={navTabClass}>
+              Radar jurídico
             </NavLink>
-            <NavLink to="/dashboard" className={navTabClass}>
-              Relatórios
+            <NavLink to="/perfil" className={navTabClass}>
+              Perfil
             </NavLink>
             <div className="ml-1">
               <UserMenu />

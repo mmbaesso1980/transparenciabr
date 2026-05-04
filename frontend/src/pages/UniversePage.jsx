@@ -28,6 +28,7 @@ export default function UniversePage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const focusParam = searchParams.get("focus") || "";
+  const moduloParam = searchParams.get("modulo") || "";
   const graphRef = useRef(null);
   const focusedRef = useRef(""); // garante fly-to apenas uma vez por id
   const { isAuthenticated, user } = useAuth();
@@ -109,6 +110,21 @@ export default function UniversePage() {
     next.delete("focus");
     setSearchParams(next, { replace: true });
   }, [focusParam, graphData, searchParams, setSearchParams]);
+
+  // Pré-preenche busca quando vem de ?modulo= (links das categorias / ranking legado).
+  useEffect(() => {
+    const m = String(moduloParam || "").trim().toLowerCase();
+    if (!m) return;
+    const cat = INVESTIGATION_CATEGORIES.find((c) => c.dashboardHash === m);
+    if (cat) {
+      setSearchQuery(cat.label);
+    } else {
+      setSearchQuery(m);
+    }
+    const next = new URLSearchParams(searchParams);
+    next.delete("modulo");
+    setSearchParams(next, { replace: true });
+  }, [moduloParam, searchParams, setSearchParams]);
 
   const emptyGraph =
     !loading && (!graphData.nodes?.length || error === "firebase_unavailable");
@@ -330,7 +346,7 @@ export default function UniversePage() {
           {LEFT_BENTO.map((cat) => (
             <Link
               key={cat.seed}
-              to={`/dashboard#${cat.dashboardHash}`}
+              to={cat.to}
               className="group rounded-2xl border border-[#21262D]/90 bg-[#080B14]/45 p-3.5 shadow-[0_12px_40px_rgba(0,0,0,0.4)] backdrop-blur-md transition hover:-translate-y-0.5 hover:border-[#7DD3FC]/35 hover:bg-[#0D1117]/55 hover:shadow-[0_16px_48px_rgba(125,211,252,0.12)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7DD3FC] sm:p-4"
             >
               <div className="flex items-start gap-3">
@@ -366,7 +382,7 @@ export default function UniversePage() {
           {RIGHT_BENTO.map((cat) => (
             <Link
               key={cat.seed}
-              to={`/dashboard#${cat.dashboardHash}`}
+              to={cat.to}
               className="group rounded-2xl border border-[#21262D]/90 bg-[#080B14]/45 p-3.5 shadow-[0_12px_40px_rgba(0,0,0,0.4)] backdrop-blur-md transition hover:-translate-y-0.5 hover:border-[#7DD3FC]/35 hover:bg-[#0D1117]/55 hover:shadow-[0_16px_48px_rgba(125,211,252,0.12)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7DD3FC] sm:p-4"
             >
               <div className="flex items-start gap-3">
@@ -406,7 +422,7 @@ export default function UniversePage() {
           {[...LEFT_BENTO, ...RIGHT_BENTO].map((cat) => (
             <Link
               key={`mobile-${cat.seed}`}
-              to={`/dashboard#${cat.dashboardHash}`}
+              to={cat.to}
               className="group flex w-[78vw] max-w-[280px] shrink-0 snap-center items-start gap-2.5 rounded-2xl border border-[#21262D]/90 bg-[#080B14]/70 p-3 shadow-[0_12px_40px_rgba(0,0,0,0.5)] backdrop-blur-md transition active:scale-[0.99]"
             >
               <PoliticianOrb

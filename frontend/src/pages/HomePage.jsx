@@ -88,7 +88,7 @@ const INVESTIGATION_CATEGORIES = [
     label: "Cota CEAP",
     headline: "R$ 4 bi/ano",
     body: "Cada nota é suspeita até prova contrária. Locação, combustível, divulgação parlamentar — auditados nota a nota.",
-    to: "/ranking?modulo=ceap",
+    to: "/universo?modulo=ceap",
     cta: "Investigar gastos",
   },
   {
@@ -97,7 +97,7 @@ const INVESTIGATION_CATEGORIES = [
     label: "Patrimônio TSE",
     headline: "+1.200%",
     body: "Crescimento patrimonial entre eleições. Bens declarados vs. faixa salarial — outliers expostos.",
-    to: "/ranking?modulo=patrimonio",
+    to: "/universo?modulo=patrimonio",
     cta: "Ver enriquecimento",
   },
   {
@@ -106,7 +106,7 @@ const INVESTIGATION_CATEGORIES = [
     label: "Folha do Gabinete",
     headline: "21 secretários",
     body: "Familiares, sócios e fantasmas no gabinete. Cruzamento CPF × empresa × parentesco.",
-    to: "/ranking?modulo=folha",
+    to: "/universo?modulo=folha",
     cta: "Mapear gabinete",
   },
   {
@@ -115,7 +115,7 @@ const INVESTIGATION_CATEGORIES = [
     label: "Viagens & Pedágios",
     headline: "48 passagens",
     body: "Carro alugado em Brasília, pedágio no Rio. SEM PARAR não mente — geolocalização forense.",
-    to: "/ranking?modulo=viagens",
+    to: "/universo?modulo=viagens",
     cta: "Rastrear deslocamento",
   },
   {
@@ -124,7 +124,7 @@ const INVESTIGATION_CATEGORIES = [
     label: "Emendas & PIX",
     headline: "R$ 50 bi",
     body: "Emendas relator, individuais e PIX. Beneficiários terminais, ONGs sem CNAE, prefeituras-fachada.",
-    to: "/ranking?modulo=emendas",
+    to: "/universo?modulo=emendas",
     cta: "Seguir o dinheiro",
   },
   {
@@ -133,7 +133,7 @@ const INVESTIGATION_CATEGORIES = [
     label: "Contratos PNCP",
     headline: "3,7 mi licitações",
     body: "Vencedores recorrentes, sobrepreço, dispensa indevida. OCR + Gemini sob direito administrativo.",
-    to: "/ranking?modulo=contratos",
+    to: "/universo?modulo=contratos",
     cta: "Auditar licitações",
   },
 ];
@@ -214,17 +214,17 @@ export default function HomePage() {
           className="flex flex-wrap items-center gap-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#8B949E] sm:gap-5"
           aria-label="Entrada rápida"
         >
-          <Link className="text-[#F0F4FC] transition hover:text-[#58A6FF]" to="/dashboard">
-            Overview
+          <Link className="text-[#F0F4FC] transition hover:text-[#58A6FF]" to="/status">
+            Status
           </Link>
-          <Link className="transition hover:text-[#58A6FF]" to="/ranking">
-            Entities
+          <Link className="transition hover:text-[#58A6FF]" to="/universo">
+            Universo
           </Link>
-          <Link className="transition hover:text-[#58A6FF]" to="/ranking">
-            Financials
+          <Link className="transition hover:text-[#58A6FF]" to="/partido">
+            Partidos
           </Link>
-          <Link className="transition hover:text-[#58A6FF]" to="/ranking">
-            Risk
+          <Link className="transition hover:text-[#58A6FF]" to="/creditos">
+            Créditos
           </Link>
           <Link className="transition hover:text-[#58A6FF]" to="/mapa">
             Map
@@ -232,8 +232,8 @@ export default function HomePage() {
           <Link className="transition hover:text-[#58A6FF]" to="/alertas">
             Alerts
           </Link>
-          <Link className="transition hover:text-[#58A6FF]" to="/dashboard">
-            Reports
+          <Link className="transition hover:text-[#58A6FF]" to="/radar-legal">
+            Radar jurídico
           </Link>
         </nav>
       </header>
@@ -437,7 +437,7 @@ export default function HomePage() {
               </h2>
             </div>
             <Link
-              to="/dashboard"
+              to="/status"
               className="inline-flex items-center gap-2 rounded-xl border border-[#30363D] bg-[#21262D]/70 px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-[#F0F4FC] transition hover:border-[#58A6FF]/45"
             >
               Centro de Operacoes
