@@ -1,5 +1,7 @@
 import { Link } from "react-router-dom";
 
+import ForensicBarChartH from "./ForensicBarChartH.jsx";
+import ForensicLineChart from "./ForensicLineChart.jsx";
 import KPICardXL from "./KPICardXL.jsx";
 
 function fmtBrlCompact(n) {
@@ -12,6 +14,12 @@ function fmtBrlCompact(n) {
     currency: "BRL",
     maximumFractionDigits: 0,
   });
+}
+
+function shortCatLabel(name, max = 18) {
+  const s = String(name || "").trim() || "—";
+  if (s.length <= max) return s;
+  return `${s.slice(0, max - 1)}…`;
 }
 
 /**
@@ -47,6 +55,14 @@ export default function DossieForensicStrip({ kpi, politicoId, loading }) {
   const idx = Number(kpi.indice_risco_aurora);
   const idxAccent =
     idx >= 85 ? "red" : idx >= 60 ? "orange" : idx >= 40 ? "yellow" : "green";
+
+  const serie = Array.isArray(kpi.serie_valor_anual_brl) ? kpi.serie_valor_anual_brl : [];
+  const topCats = Array.isArray(kpi.top_categorias_valor) ? kpi.top_categorias_valor : [];
+  const barRows = topCats.map((row) => ({
+    label: shortCatLabel(row.categoria, 16),
+    labelTitle: row.categoria,
+    value: row.valor_brl,
+  }));
 
   return (
     <section
@@ -171,6 +187,54 @@ export default function DossieForensicStrip({ kpi, politicoId, loading }) {
           </span>
         </KPICardXL>
       </div>
+
+      {(serie.length > 0 || barRows.length > 0) && (
+        <div
+          className="mt-8 grid gap-6 lg:grid-cols-2"
+          aria-label="Mini gráficos CEAP: evolução anual e valor por categoria"
+        >
+          <div className="rounded-xl border border-white/[0.08] bg-[#0b0f1a]/50 p-4 sm:p-5">
+            <h3 className="font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-[#22d3ee]">
+              Evolução CEAP (valor classificado)
+            </h3>
+            <p className="mt-1 text-[11px] leading-relaxed text-slate-500">
+              Fonte: soma por ano no prefixo <span className="font-mono text-slate-400">ceap_classified/</span>.
+            </p>
+            <div className="mt-3">
+              <ForensicLineChart
+                points={serie}
+                valueFormatter={(v) => fmtBrlCompact(v)}
+                height={120}
+                compact
+                showValueLabels={serie.length <= 6}
+                ariaLabel="Mini gráfico de linha do valor CEAP classificado por ano"
+                emptyMessage="Sem série anual para este parlamentar."
+              />
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-white/[0.08] bg-[#0b0f1a]/50 p-4 sm:p-5">
+            <h3 className="font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-[#22d3ee]">
+              Gasto por categoria (top 8)
+            </h3>
+            <p className="mt-1 text-[11px] leading-relaxed text-slate-500">
+              Fonte: valor agregado por rubrica no datalake classificado.
+            </p>
+            <div className="mt-3">
+              <ForensicBarChartH
+                rows={barRows}
+                labelKey="label"
+                titleKey="labelTitle"
+                valueKey="value"
+                valueFormatter={(v) => fmtBrlCompact(v)}
+                compact
+                maxRows={8}
+                emptyMessage="Sem categorias agregadas."
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       {kpi.latencia_media_horas_ingestao_classif != null ? (
         <p className="mt-4 font-mono text-[11px] text-slate-500">
