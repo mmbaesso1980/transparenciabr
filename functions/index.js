@@ -794,19 +794,25 @@ exports.createCheckoutSession = functions
       },
     };
 
-    // Catálogo oficial Stripe (price IDs no Dashboard — espelha frontend/CreditosPage.jsx)
+    // Catálogo Stripe — price IDs apenas via ambiente (SecOps / G.O.A.T. Pilar 3).
     const PACKAGE_CATALOG = {
       starter_500: {
         credits: 500,
-        stripe_price_id: "price_1TRf4NDnfbKVv2ZRDRnR09b8",
+        stripe_price_id: (
+          process.env.STRIPE_PRICE_STARTER_500 || ""
+        ).trim(),
       },
       jornalista_1500: {
         credits: 1500,
-        stripe_price_id: "price_1TRf5XDnfbKVv2ZRSFw8vMxN",
+        stripe_price_id: (
+          process.env.STRIPE_PRICE_JORNALISTA_1500 || ""
+        ).trim(),
       },
       investigador_4000: {
         credits: 4000,
-        stripe_price_id: "price_1TRf6RDnfbKVv2ZRge1XL7oJ",
+        stripe_price_id: (
+          process.env.STRIPE_PRICE_INVESTIGADOR_4000 || ""
+        ).trim(),
       },
     };
     const packageId = (data.packageId || data.package_id || "").trim();
@@ -815,6 +821,12 @@ exports.createCheckoutSession = functions
       params.line_items = [{ price: priceId, quantity: 1 }];
     } else if (packageId && PACKAGE_CATALOG[packageId]) {
       const pkg = PACKAGE_CATALOG[packageId];
+      if (!pkg.stripe_price_id) {
+        throw new functions.https.HttpsError(
+          "failed-precondition",
+          "Configure STRIPE_PRICE_STARTER_500, STRIPE_PRICE_JORNALISTA_1500 e STRIPE_PRICE_INVESTIGADOR_4000 nas Cloud Functions (Dashboard Stripe → Price IDs).",
+        );
+      }
       params.metadata.credits = String(pkg.credits);
       params.metadata.package_id = packageId;
       params.line_items = [{ price: pkg.stripe_price_id, quantity: 1 }];
