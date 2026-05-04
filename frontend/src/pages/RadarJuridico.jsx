@@ -266,6 +266,24 @@ export default function RadarJuridico() {
           </p>
         </header>
 
+        {/* Banner de transparência — estado atual do pipeline */}
+        <div
+          className="mb-6 rounded-xl border px-4 py-3 text-xs leading-relaxed sm:text-sm"
+          style={{
+            borderColor: "rgba(217, 119, 6, 0.45)",
+            background: "rgba(120, 53, 15, 0.18)",
+            color: "#fde68a",
+          }}
+        >
+          <span className="mr-2 inline-flex items-center rounded-md border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-amber-200">
+            Prova de conceito
+          </span>
+          <strong className="text-amber-100">Dados sintéticos para validação do ICP.</strong>{" "}
+          Pool de 9,64M alimentado pela carga BQ INSS (em finalização). Litispendência TRF3 e enriquecimento Syslint (telefone/Serasa) ainda dependem de:{" "}
+          <span className="text-amber-100">(1)</span> token de advogado para PJe TRF3,{" "}
+          <span className="text-amber-100">(2)</span> contrato com Syslint API. Os scores, teses e ranking são lógica de produção — vão operar idênticos quando o pipeline real estiver conectado.
+        </div>
+
         {/* KPIs */}
         <section className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
           <KpiCard label="Pool bruto INSS" value={`${(kpis.total_pool / 1_000_000).toFixed(2)}M`} hint="Indeferimentos 2025" tone="neutral" />
