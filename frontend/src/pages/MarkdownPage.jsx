@@ -14,7 +14,7 @@ function resolveDocSrc(docPath) {
   return `${trimmed}${path}`;
 }
 
-export default function MarkdownPage({ docPath, title, description }) {
+export default function MarkdownPage({ docPath, title, description, lead = "" }) {
   const [content, setContent] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -104,6 +104,11 @@ export default function MarkdownPage({ docPath, title, description }) {
         <h1 className="mb-8 text-2xl font-bold tracking-tight text-[#F0F4FC] sm:text-3xl">
           {title}
         </h1>
+        {lead ? (
+          <p className="mb-8 rounded-xl border border-[#30363D]/60 bg-[#0d1117]/60 px-4 py-3 text-sm leading-relaxed text-[#8B949E]">
+            {lead}
+          </p>
+        ) : null}
         {loading ? (
           <p className="text-sm text-[#8B949E]">Carregando…</p>
         ) : error ? (
