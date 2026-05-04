@@ -1223,3 +1223,6 @@ exports.getDossieCeapKPIs = functions
       });
     }
   });
+
+const { mountAskVertexAgent } = require("./src/vertex/askVertexAgent.js");
+mountAskVertexAgent(functions, exports);

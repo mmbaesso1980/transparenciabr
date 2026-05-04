@@ -8,12 +8,12 @@ import { QueryProvider } from "./lib/queryClient.js";
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
-    <ErrorBoundary>
-      <HelmetProvider>
+    <HelmetProvider>
+      <ErrorBoundary>
         <QueryProvider>
           <App />
         </QueryProvider>
-      </HelmetProvider>
-    </ErrorBoundary>
+      </ErrorBoundary>
+    </HelmetProvider>
   </StrictMode>,
 );

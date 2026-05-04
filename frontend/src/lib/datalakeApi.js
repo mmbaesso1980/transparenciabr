@@ -37,3 +37,12 @@ export function dossieCeapKpisUrl(politicoId) {
   const path = isHostingRewriteBase() ? `${base}/dossie-ceap` : `${base}/getDossieCeapKPIs`;
   return `${path}?id=${encodeURIComponent(politicoId)}`;
 }
+
+/** POST proxy Vertex / Dialogflow CX — mesmo host em web.app via rewrite. */
+export function vertexAskUrl() {
+  const origin = typeof window !== "undefined" ? window.location.origin.replace(/\/$/, "") : "";
+  if (isHostingRewriteBase() && origin) {
+    return `${origin}/api/vertex/ask`;
+  }
+  return "https://southamerica-east1-transparenciabr.cloudfunctions.net/askVertexAgent";
+}
