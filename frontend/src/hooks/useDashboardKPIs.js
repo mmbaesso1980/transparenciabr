@@ -4,8 +4,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-const DASHBOARD_KPIS_URL =
-  "https://southamerica-east1-transparenciabr.cloudfunctions.net/getDashboardKPIs";
+import { dashboardKpisUrl } from "../lib/datalakeApi.js";
 
 const BACKOFF_MS = [5000, 15000, 60000];
 
@@ -19,7 +18,7 @@ export function useDashboardKPIs({ pollMs = 60_000 } = {}) {
   const fetchKpis = useCallback(async (opts = { silent: false }) => {
     if (!opts.silent) setLoading(true);
     try {
-      const res = await fetch(DASHBOARD_KPIS_URL, {
+      const res = await fetch(dashboardKpisUrl(), {
         headers: { Accept: "application/json" },
       });
       if (!res.ok) {

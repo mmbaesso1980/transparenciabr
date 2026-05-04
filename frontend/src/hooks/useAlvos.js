@@ -4,10 +4,9 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-const ALOS_URL =
-  "https://southamerica-east1-transparenciabr.cloudfunctions.net/getAlvos";
+import { alvosUrl } from "../lib/datalakeApi.js";
 
-export function useAlvos({ limit = 50, minScore = 0 } = {}) {
+export function useAlvos({ limit = 50, minScore = 0, sort = "notas_alto_risco" } = {}) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -16,13 +15,14 @@ export function useAlvos({ limit = 50, minScore = 0 } = {}) {
     const p = new URLSearchParams();
     p.set("limit", String(limit));
     p.set("min_score", String(minScore));
+    p.set("sort", String(sort || "notas_alto_risco"));
     return p.toString();
-  }, [limit, minScore]);
+  }, [limit, minScore, sort]);
 
   const fetchAlvos = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${ALOS_URL}?${qs}`, {
+      const res = await fetch(alvosUrl(qs), {
         headers: { Accept: "application/json" },
       });
       if (!res.ok) {
