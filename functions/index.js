@@ -1177,3 +1177,6 @@ exports.getAlvos = functions
       });
     }
   });
+
+const { mountAskVertexAgent } = require("./src/vertex/askVertexAgent.js");
+mountAskVertexAgent(functions, exports);

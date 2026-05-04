@@ -12,6 +12,7 @@ import PainelMestrePage from "./pages/PainelMestrePage.jsx";
 import MetodologiaPage from "./pages/MetodologiaPage.jsx";
 import PrivacidadePage from "./pages/PrivacidadePage.jsx";
 import RadarINSS from "./pages/RadarINSS.jsx";
+import RadarJuridico from "./pages/RadarJuridico.jsx";
 import SobrePage from "./pages/SobrePage.jsx";
 import TermosPage from "./pages/TermosPage.jsx";
 import UniversePage from "./pages/UniversePage.jsx";
@@ -50,6 +51,7 @@ export default function App() {
                 <Route path="/termos" element={<TermosPage />} />
                 <Route path="/privacidade" element={<PrivacidadePage />} />
                 <Route path="/radar-inss" element={<RadarINSS />} />
+                <Route path="/radar-juridico" element={<RadarJuridico />} />
                 <Route path="/login" element={<LoginPage />} />
 
                 <Route path="/dossie/:id" element={<DossiePage />} />

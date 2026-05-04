@@ -8,6 +8,13 @@
     ],
     "rewrites": [
       {
+        "source": "/api/vertex/ask",
+        "function": {
+          "functionId": "askVertexAgent",
+          "region": "southamerica-east1"
+        }
+      },
+      {
         "source": "/api/sprint/status",
         "function": {
           "functionId": "getSprintStatus",
