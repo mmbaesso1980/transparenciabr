@@ -38,8 +38,9 @@ export function dossieCeapKpisUrl(politicoId) {
   return `${path}?id=${encodeURIComponent(politicoId)}`;
 }
 
-/** POST proxy Vertex / Dialogflow CX — mesmo host em web.app via rewrite. */
+/** POST proxy Vertex / Dialogflow CX — mesmo host que datalake em produção. */
 export function vertexAskUrl() {
+  const base = getDatalakeApiBase();
   const origin = typeof window !== "undefined" ? window.location.origin.replace(/\/$/, "") : "";
   if (isHostingRewriteBase() && origin) {
     return `${origin}/api/vertex/ask`;

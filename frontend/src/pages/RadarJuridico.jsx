@@ -30,7 +30,7 @@ export default function RadarJuridico() {
     {
       role: "sys",
       text:
-        "Canal seguro para o Agente (Dialogflow CX) via proxy. O contexto Operação Trilho 1 é injetado no backend. Credenciais nunca no browser.",
+        "Canal seguro para o Agente (Dialogflow CX) via proxy em /api/vertex/ask. O contexto Operação Trilho 1 é injetado no backend. Credenciais nunca no browser.",
     },
   ]);
   const [streaming, setStreaming] = useState(false);
@@ -191,8 +191,8 @@ export default function RadarJuridico() {
               Radar jurídico
             </h1>
             <p className="mt-2 max-w-xl text-sm leading-relaxed text-slate-400">
-              Perguntas ao motor via POST seguro. Em produção no Firebase Hosting:{" "}
-              <span className="font-mono text-slate-300">/api/vertex/ask</span>.
+              Perguntas ao motor via POST seguro. Em produção no Firebase Hosting use{" "}
+              <span className="font-mono text-slate-300">/api/vertex/ask</span> (rewrite).
             </p>
           </div>
           <Link
@@ -216,7 +216,7 @@ export default function RadarJuridico() {
             </h2>
             <ul className="mt-3 space-y-2 font-mono text-xs text-slate-400">
               <li>· IAM: Dialogflow API Client na SA das Functions</li>
-              <li>· Opcional: VERTEX_PROXY_CORS_ORIGINS</li>
+              <li>· Opcional: VERTEX_PROXY_CORS_ORIGINS (lista de origins)</li>
               <li>· DIALOGFLOW_AGENT_ID, DIALOGFLOW_LOCATION se não forem os defaults</li>
             </ul>
           </section>
@@ -343,7 +343,7 @@ export default function RadarJuridico() {
                     if (e.key === "Enter") send();
                   }}
                   disabled={streaming}
-                  placeholder="Ex.: Resumo de risco na malha Trilho 1"
+                  placeholder="Ex.: Resumo de risco previdenciário na malha Trilho 1"
                   className="min-h-11 flex-1 rounded-xl border border-white/10 bg-slate-950/80 px-3 font-mono text-sm text-slate-100 outline-none placeholder:text-slate-600 focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/30 disabled:opacity-50"
                   autoComplete="off"
                 />
