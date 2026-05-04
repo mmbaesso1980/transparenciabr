@@ -246,6 +246,8 @@ function CosmicOrb({
   onPointerOver,
   onPointerOut,
   onPointerMove,
+  sphereSegments = 16,
+  haloEnabled = true,
 }) {
   const stops = useMemo(() => stopsForNode(node), [node]);
   const halo = useMemo(() => getHaloTexture(), []);
@@ -296,6 +298,7 @@ function CosmicOrb({
 
   return (
     <group position={position}>
+      {haloEnabled && (
       <sprite ref={haloRef} scale={[orbRadius * scale * 7, orbRadius * scale * 7, 1]}>
         <spriteMaterial
           map={halo}
@@ -307,6 +310,7 @@ function CosmicOrb({
           depthTest
         />
       </sprite>
+      )}
 
       <mesh
         ref={meshRef}
@@ -328,7 +332,7 @@ function CosmicOrb({
           onPointerOut?.(e, node);
         }}
       >
-        <sphereGeometry args={[orbRadius, 64, 64]} />
+        <sphereGeometry args={[orbRadius, sphereSegments, sphereSegments]} />
         <shaderMaterial
           ref={matRef}
           vertexShader={orbVertexShader}
@@ -413,6 +417,10 @@ function SceneContent({
   onNodeClick,
   flyApiRef,
   onOrbHover,
+  sphereSegments = 16,
+  haloEnabled = true,
+  starCount = 1500,
+  fogFar = 200,
 }) {
   const { camera } = useThree();
   const groupRef = useRef(null);
@@ -719,6 +727,8 @@ function SceneContent({
               onPointerOver={onOver}
               onPointerMove={onMove}
               onPointerOut={onOut}
+              sphereSegments={sphereSegments}
+              haloEnabled={haloEnabled}
             />
           );
         })}
@@ -754,9 +764,24 @@ function SceneContent({
 /* ------------------------------------------------------------------ */
 
 const OrbMeshScene = forwardRef(function OrbMeshScene(
-  { graphData, onNodeClick, onOrbHover, empty = false, className = "" },
+  {
+    graphData,
+    onNodeClick,
+    onOrbHover,
+    empty = false,
+    className = "",
+    perfOptions = null,
+  },
   ref,
 ) {
+  const opts = perfOptions || {
+    dpr: [1, 1.5],
+    antialias: true,
+    sphereSegments: 16,
+    starCount: 1500,
+    haloEnabled: true,
+    fogFar: 160,
+  };
   const flyApiRef = useRef({});
 
   useImperativeHandle(
@@ -792,20 +817,22 @@ const OrbMeshScene = forwardRef(function OrbMeshScene(
       <Canvas
         camera={{ position: [0, 5, 55], fov: 55 }}
         gl={{
-          antialias: true,
+          antialias: opts.antialias,
           alpha: false,
           powerPreference: "high-performance",
           failIfMajorPerformanceCaveat: false,
         }}
-        dpr={[1, 1.75]}
+        dpr={opts.dpr}
         onPointerMissed={() => flyApiRef.current.clearFocus?.()}
       >
         <color attach="background" args={["#02040a"]} />
-        {/* Fog cósmico — orbes distantes desbotam suavemente. */}
-        <fog attach="fog" args={["#02040a", 55, 200]} />
-        {/* Estrelas de fundo (3000 pontos) — sensação de profundidade. */}
-        <StarField count={3000} radius={150} />
+        <fog attach="fog" args={["#02040a", 55, opts.fogFar]} />
+        <StarField count={opts.starCount} radius={150} />
         <SceneContent
+          sphereSegments={opts.sphereSegments}
+          haloEnabled={opts.haloEnabled}
+          starCount={opts.starCount}
+          fogFar={opts.fogFar}
           graphData={graphData}
           onNodeClick={onNodeClick}
           flyApiRef={flyApiRef}

@@ -13,6 +13,7 @@ import PoliticianOrb from "../components/PoliticianOrb.jsx";
 import UserOrb from "../components/UserOrb.jsx";
 import { INVESTIGATION_CATEGORIES } from "../constants/investigationCategories.js";
 import { useAuth } from "../context/AuthContext.jsx";
+import { detectPerfTier, getCanvasOptionsForTier, setOverrideTier } from "../utils/perfTier.js";
 import { useCreditosGOD } from "../context/CreditosGODContext.jsx";
 import { useUniverseRoster } from "../hooks/useUniverseRoster.js";
 import { useUserCredits } from "../hooks/useUserCredits.js";
@@ -38,6 +39,8 @@ export default function UniversePage() {
     useUniverseRoster();
 
   const [universeMode, setUniverseMode] = useState("default");
+  const [perfTier] = useState(() => detectPerfTier());
+  const perfOptions = useMemo(() => getCanvasOptionsForTier(perfTier), [perfTier]);
   const [hoveredOrbNode, setHoveredOrbNode] = useState(null);
   const [hoverOrbPos, setHoverOrbPos] = useState(null);
 
@@ -227,6 +230,7 @@ export default function UniversePage() {
             setHoverOrbPos(pos);
           }}
           empty={emptyGraph}
+          perfOptions={perfOptions}
         />
       </div>
 
@@ -238,11 +242,32 @@ export default function UniversePage() {
       {false && <UniverseTopBar totalParlamentares={total ?? 594} />}
 
       <header className="relative z-20 flex items-center justify-between gap-3 border-b border-[#30363D]/60 bg-[#02040a]/75 px-4 py-3 backdrop-blur-md sm:px-8">
-        <BrandLogo to="/" variant="full" size="md" />
+        <div className="flex items-center gap-3">
+          <BrandLogo to="/" variant="full" size="md" />
+          <span
+            title={`Modo gráfico detectado: ${perfTier}`}
+            className={`hidden items-center rounded-full border px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.18em] sm:inline-flex ${
+              perfTier === "high"
+                ? "border-emerald-400/40 bg-emerald-500/10 text-emerald-300"
+                : perfTier === "mid"
+                  ? "border-sky-400/40 bg-sky-500/10 text-sky-300"
+                  : "border-amber-400/40 bg-amber-500/10 text-amber-300"
+            }`}
+          >
+            {perfTier === "high" ? "Imersivo" : perfTier === "mid" ? "Equilibrado" : "Leve"}
+          </span>
+        </div>
         <nav
           className="flex items-center gap-2 sm:gap-2.5"
           aria-label="Navegação universo"
         >
+          <Link
+            to="/dashboard"
+            title="Modo clássico (sem 3D, mesmos dados)"
+            className="hidden h-9 items-center rounded-lg border border-amber-400/40 bg-amber-500/10 px-3 text-[10.5px] font-bold uppercase tracking-[0.16em] text-amber-200 transition hover:bg-amber-500/20 sm:inline-flex"
+          >
+            Modo Clássico
+          </Link>
           <Link
             to="/dashboard"
             className="inline-flex h-9 items-center rounded-lg border border-[#58A6FF]/45 bg-transparent px-3.5 text-[11px] font-bold uppercase tracking-[0.16em] text-[#7DD3FC] shadow-[0_0_24px_rgba(88,166,255,0.12)] backdrop-blur-sm transition hover:border-[#7DD3FC]/70 hover:bg-[#58A6FF]/10 hover:text-[#F0F4FC] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7DD3FC] sm:px-4"
