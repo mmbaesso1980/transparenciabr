@@ -2,7 +2,7 @@ import { Component } from "react";
 
 /**
  * Evita tela totalmente preta quando um componente lança no render.
- * Mostra mensagem mínima + stack em dev.
+ * Painel claro para contrastar com o tema dark do app.
  */
 export default class ErrorBoundary extends Component {
   constructor(props) {
