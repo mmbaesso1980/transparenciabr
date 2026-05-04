@@ -235,7 +235,7 @@ export default function UniversePage() {
         className="pointer-events-none absolute inset-0 z-[5] bg-[radial-gradient(ellipse_at_center,transparent_0%,#02040a_72%),radial-gradient(circle_at_15%_85%,rgba(88,166,255,0.1),transparent_42%),radial-gradient(circle_at_90%_12%,rgba(239,68,68,0.06),transparent_38%)]"
       />
 
-      <UniverseTopBar totalParlamentares={total ?? 594} />
+      {false && <UniverseTopBar totalParlamentares={total ?? 594} />}
 
       <header className="relative z-20 flex items-center justify-between gap-3 border-b border-[#30363D]/60 bg-[#02040a]/75 px-4 py-3 backdrop-blur-md sm:px-8">
         <BrandLogo to="/" variant="full" size="md" />
@@ -292,7 +292,7 @@ export default function UniversePage() {
 
       <OrbTooltip node={hoveredOrbNode} position={hoverOrbPos} />
 
-      {/* Bentos laterais — desktop apenas (sm+). No mobile viram strip horizontal mais abaixo. */}
+      {false && (
       <div className="pointer-events-none absolute inset-0 z-10 hidden justify-between gap-3 p-3 pt-[4.25rem] sm:flex sm:gap-4 sm:p-6 sm:pt-[4.75rem]">
         <aside className="pointer-events-auto flex max-h-[calc(100dvh-7.5rem)] w-[min(100%,280px)] flex-col gap-2.5 overflow-y-auto sm:gap-3">
           {LEFT_BENTO.map((cat) => (
@@ -366,8 +366,9 @@ export default function UniversePage() {
           ))}
         </aside>
       </div>
+      )}
 
-      {/* Strip horizontal de bentos — mobile apenas (<sm). Acima da busca, sem cobrir canvas. */}
+      {false && (
       <div className="pointer-events-none absolute inset-x-0 bottom-[7.5rem] z-20 px-3 sm:hidden">
         <div className="pointer-events-auto -mx-1 flex snap-x snap-mandatory gap-2.5 overflow-x-auto px-1 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {[...LEFT_BENTO, ...RIGHT_BENTO].map((cat) => (
@@ -400,7 +401,9 @@ export default function UniversePage() {
           ))}
         </div>
       </div>
+      )}
 
+      {false && (
       <div className="pointer-events-none fixed inset-x-0 bottom-0 z-30 flex justify-center px-4 pb-6 pt-16">
         <div
           ref={suggestionsRef}
@@ -484,6 +487,7 @@ export default function UniversePage() {
           </form>
         </div>
       </div>
+      )}
 
       {modalOpen ? (
         <div
