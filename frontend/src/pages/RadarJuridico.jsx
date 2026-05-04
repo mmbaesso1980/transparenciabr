@@ -2,15 +2,16 @@ import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { Helmet } from "react-helmet-async";
 
 /**
- * Radar Jurídico — demo LegalTech + chat real via proxy Cloud Function (Dialogflow CX).
- * Nenhuma credencial no cliente; ADC no backend.
+ * Radar Jurídico — integração real com Agente Vertex (Dialogflow CX) via proxy.
+ * Streaming NDJSON + efeito de digitação forense + painel de dados brutos (tools).
+ * ZERO credenciais no browser.
  */
 
-const MIDNIGHT = "#0a1628";
-const MIDNIGHT_DEEP = "#050d18";
 const EMERALD = "#34d399";
 const GOLD = "#d4af37";
 const GOLD_SOFT = "rgba(212, 175, 55, 0.35)";
+const MIDNIGHT = "#0a1628";
+const MIDNIGHT_DEEP = "#050d18";
 
 function agentEndpoint() {
   const fromEnv = import.meta.env.VITE_VERTEX_AGENT_URL;
@@ -32,8 +33,8 @@ function sessionKey() {
 const DEMO_CASE = {
   ref: "BR-2026-TRILHO-01",
   tribunal: "TRF-3",
-  objeto: "Revisão de benefício previdenciário · matéria de prova documental",
-  status: "Análise documental",
+  objeto: "Malha previdenciária · Pirassununga & Valinhos",
+  status: "Canal ASMODEUS ativo",
 };
 
 export default function RadarJuridico() {
@@ -43,54 +44,134 @@ export default function RadarJuridico() {
     {
       role: "sys",
       text:
-        "Canal seguro ao motor forense. Consultas são processadas via infraestrutura Google Cloud (Agent Builder / Dialogflow CX). Não armazenamos credenciais no navegador.",
+        "Integração real com o Agent Builder (Dialogflow CX). O proxy injeta o contexto Operação Trilho 1 (Pirassununga & Valinhos) em cada turno. Ferramentas do console (ex.: BigQuery) podem retornar blocos estruturados — exibidos no painel lateral como dados brutos.",
     },
   ]);
-  const [loading, setLoading] = useState(false);
+  const [streaming, setStreaming] = useState(false);
+  const [typedReply, setTypedReply] = useState("");
+  const [thinkLog, setThinkLog] = useState([]);
+  const [toolPayload, setToolPayload] = useState(null);
   const [error, setError] = useState("");
   const bottomRef = useRef(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, loading]);
+  }, [messages, streaming, typedReply, thinkLog]);
 
   const send = useCallback(async () => {
     const q = input.trim();
-    if (!q || loading) return;
+    if (!q || streaming) return;
     setInput("");
     setError("");
     setMessages((m) => [...m, { role: "user", text: q }]);
-    setLoading(true);
+    setStreaming(true);
+    setTypedReply("");
+    setThinkLog([]);
+    setToolPayload(null);
+
+    let accumulated = "";
 
     try {
       const res = await fetch(agentEndpoint(), {
         method: "POST",
-        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        headers: { "Content-Type": "application/json", Accept: "application/x-ndjson" },
         body: JSON.stringify({
           sessionId: sessionKey(),
           query: q,
+          stream: true,
         }),
       });
-      const data = await res.json().catch(() => ({}));
+
       if (!res.ok) {
-        throw new Error(data.detail || data.error || `HTTP ${res.status}`);
+        const t = await res.text();
+        let msg = t;
+        try {
+          const j = JSON.parse(t);
+          msg = j.detail || j.error || t;
+        } catch {
+          /* plain */
+        }
+        throw new Error(msg || `HTTP ${res.status}`);
       }
-      const reply = typeof data.reply === "string" ? data.reply : JSON.stringify(data);
-      setMessages((m) => [...m, { role: "agent", text: reply }]);
+
+      const reader = res.body?.getReader();
+      if (!reader) throw new Error("Stream não suportado neste navegador.");
+
+      const dec = new TextDecoder();
+      let buf = "";
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buf += dec.decode(value, { stream: true });
+        const lines = buf.split("\n");
+        buf = lines.pop() || "";
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed) continue;
+          let ev;
+          try {
+            ev = JSON.parse(trimmed);
+          } catch {
+            continue;
+          }
+          if (ev.type === "log" && ev.message) {
+            setThinkLog((l) => [
+              ...l.slice(-24),
+              { t: ev.ts || new Date().toISOString(), m: String(ev.message) },
+            ]);
+          } else if (ev.type === "text") {
+            if (typeof ev.delta === "string" && ev.delta) {
+              accumulated += ev.delta;
+              setTypedReply(accumulated);
+            } else if (typeof ev.full === "string") {
+              accumulated = ev.full;
+              setTypedReply(accumulated);
+            }
+          } else if (ev.type === "tool" && ev.payload) {
+            setToolPayload(ev.payload);
+            setThinkLog((l) => [
+              ...l.slice(-24),
+              {
+                t: new Date().toISOString(),
+                m: "Bloco estruturado recebido (diagnosticInfo / generativeInfo)",
+              },
+            ]);
+          } else if (ev.type === "intent" && ev.name) {
+            setThinkLog((l) => [
+              ...l.slice(-24),
+              { t: new Date().toISOString(), m: `Intent: ${ev.name}` },
+            ]);
+          } else if (ev.type === "error") {
+            throw new Error(ev.detail || "Erro no stream");
+          }
+        }
+      }
+
+      const raw = accumulated.trim();
+      const final = raw || "(Resposta vazia do agente.)";
+
+      if (raw) {
+        setTypedReply("");
+        const step = 4;
+        for (let i = 0; i < final.length; i += step) {
+          const slice = final.slice(0, i + step);
+          setTypedReply(slice);
+          await new Promise((r) => setTimeout(r, 22));
+        }
+      }
+
+      setTypedReply("");
+      setMessages((m) => [...m, { role: "agent", text: final }]);
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       setError(msg);
-      setMessages((m) => [
-        ...m,
-        {
-          role: "err",
-          text: `Falha na ponte segura: ${msg}. Verifique deploy da função askVertexAgent e permissões Dialogflow CX na service account.`,
-        },
-      ]);
+      setMessages((m) => [...m, { role: "err", text: `Falha na ponte segura: ${msg}` }]);
     } finally {
-      setLoading(false);
+      setStreaming(false);
+      setTypedReply("");
     }
-  }, [input, loading]);
+  }, [input, streaming]);
 
   return (
     <div
@@ -100,14 +181,13 @@ export default function RadarJuridico() {
       }}
     >
       <Helmet>
-        <title>Radar Jurídico — TransparênciaBR</title>
+        <title>Radar Jurídico — ASMODEUS · TransparênciaBR</title>
         <meta
           name="description"
-          content="Console LegalTech com integração ao agente Vertex (Dialogflow CX) via proxy seguro."
+          content="Console forense com agente Vertex (Dialogflow CX) e streaming seguro."
         />
       </Helmet>
 
-      {/* Top ribbon — tendência: "status strip" + hierarquia tipográfica editorial */}
       <div
         className="border-b px-4 py-2 text-center font-mono text-[10px] uppercase tracking-[0.35em] sm:text-[11px]"
         style={{
@@ -116,22 +196,21 @@ export default function RadarJuridico() {
           color: GOLD,
         }}
       >
-        Vertex AI Agent Builder · sessão cifrada no edge · sem chaves no cliente
+        Vertex AI · Agent ID 1777236402725 · proxy ADC · Operação Trilho 1 (Pirassununga & Valinhos)
       </div>
 
-      <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:py-10">
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:py-10">
         <header className="mb-10 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <p className="font-mono text-[11px] font-medium uppercase tracking-[0.28em]" style={{ color: EMERALD }}>
-              Operação forense · demo reunião
+              Integração total · streaming NDJSON
             </p>
             <h1 className="mt-2 font-serif text-3xl font-semibold tracking-tight text-white sm:text-4xl">
               Radar Jurídico
             </h1>
             <p className="mt-3 max-w-xl text-sm leading-relaxed text-slate-400">
-              Painel midnight com acentos esmeralda e ouro: contraste AA em texto principal,
-              hierarquia serif + mono para lembrar briefings de tribunal e terminais de
-              inteligência.
+              Midnight blue e ouro. O proxy envia queryParams com contexto Trilho 1; o chat renderiza deltas,
+              digitação forense no fecho e artefatos de ferramentas em JSON.
             </p>
           </div>
           <div
@@ -142,9 +221,7 @@ export default function RadarJuridico() {
               boxShadow: `0 0 0 1px ${GOLD_SOFT}`,
             }}
           >
-            <span className="text-[10px] uppercase tracking-widest text-slate-500">
-              Caso em destaque
-            </span>
+            <span className="text-[10px] uppercase tracking-widest text-slate-500">Caso</span>
             <span className="text-sm font-semibold text-white">{DEMO_CASE.ref}</span>
             <span style={{ color: EMERALD }}>{DEMO_CASE.tribunal}</span>
             <span className="text-slate-400">{DEMO_CASE.objeto}</span>
@@ -157,12 +234,11 @@ export default function RadarJuridico() {
           </div>
         </header>
 
-        {/* Timeline demo — tendência: narrativa processual em etapas */}
         <section className="mb-10 grid gap-4 sm:grid-cols-3">
           {[
-            { step: "01", title: "Captura", body: "DOU + fontes primárias indexadas no datalake." },
-            { step: "02", title: "Triagem", body: "Motor classifica risco sem imputar conduta." },
-            { step: "03", title: "Laudo", body: "Agente Vertex consolida linguagem jurídica controlada." },
+            { step: "01", title: "Proxy", body: "Único ponto de saída — ADC no Cloud Functions." },
+            { step: "02", title: "Contexto", body: "Operação Trilho 1 em queryParams (payload + parameters)." },
+            { step: "03", title: "Tools", body: "diagnosticInfo / generativeInfo exibidos ao vivo no painel." },
           ].map((b) => (
             <div
               key={b.step}
@@ -181,8 +257,7 @@ export default function RadarJuridico() {
           ))}
         </section>
 
-        <div className="grid gap-6 lg:grid-cols-[1fr_min(100%,420px)] lg:items-start">
-          {/* Dossier preview — tendência: "glass docket" */}
+        <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_280px_minmax(0,420px)]">
           <section
             className="rounded-2xl border p-6 backdrop-blur-md sm:p-8"
             style={{
@@ -191,51 +266,94 @@ export default function RadarJuridico() {
             }}
           >
             <h2 className="font-mono text-xs font-bold uppercase tracking-[0.2em]" style={{ color: EMERALD }}>
-              Pré-visualização do dossiê (mock)
+              Malha operacional
             </h2>
             <ul className="mt-4 space-y-3 font-mono text-sm text-slate-300">
               <li className="flex justify-between border-b border-white/5 pb-2">
-                <span className="text-slate-500">Partes</span>
-                <span className="text-right text-slate-200">Autarquia · Interessado (mascarado)</span>
+                <span className="text-slate-500">Meta de leads (pergunta ao agente)</span>
+                <span className="text-right font-semibold text-white">5,9M+</span>
               </li>
               <li className="flex justify-between border-b border-white/5 pb-2">
-                <span className="text-slate-500">Pedido</span>
-                <span className="text-right text-slate-200">Revisão / prova pericial</span>
+                <span className="text-slate-500">Geografia injetada</span>
+                <span className="text-right text-slate-200">Pirassununga · Valinhos</span>
               </li>
               <li className="flex justify-between">
-                <span className="text-slate-500">Risco IA</span>
+                <span className="text-slate-500">Motor</span>
                 <span className="font-semibold" style={{ color: GOLD }}>
-                  Moderado · documentação incompleta
+                  ASMODEUS · Dialogflow CX
                 </span>
               </li>
             </ul>
             <p className="mt-6 text-xs leading-relaxed text-slate-500">
-              Tendências de design 2025–2026 para legal intelligence: fundo profundo com um único
-              acento metálico (ouro), micro-interações em cards, e chat como painel lateral fixo
-              (desktop) para leitura contínua do processo.
+              Garanta IAM na service account das Functions: Dialogflow API Client + escopos das tools
+              configuradas no Agent Builder (BigQuery, GCS, etc.).
             </p>
           </section>
 
-          {/* Chat — Vertex via proxy */}
+          <aside
+            className="flex max-h-[min(70vh,520px)] flex-col overflow-hidden rounded-2xl border"
+            style={{
+              borderColor: "rgba(212, 175, 55, 0.25)",
+              background: "rgba(8, 18, 35, 0.88)",
+            }}
+            aria-label="Log de pensamento da IA"
+          >
+            <div
+              className="border-b px-3 py-2.5 font-mono text-[10px] font-bold uppercase tracking-widest"
+              style={{ borderColor: "rgba(148, 163, 184, 0.12)", color: GOLD }}
+            >
+              Log de raciocínio
+            </div>
+            <div className="flex-1 overflow-y-auto p-3 font-mono text-[10px] leading-relaxed text-slate-400 sm:text-[11px]">
+              {thinkLog.length === 0 && !streaming ? (
+                <p className="text-slate-600">Aguardando consulta…</p>
+              ) : null}
+              {thinkLog.map((row, i) => (
+                <p key={`${row.t}-${i}`} className="mb-2 border-l-2 border-amber-500/30 pl-2">
+                  <span className="text-slate-600">{row.t.slice(11, 19)} › </span>
+                  {row.m}
+                </p>
+              ))}
+              {streaming ? (
+                <p className="animate-pulse font-mono italic" style={{ color: EMERALD }}>
+                  [ ASMODEUS processando Datalake… ]
+                </p>
+              ) : null}
+            </div>
+            {toolPayload ? (
+              <div
+                className="max-h-52 overflow-auto border-t p-2 font-mono text-[9px] text-emerald-200/90"
+                style={{ borderColor: "rgba(148, 163, 184, 0.12)" }}
+              >
+                <p className="mb-1 text-[9px] font-bold uppercase tracking-wider text-amber-200/80">
+                  Dados brutos (tool / diagnostic)
+                </p>
+                <pre className="whitespace-pre-wrap break-all text-[9px] leading-snug">
+                  {JSON.stringify(toolPayload, null, 2)}
+                </pre>
+              </div>
+            ) : null}
+          </aside>
+
           <aside
             className="flex flex-col overflow-hidden rounded-2xl border shadow-2xl"
             style={{
               borderColor: "rgba(52, 211, 153, 0.2)",
               background: "rgba(8, 18, 35, 0.92)",
               minHeight: "22rem",
-              maxHeight: "min(70vh, 560px)",
+              maxHeight: "min(75vh, 620px)",
             }}
-            aria-label="Consulta ao agente Vertex"
+            aria-label="Chat ASMODEUS"
           >
             <div
               className="border-b px-4 py-3 sm:px-5"
               style={{ borderColor: "rgba(148, 163, 184, 0.12)" }}
             >
               <h2 className="font-mono text-xs font-bold uppercase tracking-[0.18em]" style={{ color: GOLD }}>
-                Canal ASMODEUS
+                ASMODEUS · streaming
               </h2>
-              <p className="mt-0.5 text-[10px] text-slate-500">
-                POST {agentEndpoint()}
+              <p className="mt-0.5 truncate font-mono text-[10px] text-slate-500">
+                POST {agentEndpoint()} · stream:true
               </p>
             </div>
 
@@ -264,10 +382,14 @@ export default function RadarJuridico() {
                   )}
                 </div>
               ))}
-              {loading ? (
-                <p className="animate-pulse font-mono text-xs italic" style={{ color: EMERALD }}>
-                  [ ASMODEUS processando Datalake... ]
-                </p>
+              {streaming && typedReply ? (
+                <div className="whitespace-pre-wrap border-l-2 border-amber-500/40 pl-3 text-slate-100">
+                  <span className="text-[10px] uppercase tracking-widest text-amber-400/90">
+                    ao vivo ›{" "}
+                  </span>
+                  {typedReply}
+                  <span className="ml-0.5 inline-block h-4 w-1.5 animate-pulse bg-emerald-400/80 align-middle" />
+                </div>
               ) : null}
               <div ref={bottomRef} />
             </div>
@@ -294,18 +416,18 @@ export default function RadarJuridico() {
                   onKeyDown={(e) => {
                     if (e.key === "Enter") send();
                   }}
-                  disabled={loading}
-                  placeholder="Ex.: Resuma o risco documental deste caso."
+                  disabled={streaming}
+                  placeholder="Ex.: Quantos leads rurais em Pirassununga com dupla negativa?"
                   className="min-h-11 flex-1 rounded-xl border border-white/10 bg-slate-950/80 px-3 font-mono text-sm text-slate-100 outline-none ring-0 placeholder:text-slate-600 focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/30 disabled:opacity-50"
                   autoComplete="off"
                 />
                 <button
                   type="button"
                   onClick={send}
-                  disabled={loading || !input.trim()}
+                  disabled={streaming || !input.trim()}
                   className="min-h-11 shrink-0 rounded-xl px-4 font-mono text-xs font-bold uppercase tracking-wide text-slate-950 transition enabled:hover:brightness-110 disabled:opacity-40"
                   style={{ backgroundColor: EMERALD }}
-                  aria-label="Enviar pergunta ao agente Vertex"
+                  aria-label="Enviar pergunta com streaming ao agente"
                 >
                   Enviar
                 </button>

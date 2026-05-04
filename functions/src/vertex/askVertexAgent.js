@@ -2,6 +2,10 @@
  * Proxy HTTP → Dialogflow CX (Vertex AI Agent Builder).
  * Credenciais apenas via ADC no ambiente GCP (nunca no frontend).
  *
+ * Suporta:
+ * - POST JSON { sessionId, query, stream?: boolean }
+ * - stream=true → NDJSON (text/event-stream style) com chunks + tool payloads
+ *
  * @param {typeof import("firebase-functions/v1")} functions
  * @param {Record<string, unknown>} parentExports — objeto exports do index.js
  */
@@ -12,6 +16,24 @@ function mountAskVertexAgent(functions, parentExports) {
   const DEFAULT_LOCATION = process.env.DIALOGFLOW_LOCATION || "global";
   const DEFAULT_AGENT_ID = process.env.DIALOGFLOW_AGENT_ID || "1777236402725";
   const DEFAULT_LANG = process.env.DIALOGFLOW_LANGUAGE_CODE || "pt-br";
+
+  /** Contexto fixo Operação Trilho 1 — enviado em queryParams (payload + parameters). */
+  function trilhoQueryParams() {
+    return {
+      payload: {
+        operacao: "TRILHO_1",
+        operacao_nome: "Operação Trilho 1",
+        municipios_foco: ["Pirassununga", "Valinhos"],
+        uf: "SP",
+        dominio: "previdenciario_inss",
+      },
+      parameters: {
+        operacao_trilho_1: true,
+        municipio_pirassununga: true,
+        municipio_valinhos: true,
+      },
+    };
+  }
 
   function corsOrigin(req) {
     const allowList = String(process.env.VERTEX_PROXY_CORS_ORIGINS || "")
@@ -37,8 +59,7 @@ function mountAskVertexAgent(functions, parentExports) {
     res.set("Access-Control-Max-Age", "3600");
   }
 
-  function extractAgentReply(response) {
-    const qr = response?.queryResult;
+  function textFromQueryResult(qr) {
     if (!qr) return "";
     const parts = [];
     const msgs = qr.responseMessages || [];
@@ -47,16 +68,41 @@ function mountAskVertexAgent(functions, parentExports) {
         parts.push(m.text.text.join("\n"));
       }
     }
-    if (parts.length) return parts.join("\n\n").trim();
-    if (qr.match?.intent?.displayName) {
+    return parts.join("\n\n").trim();
+  }
+
+  function extractAgentReply(response) {
+    const qr = response?.queryResult;
+    const t = textFromQueryResult(qr);
+    if (t) return t;
+    if (qr?.match?.intent?.displayName) {
       return `[Intent: ${qr.match.intent.displayName}]`;
     }
     return "";
   }
 
+  /** Tenta extrair blobs úteis de tools / diagnóstico (BigQuery, etc.). */
+  function extractToolArtifacts(qr) {
+    if (!qr) return null;
+    const out = {};
+    const diag = qr.diagnosticInfo;
+    if (diag && typeof diag === "object" && Object.keys(diag).length) {
+      out.diagnosticInfo = diag;
+    }
+    const gen = qr.generativeInfo;
+    if (gen && typeof gen === "object" && Object.keys(gen).length) {
+      out.generativeInfo = gen;
+    }
+    return Object.keys(out).length ? out : null;
+  }
+
+  function writeNdjson(res, obj) {
+    res.write(`${JSON.stringify(obj)}\n`);
+  }
+
   parentExports.askVertexAgent = functions
     .region("southamerica-east1")
-    .runWith({ memory: "512MB", timeoutSeconds: 60 })
+    .runWith({ memory: "512MB", timeoutSeconds: 120 })
     .https.onRequest(async (req, res) => {
       applyCors(req, res);
 
@@ -70,18 +116,18 @@ function mountAskVertexAgent(functions, parentExports) {
         return;
       }
 
-      res.set("Content-Type", "application/json; charset=utf-8");
       res.set("Cache-Control", "no-store");
 
       const body =
         typeof req.body === "object" && req.body !== null ? req.body : {};
       const sessionId = String(body.sessionId || "").trim();
       const query = String(body.query || "").trim();
+      const wantStream = Boolean(body.stream);
 
       if (!sessionId || !query) {
         res.status(400).json({
           error: "invalid_body",
-          hint: "Enviar JSON { sessionId, query }",
+          hint: "Enviar JSON { sessionId, query, stream?: boolean }",
         });
         return;
       }
@@ -94,37 +140,146 @@ function mountAskVertexAgent(functions, parentExports) {
         process.env.DIALOGFLOW_AGENT_ID || DEFAULT_AGENT_ID,
       ).trim();
 
+      const client = new SessionsClient({
+        apiEndpoint:
+          location === "global"
+            ? "dialogflow.googleapis.com"
+            : `${location}-dialogflow.googleapis.com`,
+      });
+
+      const sessionPath = client.projectLocationAgentSessionPath(
+        projectId,
+        location,
+        agentId,
+        sessionId,
+      );
+
+      const queryParams = trilhoQueryParams();
+
+      const baseRequest = {
+        session: sessionPath,
+        queryParams,
+        queryInput: {
+          text: { text: query },
+          languageCode: DEFAULT_LANG,
+        },
+      };
+
       try {
-        const client = new SessionsClient({
-          apiEndpoint:
-            location === "global"
-              ? "dialogflow.googleapis.com"
-              : `${location}-dialogflow.googleapis.com`,
-        });
+        if (wantStream) {
+          res.set("Content-Type", "application/x-ndjson; charset=utf-8");
+          res.set("X-Accel-Buffering", "no");
 
-        const sessionPath = client.projectLocationAgentSessionPath(
-          projectId,
-          location,
-          agentId,
-          sessionId,
-        );
+          writeNdjson(res, {
+            type: "log",
+            message: "Sessão autenticada via ADC · roteamento Dialogflow CX",
+            ts: new Date().toISOString(),
+          });
+          writeNdjson(res, {
+            type: "log",
+            message:
+              "Contexto injetado: Operação Trilho 1 · Pirassununga & Valinhos (queryParams.payload)",
+            ts: new Date().toISOString(),
+          });
+          writeNdjson(res, {
+            type: "log",
+            message: "Consultando agente ASMODEUS (1777236402725)…",
+            ts: new Date().toISOString(),
+          });
 
-        const [response] = await client.detectIntent({
-          session: sessionPath,
-          queryInput: {
-            text: { text: query },
-            languageCode: DEFAULT_LANG,
-          },
-        });
+          const stream = client.serverStreamingDetectIntent(baseRequest);
+          let lastFullText = "";
+
+          await new Promise((resolve, reject) => {
+            stream.on("data", (chunk) => {
+              try {
+                const qr = chunk?.queryResult;
+                if (!qr) return;
+
+                const fullText = textFromQueryResult(qr);
+                if (fullText && fullText !== lastFullText) {
+                  if (fullText.startsWith(lastFullText)) {
+                    const delta = fullText.slice(lastFullText.length);
+                    if (delta) {
+                      writeNdjson(res, { type: "text", delta });
+                    }
+                  } else {
+                    writeNdjson(res, { type: "text", full: fullText });
+                  }
+                  lastFullText = fullText;
+                }
+
+                const tools = extractToolArtifacts(qr);
+                if (tools) {
+                  writeNdjson(res, {
+                    type: "tool",
+                    payload: tools,
+                    ts: new Date().toISOString(),
+                  });
+                  writeNdjson(res, {
+                    type: "log",
+                    message:
+                      "Pacote estruturado recebido (diagnosticInfo / generativeInfo) — exibindo painel bruto",
+                    ts: new Date().toISOString(),
+                  });
+                }
+
+                if (chunk?.queryResult?.match?.intent?.displayName) {
+                  writeNdjson(res, {
+                    type: "intent",
+                    name: chunk.queryResult.match.intent.displayName,
+                  });
+                }
+              } catch (e) {
+                reject(e);
+              }
+            });
+            stream.on("error", reject);
+            stream.on("end", resolve);
+          });
+
+          writeNdjson(res, {
+            type: "log",
+            message: "Consultando BigQuery (se ferramenta ativa no agente)…",
+            ts: new Date().toISOString(),
+          });
+          writeNdjson(res, {
+            type: "log",
+            message: "Verificando compliance LGPD (metadados de sessão)…",
+            ts: new Date().toISOString(),
+          });
+          writeNdjson(res, { type: "done", ts: new Date().toISOString() });
+          res.end();
+          return;
+        }
+
+        res.set("Content-Type", "application/json; charset=utf-8");
+
+        const [response] = await client.detectIntent(baseRequest);
 
         const reply = extractAgentReply(response);
+        const tools = extractToolArtifacts(response?.queryResult);
+
         res.status(200).json({
           ok: true,
           reply: reply || "(Resposta vazia do agente.)",
           intent: response?.queryResult?.match?.intent?.displayName || null,
+          toolArtifacts: tools,
+          streamed: false,
         });
       } catch (err) {
         console.error("askVertexAgent error:", err);
+        if (wantStream && !res.headersSent) {
+          res.status(502);
+        }
+        if (wantStream && res.writableEnded === false) {
+          writeNdjson(res, {
+            type: "error",
+            detail: String(err.message || err),
+          });
+          res.end();
+          return;
+        }
         res.status(502).json({
           ok: false,
           error: "vertex_dialogflow_failed",
