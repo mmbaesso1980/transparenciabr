@@ -15,7 +15,7 @@ const MODES = [
 
 export default function MissionControlFooter({ currentMode, onModeChange }) {
   return (
-    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-50">
+    <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-50 sm:bottom-28">
       <div className="bg-[#0a1628]/70 backdrop-blur-md rounded-lg border border-[#1a2b42] shadow-lg p-3 flex gap-3">
         {MODES.map((mode) => {
           const isActive = currentMode === mode.id;
