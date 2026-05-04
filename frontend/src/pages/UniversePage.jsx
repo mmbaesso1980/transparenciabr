@@ -262,14 +262,21 @@ export default function UniversePage() {
           aria-label="Navegação universo"
         >
           <Link
-            to="/dashboard"
+            to="/painel"
             title="Modo clássico (sem 3D, mesmos dados)"
             className="hidden h-9 items-center rounded-lg border border-amber-400/40 bg-amber-500/10 px-3 text-[10.5px] font-bold uppercase tracking-[0.16em] text-amber-200 transition hover:bg-amber-500/20 sm:inline-flex"
           >
             Modo Clássico
           </Link>
           <Link
-            to="/dashboard"
+            to="/radar-legal"
+            title="Console de leads qualificados — Operação Trilho 1"
+            className="hidden h-9 items-center rounded-lg border border-emerald-400/40 bg-emerald-500/10 px-3 text-[10.5px] font-bold uppercase tracking-[0.16em] text-emerald-200 transition hover:bg-emerald-500/20 sm:inline-flex"
+          >
+            Radar Legal
+          </Link>
+          <Link
+            to="/painel"
             className="inline-flex h-9 items-center rounded-lg border border-[#58A6FF]/45 bg-transparent px-3.5 text-[11px] font-bold uppercase tracking-[0.16em] text-[#7DD3FC] shadow-[0_0_24px_rgba(88,166,255,0.12)] backdrop-blur-sm transition hover:border-[#7DD3FC]/70 hover:bg-[#58A6FF]/10 hover:text-[#F0F4FC] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7DD3FC] sm:px-4"
           >
             Painel
