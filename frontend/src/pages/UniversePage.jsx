@@ -282,7 +282,7 @@ export default function UniversePage() {
 
       <UniverseSearchInput
         onSearchSubmit={handleSearch}
-        placeholder="Buscar político ou fornecedor..."
+        placeholder="O que você quer auditar hoje?"
       />
 
       <MissionControlFooter
