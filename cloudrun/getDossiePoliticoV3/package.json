@@ -1,0 +1,12 @@
+{
+  "name": "getdossiepoliticov3",
+  "version": "3.0.0",
+  "main": "index.js",
+  "engines": { "node": "20" },
+  "dependencies": {
+    "@google-cloud/discoveryengine": "^2.0.0",
+    "@google-cloud/aiplatform": "^3.34.0",
+    "@google-cloud/functions-framework": "^3.4.0",
+    "cors": "^2.8.5"
+  }
+}
