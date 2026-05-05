@@ -26,6 +26,7 @@ const CreditosPage = lazy(() => import("./pages/CreditosPage.jsx"));
 const SuccessPage = lazy(() => import("./pages/SuccessPage.jsx"));
 const LogoutPage = lazy(() => import("./pages/LogoutPage.jsx"));
 const BuscaPage = lazy(() => import("./pages/BuscaPage.jsx"));
+const DossieGroundedPage = lazy(() => import("./pages/DossieGroundedPage.jsx"));
 
 // Vite: BASE_URL costuma ser "/" ou "/subpath/" (com barra final). React Router: basename sem barra final;
 // na raiz omitimos a prop.
@@ -79,6 +80,7 @@ export default function App() {
 
                 <Route path="/politica/busca" element={<BuscaPage />} />
                 <Route path="/busca" element={<Navigate to="/politica/busca" replace />} />
+                <Route path="/politica/dossie/:nome" element={<DossieGroundedPage />} />
                 <Route path="/dossie/:id" element={<DossiePage />} />
                 <Route path="/sucesso" element={<SuccessPage />} />
                 <Route path="/logout" element={<LogoutPage />} />
