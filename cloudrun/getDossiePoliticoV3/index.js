@@ -38,6 +38,7 @@ const DATASTORES = [
   'tbr-fs2-transparency',
   'tbr-fs2-neutrality',
   'tbr-fs2-diarios-atos',
+  'tbr-senado-completo',
 ];
 
 const searchClient = new DiscoveryEngineServiceClient();
@@ -152,6 +153,31 @@ functions.http('getDossiePoliticoV3', async (req, res) => {
   const t0 = Date.now();
   const query = (req.query.q || req.body?.q || '').toString().trim();
   if (!query) return res.status(400).json({ error: 'param q obrigatorio' });
+
+  // ---------------------------------------------------------
+  // Check pre-computed cache first (JOB G)
+  // ---------------------------------------------------------
+  try {
+    const cacheQuery = `
+      SELECT dossie_json
+      FROM \`${BQ_PROJECT}.transparenciabr.dossies_pre_computados\`
+      WHERE LOWER(parlamentar_nome) LIKE LOWER(@name)
+      AND generated_at >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL ttl_horas HOUR)
+      LIMIT 1
+    `;
+    const [rows] = await bq.query({
+      query: cacheQuery,
+      params: { name: `%${query}%` }
+    });
+
+    if (rows && rows.length > 0) {
+      console.log('Cache hit for:', query);
+      const cachedDossie = JSON.parse(rows[0].dossie_json);
+      return res.status(200).json(cachedDossie);
+    }
+  } catch (err) {
+    console.error('Cache miss or error:', err);
+  }
 
   // Fan-out paralelo: 10 datastores Vertex + 4 queries BigQuery
   const [vertexResults, ceap, emendas, benford, zscore] = await Promise.all([
