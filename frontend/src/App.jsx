@@ -16,7 +16,6 @@ import RadarJuridico from "./pages/RadarJuridico.jsx";
 import SobrePage from "./pages/SobrePage.jsx";
 import StatusPage from "./pages/StatusPage.jsx";
 import TermosPage from "./pages/TermosPage.jsx";
-import PainelPage from "./pages/PainelPage.jsx";
 import UniversePage from "./pages/UniversePage.jsx";
 
 const DashboardLayout = lazy(() => import("./layouts/DashboardLayout.jsx"));
