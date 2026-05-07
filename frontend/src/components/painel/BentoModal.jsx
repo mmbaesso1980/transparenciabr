@@ -1,5 +1,9 @@
 import React, { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+
+// Rota real da hotpage de político no App.jsx é `/dossie/:id` (não `/politico/:id`).
+const HOTPAGE_BASE = '/dossie';
 
 /**
  * BentoModal — Overlay full-screen ao clicar num card.
@@ -29,6 +33,7 @@ export default function BentoModal({
   valueLabel = 'Cota',
   valueFormatter,
 }) {
+  const navigate = useNavigate();
   const [query, setQuery] = useState('');
   const [partidoFiltro, setPartidoFiltro] = useState('');
   const [ufFiltro, setUfFiltro] = useState('');
@@ -137,6 +142,11 @@ export default function BentoModal({
                   {filtered.map((p, i) => (
                     <tr
                       key={p.id}
+                      onClick={() => {
+                        if (!p.id) return;
+                        onClose?.();
+                        navigate(`${HOTPAGE_BASE}/${encodeURIComponent(p.id)}`);
+                      }}
                       className="border-b border-white/[0.03] hover:bg-white/[0.04] transition-colors cursor-pointer"
                     >
                       <td className="px-6 py-3 text-white/40 tabular-nums">{i + 1}</td>
