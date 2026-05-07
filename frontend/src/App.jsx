@@ -11,10 +11,12 @@ import MetodologiaPage from "./pages/MetodologiaPage.jsx";
 import PainelPage from "./pages/PainelPage.jsx";
 import PartidoPage from "./pages/PartidoPage.jsx";
 import PrivacidadePage from "./pages/PrivacidadePage.jsx";
+import RadarINSS from "./pages/RadarINSS.jsx";
 import RadarJuridico from "./pages/RadarJuridico.jsx";
 import SobrePage from "./pages/SobrePage.jsx";
 import StatusPage from "./pages/StatusPage.jsx";
 import TermosPage from "./pages/TermosPage.jsx";
+import PainelPage from "./pages/PainelPage.jsx";
 import UniversePage from "./pages/UniversePage.jsx";
 
 const DashboardLayout = lazy(() => import("./layouts/DashboardLayout.jsx"));
@@ -38,13 +40,16 @@ const routerBasename = trimmed === "/" ? undefined : trimmed;
 
 function NotFoundPage() {
   return (
-    <div className="flex min-h-dvh flex-col items-center justify-center bg-[#0B0F1A] px-6 text-center text-slate-200">
-      <p className="text-lg font-semibold text-white">Página não encontrada</p>
-      <p className="mt-2 max-w-md text-sm text-slate-500">
+    <div className="aurora-page flex min-h-dvh flex-col items-center justify-center px-6 text-center">
+      <p className="text-lg font-semibold text-[var(--text-primary)]">Página não encontrada</p>
+      <p className="mt-2 max-w-md text-sm text-[var(--text-muted)]">
         A rota não existe nesta versão do site, ou o bundle em produção ainda não inclui esta rota. Faça um
         deploy após o merge mais recente.
       </p>
-      <Link to="/" className="mt-8 text-sm font-semibold text-[#22d3ee] hover:text-[#67e8f9]">
+      <Link
+        to="/"
+        className="mt-8 text-sm font-semibold text-[var(--accent-primary)] hover:brightness-110"
+      >
         Ir à página inicial
       </Link>
     </div>
@@ -78,6 +83,7 @@ export default function App() {
                 <Route path="/termos" element={<TermosPage />} />
                 <Route path="/privacidade" element={<PrivacidadePage />} />
                 <Route path="/radar-legal" element={<RadarJuridico />} />
+                <Route path="/radar-inss" element={<RadarINSS />} />
                 <Route path="/login" element={<LoginPage />} />
 
                 <Route path="/politica/busca" element={<BuscaPage />} />

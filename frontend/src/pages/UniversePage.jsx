@@ -227,7 +227,7 @@ export default function UniversePage() {
   }, [modalPolitico.id]);
 
   return (
-    <div className="relative min-h-dvh overflow-hidden bg-[#02040a] text-[#F0F4FC]">
+    <div className="aurora-page relative min-h-dvh overflow-hidden">
       <Helmet>
         <title>Universo de Orbes — TransparênciaBR</title>
         <meta
@@ -250,14 +250,11 @@ export default function UniversePage() {
         />
       </div>
 
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 z-[5] bg-[radial-gradient(ellipse_at_center,transparent_0%,#02040a_72%),radial-gradient(circle_at_15%_85%,rgba(88,166,255,0.1),transparent_42%),radial-gradient(circle_at_90%_12%,rgba(239,68,68,0.06),transparent_38%)]"
-      />
+      <div aria-hidden className="aurora-vignette pointer-events-none absolute inset-0 z-[5]" />
 
       {false && <UniverseTopBar totalParlamentares={total ?? 594} />}
 
-      <header className="relative z-20 flex items-center justify-between gap-3 border-b border-[#30363D]/60 bg-[#02040a]/75 px-4 py-3 backdrop-blur-md sm:px-8">
+      <header className="relative z-20 flex items-center justify-between gap-3 border-b border-[var(--border-subtle)] bg-[var(--bg-deep)]/82 px-4 py-3 backdrop-blur-xl sm:px-8">
         <div className="flex items-center gap-3">
           <BrandLogo to="/" variant="full" size="md" />
           <span
@@ -293,9 +290,9 @@ export default function UniversePage() {
           </Link>
           <Link
             to="/painel"
-            className="inline-flex h-9 items-center rounded-lg border border-[#58A6FF]/45 bg-transparent px-3.5 text-[11px] font-bold uppercase tracking-[0.16em] text-[#7DD3FC] shadow-[0_0_24px_rgba(88,166,255,0.12)] backdrop-blur-sm transition hover:border-[#7DD3FC]/70 hover:bg-[#58A6FF]/10 hover:text-[#F0F4FC] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7DD3FC] sm:px-4"
+            className="inline-flex items-center gap-2 bg-cyan-500/15 border border-cyan-400/30 rounded-xl px-4 py-2 text-cyan-200 hover:bg-cyan-500/25 transition-colors text-sm font-medium"
           >
-            Painel
+            <span>←</span> PAINEL
           </Link>
           {isAuthenticated ? (
             <Link

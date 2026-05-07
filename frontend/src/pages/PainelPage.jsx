@@ -1,116 +1,200 @@
-import { Link } from "react-router-dom";
-import { Helmet } from "react-helmet-async";
-import { motion } from "framer-motion";
+import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import BentoCard from '../components/painel/BentoCard';
+import BentoModal from '../components/painel/BentoModal';
+import { usePainelData } from '../hooks/usePainelData';
 import {
-  Activity,
-  ArrowRight,
-  Construction,
-  Globe,
-  LayoutDashboard,
-  Sparkles,
-} from "lucide-react";
+  PontuacaoBrasil,
+  MaioresCotas,
+  SinalizacoesSOC,
+  MapaUFBrasil,
+  PulsoCEAP,
+  MataUFBrasil,
+  EmendasCriticas,
+  ContratosPNCP,
+  RadarJuridico,
+  MeuUniverso,
+  MaisFrugais,
+  InfluenciaSetorial,
+  AtividadeLegislativa,
+  PromessaEntrega,
+  PulsoFederal,
+  RedeEmpresarial,
+  AberturaOrgao,
+} from '../components/painel/bentos';
 
-/**
- * PainelPage — Stub provisório (07/05/2026)
- *
- * O Painel v2 está sendo construído pelo Cursor neste momento.
- * Esta página é um placeholder para que /painel não redirecione mais para /universo.
- *
- * Quando o Painel v2 for pushado, este arquivo será SUBSTITUÍDO integralmente.
- */
+const TRANSPARENCIA_LOGO = (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" className="flex-shrink-0">
+    <path
+      d="M12 2 L20 6 L20 14 Q20 19 12 22 Q4 19 4 14 L4 6 Z"
+      stroke="#22d3ee"
+      strokeWidth="1.5"
+      fill="rgba(34, 211, 238, 0.08)"
+    />
+    <circle cx="12" cy="12" r="3" fill="#22d3ee" opacity="0.7" />
+  </svg>
+);
+
 export default function PainelPage() {
+  const data = usePainelData();
+  const [modalConfig, setModalConfig] = useState(null);
+
+  const openModal = (cfg) => setModalConfig(cfg);
+  const closeModal = () => setModalConfig(null);
+
+  // Configurações de modal por bento (qual sortKey/valueLabel usar no ranking)
+  const M = {
+    cotas:     { title: 'Maiores Cotas — ranking 513',           sortKey: 'cota',         valueLabel: 'Cota R$' },
+    frugais:   { title: 'Mais Frugais — ranking 513',            sortKey: 'frugalidade',  valueLabel: 'Frugalidade' },
+    score:     { title: 'Pontuação Aurora — ranking 513',        sortKey: 'score',        valueLabel: 'Score' },
+    sinaliz:   { title: 'Em Observação — ranking 513',           sortKey: 'sinalizacoes', valueLabel: 'Sinalizações' },
+    presenca:  { title: 'Atividade Legislativa — ranking 513',   sortKey: 'presenca',     valueLabel: 'Presença %' },
+  };
+
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#080B14] text-[#F0F4FC]">
-      <Helmet>
-        <title>Painel · em construção | Transparência BR</title>
-        <meta name="description" content="Painel investigativo TransparênciaBR — em construção." />
-      </Helmet>
-
-      {/* Glow ambiental */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 opacity-50"
-        style={{
-          background:
-            "radial-gradient(ellipse 60% 40% at 50% 30%, rgba(34,211,238,0.08), transparent), radial-gradient(ellipse 50% 30% at 70% 70%, rgba(167,139,250,0.06), transparent)",
-        }}
-      />
-
-      <div className="relative mx-auto flex min-h-screen max-w-4xl flex-col items-center justify-center px-6 py-16">
-        <motion.div
-          initial={{ opacity: 0, y: 14 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="text-center"
-        >
-          <span className="inline-flex items-center gap-2 rounded-full border border-cyan-400/30 bg-cyan-400/5 px-4 py-1.5 text-[11px] font-medium uppercase tracking-[0.18em] text-cyan-300">
-            <Construction className="size-3.5" aria-hidden />
-            Em construção
-          </span>
-
-          <h1 className="mt-6 text-4xl font-semibold tracking-tight text-[#F0F4FC] sm:text-5xl">
-            Painel investigativo
-          </h1>
-
-          <p className="mx-auto mt-4 max-w-lg text-base leading-relaxed text-[#8B949E]">
-            Estamos finalizando o painel com 17 bentos de inteligência política, rankings em tempo
-            real e portais para os parlamentares mais relevantes. Disponível em breve.
-          </p>
-
-          {/* 3 bentos placeholder pra dar uma ideia */}
-          <div className="mx-auto mt-10 grid max-w-2xl gap-4 sm:grid-cols-3">
-            {[
-              { icon: Activity, label: "Rankings ao vivo", color: "#22d3ee" },
-              { icon: LayoutDashboard, label: "17 bentos", color: "#a78bfa" },
-              { icon: Globe, label: "Portais → Universo", color: "#fbbf24" },
-            ].map((b, i) => {
-              const Icon = b.icon;
-              return (
-                <motion.div
-                  key={b.label}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, delay: 0.15 + i * 0.08 }}
-                  className="rounded-2xl border border-[#30363D] bg-[#0D1117]/80 p-4 backdrop-blur-md"
-                >
-                  <div
-                    className="mx-auto flex size-9 items-center justify-center rounded-xl border border-white/5"
-                    style={{
-                      background: `linear-gradient(135deg, ${b.color}22, ${b.color}08)`,
-                      color: b.color,
-                    }}
-                  >
-                    <Icon className="size-4" strokeWidth={1.75} />
-                  </div>
-                  <p className="mt-3 text-xs font-medium text-[#cbd5e1]">{b.label}</p>
-                </motion.div>
-              );
-            })}
-          </div>
-
-          {/* CTAs */}
-          <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <Link
-              to="/universo"
-              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-400 to-violet-500 px-5 py-2.5 text-sm font-semibold text-[#02040a] shadow-[0_0_24px_-6px_rgba(34,211,238,0.55)] transition hover:brightness-110"
-            >
-              <Sparkles className="size-4" strokeWidth={2} />
-              Explorar o Universo
-              <ArrowRight className="size-4" strokeWidth={2} />
-            </Link>
-            <Link
-              to="/"
-              className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-5 py-2.5 text-sm font-medium text-[#F0F4FC] transition hover:border-cyan-400/30 hover:bg-cyan-400/5"
-            >
-              Voltar ao início
-            </Link>
-          </div>
-
-          <p className="mt-12 text-xs text-[#5c6784]">
-            🚧 Esta página será substituída automaticamente pela versão v2 ao ser publicada.
-          </p>
-        </motion.div>
+    <div className="min-h-screen bg-[#05060d] text-white">
+      {/* fundo estrelado / espacial */}
+      <div className="pointer-events-none fixed inset-0 -z-10">
+        <div
+          className="absolute inset-0 opacity-60"
+          style={{
+            backgroundImage:
+              'radial-gradient(2px 2px at 20% 30%, rgba(255,255,255,0.4), transparent 50%),' +
+              'radial-gradient(1.5px 1.5px at 70% 70%, rgba(255,255,255,0.3), transparent 50%),' +
+              'radial-gradient(1px 1px at 40% 80%, rgba(255,255,255,0.5), transparent 50%),' +
+              'radial-gradient(1.5px 1.5px at 85% 25%, rgba(34,211,238,0.4), transparent 50%),' +
+              'radial-gradient(1px 1px at 10% 60%, rgba(167,139,250,0.4), transparent 50%)',
+            backgroundSize: '600px 600px, 800px 800px, 400px 400px, 700px 700px, 500px 500px',
+          }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#05060d]/40 to-[#05060d]" />
       </div>
+
+      {/* Header */}
+      <header className="sticky top-0 z-30 backdrop-blur-md bg-[#05060d]/80 border-b border-white/5">
+        <div className="max-w-[1400px] mx-auto px-4 md:px-6 py-3 flex items-center gap-3 md:gap-4">
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {TRANSPARENCIA_LOGO}
+            <span className="text-[15px] font-semibold tracking-tight">
+              Transparência<span className="text-cyan-400">BR</span>{' '}
+              <span className="text-white/40 font-normal">/ Aurora</span>
+            </span>
+          </div>
+
+          <div className="flex-1 max-w-xl">
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40">🔍</span>
+              <input
+                type="text"
+                placeholder="O que você quer auditar hoje?"
+                className="w-full bg-white/[0.04] border border-white/10 rounded-xl pl-10 pr-4 py-2 text-sm placeholder-white/40 focus:outline-none focus:border-cyan-400/40 transition-colors"
+              />
+            </div>
+          </div>
+
+          <Link
+            to="/universo"
+            className="hidden md:inline-flex items-center gap-2 bg-violet-500/15 border border-violet-400/30 rounded-xl px-4 py-2 text-violet-200 hover:bg-violet-500/25 transition-colors text-sm font-medium"
+          >
+            UNIVERSO <span className="text-violet-300">→</span>
+          </Link>
+
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-400 to-violet-400 ring-2 ring-white/10" />
+            <span className="hidden md:inline text-xs text-white/60 tabular-nums">{data.headerInfo.creditos} créditos</span>
+          </div>
+        </div>
+      </header>
+
+      {/* Grid principal */}
+      <main className="max-w-[1400px] mx-auto px-4 md:px-6 py-6">
+        <motion.div
+          initial="hidden"
+          animate="show"
+          variants={{
+            hidden: {},
+            show: { transition: { staggerChildren: 0.04 } },
+          }}
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 auto-rows-[140px] gap-3 md:gap-4"
+        >
+          {[
+            // ─── Linha 1 ───
+            { key: 'b01', span: 'lg:col-span-1 lg:row-span-1', accent: 'cyan',   icon: '🏆', title: 'Pontuação Brasil',
+              child: <PontuacaoBrasil data={data.pontuacaoBrasil} />, modal: M.score },
+            { key: 'b02', span: 'lg:col-span-1 lg:row-span-1', accent: 'violet', icon: '⚠️', title: 'Maiores Cotas',
+              child: <MaioresCotas data={data.maioresCotas} />, modal: M.cotas },
+            { key: 'b03', span: 'lg:col-span-1 lg:row-span-1', accent: 'red',    icon: '⚡', title: 'Sinalizações SOC',
+              child: <SinalizacoesSOC data={data.sinalizacoesSOC} />, modal: M.sinaliz },
+            { key: 'b04', span: 'lg:col-span-1 lg:row-span-1', accent: 'cyan',   icon: '🇧🇷', title: 'Mapa UF Brasil',
+              child: <MapaUFBrasil data={data.mapaUF} />, modal: M.cotas },
+            { key: 'b05', span: 'lg:col-span-1 lg:row-span-1', accent: 'amber',  icon: '📈', title: 'Pulso CEAP',
+              child: <PulsoCEAP data={data.pulsoCEAP} />, modal: M.cotas },
+
+            // ─── Linha 2 ───
+            { key: 'b06', span: 'lg:col-span-1 lg:row-span-1', accent: 'red',    icon: '🌑', title: 'Mata UF Brasil',
+              child: <MataUFBrasil data={data.mataUF} />, modal: M.sinaliz },
+            { key: 'b07', span: 'lg:col-span-1 lg:row-span-1', accent: 'amber',  icon: '⚠️', title: 'Emendas Críticas',
+              child: <EmendasCriticas data={data.emendasCriticas} />, modal: M.cotas },
+            { key: 'b08', span: 'lg:col-span-1 lg:row-span-1', accent: 'cyan',   icon: '📊', title: 'Contratos PNCP',
+              child: <ContratosPNCP data={data.contratosPNCP} />, modal: M.cotas },
+            { key: 'b09', span: 'lg:col-span-1 lg:row-span-1', accent: 'green',  icon: '⚖️', title: 'Radar Jurídico',
+              child: <RadarJuridico data={data.radarJuridico} />, modal: M.sinaliz },
+            { key: 'b10', span: 'lg:col-span-1 lg:row-span-2', accent: 'violet', icon: '🪐', title: 'Meu Universo',
+              child: <MeuUniverso data={data.meuUniverso} />, modal: null },
+
+            // ─── Linha 3 ───
+            { key: 'b11', span: 'lg:col-span-1 lg:row-span-1', accent: 'green',  icon: '🌱', title: 'Mais Frugais',
+              child: <MaisFrugais data={data.maisFrugais} />, modal: M.frugais },
+            { key: 'b12', span: 'lg:col-span-2 lg:row-span-1', accent: 'cyan',   icon: '🔀', title: 'Influência Setorial',
+              child: <InfluenciaSetorial data={data.influenciaSetorial} />, modal: M.score },
+            { key: 'b13', span: 'lg:col-span-1 lg:row-span-1', accent: 'cyan',   icon: '📋', title: 'Atividade Legislativa',
+              child: <AtividadeLegislativa data={data.atividadeLegislativa} />, modal: M.presenca },
+
+            // ─── Linha 4 ───
+            { key: 'b14', span: 'lg:col-span-1 lg:row-span-1', accent: 'amber',  icon: '🎯', title: 'Promessa × Entrega',
+              child: <PromessaEntrega data={data.promessaEntrega} />, modal: M.score },
+            { key: 'b15', span: 'lg:col-span-1 lg:row-span-1', accent: 'cyan',   icon: '🌡️', title: 'Pulso Federal',
+              child: <PulsoFederal data={data.pulsoFederal} />, modal: M.cotas },
+            { key: 'b16', span: 'lg:col-span-1 lg:row-span-1', accent: 'violet', icon: '🕸️', title: 'Rede Empresarial',
+              child: <RedeEmpresarial data={data.redeEmpresarial} />, modal: M.cotas },
+            { key: 'b17', span: 'lg:col-span-1 lg:row-span-1', accent: 'cyan',   icon: '🔓', title: 'Abertura por Órgão',
+              child: <AberturaOrgao data={data.aberturaOrgao} />, modal: M.score },
+          ].map((b) => (
+            <motion.div
+              key={b.key}
+              variants={{
+                hidden: { opacity: 0, y: 16 },
+                show:   { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } },
+              }}
+              className={b.span}
+            >
+              <BentoCard
+                title={b.title}
+                icon={b.icon}
+                accent={b.accent}
+                onClick={() => b.modal && openModal(b.modal)}
+              >
+                {b.child}
+              </BentoCard>
+            </motion.div>
+          ))}
+        </motion.div>
+
+        <p className="text-center text-[11px] text-white/30 mt-8">
+          Aurora · TransparênciaBR · dados mock — ligar views reais até fim do dia 07/05
+        </p>
+      </main>
+
+      <BentoModal
+        open={!!modalConfig}
+        onClose={closeModal}
+        title={modalConfig?.title}
+        subtitle="Toda nota é suspeita até prova contrária · 513 parlamentares"
+        data={data.parlamentares}
+        sortKey={modalConfig?.sortKey || 'cota'}
+        valueLabel={modalConfig?.valueLabel || 'Valor'}
+      />
     </div>
   );
 }
