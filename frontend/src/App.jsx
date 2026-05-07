@@ -8,6 +8,7 @@ import { CameraFocusProvider } from "./context/CameraFocusContext.jsx";
 import { CreditosGODProvider } from "./context/CreditosGODContext.jsx";
 import LandingPage from "./pages/LandingPage.jsx";
 import MetodologiaPage from "./pages/MetodologiaPage.jsx";
+import PainelPage from "./pages/PainelPage.jsx";
 import PartidoPage from "./pages/PartidoPage.jsx";
 import PrivacidadePage from "./pages/PrivacidadePage.jsx";
 import RadarJuridico from "./pages/RadarJuridico.jsx";
@@ -65,7 +66,7 @@ export default function App() {
                 <Route path="/partido/:sigla" element={<PartidoPage />} />
                 <Route path="/comercial" element={<Navigate to="/partido" replace />} />
 
-                <Route path="/painel" element={<Navigate to="/universo" replace />} />
+                <Route path="/painel" element={<PainelPage />} />
                 <Route path="/alvos" element={<Navigate to="/universo" replace />} />
                 <Route path="/dashboard" element={<Navigate to="/status" replace />} />
                 <Route path="/ranking" element={<Navigate to="/universo" replace />} />
