@@ -228,6 +228,14 @@ export default function LandingPage() {
         <BrandLogo to="/" variant="full" size="md" />
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           {!isAuthenticated ? <CreditosGOD /> : null}
+          {/* Acesso direto ao Painel investigativo (em construção) */}
+          <Link
+            to="/painel"
+            aria-label="Abrir painel investigativo"
+            className="hidden h-9 items-center gap-1.5 rounded-md border border-cyan-400/30 bg-cyan-400/[0.06] px-3 text-[12.5px] font-semibold uppercase tracking-[0.12em] text-cyan-300 transition hover:border-cyan-400/55 hover:bg-cyan-400/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7DD3FC] sm:inline-flex"
+          >
+            Painel
+          </Link>
           {isAuthenticated ? (
             <Link
               to="/perfil"
@@ -286,14 +294,22 @@ export default function LandingPage() {
               </span>
             </div>
           ) : (
-            // CTA primário para usuário já autenticado
-            <Link
-              to="/universo"
-              className="pointer-events-auto mt-7 inline-flex h-12 items-center gap-2.5 rounded-md bg-[#58A6FF] px-7 text-[14px] font-bold uppercase tracking-[0.14em] text-white shadow-[0_4px_24px_rgba(88,166,255,0.36)] transition hover:bg-[#79b8ff] hover:shadow-[0_6px_32px_rgba(88,166,255,0.5)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7DD3FC]"
-            >
-              Ir ao Universo
-              <ArrowRight className="size-4" strokeWidth={2.5} />
-            </Link>
+            // CTAs primários para usuário já autenticado: Painel + Universo
+            <div className="pointer-events-auto mt-7 flex flex-wrap items-center justify-center gap-3">
+              <Link
+                to="/painel"
+                className="inline-flex h-12 items-center gap-2.5 rounded-md bg-gradient-to-r from-cyan-400 to-violet-500 px-7 text-[14px] font-bold uppercase tracking-[0.14em] text-[#02040a] shadow-[0_4px_24px_rgba(34,211,238,0.4)] transition hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7DD3FC]"
+              >
+                Painel investigativo
+                <ArrowRight className="size-4" strokeWidth={2.5} />
+              </Link>
+              <Link
+                to="/universo"
+                className="inline-flex h-12 items-center gap-2.5 rounded-md border border-[#58A6FF]/40 bg-[#58A6FF]/10 px-7 text-[14px] font-bold uppercase tracking-[0.14em] text-[#7DD3FC] transition hover:border-[#58A6FF]/70 hover:bg-[#58A6FF]/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7DD3FC]"
+              >
+                Universo 3D
+              </Link>
+            </div>
           )}
 
           {/* Busca — abre modal de gate ou navega ao dossiê (com autocomplete) */}
