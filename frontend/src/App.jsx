@@ -62,6 +62,7 @@ export default function App() {
                 <Route path="/universo" element={<UniversePage />} />
                 <Route path="/status" element={<StatusPage />} />
                 <Route path="/partido" element={<PartidoPage />} />
+                <Route path="/partido/:sigla" element={<PartidoPage />} />
                 <Route path="/comercial" element={<Navigate to="/partido" replace />} />
 
                 <Route path="/painel" element={<Navigate to="/universo" replace />} />

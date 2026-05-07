@@ -1,7 +1,21 @@
-import { Bell, CreditCard, FileText, Shield, User } from "lucide-react";
+import {
+  Bell,
+  CreditCard,
+  FileText,
+  Shield,
+  User,
+  Crown,
+  TrendingUp,
+  ChevronRight,
+  Award,
+  LogOut,
+  Smartphone,
+  Mail,
+} from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
 
 import { getFirebaseAuth, getFirestoreDb } from "../lib/firebase.js";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -11,10 +25,10 @@ import { doc, getDoc } from "firebase/firestore";
 const STORAGE_KEY = "transparenciabr_watchlist_ids";
 
 const TABS = [
-  { id: "conta", label: "Minha conta", icon: User },
-  { id: "extrato", label: "Extrato de créditos", icon: CreditCard },
-  { id: "dossies", label: "Meus dossiês", icon: FileText },
-  { id: "seguranca", label: "Segurança", icon: Shield },
+  { id: "conta",     label: "Minha conta",       icon: User },
+  { id: "extrato",   label: "Extrato de créditos", icon: CreditCard },
+  { id: "dossies",   label: "Meus dossiês",      icon: FileText },
+  { id: "seguranca", label: "Segurança",         icon: Shield },
 ];
 
 function readLocalWatchlist() {
@@ -26,6 +40,14 @@ function readLocalWatchlist() {
   } catch {
     return [];
   }
+}
+
+function tierFromCredits(credits) {
+  if (credits == null) return { name: "Carregando…", color: "#8B949E", icon: User };
+  if (credits >= 4000) return { name: "Investigador", color: "#a78bfa", icon: Crown };
+  if (credits >= 1500) return { name: "Jornalista",   color: "#22d3ee", icon: Award };
+  if (credits > 0)     return { name: "Starter",      color: "#34d399", icon: User };
+  return { name: "Sem créditos", color: "#8B949E", icon: User };
 }
 
 export default function PerfilPage() {
@@ -72,6 +94,10 @@ export default function PerfilPage() {
     return ids;
   }, [remoteIds, ids]);
 
+  const tier = tierFromCredits(godMode ? 9999 : credits);
+  const TierIcon = tier.icon;
+  const initial = (user?.email || user?.displayName || "?")[0]?.toUpperCase() || "?";
+
   return (
     <>
       <Helmet>
@@ -79,160 +105,358 @@ export default function PerfilPage() {
       </Helmet>
 
       <div className="min-h-full bg-[#080B14] px-4 py-8 text-[#F0F4FC] sm:px-6 sm:py-10">
-        <div className="mx-auto max-w-3xl">
+        <div className="mx-auto max-w-6xl">
           <header className="mb-8">
             <p className="text-[11px] font-semibold uppercase tracking-[0.35em] text-[#8B949E]">
               Área autenticada
             </p>
-            <h1 className="mt-2 text-2xl font-bold tracking-tight">Perfil operador</h1>
-            <p className="mt-2 text-sm text-[#8B949E]">
-              Gestão de conta, créditos, atalhos aos dossiês e boas práticas de segurança.
-            </p>
+            <h1 className="mt-2 text-3xl font-bold tracking-tight">Perfil operador</h1>
           </header>
 
-          <div
-            className="mb-6 flex flex-wrap gap-2 border-b border-[#30363D] pb-4"
-            role="tablist"
-            aria-label="Secções do perfil"
-          >
-            {TABS.map((t) => {
-              const Icon = t.icon;
-              const active = tab === t.id;
-              return (
-                <button
-                  key={t.id}
-                  type="button"
-                  role="tab"
-                  aria-selected={active}
-                  onClick={() => setTab(t.id)}
-                  className={[
-                    "inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition",
-                    active
-                      ? "bg-[#161B22] text-[#58A6FF] ring-1 ring-[#58A6FF]/40"
-                      : "text-[#8B949E] hover:bg-[#161B22]/80 hover:text-[#C9D1D9]",
-                  ].join(" ")}
-                >
-                  <Icon className="size-4" strokeWidth={1.75} />
-                  {t.label}
-                </button>
-              );
-            })}
-          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6">
+            {/* Sidebar */}
+            <aside className="lg:sticky lg:top-6 lg:self-start space-y-4">
+              {/* Card identidade */}
+              <div className="rounded-2xl border border-[#30363D] bg-[#0D1117] p-5">
+                <div className="flex flex-col items-center text-center">
+                  <div className="relative">
+                    <div
+                      className="w-20 h-20 rounded-full flex items-center justify-center text-3xl font-semibold text-white shadow-2xl"
+                      style={{
+                        background: `linear-gradient(135deg, ${tier.color}, #1f2937)`,
+                        boxShadow: `0 0 30px -8px ${tier.color}80`,
+                      }}
+                    >
+                      {initial}
+                    </div>
+                    <div
+                      className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full flex items-center justify-center bg-[#0D1117] border-2 border-[#30363D]"
+                      title={tier.name}
+                    >
+                      <TierIcon size={14} style={{ color: tier.color }} strokeWidth={2} />
+                    </div>
+                  </div>
+                  <p className="mt-4 text-sm font-semibold text-[#F0F4FC] truncate max-w-full">
+                    {user?.displayName || user?.email?.split("@")[0] || "Operador"}
+                  </p>
+                  <p className="text-[11px] text-[#8B949E] truncate max-w-full">{user?.email || "—"}</p>
 
-          {tab === "conta" && (
-            <section
-              className="glass rounded-2xl border border-[#30363D] bg-[#0D1117]/80 p-6"
-              role="tabpanel"
-            >
-              <h2 className="text-sm font-semibold text-[#C9D1D9]">Minha conta</h2>
-              {authLoading ? (
-                <p className="mt-4 text-sm text-[#8B949E]">A carregar sessão…</p>
-              ) : user ? (
-                <dl className="mt-4 space-y-3 font-mono text-sm">
-                  <div>
-                    <dt className="text-[11px] uppercase tracking-wider text-[#8B949E]">UID</dt>
-                    <dd className="mt-1 break-all text-[#58A6FF]">{user.uid}</dd>
+                  <div
+                    className="mt-3 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wider border"
+                    style={{
+                      background: `${tier.color}15`,
+                      borderColor: `${tier.color}40`,
+                      color: tier.color,
+                    }}
+                  >
+                    <TierIcon size={11} strokeWidth={2.4} />
+                    {tier.name}
                   </div>
-                  <div>
-                    <dt className="text-[11px] uppercase tracking-wider text-[#8B949E]">Email</dt>
-                    <dd className="mt-1 text-[#C9D1D9]">{user.email || "—"}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-[11px] uppercase tracking-wider text-[#8B949E]">Modo</dt>
-                    <dd className="mt-1 text-[#C9D1D9]">{godMode ? "Operador elevado" : "Standard"}</dd>
-                  </div>
-                </dl>
-              ) : (
-                <p className="mt-4 text-sm text-[#8B949E]">
-                  Sem sessão ativa.{" "}
-                  <Link to="/login" className="font-semibold text-[#58A6FF] hover:underline">
-                    Iniciar sessão
+                </div>
+
+                <div className="mt-5 pt-4 border-t border-white/5">
+                  <p className="text-[10px] uppercase tracking-wider text-[#8B949E]">Saldo</p>
+                  <p className="text-2xl font-bold tabular-nums text-cyan-300 mt-1">
+                    {godMode ? "∞" : credits ?? "…"}{" "}
+                    <span className="text-xs font-normal text-[#8B949E]">créditos</span>
+                  </p>
+                  <Link
+                    to="/creditos"
+                    className="mt-3 flex items-center justify-center gap-1.5 rounded-lg bg-cyan-500/15 border border-cyan-400/40 px-3 py-2 text-xs font-medium text-cyan-200 hover:bg-cyan-500/25 transition-all"
+                  >
+                    <TrendingUp size={13} strokeWidth={1.8} />
+                    Aumentar plano
                   </Link>
-                  .
-                </p>
-              )}
-            </section>
-          )}
-
-          {tab === "extrato" && (
-            <section
-              className="glass rounded-2xl border border-[#30363D] bg-[#0D1117]/80 p-6"
-              role="tabpanel"
-            >
-              <h2 className="text-sm font-semibold text-[#C9D1D9]">Extrato de créditos</h2>
-              <p className="mt-2 text-sm text-[#8B949E]">
-                Saldo em tempo real a partir de <span className="font-mono">usuarios/{`{uid}`}</span>{" "}
-                (Firestore). Débitos de 200 créditos aplicam-se ao laboratório premium do dossiê.
-              </p>
-              <p className="mt-6 font-mono text-3xl font-bold text-[#58A6FF]">
-                {credits === null ? "…" : credits}{" "}
-                <span className="text-base font-normal text-[#8B949E]">créditos</span>
-              </p>
-              <Link
-                to="/creditos"
-                className="mt-6 inline-flex rounded-lg border border-[#58A6FF]/40 px-4 py-2 text-sm font-semibold text-[#58A6FF] hover:bg-[#58A6FF]/10"
-              >
-                Gerir planos →
-              </Link>
-            </section>
-          )}
-
-          {tab === "dossies" && (
-            <section
-              className="glass rounded-2xl border border-[#30363D] bg-[#0D1117]/80 p-6"
-              role="tabpanel"
-            >
-              <div className="flex items-center gap-2 border-b border-[#21262D] pb-4">
-                <Bell className="size-4 text-[#f97316]" strokeWidth={1.75} />
-                <h2 className="text-sm font-semibold tracking-tight">Meus dossiês (watchlist)</h2>
-                <span className="ml-auto font-mono text-[11px] text-[#8B949E]">
-                  {effectiveIds.length} item(ns)
-                </span>
+                </div>
               </div>
 
-              {effectiveIds.length === 0 ? (
-                <p className="py-12 text-center text-sm text-[#8B949E]">
-                  Nenhum parlamentar na lista. Use <span className="font-medium text-[#C9D1D9]">Monitorizar</span>{" "}
-                  num dossiê.
-                </p>
-              ) : (
-                <ul className="mt-4 flex flex-col gap-2">
-                  {effectiveIds.map((polId) => (
-                    <li key={polId}>
-                      <Link
-                        to={`/dossie/${encodeURIComponent(polId)}`}
-                        className="flex items-center justify-between rounded-xl border border-[#30363D]/80 bg-[#161B22]/90 px-4 py-3 text-sm transition hover:border-[#58A6FF]/45"
-                      >
-                        <span className="font-mono text-[13px] text-[#58A6FF]">{polId}</span>
-                        <span className="text-[11px] text-[#8B949E]">Abrir dossiê →</span>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </section>
-          )}
+              {/* Tabs verticais */}
+              <nav className="rounded-2xl border border-[#30363D] bg-[#0D1117] p-2" role="tablist">
+                {TABS.map((t) => {
+                  const Icon = t.icon;
+                  const active = tab === t.id;
+                  return (
+                    <button
+                      key={t.id}
+                      type="button"
+                      role="tab"
+                      aria-selected={active}
+                      onClick={() => setTab(t.id)}
+                      className={[
+                        "w-full flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium transition",
+                        active
+                          ? "bg-cyan-500/10 text-cyan-300 ring-1 ring-cyan-400/30"
+                          : "text-[#8B949E] hover:bg-white/[0.04] hover:text-[#F0F4FC]",
+                      ].join(" ")}
+                    >
+                      <Icon size={16} strokeWidth={1.75} />
+                      <span className="flex-1 text-left">{t.label}</span>
+                      {active && <ChevronRight size={14} />}
+                    </button>
+                  );
+                })}
+              </nav>
 
-          {tab === "seguranca" && (
-            <section
-              className="glass rounded-2xl border border-[#30363D] bg-[#0D1117]/80 p-6"
-              role="tabpanel"
-            >
-              <h2 className="text-sm font-semibold text-[#C9D1D9]">Segurança</h2>
-              <ul className="mt-4 list-inside list-disc space-y-2 text-sm leading-relaxed text-[#8B949E]">
-                <li>Nunca partilhe sessão ou tokens fora do domínio oficial.</li>
-                <li>Use palavra-passe forte e autenticação de dois fatores na conta Google.</li>
-                <li>Os dados exibidos são públicos ou agregados — não exponha dados pessoais de terceiros.</li>
-                <li>
-                  Política completa:{" "}
-                  <Link to="/privacidade" className="text-[#58A6FF] hover:underline">
-                    Privacidade & LGPD
-                  </Link>
-                  .
-                </li>
-              </ul>
-            </section>
-          )}
+              <Link
+                to="/logout"
+                className="flex items-center justify-center gap-1.5 rounded-2xl border border-[#30363D] bg-[#0D1117] px-3 py-3 text-xs text-[#8B949E] hover:border-red-400/40 hover:text-red-300 transition-all"
+              >
+                <LogOut size={13} strokeWidth={1.8} />
+                Encerrar sessão
+              </Link>
+            </aside>
+
+            {/* Content */}
+            <main>
+              <motion.div
+                key={tab}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.25 }}
+              >
+                {tab === "conta" && (
+                  <section className="rounded-2xl border border-[#30363D] bg-[#0D1117] p-6" role="tabpanel">
+                    <h2 className="text-base font-semibold text-[#F0F4FC]">Minha conta</h2>
+                    <p className="text-xs text-[#8B949E] mt-1">
+                      Identificação, sessão atual e nível de operação.
+                    </p>
+
+                    {authLoading ? (
+                      <p className="mt-6 text-sm text-[#8B949E]">A carregar sessão…</p>
+                    ) : user ? (
+                      <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {[
+                          { label: "UID", value: user.uid, mono: true, accent: "cyan" },
+                          { label: "Email", value: user.email || "—", mono: false },
+                          { label: "Modo de operação", value: godMode ? "Operador elevado (god mode)" : "Standard", mono: false, accent: godMode ? "violet" : null },
+                          { label: "Provedor", value: user.providerData?.[0]?.providerId || "—", mono: true },
+                        ].map((f, i) => (
+                          <div
+                            key={i}
+                            className="rounded-xl border border-[#30363D] bg-[#080B14] p-4"
+                          >
+                            <p className="text-[10px] uppercase tracking-wider text-[#8B949E]">{f.label}</p>
+                            <p
+                              className={[
+                                "mt-1 break-all text-sm",
+                                f.mono ? "font-mono" : "",
+                                f.accent === "cyan" ? "text-cyan-300" : f.accent === "violet" ? "text-violet-300" : "text-[#F0F4FC]",
+                              ].join(" ")}
+                            >
+                              {f.value}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="mt-6 text-sm text-[#8B949E]">
+                        Sem sessão ativa.{" "}
+                        <Link to="/login" className="font-semibold text-cyan-400 hover:underline">
+                          Iniciar sessão
+                        </Link>
+                        .
+                      </p>
+                    )}
+
+                    <div className="mt-8 pt-6 border-t border-white/5">
+                      <h3 className="text-sm font-semibold text-[#F0F4FC] mb-3">Notificações</h3>
+                      <div className="space-y-2">
+                        {[
+                          { icon: Mail,       label: "Email — alertas de novos sinais nos meus alvos", on: true },
+                          { icon: Smartphone, label: "Push — sinalizações críticas em tempo real",     on: false },
+                          { icon: Bell,       label: "Resumo semanal aos domingos",                    on: true },
+                        ].map((n, i) => (
+                          <label
+                            key={i}
+                            className="flex items-center gap-3 rounded-xl border border-[#30363D] bg-[#080B14] px-4 py-3 cursor-pointer hover:border-cyan-400/30 transition-colors"
+                          >
+                            <n.icon size={15} className="text-[#8B949E] flex-shrink-0" strokeWidth={1.6} />
+                            <span className="flex-1 text-xs text-[#F0F4FC]">{n.label}</span>
+                            <input
+                              type="checkbox"
+                              defaultChecked={n.on}
+                              className="accent-cyan-400 cursor-pointer"
+                              onChange={() => {/* TODO ligar Firestore */}}
+                            />
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  </section>
+                )}
+
+                {tab === "extrato" && (
+                  <section className="rounded-2xl border border-[#30363D] bg-[#0D1117] p-6" role="tabpanel">
+                    <h2 className="text-base font-semibold text-[#F0F4FC]">Extrato de créditos</h2>
+                    <p className="text-xs text-[#8B949E] mt-1">
+                      Saldo em tempo real a partir de <span className="font-mono text-cyan-300">usuarios/{`{uid}`}</span> (Firestore).
+                      Débitos de 200 créditos no laboratório premium do dossiê.
+                    </p>
+
+                    <div
+                      className="mt-6 rounded-2xl p-6 border border-cyan-400/30"
+                      style={{
+                        background:
+                          "linear-gradient(135deg, rgba(34,211,238,0.08), rgba(167,139,250,0.04))",
+                      }}
+                    >
+                      <p className="text-[10px] uppercase tracking-wider text-cyan-300/70">Saldo atual</p>
+                      <p className="mt-1 text-5xl font-bold tabular-nums text-cyan-300">
+                        {godMode ? "∞" : credits === null ? "…" : credits}
+                      </p>
+                      <p className="text-sm text-[#8B949E] mt-1">créditos disponíveis</p>
+                      <Link
+                        to="/creditos"
+                        className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-cyan-500/20 border border-cyan-400/40 px-4 py-2 text-sm font-medium text-cyan-200 hover:bg-cyan-500/30 transition-all"
+                      >
+                        Comprar mais créditos
+                        <ChevronRight size={14} />
+                      </Link>
+                    </div>
+
+                    <div className="mt-8">
+                      <h3 className="text-sm font-semibold text-[#F0F4FC] mb-3">Atividade recente</h3>
+                      <p className="text-xs text-[#8B949E] mb-4">
+                        Histórico de débitos. (Em breve: sincronização com Firestore.)
+                      </p>
+                      <ul className="space-y-2">
+                        {/* TODO: ligar Firestore subcoleção transactions */}
+                        {[
+                          { d: "Hoje", h: "08:14", desc: "Dossiê laboratório premium", val: -200 },
+                          { d: "Ontem", h: "21:02", desc: "Compra · pacote Jornalista", val: +1500 },
+                          { d: "03/05", h: "14:33", desc: "Dossiê laboratório premium", val: -200 },
+                        ].map((tx, i) => (
+                          <li
+                            key={i}
+                            className="flex items-center gap-3 rounded-xl border border-[#30363D]/80 bg-[#080B14] px-4 py-3"
+                          >
+                            <div className="flex-shrink-0 text-center">
+                              <p className="text-[11px] text-[#8B949E] tabular-nums">{tx.d}</p>
+                              <p className="text-[9px] text-[#484F58] tabular-nums">{tx.h}</p>
+                            </div>
+                            <p className="flex-1 text-xs text-[#F0F4FC]">{tx.desc}</p>
+                            <p
+                              className={`text-sm font-semibold tabular-nums ${
+                                tx.val > 0 ? "text-emerald-400" : "text-red-400"
+                              }`}
+                            >
+                              {tx.val > 0 ? "+" : ""}
+                              {tx.val}
+                            </p>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </section>
+                )}
+
+                {tab === "dossies" && (
+                  <section className="rounded-2xl border border-[#30363D] bg-[#0D1117] p-6" role="tabpanel">
+                    <div className="flex items-center gap-2 border-b border-[#21262D] pb-4">
+                      <Bell className="size-4 text-amber-400" strokeWidth={1.75} />
+                      <h2 className="text-base font-semibold tracking-tight text-[#F0F4FC]">
+                        Meus dossiês (watchlist)
+                      </h2>
+                      <span className="ml-auto font-mono text-[11px] text-[#8B949E]">
+                        {effectiveIds.length} item(ns)
+                      </span>
+                    </div>
+
+                    {effectiveIds.length === 0 ? (
+                      <div className="py-16 text-center">
+                        <div
+                          className="w-16 h-16 mx-auto rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mb-4"
+                        >
+                          <FileText size={28} className="text-[#484F58]" strokeWidth={1.4} />
+                        </div>
+                        <p className="text-sm text-[#8B949E] max-w-sm mx-auto">
+                          Nenhum parlamentar na lista. Use{" "}
+                          <span className="text-[#F0F4FC] font-medium">Salvar no Universo</span>{" "}
+                          numa hotpage para começar a monitorar.
+                        </p>
+                        <Link
+                          to="/painel"
+                          className="mt-5 inline-flex items-center gap-1.5 rounded-lg bg-cyan-500/15 border border-cyan-400/40 px-4 py-2 text-sm text-cyan-200 hover:bg-cyan-500/25"
+                        >
+                          Ir ao painel
+                          <ChevronRight size={14} />
+                        </Link>
+                      </div>
+                    ) : (
+                      <ul className="mt-4 grid sm:grid-cols-2 gap-2">
+                        {effectiveIds.map((polId) => (
+                          <li key={polId}>
+                            <Link
+                              to={`/dossie/${encodeURIComponent(polId)}`}
+                              className="flex items-center justify-between rounded-xl border border-[#30363D]/80 bg-[#080B14] px-4 py-3 text-sm transition hover:border-cyan-400/40 hover:bg-cyan-500/[0.04] group"
+                            >
+                              <span className="font-mono text-[12px] text-cyan-300 truncate">{polId}</span>
+                              <ChevronRight size={14} className="text-[#484F58] group-hover:text-cyan-400" />
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </section>
+                )}
+
+                {tab === "seguranca" && (
+                  <section className="rounded-2xl border border-[#30363D] bg-[#0D1117] p-6" role="tabpanel">
+                    <h2 className="text-base font-semibold text-[#F0F4FC]">Segurança</h2>
+                    <p className="text-xs text-[#8B949E] mt-1">
+                      Boas práticas e controle de sessão.
+                    </p>
+
+                    <div className="mt-6 space-y-3">
+                      {[
+                        {
+                          title: "Autenticação",
+                          desc: "Login Google. 2FA recomendado na sua conta Google.",
+                          status: "ok",
+                        },
+                        {
+                          title: "Sessão atual",
+                          desc: `Iniciada via ${user?.providerData?.[0]?.providerId || "—"}`,
+                          status: "ok",
+                        },
+                        {
+                          title: "Compartilhamento",
+                          desc: "Nunca compartilhe links de dossiê fora do domínio oficial.",
+                          status: "info",
+                        },
+                        {
+                          title: "Privacidade de terceiros",
+                          desc: "Os dados exibidos são públicos ou agregados — não exponha dados pessoais externos.",
+                          status: "info",
+                        },
+                      ].map((item, i) => (
+                        <div
+                          key={i}
+                          className="rounded-xl border border-[#30363D] bg-[#080B14] p-4 flex items-start gap-3"
+                        >
+                          <div
+                            className={`mt-0.5 w-2 h-2 rounded-full flex-shrink-0 ${
+                              item.status === "ok" ? "bg-emerald-400" : "bg-cyan-400"
+                            }`}
+                          />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-[#F0F4FC]">{item.title}</p>
+                            <p className="text-xs text-[#8B949E] mt-0.5 leading-relaxed">{item.desc}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="mt-6 pt-6 border-t border-white/5">
+                      <Link to="/privacidade" className="text-xs text-cyan-400 hover:underline">
+                        Política de privacidade & LGPD →
+                      </Link>
+                    </div>
+                  </section>
+                )}
+              </motion.div>
+            </main>
+          </div>
         </div>
       </div>
     </>
