@@ -37,6 +37,11 @@ import {
   extractHeroKPIs,
   extractCeapBreakdown,
 } from "../hooks/useKPIsParlamentar.js";
+import {
+  useCEAPDetalhado,
+  useComissoesParlamentar,
+  useEventosParlamentar,
+} from "../hooks/useCamadasParlamentar.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import CamadaDrawer from "../components/CamadaDrawer.jsx";
 
@@ -76,16 +81,16 @@ const CATEGORIES = [
   {
     key: "folha",
     n: 3,
-    label: "Folha do gabinete",
-    teaser: "Servidores nomeados, parentesco, salários, rotatividade.",
-    status: "coming",
+    label: "Folha do gabinete (proxy)",
+    teaser: "Comissões e cargos do parlamentar · dado vivo da Câmara.",
+    status: "available",
   },
   {
     key: "viagens",
     n: 4,
-    label: "Viagens, passagens & pedágios",
-    teaser: "Cruzamento com agenda oficial · viagens-fantasma sinalizadas.",
-    status: "coming",
+    label: "Agenda oficial & viagens",
+    teaser: "Eventos publicados · base do cruzamento com passagens CEAP.",
+    status: "available",
   },
   {
     key: "emendas",
@@ -305,8 +310,11 @@ function buildKpiDrawerPayload(kind, { kpisRaw, heroKpis, breakdown, hasKpis, no
   return null;
 }
 
-/** Drawer dos 6 cards de camada. */
-function buildCamadaDrawerPayload(key, { breakdown, hasKpis, nome, heroKpis }) {
+/** Drawer dos 6 cards de camada — Onda 7: usa dado vivo da API Câmara. */
+function buildCamadaDrawerPayload(
+  key,
+  { breakdown, hasKpis, nome, heroKpis, ceapDet, comissoes, eventos },
+) {
   const blocoCEAP = {
     title: "CEAP — Cota parlamentar",
     kicker: "Camada 1 · DISPONÍVEL",
@@ -338,6 +346,162 @@ function buildCamadaDrawerPayload(key, { breakdown, hasKpis, nome, heroKpis }) {
       "Esta camada ainda não tem ingestão automática em produção para todos os parlamentares. Durante a abertura do dossiê, o worker Aurora dispara coleta sob demanda e materializa o dado no Data Lake antes de devolver o resultado.",
     fontes: fonteRoadmap,
   });
+
+  // ===== CEAP detalhado vivo (Onda 7) =====
+  if (key === "ceap") {
+    if (ceapDet?.loading) {
+      return {
+        ...blocoCEAP,
+        honestNote: "Carregando despesas detalhadas da API Câmara…",
+      };
+    }
+    if (ceapDet?.error) {
+      return {
+        ...blocoCEAP,
+        honestNote: `API Câmara indisponível no momento: ${ceapDet.error}`,
+      };
+    }
+    if (ceapDet?.qtdNotas > 0) {
+      const fornecedoresLinhas = ceapDet.topFornecedores.map((f) => ({
+        categoria: f.nome,
+        qtd: f.qtd,
+        valor_brl: f.valor,
+      }));
+      return {
+        title: "CEAP — Cota parlamentar (ao vivo)",
+        kicker: `Camada 1 · DISPONÍVEL · ${ceapDet.ano}`,
+        subtitle: `${nome} — ${ceapDet.qtdNotas} notas em ${ceapDet.ano} via API Câmara.`,
+        bigLabel: `Total reembolsado em ${ceapDet.ano}`,
+        bigValue: fmtBRL(ceapDet.totalAno),
+        bigHint: `${ceapDet.qtdNotas} notas reembolsadas pela cota oficial.`,
+        serieAnual: hasKpis ? breakdown.serieAnual : [],
+        topCategorias: fornecedoresLinhas,
+        topCategoriasLabel: "Top fornecedores",
+        metricas: [
+          {
+            label: "Categoria principal",
+            value: ceapDet.topCategorias[0]?.categoria
+              ? ceapDet.topCategorias[0].categoria.split(" ").slice(0, 3).join(" ")
+              : "—",
+          },
+          {
+            label: "Top fornecedor",
+            value: ceapDet.topFornecedores[0]?.nome ?? "—",
+          },
+          {
+            label: "Valor top fornecedor",
+            value: fmtBRL(ceapDet.topFornecedores[0]?.valor ?? 0),
+          },
+          {
+            label: "Anos no Data Lake",
+            value: hasKpis
+              ? `${breakdown.serieAnual.length} ano(s)`
+              : "—",
+          },
+        ],
+        metodologia:
+          "Notas reembolsadas pela cota CEAP, agregadas em tempo real direto da API oficial da Câmara dos Deputados (dadosabertos.camara.leg.br). Não passa pelo classificador Aurora — é o dado bruto, com link direto para o recibo PDF.",
+        fontes: [
+          "API Câmara · /deputados/{id}/despesas (CORS aberto)",
+          "Data Lake · gs://datalake-tbr-clean/ceap_classified/ (dado classificado)",
+        ],
+      };
+    }
+    return blocoCEAP;
+  }
+
+  // ===== Folha (com. + cargos) vivo (Onda 7) =====
+  if (key === "folha") {
+    if (comissoes?.loading) {
+      return {
+        title: "Folha do gabinete (em coleta)",
+        kicker: "Camada 3 · carregando",
+        bigLabel: "Status",
+        bigValue: "—",
+        honestNote: "Carregando comissões e cargos da API Câmara…",
+      };
+    }
+    if (comissoes?.membroDe > 0) {
+      const linhas = comissoes.orgaos.slice(0, 12).map((o) => ({
+        categoria: `${o.sigla} · ${o.titulo}`,
+        qtd: o.ativo ? 1 : 0,
+        valor_brl: 0,
+      }));
+      return {
+        title: "Comissões & cargos (proxy folha)",
+        kicker: `Camada 3 · DISPONÍVEL`,
+        subtitle: `${nome} — ${comissoes.membroDe} vínculos institucionais.`,
+        bigLabel: "Comissões ativas",
+        bigValue: `${comissoes.ativos ?? 0}`,
+        bigHint: `Total no período: ${comissoes.membroDe} · com cargos de relevo: ${comissoes.titularidades}.`,
+        topCategorias: linhas,
+        topCategoriasLabel: "Comissões e cargos (mais recentes)",
+        metricas: [
+          {
+            label: "Titularidades / cargos",
+            value: comissoes.titularidades,
+          },
+          { label: "Comissões ativas hoje", value: comissoes.ativos ?? 0 },
+          { label: "Histórico total", value: comissoes.membroDe },
+        ],
+        honestNote:
+          "Esta camada usa comissões e cargos como PROXY até termos a folha de servidores nomeados (Portal da Transparência). O cruzamento parentesco/salário entra na próxima onda.",
+        metodologia:
+          "Coleção ao vivo dos órgãos colegiados em que o parlamentar atua, com título (titular, suplente, presidente, relator). Servidores nomeados ainda não entram — apenas cargos institucionais públicos.",
+        fontes: [
+          "API Câmara · /deputados/{id}/orgaos",
+          "Próxima onda: Portal da Transparência · servidores ativos",
+        ],
+      };
+    }
+  }
+
+  // ===== Viagens / agenda viva (Onda 7) =====
+  if (key === "viagens") {
+    if (eventos?.loading) {
+      return {
+        title: "Agenda oficial (em coleta)",
+        kicker: "Camada 4 · carregando",
+        bigLabel: "Status",
+        bigValue: "—",
+        honestNote: "Carregando eventos da API Câmara…",
+      };
+    }
+    if (eventos?.eventos?.length > 0) {
+      const linhasProx = eventos.proximos.map((e) => ({
+        categoria: `${e.tipo} — ${e.local || "—"}`,
+        qtd: 0,
+        valor_brl: 0,
+      }));
+      const linhasTipo = eventos.porTipo.slice(0, 6).map((t) => ({
+        categoria: t.tipo,
+        qtd: t.qtd,
+        valor_brl: 0,
+      }));
+      return {
+        title: "Agenda oficial & viagens",
+        kicker: "Camada 4 · DISPONÍVEL",
+        subtitle: `${nome} — ${eventos.eventos.length} eventos consultados.`,
+        bigLabel: "Eventos no período",
+        bigValue: `${eventos.eventos.length}`,
+        bigHint: `${eventos.proximos.length} futuros · ${eventos.realizados.length} já ocorridos.`,
+        topCategorias: linhasProx.length > 0 ? linhasProx : linhasTipo,
+        topCategoriasLabel:
+          linhasProx.length > 0 ? "Próximos eventos" : "Distribuição por tipo",
+        metricas: [
+          { label: "Próximos", value: eventos.proximos.length },
+          { label: "Realizados", value: eventos.realizados.length },
+          { label: "Tipos distintos", value: eventos.porTipo.length },
+        ],
+        metodologia:
+          "Eventos oficiais publicados pela Câmara em tempo real. É a fonte usada para detectar viagens-fantasma cruzando com passagens reembolsadas pela CEAP. O cruzamento automático entra junto com o classificador da Onda 8.",
+        fontes: [
+          "API Câmara · /deputados/{id}/eventos",
+          "Próxima onda: cruzamento com CEAP categoria PASSAGEM AÉREA",
+        ],
+      };
+    }
+  }
 
   switch (key) {
     case "ceap":
@@ -412,6 +576,11 @@ export default function PoliticoPage() {
   // Onda 6 — drawer inline para drill-down clicável.
   const [drawer, setDrawer] = useState({ open: false, payload: null });
   const closeDrawer = () => setDrawer((s) => ({ ...s, open: false }));
+
+  // Onda 7 — dados vivos da API Câmara (CEAP detalhado, com. e eventos).
+  const ceapDet = useCEAPDetalhado(id);
+  const comissoes = useComissoesParlamentar(id);
+  const eventos = useEventosParlamentar(id);
 
   useEffect(() => {
     let mounted = true;
@@ -742,6 +911,9 @@ export default function PoliticoPage() {
                       hasKpis,
                       nome,
                       heroKpis,
+                      ceapDet,
+                      comissoes,
+                      eventos,
                     }),
                   })
                 }
