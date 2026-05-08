@@ -1,17 +1,21 @@
 /**
- * @file useUserCredits.js
- * @description Hook para obter e observar o saldo de créditos do advogado logado.
+ * @file useUserCredits.js (versão leads)
+ * @description Hook auxiliar usado por LeadCardPro com API estendida
+ * (loading + error + deductOptimistic).
  *
- * Escuta em tempo real o documento /users/{uid} no Firestore.
- * Se o projeto já possuir este hook em outro caminho, este arquivo pode ser
- * descartado e substituído pela importação existente.
+ * Escuta em tempo real o documento `/usuarios/{uid}` (coleção canônica
+ * compartilhada com a CF generateDossieOnDemand e o stripeWebhook).
  *
  * Retorna:
- *   - credits:    número atual de créditos disponíveis
+ *   - credits:    número atual de créditos (campo `creditos` na coleção)
  *   - loading:    true enquanto aguarda primeira leitura
  *   - error:      erro ocorrido (ou null)
  *   - deductOptimistic(n): desconta localmente antes da resposta do servidor
- *                          (evita flash de UI inconsistente)
+ *
+ * Histórico: versão anterior lia de `/users/{uid}.credits` (coleção
+ * inglesa legada, nunca populada pela infra atual). Migrado para
+ * `/usuarios/{uid}.creditos` em 08/05/2026 sem alterar a API pública
+ * do hook — LeadCardPro continua funcionando sem mudanças.
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -56,12 +60,12 @@ export function useUserCredits() {
       return;
     }
 
-    const userRef   = doc(db, 'users', user.uid);
+    const userRef   = doc(db, 'usuarios', user.uid);
     const unsubscribe = onSnapshot(
       userRef,
       (snap) => {
         if (snap.exists()) {
-          const serverCredits = snap.data().credits ?? 0;
+          const serverCredits = Number(snap.data()?.creditos ?? 0);
           // Aplicar delta otimista pendente sobre valor do servidor
           setCredits(serverCredits + optimisticDelta.current);
         } else {

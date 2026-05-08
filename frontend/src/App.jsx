@@ -89,7 +89,8 @@ export default function App() {
                 <Route path="/politica/busca" element={<BuscaPage />} />
                 <Route path="/busca" element={<Navigate to="/politica/busca" replace />} />
                 <Route path="/politica/dossie/:nome" element={<DossieGroundedPage />} />
-                <Route path="/dossie/:id" element={<DossiePage />} />
+                {/* /politico/:id permanece público (landing de venda).
+                    /dossie/:id passa a exigir auth — redireciona para /login com state.from. */}
                 <Route path="/politico/:id" element={<PoliticoPage />} />
                 <Route path="/sucesso" element={<SuccessPage />} />
                 <Route path="/logout" element={<LogoutPage />} />
@@ -98,6 +99,7 @@ export default function App() {
                 <Route path="/creditos" element={<CreditosPage />} />
 
                 <Route element={<ProtectedRoute />}>
+                  <Route path="/dossie/:id" element={<DossiePage />} />
                   <Route element={<DashboardLayout />}>
                     <Route path="/mapa" element={<MapaPage />} />
                     <Route path="/alertas" element={<AlertasPage />} />

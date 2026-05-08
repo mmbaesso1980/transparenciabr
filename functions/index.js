@@ -1355,3 +1355,9 @@ exports.generateDossieOnDemand = functions
 const leadsPaywall = require("./src/leads");
 exports.openContactBigData = leadsPaywall.openContactBigData;
 exports.generateInitialPetition = leadsPaywall.generateInitialPetition;
+
+// ── Onda 4: Worker do dossiê on-demand ────────────────────────────────────
+// Trigger Firestore onCreate em dossie_jobs/{jobId} → coleta camadas → grava
+// em transparency_reports/{politicoId}.camadas.{nome}. Documentação inline.
+const processDossieJobModule = require("./src/dossie/processDossieJob");
+exports.processDossieJob = processDossieJobModule.processDossieJob;
