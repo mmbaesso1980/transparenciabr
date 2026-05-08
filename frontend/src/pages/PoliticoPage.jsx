@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 
 import { fetchPoliticoByIdOrSlug } from "../lib/firebase.js";
+import { useKPIsParlamentar, extractHeroKPIs } from "../hooks/useKPIsParlamentar.js";
 import { useAuth } from "../context/AuthContext.jsx";
 
 const DOSSIE_PRICE_CREDITS = 200;
@@ -104,6 +105,10 @@ export default function PoliticoPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Onda 5 — KPIs reais do Data Lake (GCS ceap_classified/) via CF pública.
+  const { kpis: kpisRaw, hasData: hasKpis, loading: loadingKpis } = useKPIsParlamentar(id);
+  const heroKpis = extractHeroKPIs(kpisRaw);
+
   useEffect(() => {
     let mounted = true;
     setLoading(true);
@@ -172,29 +177,39 @@ export default function PoliticoPage() {
     politico?.partido ?? politico?.siglaPartido ?? politico?.party ?? "—";
   const uf =
     politico?.uf ?? politico?.siglaUf ?? politico?.estado ?? "—";
-  const cota = Number(
-    politico?.cota_anual ??
-      politico?.cota ??
-      politico?.gasto_total ??
-      politico?.ceap_total_acumulado ??
-      0,
-  );
-  const score = Number(
-    politico?.score_risco ??
-      politico?.risk_score ??
-      politico?.score ??
-      politico?.kpi_score_risco ??
-      0,
-  );
-  const presenca = Number(
-    politico?.presenca ?? politico?.presenca_pct ?? politico?.kpi_presenca ?? 0,
-  );
-  const sinalizacoes = Number(
-    politico?.sinalizacoes ??
-      politico?.sinalizacoes_total ??
-      politico?.kpi_sinalizacoes ??
-      0,
-  );
+  // Onda 5 — prioriza dado real do Data Lake; fallback para Firestore se houver.
+  const cota =
+    heroKpis.ceap_acumulado ??
+    Number(
+      politico?.cota_anual ??
+        politico?.cota ??
+        politico?.gasto_total ??
+        politico?.ceap_total_acumulado ??
+        0,
+    );
+  const score =
+    heroKpis.score_aurora ??
+    Number(
+      politico?.score_risco ??
+        politico?.risk_score ??
+        politico?.score ??
+        politico?.kpi_score_risco ??
+        0,
+    );
+  // "Presença" deixa de ser presença em plenário (que não temos) e vira
+  // "rastreabilidade do dossiê" — KPI honesto baseado em dado real.
+  const presenca = heroKpis.rastreabilidade_pct ??
+    Number(
+      politico?.presenca ?? politico?.presenca_pct ?? politico?.kpi_presenca ?? 0,
+    );
+  // "Sinalizações" agora é a contagem real de notas em alto risco.
+  const sinalizacoes = heroKpis.qtd_notas_alto_risco ??
+    Number(
+      politico?.sinalizacoes ??
+        politico?.sinalizacoes_total ??
+        politico?.kpi_sinalizacoes ??
+        0,
+    );
   const fotoUrl =
     politico?.foto ?? politico?.urlFoto ?? politico?.url_foto ?? null;
 
@@ -276,11 +291,45 @@ export default function PoliticoPage() {
             </p>
 
             <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-              <KpiBlock label="Score Aurora" value={`${Math.round(score)} / 100`} accent="violet" />
-              <KpiBlock label="CEAP acumulado" value={fmtBRL(cota)} accent="amber" />
-              <KpiBlock label="Presença" value={presenca > 0 ? `${Math.round(presenca)}%` : "—"} accent="emerald" />
-              <KpiBlock label="Sinalizações" value={fmtNum(sinalizacoes)} accent="rose" />
+              <KpiBlock
+                label="Score Aurora"
+                value={hasKpis ? `${Math.round(score)} / 100` : "—"}
+                accent="violet"
+                hint={hasKpis ? null : "sem dado classificado"}
+              />
+              <KpiBlock
+                label="CEAP classificado"
+                value={hasKpis ? fmtBRL(cota) : "—"}
+                accent="amber"
+                hint={hasKpis ? "período disponível" : "em coleta"}
+              />
+              <KpiBlock
+                label="Rastreabilidade"
+                value={hasKpis && presenca > 0 ? `${Math.round(presenca)}%` : "—"}
+                accent="emerald"
+                hint={hasKpis ? "qualidade do dossiê" : null}
+              />
+              <KpiBlock
+                label="Notas alto risco"
+                value={hasKpis ? fmtNum(sinalizacoes) : "—"}
+                accent="rose"
+                hint={hasKpis ? null : "a confirmar"}
+              />
             </div>
+
+            {/* Banner honesto quando o parlamentar ainda não foi classificado */}
+            {!loadingKpis && !hasKpis && (
+              <div className="mt-4 flex items-start gap-3 rounded-xl border border-amber-400/20 bg-amber-400/5 p-3 text-sm">
+                <span className="mt-0.5 size-2 shrink-0 animate-pulse rounded-full bg-amber-300" />
+                <p className="text-[#D1D5DB]">
+                  Este parlamentar ainda não foi processado pelo motor Aurora.{" "}
+                  <span className="text-amber-200">
+                    Abra o dossiê completo para disparar a coleta sob demanda
+                  </span>{" "}
+                  — cruzamos CEAP, viagens e folha em ~30 segundos.
+                </p>
+              </div>
+            )}
           </div>
         </motion.header>
 
@@ -425,7 +474,7 @@ export default function PoliticoPage() {
 // =============================================================================
 // Subcomponentes
 // =============================================================================
-function KpiBlock({ label, value, accent = "cyan" }) {
+function KpiBlock({ label, value, accent = "cyan", hint = null }) {
   const map = {
     cyan: "border-cyan-400/30 bg-cyan-500/10 text-cyan-200",
     violet: "border-violet-400/30 bg-violet-500/10 text-violet-200",
@@ -441,6 +490,11 @@ function KpiBlock({ label, value, accent = "cyan" }) {
       <p className="mt-1 font-mono text-base font-semibold tabular-nums">
         {value}
       </p>
+      {hint && (
+        <p className="mt-0.5 text-[9px] uppercase tracking-wider opacity-50">
+          {hint}
+        </p>
+      )}
     </div>
   );
 }
