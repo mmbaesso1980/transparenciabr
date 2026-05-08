@@ -86,10 +86,52 @@ jobs:
       - name: Deploy Hosting
         run: firebase deploy --only hosting --project transparenciabr --non-interactive
 
+      # Onda 7 — guard-rail anti-drift: garante que o domínio principal
+      # (.com.br) está realmente recebendo o bundle deployado. Em 27/abr→08/mai
+      # tivemos 11 dias de drift silencioso porque .com.br estava atrelado a
+      # site Hosting secundário órfão de CI. Este step quebra o build se voltar.
+      - name: Smoke regression · bundle freshness em .com.br
+        if: github.ref == 'refs/heads/main'
+        run: |
+          echo "::group::Aguardando propagação Fastly (30s)"
+          sleep 30
+          echo "::endgroup::"
+
+          echo "::group::Bundle servido em .com.br"
+          # busca o src real do index.html
+          BUNDLE_SRC=$(curl -s "https://transparenciabr.com.br/?cb=$(date +%s)" \
+            | grep -oE 'src="/assets/index[^"]*\.js"' | head -1 \
+            | sed -E 's/src="([^"]+)"/\1/')
+          echo "Bundle: $BUNDLE_SRC"
+          if [ -z "$BUNDLE_SRC" ]; then
+            echo "::warning::Não foi possível extrair src do bundle de .com.br — pulando smoke"
+            exit 0
+          fi
+
+          # last-modified do bundle
+          LM=$(curl -sI "https://transparenciabr.com.br${BUNDLE_SRC}" | grep -i last-modified | tr -d '\r')
+          echo "Last-modified: $LM"
+
+          # idade em dias
+          LM_DATE=$(echo "$LM" | sed -E 's/last-modified: //I' | xargs)
+          if [ -n "$LM_DATE" ]; then
+            LM_EPOCH=$(date -d "$LM_DATE" +%s 2>/dev/null || echo 0)
+            NOW_EPOCH=$(date +%s)
+            AGE_DAYS=$(( (NOW_EPOCH - LM_EPOCH) / 86400 ))
+            echo "Idade do bundle: ${AGE_DAYS}d"
+            if [ "$AGE_DAYS" -gt 2 ]; then
+              echo "::error::Bundle de .com.br tem ${AGE_DAYS} dias — drift detectado. .com.br provavelmente aponta a um site Hosting secundário sem CI/CD. Verificar Firebase Console → Hosting → custom domains."
+              exit 1
+            fi
+          fi
+          echo "::endgroup::"
+        continue-on-error: true # não bloqueia deploy ainda; só sinaliza
+
       - name: Summary
         if: always()
         run: |
           echo "## Deploy Hosting" >> $GITHUB_STEP_SUMMARY
           echo "- Status: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
-          echo "- URL: https://transparenciabr.web.app" >> $GITHUB_STEP_SUMMARY
+          echo "- URL principal: https://transparenciabr.web.app" >> $GITHUB_STEP_SUMMARY
+          echo "- Domínio público: https://transparenciabr.com.br (validar smoke acima)" >> $GITHUB_STEP_SUMMARY
           echo "- Commit: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
