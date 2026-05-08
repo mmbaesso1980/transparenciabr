@@ -364,6 +364,7 @@ function buildCamadaDrawerPayload(
     if (ceapDet?.qtdNotas > 0) {
       const fornecedoresLinhas = ceapDet.topFornecedores.map((f) => ({
         categoria: f.nome,
+        cnpj: f.cnpj && f.cnpj !== "—" ? f.cnpj : null,
         qtd: f.qtd,
         valor_brl: f.valor,
       }));

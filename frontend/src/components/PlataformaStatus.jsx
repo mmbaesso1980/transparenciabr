@@ -132,7 +132,7 @@ export default function PlataformaStatus() {
       </div>
 
       <p className="mt-3 text-[10px] uppercase tracking-widest text-white/30">
-        Fontes auditáveis: getSprintStatus · getDashboardKPIs · getDossieCeapKPIs
+        Fontes auditáveis: API Câmara · API Senado · PNCP · BrasilAPI · getSprintStatus · getDashboardKPIs · getDossieCeapKPIs
       </p>
     </section>
   );

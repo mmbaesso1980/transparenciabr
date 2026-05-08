@@ -12,6 +12,7 @@ import { Fragment, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, ArrowRight, Info } from "lucide-react";
 import { Link } from "react-router-dom";
+import EnriquecimentoCNPJ from "./EnriquecimentoCNPJ.jsx";
 
 const fmtBRL = (v) =>
   Number.isFinite(Number(v))
@@ -173,10 +174,13 @@ export default function CamadaDrawer({ open, onClose, payload, ctaTo, ctaLabel }
                         {payload.topCategorias.slice(0, 12).map((c, i) => (
                           <tr
                             key={`${c.categoria}-${i}`}
-                            className="border-t border-white/5"
+                            className="border-t border-white/5 align-top"
                           >
                             <td className="px-3 py-2 text-white/80">
-                              {c.categoria}
+                              <div>{c.categoria}</div>
+                              {c.cnpj && (
+                                <EnriquecimentoCNPJ cnpj={c.cnpj} />
+                              )}
                             </td>
                             {payload.topCategorias.some((x) => x.qtd > 0) && (
                               <td className="px-3 py-2 text-right font-mono tabular-nums text-white/60">
