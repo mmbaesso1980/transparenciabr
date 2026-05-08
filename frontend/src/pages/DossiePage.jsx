@@ -22,6 +22,10 @@ import AgendaDoDia from "../components/dossie/AgendaDoDia.jsx";
 import BussolaPolitica from "../components/dossie/BussolaPolitica.jsx";
 import CeapMonitorSection from "../components/dossie/CeapMonitorSection.jsx";
 import EmendasParlamentaresSection from "../components/dossie/EmendasParlamentaresSection.jsx";
+import TsePatrimonio from "../components/dossie/TsePatrimonio.jsx";
+import FolhaGabinete from "../components/dossie/FolhaGabinete.jsx";
+import ViagensPedagios from "../components/dossie/ViagensPedagios.jsx";
+import PncpDetalhado from "../components/dossie/PncpDetalhado.jsx";
 import HealthAuditSection from "../components/dossie/HealthAuditSection.jsx";
 import OsintRadarSection from "../components/dossie/OsintRadarSection.jsx";
 import OsintCeapCrossSection from "../components/dossie/OsintCeapCrossSection.jsx";
@@ -36,6 +40,7 @@ import DossierPremiumInsights from "../components/dossie/DossierPremiumInsights.
 import useDossieCeapKPIs from "../hooks/useDossieCeapKPIs.js";
 import { useUserCredits } from "../hooks/useUserCredits.js";
 import { useUserClaims } from "../hooks/useUserClaims.js";
+import { useGenerateDossieOnDemand } from "../hooks/useGenerateDossieOnDemand.js";
 import {
   deductCredits,
   fetchPoliticoById,
@@ -57,6 +62,46 @@ import {
 
 /** Alinhar com `oracleLaboratorioCost()` em `firestore.rules` (200). */
 const ORACLE_LABORATORIO_CREDITS = 200;
+
+/**
+ * Botão "Atualizar agora" — dispara generateDossieOnDemand (Onda 1).
+ * Debita 200 créditos e enfileira coleta. Desabilitado para visitantes.
+ */
+function RefreshDossieButton({ politicoId }) {
+  const { generate, loading, error, result } = useGenerateDossieOnDemand();
+  const onClick = async () => {
+    if (!politicoId || loading) return;
+    if (!window.confirm(
+      "Disparar nova coleta sob demanda? Isso debitará 200 créditos e marcará o dossiê como em processamento.",
+    )) return;
+    try {
+      await generate(politicoId);
+    } catch {
+      /* erro tratado abaixo via state */
+    }
+  };
+  return (
+    <div className="flex flex-col gap-1">
+      <button
+        type="button"
+        onClick={onClick}
+        disabled={loading}
+        className="inline-flex w-fit items-center gap-2 rounded-full border border-cyan-400/40 bg-cyan-400/10 px-4 py-2 text-xs font-bold uppercase tracking-widest text-cyan-200 transition hover:bg-cyan-400/20 disabled:opacity-50"
+      >
+        {loading ? "Agendando…" : "Atualizar agora — 200 cr"}
+      </button>
+      {error ? (
+        <span className="text-[10px] text-rose-300">{error}</span>
+      ) : null}
+      {result?.ok ? (
+        <span className="text-[10px] text-emerald-300">
+          Coleta agendada (job {String(result.jobId).slice(-12)}). Saldo:{" "}
+          {result.saldoApos} cr.
+        </span>
+      ) : null}
+    </div>
+  );
+}
 
 /** Watchlist local (Cofre / Sentinela) — simulação até sync Firestore completo. */
 const WATCHLIST_STORAGE_KEY = "transparenciabr_watchlist_ids";
@@ -419,16 +464,19 @@ export default function DossiePage() {
                     <p className="mt-2 font-mono text-[11px] text-[#484F58]">ID {politicoId}</p>
                   </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={() =>
-                    document.getElementById("dossie-premium-cta")?.scrollIntoView({ behavior: "smooth" })
-                  }
-                  className="inline-flex w-fit items-center gap-2 rounded-full border border-[#d4af37]/50 bg-[#d4af37]/10 px-4 py-2 text-xs font-bold uppercase tracking-widest text-[#fde68a] transition hover:bg-[#d4af37]/20"
-                >
-                  Dossiê premium — {ORACLE_LABORATORIO_CREDITS} créditos
-                  <ArrowDown className="size-3.5" aria-hidden />
-                </button>
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      document.getElementById("dossie-premium-cta")?.scrollIntoView({ behavior: "smooth" })
+                    }
+                    className="inline-flex w-fit items-center gap-2 rounded-full border border-[#d4af37]/50 bg-[#d4af37]/10 px-4 py-2 text-xs font-bold uppercase tracking-widest text-[#fde68a] transition hover:bg-[#d4af37]/20"
+                  >
+                    Dossiê premium — {ORACLE_LABORATORIO_CREDITS} créditos
+                    <ArrowDown className="size-3.5" aria-hidden />
+                  </button>
+                  <RefreshDossieButton politicoId={politicoId} />
+                </div>
               </div>
 
               <div className="glass-card flex min-h-[14rem] flex-col justify-center rounded-2xl border border-[#30363D] p-4 lg:col-span-4">
@@ -742,6 +790,14 @@ export default function DossiePage() {
                   )}
                 </ul>
               </section>
+            </div>
+
+            {/* Linha 3.5 — categorias canônicas em construção (Onda 2) */}
+            <div className="grid gap-4 lg:grid-cols-2">
+              <TsePatrimonio politicoNome={displayRecord?.nome} />
+              <FolhaGabinete politicoNome={displayRecord?.nome} />
+              <ViagensPedagios politicoNome={displayRecord?.nome} />
+              <PncpDetalhado politicoNome={displayRecord?.nome} />
             </div>
 
             {/* Linha 4 — OSS / saúde */}

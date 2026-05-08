@@ -20,6 +20,7 @@ import UniversePage from "./pages/UniversePage.jsx";
 
 const DashboardLayout = lazy(() => import("./layouts/DashboardLayout.jsx"));
 const DossiePage = lazy(() => import("./pages/DossiePage.jsx"));
+const PoliticoPage = lazy(() => import("./pages/PoliticoPage.jsx"));
 const LoginPage = lazy(() => import("./pages/LoginPage.jsx"));
 const MapaPage = lazy(() => import("./pages/MapaPage.jsx"));
 const AlertasPage = lazy(() => import("./pages/AlertasPage.jsx"));
@@ -89,6 +90,7 @@ export default function App() {
                 <Route path="/busca" element={<Navigate to="/politica/busca" replace />} />
                 <Route path="/politica/dossie/:nome" element={<DossieGroundedPage />} />
                 <Route path="/dossie/:id" element={<DossiePage />} />
+                <Route path="/politico/:id" element={<PoliticoPage />} />
                 <Route path="/sucesso" element={<SuccessPage />} />
                 <Route path="/logout" element={<LogoutPage />} />
 

@@ -1227,6 +1227,128 @@ exports.getDossieCeapKPIs = functions
 const { mountAskVertexAgent } = require("./src/vertex/askVertexAgent.js");
 mountAskVertexAgent(functions, exports);
 
+// =============================================================================
+// generateDossieOnDemand (Onda 1) — pay-per-dossier
+//
+// Callable. Debita 200 créditos do usuário autenticado, cria/atualiza o doc
+// `transparency_reports/{politicoId}` com status=processing, requested_at,
+// requested_by e ttl_categoria por camada. A coleta de dados reais (Onda 4)
+// fica a cargo de jobs offline que leem essa fila. Aqui apenas registramos
+// a intenção e debitamos os créditos.
+//
+// Filosofia: "Toda nota é suspeita até prova contrária. Não fazemos
+// denúncia — apresentamos fatos."
+// =============================================================================
+const DOSSIE_ON_DEMAND_COST = 200;
+const DOSSIE_TTL_BY_CATEGORY_HOURS = {
+  ceap: 24,
+  emendas: 24,
+  pncp: 24,
+  folha: 24 * 7,
+  tse: 24 * 30,
+  viagens: 24,
+  agenda: 1, // câmara live
+  aurora: 24 * 7,
+};
+
+exports.generateDossieOnDemand = functions
+  .region("southamerica-east1")
+  .runWith({ memory: "256MB", timeoutSeconds: 60 })
+  .https.onCall(async (data, context) => {
+    if (!context.auth?.uid) {
+      throw new functions.https.HttpsError(
+        "unauthenticated",
+        "É necessário estar autenticado para gerar um dossiê sob demanda.",
+      );
+    }
+    const uid = context.auth.uid;
+    const politicoId = String(data?.politicoId || data?.id || "").trim();
+    if (!politicoId) {
+      throw new functions.https.HttpsError(
+        "invalid-argument",
+        "Informe `politicoId` (string).",
+      );
+    }
+
+    const userRef = db.collection("usuarios").doc(uid);
+    const reportRef = db.collection("transparency_reports").doc(politicoId);
+    const requestedAt = FieldValue.serverTimestamp();
+    const ttlMap = Object.fromEntries(
+      Object.entries(DOSSIE_TTL_BY_CATEGORY_HOURS).map(([k, h]) => [
+        k,
+        { hours: h },
+      ]),
+    );
+    const jobId = `${politicoId}_${Date.now()}`;
+
+    // Transação atomica: lê créditos, debita, registra job.
+    const result = await db.runTransaction(async (tx) => {
+      const userSnap = await tx.get(userRef);
+      const userData = userSnap.exists ? userSnap.data() : {};
+      const saldo = Number(userData?.creditos || 0);
+      if (saldo < DOSSIE_ON_DEMAND_COST) {
+        throw new functions.https.HttpsError(
+          "failed-precondition",
+          `Saldo insuficiente: ${saldo} / ${DOSSIE_ON_DEMAND_COST} créditos. Compre mais em /creditos.`,
+        );
+      }
+
+      tx.update(userRef, {
+        creditos: FieldValue.increment(-DOSSIE_ON_DEMAND_COST),
+        ultima_acao: "generateDossieOnDemand",
+        ultima_acao_em: requestedAt,
+      });
+
+      tx.set(
+        reportRef,
+        {
+          report_id: politicoId,
+          tipo_dossie: "parlamentar",
+          status: "processing",
+          requested_at: requestedAt,
+          requested_by: uid,
+          job_id: jobId,
+          ttl_categoria: ttlMap,
+          custo_creditos: DOSSIE_ON_DEMAND_COST,
+          metadados: {
+            origem: "generateDossieOnDemand",
+            versao: "v1",
+          },
+        },
+        { merge: true },
+      );
+
+      // Fila de jobs (a coleta real lê daqui na Onda 4)
+      const jobRef = db.collection("dossie_jobs").doc(jobId);
+      tx.set(jobRef, {
+        job_id: jobId,
+        politico_id: politicoId,
+        status: "queued",
+        created_at: requestedAt,
+        created_by: uid,
+        custo_creditos: DOSSIE_ON_DEMAND_COST,
+        camadas: Object.keys(DOSSIE_TTL_BY_CATEGORY_HOURS),
+      });
+
+      return { saldoApos: saldo - DOSSIE_ON_DEMAND_COST };
+    });
+
+    console.log(
+      `generateDossieOnDemand: uid=${uid} politico=${politicoId} job=${jobId} saldo=${result.saldoApos}`,
+    );
+
+    return {
+      ok: true,
+      jobId,
+      politicoId,
+      status: "processing",
+      saldoApos: result.saldoApos,
+      ttl: ttlMap,
+      mensagem:
+        "Dossiê agendado. As camadas são coletadas em paralelo — áreas com fonte ativa preenchem em minutos; demais permanecem em breve até a Onda 4.",
+    };
+  });
+
 // ── Módulo Leads / Paywall ────────────────────────────────────────────────
 // Cloud Functions HTTP callable do paywall de contatos + petição automática.
 // Documentação: functions/src/leads/README.md
