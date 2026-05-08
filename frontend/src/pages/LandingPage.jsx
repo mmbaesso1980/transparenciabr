@@ -9,6 +9,7 @@ import EmptyGraph from "../components/EmptyGraph.jsx";
 import PoliticianOrb from "../components/PoliticianOrb.jsx";
 import UserOrb from "../components/UserOrb.jsx";
 import LandingHeroGraph from "../components/landing/LandingHeroGraph.jsx";
+import PlataformaStatus from "../components/PlataformaStatus.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useLandingKPIs } from "../hooks/useLandingKPIs.js";
 import { useUniverseRoster } from "../hooks/useUniverseRoster.js";
@@ -396,6 +397,9 @@ export default function LandingPage() {
             </div>
           </form>
         </section>
+
+        {/* ONDA 7 — Estado real da plataforma (dado vivo) */}
+        <PlataformaStatus />
 
         {/* PORTAIS — orbes-categoria estilo data.gov.uk */}
         <section

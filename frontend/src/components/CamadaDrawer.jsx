@@ -142,34 +142,56 @@ export default function CamadaDrawer({ open, onClose, payload, ctaTo, ctaLabel }
                 </section>
               )}
 
-              {/* Top categorias (CEAP) */}
+              {/* Top categorias / fornecedores / linhas detalhadas */}
               {Array.isArray(payload.topCategorias) && payload.topCategorias.length > 0 && (
                 <section>
                   <h3 className="mb-2 text-xs font-semibold uppercase tracking-widest text-white/60">
-                    Top categorias
+                    {payload.topCategoriasLabel ?? "Top categorias"}
                   </h3>
                   <div className="overflow-hidden rounded-xl border border-white/10">
                     <table className="w-full text-xs">
                       <thead className="bg-white/[0.03]">
                         <tr className="text-left text-[10px] uppercase tracking-widest text-white/40">
-                          <th className="px-3 py-2 font-semibold">Categoria</th>
-                          <th className="px-3 py-2 text-right font-semibold">Notas</th>
-                          <th className="px-3 py-2 text-right font-semibold">Valor</th>
+                          <th className="px-3 py-2 font-semibold">
+                            {payload.topCategoriasColuna ?? "Item"}
+                          </th>
+                          {payload.topCategorias.some((c) => c.qtd > 0) && (
+                            <th className="px-3 py-2 text-right font-semibold">
+                              Qtd
+                            </th>
+                          )}
+                          {payload.topCategorias.some(
+                            (c) => Number(c.valor_brl) > 0,
+                          ) && (
+                            <th className="px-3 py-2 text-right font-semibold">
+                              Valor
+                            </th>
+                          )}
                         </tr>
                       </thead>
                       <tbody>
-                        {payload.topCategorias.slice(0, 8).map((c, i) => (
+                        {payload.topCategorias.slice(0, 12).map((c, i) => (
                           <tr
                             key={`${c.categoria}-${i}`}
                             className="border-t border-white/5"
                           >
-                            <td className="px-3 py-2 text-white/80">{c.categoria}</td>
-                            <td className="px-3 py-2 text-right font-mono tabular-nums text-white/60">
-                              {fmtNum(c.qtd)}
+                            <td className="px-3 py-2 text-white/80">
+                              {c.categoria}
                             </td>
-                            <td className="px-3 py-2 text-right font-mono tabular-nums text-white">
-                              {fmtBRL(c.valor_brl)}
-                            </td>
+                            {payload.topCategorias.some((x) => x.qtd > 0) && (
+                              <td className="px-3 py-2 text-right font-mono tabular-nums text-white/60">
+                                {c.qtd > 0 ? fmtNum(c.qtd) : "—"}
+                              </td>
+                            )}
+                            {payload.topCategorias.some(
+                              (x) => Number(x.valor_brl) > 0,
+                            ) && (
+                              <td className="px-3 py-2 text-right font-mono tabular-nums text-white">
+                                {Number(c.valor_brl) > 0
+                                  ? fmtBRL(c.valor_brl)
+                                  : "—"}
+                              </td>
+                            )}
                           </tr>
                         ))}
                       </tbody>
