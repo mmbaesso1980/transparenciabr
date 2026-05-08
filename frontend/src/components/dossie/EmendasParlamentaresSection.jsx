@@ -1,4 +1,5 @@
 import { Coins, ExternalLink } from "lucide-react";
+import EmBreve from "./EmBreve.jsx";
 import { useMemo, useState } from "react";
 
 import {
@@ -19,29 +20,9 @@ function fmtBrl(n) {
   });
 }
 
-/** Dados de demonstração quando o documento ainda não traz `emendas_parlamentares`. */
-const MOCK_EMENDAS_DEMO = [
-  {
-    descricao: "Emenda individual — custeio em saúde municipal (RP6)",
-    valor: 850_000,
-    codigo_rp: "RP6",
-  },
-  {
-    descricao: "Emenda de bancada — infraestrutura e iluminação (RP7)",
-    valor: 2_400_000,
-    codigo_rp: "RP7",
-  },
-  {
-    descricao: "Transferência via PIX — RP99 (emenda parlamentar)",
-    valor: 320_000,
-    codigo_rp: "RP99",
-  },
-  {
-    descricao: "Emenda individual — educação e equipamentos (RP6)",
-    valor: 1_100_000,
-    codigo_rp: "RP6",
-  },
-];
+// Mock zero. Quando o doc ainda não traz `emendas_parlamentares`,
+// exibimos estado "em breve" honesto — nunca números falsos.
+// Filosofia: "Toda nota é suspeita até prova contrária."
 
 const PILLS = [
   { id: FILTROS_EMENDA.TODAS, label: "Todas" },
@@ -67,9 +48,11 @@ export default function EmendasParlamentaresSection({ politico = null }) {
       politico?.emendas_parlamentares ??
       politico?.emendas ??
       politico?.emendas_orcamento;
-    const source = Array.isArray(raw) && raw.length ? raw : MOCK_EMENDAS_DEMO;
-    return normalizeEmendasList(source);
+    if (!Array.isArray(raw) || raw.length === 0) return [];
+    return normalizeEmendasList(raw);
   }, [politico]);
+
+  const semDadoReal = rows.length === 0;
 
   const filtradas = useMemo(
     () => rows.filter((r) => rowMatchesFiltro(filtro, r)),
@@ -171,6 +154,12 @@ export default function EmendasParlamentaresSection({ politico = null }) {
         </div>
       </div>
 
+      {semDadoReal ? (
+        <EmBreve
+          titulo="Emendas — em breve"
+          subtitulo="Aurora ainda não cruzou as emendas RP6/RP7/RP99 deste parlamentar com os portais SIOP e Transfere Gov. Compre o dossiê premium para disparar a coleta sob demanda."
+        />
+      ) : (
       <ul className="max-h-[22rem] flex-1 divide-y divide-[#21262D] overflow-y-auto px-4 py-2">
         {filtradas.length === 0 ? (
           <li className="py-10 text-center text-sm text-[#8B949E]">
@@ -201,6 +190,7 @@ export default function EmendasParlamentaresSection({ politico = null }) {
           ))
         )}
       </ul>
+      )}
     </section>
   );
 }

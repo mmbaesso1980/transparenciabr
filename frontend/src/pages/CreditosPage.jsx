@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { motion, AnimatePresence } from "framer-motion";
 import { getFunctions, httpsCallable } from "firebase/functions";
@@ -120,6 +120,7 @@ function num(n) {
 // =============================================================================
 export default function CreditosPage() {
   const { user, isAuthenticated, loading: authLoading } = useAuth();
+  const navigate = useNavigate();
   const { credits: currentCredits } = useUserCredits();
   const [busyId, setBusyId] = useState(null);
   const [error, setError] = useState(null);
@@ -155,7 +156,8 @@ export default function CreditosPage() {
     async (pkg) => {
       setError(null);
       if (!isAuthenticated) {
-        setError("Você precisa estar autenticado para comprar créditos.");
+        // Visitante: redireciona para login com retorno para /creditos
+        navigate(`/login?redirect=${encodeURIComponent(`/creditos?pkg=${pkg.id}`)}`);
         return;
       }
       const app = getFirebaseApp();
@@ -210,7 +212,7 @@ export default function CreditosPage() {
         setBusyId(null);
       }
     },
-    [isAuthenticated],
+    [isAuthenticated, navigate],
   );
 
   return (
