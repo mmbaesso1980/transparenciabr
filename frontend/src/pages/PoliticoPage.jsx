@@ -32,8 +32,13 @@ import {
 } from "lucide-react";
 
 import { fetchPoliticoByIdOrSlug } from "../lib/firebase.js";
-import { useKPIsParlamentar, extractHeroKPIs } from "../hooks/useKPIsParlamentar.js";
+import {
+  useKPIsParlamentar,
+  extractHeroKPIs,
+  extractCeapBreakdown,
+} from "../hooks/useKPIsParlamentar.js";
 import { useAuth } from "../context/AuthContext.jsx";
+import CamadaDrawer from "../components/CamadaDrawer.jsx";
 
 const DOSSIE_PRICE_CREDITS = 200;
 
@@ -98,6 +103,300 @@ const CATEGORIES = [
   },
 ];
 
+// =============================================================================
+// Builders de payload do drawer (Onda 6 — Camadas Vivas)
+// =============================================================================
+
+/** Drawer dos 4 KPIs do hero — todos consomem o payload da CF de KPIs. */
+function buildKpiDrawerPayload(kind, { kpisRaw, heroKpis, breakdown, hasKpis, nome }) {
+  if (!hasKpis || !kpisRaw) {
+    return {
+      title: "Sem dado classificado ainda",
+      kicker: "Motor Aurora · pendente",
+      subtitle: `${nome} ainda não foi processado pelo pipeline de classificação.`,
+      honestNote: (
+        <>
+          Quando você abrir o dossiê completo, disparamos a coleta sob demanda.{" "}
+          Em ~30 segundos cruzamos CEAP, viagens e folha. Score Aurora,
+          rastreabilidade e notas de alto risco são recalculados sobre dado
+          fresco do Data Lake.
+        </>
+      ),
+      fontes: [
+        "API Câmara dos Deputados · CEAP",
+        "Data Lake gs://datalake-tbr-clean/ceap_classified/",
+      ],
+    };
+  }
+
+  if (kind === "score") {
+    return {
+      title: "Score Aurora",
+      kicker: "Índice composto · 0–100",
+      bigLabel: "Pontuação atual",
+      bigValue: `${heroKpis.score_aurora ?? 0} / 100`,
+      bigHint:
+        "Quanto maior o número, mais sinais de risco encontrados no CEAP do parlamentar.",
+      metricas: [
+        {
+          label: "Score médio ponderado",
+          value:
+            typeof kpisRaw.score_medio_ponderado === "number"
+              ? kpisRaw.score_medio_ponderado.toFixed(3)
+              : "—",
+        },
+        {
+          label: "Score máximo",
+          value:
+            typeof kpisRaw.score_max === "number"
+              ? kpisRaw.score_max.toFixed(3)
+              : "—",
+        },
+        {
+          label: "Notas alto risco",
+          value: heroKpis.qtd_notas_alto_risco ?? "—",
+        },
+        {
+          label: "Valor alto risco",
+          value:
+            typeof kpisRaw.valor_alto_risco_brl === "number" &&
+            kpisRaw.valor_alto_risco_brl > 0
+              ? Number(kpisRaw.valor_alto_risco_brl).toLocaleString("pt-BR", {
+                  style: "currency",
+                  currency: "BRL",
+                  maximumFractionDigits: 0,
+                })
+              : "—",
+        },
+      ],
+      metodologia:
+        "O score Aurora combina diversidade de categorias (Shannon), concentração de fornecedores (HHI), atipicidades temporais e classificação semântica de cada nota fiscal. Quando o motor ainda não pontuou notas para este parlamentar, exibimos 0 e marcamos como 'em validação'.",
+      fontes: [
+        "API Câmara · CEAP (notas fiscais reembolsadas)",
+        "Vertex AI Aurora classifier (gs://datalake-tbr-clean/ceap_classified/)",
+      ],
+    };
+  }
+
+  if (kind === "ceap") {
+    return {
+      title: "CEAP classificado",
+      kicker: "Cota parlamentar · valor reembolsado",
+      bigLabel: "Total acumulado",
+      bigValue: fmtBRL(heroKpis.ceap_acumulado),
+      bigHint: `Soma de ${breakdown.serieAnual.length} ano(s) de notas processadas pelo motor Aurora.`,
+      serieAnual: breakdown.serieAnual,
+      topCategorias: breakdown.topCategorias,
+      metricas: [
+        {
+          label: "Notas classificadas",
+          value: fmtNum(
+            breakdown.topCategorias.reduce((a, c) => a + (c.qtd || 0), 0),
+          ),
+        },
+        {
+          label: "Média notas/ano",
+          value: fmtNum(kpisRaw.media_notas_por_ano),
+        },
+        {
+          label: "HHI fornecedores",
+          value:
+            typeof kpisRaw.hhi_fornecedores === "number"
+              ? kpisRaw.hhi_fornecedores.toFixed(3)
+              : "—",
+        },
+        {
+          label: "Diversidade (Shannon)",
+          value:
+            typeof kpisRaw.diversidade_categorias_shannon_bits === "number"
+              ? `${kpisRaw.diversidade_categorias_shannon_bits.toFixed(2)} bits`
+              : "—",
+        },
+      ],
+      metodologia:
+        "Valores baseados na CEAP oficial divulgada pela Câmara dos Deputados, com classificação semântica feita por LLM (Aurora). Quando o agregador do backend devolve total zerado, derivamos da série anual e das categorias para não esconder dado válido.",
+      fontes: [
+        "API Câmara dos Deputados · /deputados/{id}/despesas",
+        "Data Lake · gs://datalake-tbr-clean/ceap_classified/",
+      ],
+    };
+  }
+
+  if (kind === "rastreabilidade") {
+    return {
+      title: "Rastreabilidade do dossiê",
+      kicker: "Qualidade de dados · cobertura",
+      bigLabel: "Cobertura atual",
+      bigValue: `${heroKpis.rastreabilidade_pct ?? 0}%`,
+      bigHint:
+        "Percentual das notas/ítens com fonte primária, valor e fornecedor válidos.",
+      metricas: [
+        {
+          label: "Erros de parsing",
+          value: fmtNum(kpisRaw.parse_errors),
+        },
+        {
+          label: "Latência média (h)",
+          value:
+            typeof kpisRaw.latencia_media_horas_ingestao_classif === "number"
+              ? kpisRaw.latencia_media_horas_ingestao_classif.toFixed(1)
+              : "—",
+        },
+        {
+          label: "Última classificação",
+          value: kpisRaw.ultima_classificacao_nota_utc
+            ? new Date(kpisRaw.ultima_classificacao_nota_utc).toLocaleString(
+                "pt-BR",
+              )
+            : "—",
+        },
+        {
+          label: "Gerado em",
+          value: kpisRaw.generated_at
+            ? new Date(kpisRaw.generated_at).toLocaleString("pt-BR")
+            : "—",
+        },
+      ],
+      metodologia:
+        "Rastreabilidade combina taxa de notas com fornecedor válido, taxa de classificação semântica bem-sucedida e cobertura temporal. Não é 'presença em plenário' (que exigiria votações nominais).",
+      fontes: [
+        "Pipeline Aurora · métricas internas",
+        "Data Lake · gs://datalake-tbr-clean/ceap_classified/",
+      ],
+    };
+  }
+
+  if (kind === "alto_risco") {
+    return {
+      title: "Notas de alto risco",
+      kicker: "Sinalizações do motor Aurora",
+      bigLabel: "Quantidade detectada",
+      bigValue: fmtNum(heroKpis.qtd_notas_alto_risco),
+      bigHint:
+        "Notas com score acima do threshold (top decil dentro da legislatura).",
+      topCategorias: breakdown.topCategorias,
+      metricas: [
+        {
+          label: "Valor sinalizado",
+          value:
+            typeof kpisRaw.valor_alto_risco_brl === "number" &&
+            kpisRaw.valor_alto_risco_brl > 0
+              ? fmtBRL(kpisRaw.valor_alto_risco_brl)
+              : "—",
+        },
+        {
+          label: "% do total",
+          value:
+            typeof kpisRaw.valor_alto_risco_brl === "number" &&
+            heroKpis.ceap_acumulado > 0
+              ? `${((kpisRaw.valor_alto_risco_brl / heroKpis.ceap_acumulado) * 100).toFixed(1)}%`
+              : "—",
+        },
+      ],
+      honestNote:
+        "Toda nota é suspeita até prova contrária. Esta contagem não é acusação — é um filtro estatístico para priorizar revisão humana com fonte primária.",
+      fontes: [
+        "Vertex AI Aurora classifier",
+        "Data Lake · gs://datalake-tbr-clean/ceap_classified/",
+      ],
+    };
+  }
+
+  return null;
+}
+
+/** Drawer dos 6 cards de camada. */
+function buildCamadaDrawerPayload(key, { breakdown, hasKpis, nome, heroKpis }) {
+  const blocoCEAP = {
+    title: "CEAP — Cota parlamentar",
+    kicker: "Camada 1 · DISPONÍVEL",
+    subtitle: `${nome} — reembolsos da cota oficial.`,
+    bigLabel: "Total classificado",
+    bigValue: hasKpis ? fmtBRL(heroKpis.ceap_acumulado) : "—",
+    bigHint: hasKpis
+      ? `${breakdown.serieAnual.length} ano(s) de dados consolidados.`
+      : "Sem coleta classificada ainda.",
+    serieAnual: hasKpis ? breakdown.serieAnual : [],
+    topCategorias: hasKpis ? breakdown.topCategorias : [],
+    metodologia:
+      "Notas reembolsadas pela cota CEAP (Cota para Exercício da Atividade Parlamentar) classificadas semanticamente para detectar atipicidades.",
+    fontes: [
+      "API Câmara dos Deputados · /deputados/{id}/despesas",
+      "Data Lake · gs://datalake-tbr-clean/ceap_classified/",
+    ],
+  };
+
+  const blocoEmBreve = (titulo, kicker, descricaoPreview, fonteRoadmap) => ({
+    title: titulo,
+    kicker,
+    subtitle: "Coleta sob demanda · em fila de priorização",
+    bigLabel: "Status",
+    bigValue: "Em coleta",
+    bigHint: "Quando você abrir o dossiê completo, esta camada é priorizada.",
+    honestNote: descricaoPreview,
+    metodologia:
+      "Esta camada ainda não tem ingestão automática em produção para todos os parlamentares. Durante a abertura do dossiê, o worker Aurora dispara coleta sob demanda e materializa o dado no Data Lake antes de devolver o resultado.",
+    fontes: fonteRoadmap,
+  });
+
+  switch (key) {
+    case "ceap":
+      return blocoCEAP;
+    case "tse":
+      return blocoEmBreve(
+        "TSE — Patrimônio declarado",
+        "Camada 2 · Em breve",
+        "Vamos cruzar a variação patrimonial entre 2018, 2022 e 2024 para detectar saltos sem origem documentada (indícios de subdeclaração ou aquisição não justificada).",
+        [
+          "TSE · DivulgaCandContas",
+          "Cruzamento com Receita Federal (CNPJ sócios)",
+        ],
+      );
+    case "folha":
+      return blocoEmBreve(
+        "Folha do gabinete",
+        "Camada 3 · Em breve",
+        "Servidores nomeados, parentesco, salários e rotatividade. A consulta inicial já é feita pelo worker Aurora via /deputados/{id}/orgaos da API Câmara como proxy até o cruzamento completo com o Portal da Transparência.",
+        [
+          "API Câmara · /deputados/{id}/orgaos",
+          "Portal da Transparência · servidores ativos",
+        ],
+      );
+    case "viagens":
+      return blocoEmBreve(
+        "Viagens, passagens & pedágios",
+        "Camada 4 · Em breve",
+        "Cruzamento entre passagens reembolsadas e a agenda oficial publicada para sinalizar viagens-fantasma ou períodos sem agenda. O coletor de viagens já está deployado (Onda 4 — processDossieJob); falta o classificador de cruzamento.",
+        [
+          "API Câmara · CEAP categoria PASSAGEM AÉREA",
+          "API Câmara · /deputados/{id}/eventos",
+        ],
+      );
+    case "emendas":
+      return blocoEmBreve(
+        "Emendas & PIX RP6/RP7/RP99",
+        "Camada 5 · Em breve",
+        "Microdados de execução orçamentária das emendas individuais e de bancada (RP6/RP7/RP99) com beneficiários por CNPJ e concentração temporal. BigQuery `projeto-codex-br.fiscalizapa.emendas_*` já existe; falta o agregador por parlamentar.",
+        [
+          "BigQuery · projeto-codex-br.fiscalizapa.emendas",
+          "SIOP · Sistema Integrado de Planejamento e Orçamento",
+        ],
+      );
+    case "pncp":
+      return blocoEmBreve(
+        "Contratos PNCP",
+        "Camada 6 · Disponível (em validação)",
+        "Detecção de empresas-fachada por k-means, ARIMA temporal e grafo de fornecedores. Coleta já acontece no Data Lake; visualização por parlamentar entra junto com o dossiê completo.",
+        [
+          "PNCP — Portal Nacional de Contratações Públicas",
+          "Data Lake · gs://datalake-tbr-clean/pncp/",
+        ],
+      );
+    default:
+      return null;
+  }
+}
+
 export default function PoliticoPage() {
   const { id } = useParams();
   const { isAuthenticated } = useAuth();
@@ -108,6 +407,11 @@ export default function PoliticoPage() {
   // Onda 5 — KPIs reais do Data Lake (GCS ceap_classified/) via CF pública.
   const { kpis: kpisRaw, hasData: hasKpis, loading: loadingKpis } = useKPIsParlamentar(id);
   const heroKpis = extractHeroKPIs(kpisRaw);
+  const breakdown = extractCeapBreakdown(kpisRaw);
+
+  // Onda 6 — drawer inline para drill-down clicável.
+  const [drawer, setDrawer] = useState({ open: false, payload: null });
+  const closeDrawer = () => setDrawer((s) => ({ ...s, open: false }));
 
   useEffect(() => {
     let mounted = true;
@@ -295,25 +599,73 @@ export default function PoliticoPage() {
                 label="Score Aurora"
                 value={hasKpis ? `${Math.round(score)} / 100` : "—"}
                 accent="violet"
-                hint={hasKpis ? null : "sem dado classificado"}
+                hint={hasKpis ? "clique para detalhes" : "sem dado classificado"}
+                onClick={() =>
+                  setDrawer({
+                    open: true,
+                    payload: buildKpiDrawerPayload("score", {
+                      kpisRaw,
+                      heroKpis,
+                      breakdown,
+                      hasKpis,
+                      nome,
+                    }),
+                  })
+                }
               />
               <KpiBlock
                 label="CEAP classificado"
                 value={hasKpis ? fmtBRL(cota) : "—"}
                 accent="amber"
-                hint={hasKpis ? "período disponível" : "em coleta"}
+                hint={hasKpis ? "clique para série anual" : "em coleta"}
+                onClick={() =>
+                  setDrawer({
+                    open: true,
+                    payload: buildKpiDrawerPayload("ceap", {
+                      kpisRaw,
+                      heroKpis,
+                      breakdown,
+                      hasKpis,
+                      nome,
+                    }),
+                  })
+                }
               />
               <KpiBlock
                 label="Rastreabilidade"
                 value={hasKpis && presenca > 0 ? `${Math.round(presenca)}%` : "—"}
                 accent="emerald"
                 hint={hasKpis ? "qualidade do dossiê" : null}
+                onClick={() =>
+                  setDrawer({
+                    open: true,
+                    payload: buildKpiDrawerPayload("rastreabilidade", {
+                      kpisRaw,
+                      heroKpis,
+                      breakdown,
+                      hasKpis,
+                      nome,
+                    }),
+                  })
+                }
               />
               <KpiBlock
                 label="Notas alto risco"
                 value={hasKpis ? fmtNum(sinalizacoes) : "—"}
                 accent="rose"
-                hint={hasKpis ? null : "a confirmar"}
+                hint={hasKpis ? "clique para detalhes" : "a confirmar"}
+                onClick={() =>
+                  setDrawer({
+                    open: true,
+                    payload: buildKpiDrawerPayload("alto_risco", {
+                      kpisRaw,
+                      heroKpis,
+                      breakdown,
+                      hasKpis,
+                      nome,
+                    }),
+                  })
+                }
               />
             </div>
 
@@ -379,9 +731,21 @@ export default function PoliticoPage() {
 
           <div className="grid gap-3 sm:grid-cols-2">
             {CATEGORIES.map((c) => (
-              <article
+              <button
                 key={c.key}
-                className="group flex items-start gap-3 rounded-2xl border border-[#30363D] bg-[#0D1117]/80 p-4 transition hover:border-[#3a4150]"
+                type="button"
+                onClick={() =>
+                  setDrawer({
+                    open: true,
+                    payload: buildCamadaDrawerPayload(c.key, {
+                      breakdown,
+                      hasKpis,
+                      nome,
+                      heroKpis,
+                    }),
+                  })
+                }
+                className="group flex items-start gap-3 rounded-2xl border border-[#30363D] bg-[#0D1117]/80 p-4 text-left transition hover:-translate-y-0.5 hover:border-cyan-400/40 hover:bg-[#0D1117]"
               >
                 <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/5 font-mono text-xs text-white/70">
                   {c.n}
@@ -404,8 +768,11 @@ export default function PoliticoPage() {
                   <p className="mt-1 text-xs leading-relaxed text-[#8B949E]">
                     {c.teaser}
                   </p>
+                  <p className="mt-1.5 text-[10px] font-semibold uppercase tracking-widest text-cyan-300/0 transition group-hover:text-cyan-300/80">
+                    Ver detalhes →
+                  </p>
                 </div>
-              </article>
+              </button>
             ))}
           </div>
         </section>
@@ -467,6 +834,15 @@ export default function PoliticoPage() {
           )}
         </section>
       </div>
+
+      {/* Onda 6 — Drawer de drill-down inline */}
+      <CamadaDrawer
+        open={drawer.open}
+        onClose={closeDrawer}
+        payload={drawer.payload}
+        ctaTo={ctaTo}
+        ctaLabel={ctaLabel}
+      />
     </div>
   );
 }
@@ -474,7 +850,7 @@ export default function PoliticoPage() {
 // =============================================================================
 // Subcomponentes
 // =============================================================================
-function KpiBlock({ label, value, accent = "cyan", hint = null }) {
+function KpiBlock({ label, value, accent = "cyan", hint = null, onClick = null }) {
   const map = {
     cyan: "border-cyan-400/30 bg-cyan-500/10 text-cyan-200",
     violet: "border-violet-400/30 bg-violet-500/10 text-violet-200",
@@ -482,8 +858,17 @@ function KpiBlock({ label, value, accent = "cyan", hint = null }) {
     emerald: "border-emerald-400/30 bg-emerald-500/10 text-emerald-200",
     rose: "border-rose-400/30 bg-rose-500/10 text-rose-200",
   };
+  const base = `rounded-xl border px-3 py-2 ${map[accent] ?? map.cyan}`;
+  const interactive = onClick
+    ? " cursor-pointer text-left transition hover:scale-[1.02] hover:brightness-110"
+    : "";
+  const Tag = onClick ? "button" : "div";
   return (
-    <div className={`rounded-xl border px-3 py-2 ${map[accent] ?? map.cyan}`}>
+    <Tag
+      type={onClick ? "button" : undefined}
+      onClick={onClick ?? undefined}
+      className={`${base}${interactive} block w-full`}
+    >
       <p className="text-[9px] font-semibold uppercase tracking-widest opacity-70">
         {label}
       </p>
@@ -495,7 +880,7 @@ function KpiBlock({ label, value, accent = "cyan", hint = null }) {
           {hint}
         </p>
       )}
-    </div>
+    </Tag>
   );
 }
 
