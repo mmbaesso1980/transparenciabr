@@ -1,5 +1,6 @@
 import { CalendarClock } from "lucide-react";
 import { useMemo } from "react";
+import EmBreve from "./EmBreve.jsx";
 
 function fmtDataHoje() {
   return new Intl.DateTimeFormat("pt-BR", {
@@ -10,29 +11,7 @@ function fmtDataHoje() {
   }).format(new Date());
 }
 
-/** Mock robusto — substituído por `politico.agenda_do_dia` quando existir no Firestore. */
-const MOCK_AGENDA_HOJE = [
-  {
-    hora: "09:30",
-    titulo: "Reunião de líderes — definição da pauta da semana",
-    local: "Sala de líderes",
-  },
-  {
-    hora: "10:00",
-    titulo: "Comissão de Constituição e Justiça (CCJ)",
-    local: "Anexo II, sala 12",
-  },
-  {
-    hora: "14:30",
-    titulo: "Sessão deliberativa ordinária — Plenário",
-    local: "Plenário Ulysses Guimarães",
-  },
-  {
-    hora: "16:45",
-    titulo: "Audiência pública — transparência em transferências voluntárias",
-    local: "Anexo I, auditório Nereu Ramos",
-  },
-];
+// Mock zero. Sem `agenda_do_dia` no doc → estado "em breve" honesto.
 
 /**
  * @param {{ politico?: Record<string, unknown> | null }} props
@@ -40,27 +19,17 @@ const MOCK_AGENDA_HOJE = [
 export default function AgendaDoDia({ politico = null }) {
   const items = useMemo(() => {
     const raw = politico?.agenda_do_dia;
-    if (Array.isArray(raw)) {
-      return raw.length
-        ? raw.map((ev, i) => ({
-            hora: String(ev?.hora ?? ev?.horario ?? "—"),
-            titulo: String(ev?.titulo ?? ev?.evento ?? "Evento"),
-            local:
-              typeof ev?.local === "string" && ev.local.trim()
-                ? ev.local
-                : undefined,
-            key: `${ev?.id ?? i}`,
-          }))
-        : [];
-    }
-    return MOCK_AGENDA_HOJE.map((ev, i) => ({
-      ...ev,
-      key: `mock-${i}`,
+    if (!Array.isArray(raw) || raw.length === 0) return [];
+    return raw.map((ev, i) => ({
+      hora: String(ev?.hora ?? ev?.horario ?? "—"),
+      titulo: String(ev?.titulo ?? ev?.evento ?? "Evento"),
+      local:
+        typeof ev?.local === "string" && ev.local.trim() ? ev.local : undefined,
+      key: `${ev?.id ?? i}`,
     }));
   }, [politico]);
 
-  const empty =
-    Array.isArray(politico?.agenda_do_dia) && politico.agenda_do_dia.length === 0;
+  const semAgenda = items.length === 0;
 
   return (
     <section className="glass-card flex min-h-[18rem] w-full max-w-full min-w-0 flex-col overflow-hidden p-0">
@@ -81,10 +50,12 @@ export default function AgendaDoDia({ politico = null }) {
       </div>
 
       <div className="flex flex-1 flex-col gap-0 px-4 py-4">
-        {empty ? (
-          <p className="py-8 text-center text-sm text-[#8B949E]">
-            Sem compromissos oficiais registrados para hoje.
-          </p>
+        {semAgenda ? (
+          <EmBreve
+            titulo="Agenda — em breve"
+            subtitulo="Integração com a agenda oficial da Câmara em fase final. Compre o dossiê premium para disparar a coleta sob demanda."
+            variant="inline"
+          />
         ) : (
           <ol className="relative flex flex-col gap-0 border-l border-[#30363D] pl-6">
             {items.map((ev, idx) => (

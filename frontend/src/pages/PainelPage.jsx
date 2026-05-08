@@ -102,7 +102,9 @@ export default function PainelPage() {
 
           <div className="flex items-center gap-2 flex-shrink-0">
             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-400 to-violet-400 ring-2 ring-white/10" />
-            <span className="hidden md:inline text-xs text-white/60 tabular-nums">{data.headerInfo.creditos} créditos</span>
+            <span className="hidden md:inline text-xs text-white/60 tabular-nums">
+              {data.headerInfo?.creditos != null ? `${data.headerInfo.creditos} créditos` : 'visitante'}
+            </span>
           </div>
         </div>
       </header>
@@ -182,7 +184,7 @@ export default function PainelPage() {
         </motion.div>
 
         <p className="text-center text-[11px] text-white/30 mt-8">
-          Aurora · TransparênciaBR · dados mock — ligar views reais até fim do dia 07/05
+          Aurora · TransparênciaBR · dados reais quando disponíveis · “em breve” quando ainda em coleta
         </p>
       </main>
 

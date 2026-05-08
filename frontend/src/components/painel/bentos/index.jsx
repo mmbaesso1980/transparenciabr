@@ -1,8 +1,25 @@
-// bentos/index.jsx — Conteúdo interno de cada um dos 16 bentos.
-// Cada componente recebe `data` (vinda de mockData ou hook real) e renderiza
-// SOMENTE o miolo do card (BentoCard wrappa do lado de fora).
+// bentos/index.jsx — Conteúdo interno de cada um dos 17 bentos.
+// Cada componente recebe `data` (real do hook) e renderiza SOMENTE o miolo
+// do card (BentoCard wrappa do lado de fora).
+//
+// MOCK ZERO: quando `data` é null/inválido, renderiza <EmBreve variant="inline" />.
+// Filosofia: "Toda nota é suspeita até prova contrária. Não fazemos
+// denúncia — apresentamos fatos."
 
 import React from 'react';
+import EmBreve from '../../dossie/EmBreve';
+
+/** Helper: renderiza estado "em breve" inline com mensagem honesta. */
+function EmBreveBento({ titulo = 'Em breve', subtitulo = 'Aurora ainda não processou esta camada. Em breve.' }) {
+  return (
+    <div className="flex h-full items-center justify-center">
+      <div className="text-center px-2">
+        <p className="text-[9px] font-semibold uppercase tracking-[0.22em] text-amber-200/80">{titulo}</p>
+        <p className="mt-1 text-[10px] leading-tight text-white/45">{subtitulo}</p>
+      </div>
+    </div>
+  );
+}
 
 const fmtBRL = (v) => v?.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
 const fmtBRLcompact = (v) => {
@@ -16,13 +33,17 @@ const fmtBRLcompact = (v) => {
 // B01 PontuacaoBrasil — gauge + sparkline
 // =============================================================================
 export function PontuacaoBrasil({ data }) {
+  if (!data) return <EmBreveBento subtitulo="Coletando snapshots para score nacional." />;
   const { score = 0, serie30d = [] } = data;
-  const max = Math.max(...serie30d, 100);
-  const min = Math.min(...serie30d, 0);
+  const hasSerie = Array.isArray(serie30d) && serie30d.length > 1;
+  const max = hasSerie ? Math.max(...serie30d, 100) : 100;
+  const min = hasSerie ? Math.min(...serie30d, 0) : 0;
   const range = max - min || 1;
-  const pts = serie30d
-    .map((v, i) => `${(i / (serie30d.length - 1)) * 100},${100 - ((v - min) / range) * 100}`)
-    .join(' ');
+  const pts = hasSerie
+    ? serie30d
+        .map((v, i) => `${(i / (serie30d.length - 1)) * 100},${100 - ((v - min) / range) * 100}`)
+        .join(' ')
+    : '';
 
   const angle = (score / 100) * 180; // semi-circle
 
@@ -52,10 +73,14 @@ export function PontuacaoBrasil({ data }) {
           </span>
         </div>
       </div>
-      <svg viewBox="0 0 100 30" className="w-full h-8 mt-1" preserveAspectRatio="none">
-        <polyline points={pts} fill="none" stroke="#fbbf24" strokeWidth="1.5" />
-      </svg>
-      <p className="text-[11px] text-white/40 mt-1">Indicador Aurora · últimos 30 dias</p>
+      {hasSerie ? (
+        <svg viewBox="0 0 100 30" className="w-full h-8 mt-1" preserveAspectRatio="none">
+          <polyline points={pts} fill="none" stroke="#fbbf24" strokeWidth="1.5" />
+        </svg>
+      ) : (
+        <div className="h-8 mt-1 flex items-center justify-center text-[9px] text-white/30">série 30d em breve</div>
+      )}
+      <p className="text-[11px] text-white/40 mt-1">Indicador Aurora · média 513 parlamentares</p>
     </div>
   );
 }
@@ -64,6 +89,8 @@ export function PontuacaoBrasil({ data }) {
 // B02 MaioresCotas — tabela top 5
 // =============================================================================
 export function MaioresCotas({ data }) {
+  if (!Array.isArray(data) || data.length === 0)
+    return <EmBreveBento subtitulo="Carregando ranking de cotas." />;
   return (
     <ul className="space-y-1.5 text-[12px]">
       {data.slice(0, 5).map((p, i) => (
@@ -84,6 +111,7 @@ export function MaioresCotas({ data }) {
 // B03 SinalizacoesSOC — feed live
 // =============================================================================
 export function SinalizacoesSOC({ data }) {
+  if (!data) return <EmBreveBento subtitulo="Feed live de sinalizações em construção." />;
   return (
     <div className="flex flex-col gap-2 h-full">
       <div className="flex items-center gap-2">
@@ -107,6 +135,8 @@ export function SinalizacoesSOC({ data }) {
 // B04 MapaUFBrasil — mock visual de mapa (placeholder gradiente)
 // =============================================================================
 export function MapaUFBrasil({ data }) {
+  if (!Array.isArray(data) || data.length === 0)
+    return <EmBreveBento subtitulo="Calculando distribuição por UF." />;
   return (
     <div className="relative w-full h-full min-h-[100px] flex items-center justify-center">
       <svg viewBox="0 0 100 90" className="w-full h-full max-h-[110px]">
@@ -146,6 +176,7 @@ export function MapaUFBrasil({ data }) {
 // B05 PulsoCEAP — número grande + barra de quota
 // =============================================================================
 export function PulsoCEAP({ data }) {
+  if (!data) return <EmBreveBento subtitulo="Pulso CEAP diário em breve." />;
   return (
     <div className="flex flex-col justify-between h-full">
       <div>
@@ -171,6 +202,8 @@ export function PulsoCEAP({ data }) {
 // B06 MataUFBrasil — mapa "negativo" (alvos críticos por UF)
 // =============================================================================
 export function MataUFBrasil({ data }) {
+  if (!Array.isArray(data) || data.length === 0)
+    return <EmBreveBento subtitulo="Calculando alvos críticos por UF." />;
   return (
     <div className="relative w-full h-full min-h-[80px] flex items-center justify-center">
       <svg viewBox="0 0 100 60" className="w-full h-full">
@@ -195,6 +228,7 @@ export function MataUFBrasil({ data }) {
 // B07 EmendasCriticas — número grande + lista CNPJ risco
 // =============================================================================
 export function EmendasCriticas({ data }) {
+  if (!data) return <EmBreveBento subtitulo="Pipeline de emendas em construção." />;
   return (
     <div className="flex h-full justify-between gap-3">
       <div className="flex flex-col justify-between flex-1 min-w-0">
@@ -227,6 +261,7 @@ export function EmendasCriticas({ data }) {
 // B08 ContratosPNCP — histograma
 // =============================================================================
 export function ContratosPNCP({ data }) {
+  if (!data) return <EmBreveBento subtitulo="Histograma PNCP em construção." />;
   const max = Math.max(...data.histograma.map(h => h.count));
   return (
     <div className="flex flex-col h-full">
@@ -252,6 +287,7 @@ export function ContratosPNCP({ data }) {
 // B09 RadarJuridico — funil estilizado
 // =============================================================================
 export function RadarJuridico({ data }) {
+  if (!data) return <EmBreveBento subtitulo="Radar Jurídico em construção." />;
   return (
     <div className="flex flex-col items-center justify-center h-full gap-2">
       <div className="relative">
@@ -271,6 +307,8 @@ export function RadarJuridico({ data }) {
 // B10 MeuUniverso — planetas dos alvos pessoais (avatares circulares)
 // =============================================================================
 export function MeuUniverso({ data }) {
+  if (!Array.isArray(data) || data.length === 0)
+    return <EmBreveBento subtitulo="Adicione alvos pessoais para popular seu universo." />;
   return (
     <div className="grid grid-cols-3 gap-3 h-full content-center">
       {data.slice(0, 6).map(p => (
@@ -293,6 +331,8 @@ export function MeuUniverso({ data }) {
 // B11 MaisFrugais — top 5
 // =============================================================================
 export function MaisFrugais({ data }) {
+  if (!Array.isArray(data) || data.length === 0)
+    return <EmBreveBento subtitulo="Calculando ranking de frugalidade." />;
   return (
     <ul className="space-y-1.5 text-[12px]">
       {data.slice(0, 4).map(p => (
@@ -312,6 +352,7 @@ export function MaisFrugais({ data }) {
 // B12 InfluenciaSetorial — mini-Sankey (linhas curvas)
 // =============================================================================
 export function InfluenciaSetorial({ data }) {
+  if (!data) return <EmBreveBento subtitulo="Sankey setor × partido em construção." />;
   const colors = ['#22d3ee', '#a78bfa', '#fbbf24', '#34d399', '#f87171'];
   return (
     <div className="relative w-full h-full min-h-[100px]">
@@ -347,11 +388,13 @@ export function InfluenciaSetorial({ data }) {
 // B13 AtividadeLegislativa — 4 KPIs em grid
 // =============================================================================
 export function AtividadeLegislativa({ data }) {
+  if (!data) return <EmBreveBento subtitulo="Calculando atividade legislativa." />;
+  const fmt = (v) => (v == null ? '—' : (typeof v === 'number' ? v.toLocaleString('pt-BR') : v));
   const items = [
-    { label: 'Presença', value: `${data.presenca}%`, color: 'emerald' },
-    { label: 'Votos',    value: data.votos.toLocaleString('pt-BR'), color: 'cyan' },
-    { label: 'Projetos', value: data.projetos, color: 'violet' },
-    { label: 'Faltas',   value: data.faltas, color: 'red' },
+    { label: 'Presença', value: data.presenca != null ? `${data.presenca}%` : '—', color: 'emerald' },
+    { label: 'Votos',    value: fmt(data.votos),                                    color: 'cyan' },
+    { label: 'Projetos', value: fmt(data.projetos),                                 color: 'violet' },
+    { label: 'Faltas',   value: fmt(data.faltas),                                   color: 'red' },
   ];
   const colorMap = {
     emerald: 'bg-emerald-500/10 border-emerald-400/30 text-emerald-300',
@@ -375,6 +418,7 @@ export function AtividadeLegislativa({ data }) {
 // B14 PromessaEntrega — wordcloud + valor entregue
 // =============================================================================
 export function PromessaEntrega({ data }) {
+  if (!data) return <EmBreveBento subtitulo="Promessa × Entrega em construção." />;
   return (
     <div className="flex h-full gap-3">
       <div className="flex-1 flex flex-wrap gap-1.5 items-center content-center">
@@ -403,6 +447,7 @@ export function PromessaEntrega({ data }) {
 // B15 PulsoFederal — termômetro horizontal
 // =============================================================================
 export function PulsoFederal({ data }) {
+  if (!data) return <EmBreveBento subtitulo="Pulso federal em construção." />;
   return (
     <div className="flex flex-col justify-center h-full gap-2">
       <p className="text-[10px] text-white/50">Real-time termômetro · R$ executed vs budgeted</p>
@@ -424,6 +469,8 @@ export function PulsoFederal({ data }) {
 // B16 RedeEmpresarial — mini grafo
 // =============================================================================
 export function RedeEmpresarial({ data }) {
+  if (!data || !Array.isArray(data?.nodes) || data.nodes.length === 0)
+    return <EmBreveBento subtitulo="Mapa de rede empresarial em construção." />;
   // posições circulares
   const N = data.nodes.length;
   const positions = data.nodes.reduce((acc, n, i) => {
@@ -460,6 +507,8 @@ export function RedeEmpresarial({ data }) {
 // B17 AberturaOrgao — barras horizontais com %
 // =============================================================================
 export function AberturaOrgao({ data }) {
+  if (!Array.isArray(data) || data.length === 0)
+    return <EmBreveBento subtitulo="Score de abertura por órgão em construção." />;
   return (
     <ul className="space-y-2 h-full flex flex-col justify-center">
       {data.map((o, i) => (

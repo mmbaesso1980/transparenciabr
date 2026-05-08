@@ -92,12 +92,14 @@ export default function App() {
                 <Route path="/sucesso" element={<SuccessPage />} />
                 <Route path="/logout" element={<LogoutPage />} />
 
+                {/* /creditos é pública: visitante vê os pacotes; login só ao clicar em Comprar */}
+                <Route path="/creditos" element={<CreditosPage />} />
+
                 <Route element={<ProtectedRoute />}>
                   <Route element={<DashboardLayout />}>
                     <Route path="/mapa" element={<MapaPage />} />
                     <Route path="/alertas" element={<AlertasPage />} />
                     <Route path="/perfil" element={<PerfilPage />} />
-                    <Route path="/creditos" element={<CreditosPage />} />
                   </Route>
                 </Route>
 
