@@ -1,7 +1,8 @@
 /**
  * usePainelData — Single source of truth dos dados do Painel.
  *
- * ONDA 8 v2: HÍBRIDO 100% VIVO + RANKING REAL DE PARLAMENTARES.
+ * ONDA 9: ranking CEAP com % de aproveitamento da cota (ponderado por meses ativos)
+ * e flag de suplente — export BigQuery → GCS público.
  *
  * Fontes (todas reais, ZERO mock, ZERO Firestore):
  *   - useUniverseRoster   → 594 parlamentares (deputados+senadores) via CF (GCS)
@@ -19,7 +20,7 @@ import { useUserCredits } from "./useUserCredits.js";
 import { useUniverseRoster } from "./useUniverseRoster.js";
 import { useDashboardKPIs } from "./useDashboardKPIs.js";
 
-// URL pública do ranking exportado de BigQuery v_top_gastadores_recentes
+// URL pública — BigQuery view `v_ranking_frugalidade` (Onda 9)
 const RANKING_URL = "https://storage.googleapis.com/tbr-public-dashboard/painel/ranking.json";
 
 /** Slugify nome para id estável (fallback quando não há ID Câmara). */
@@ -88,22 +89,33 @@ function useRankingGastadores() {
           : Array.isArray(json)
             ? json
             : [];
-        // Normaliza shape — view BQ retorna {deputado, partido, uf, qtd_notas, total_brl}
+        const truthy = (v) => v === true || String(v).toLowerCase() === "true";
         const norm = arr
-          .map((r, i) => ({
-            id: r.id || slugify(r.deputado || r.nome || `top-${i}`),
-            nome: r.deputado || r.nome || "—",
-            partido: String(r.partido || "—").toUpperCase(),
-            uf: String(r.uf || "—").toUpperCase(),
-            cota: Number(r.total_brl || r.cota || 0),
-            qtd_notas: Number(r.qtd_notas || 0),
-            // Frugalidade = inverso do gasto (menor gasto = maior frugalidade)
-            // Não temos métrica oficial, então usamos -cota apenas para ordenação.
-            frugalidade: -Number(r.total_brl || 0),
-            score: 0,
-            sinalizacoes: 0,
-            presenca: 0,
-          }))
+          .map((r, i) => {
+            const nome = r.deputado || r.nome || "—";
+            const idRaw = r.id ?? r.nu_deputado_id;
+            const id =
+              idRaw != null && String(idRaw).trim() !== ""
+                ? String(idRaw).trim()
+                : slugify(nome || `top-${i}`);
+            const pct = Number(r.pct_aproveitamento ?? r.pct ?? 0);
+            return {
+              id,
+              nome,
+              partido: String(r.partido || "—").toUpperCase(),
+              uf: String(r.uf || "—").toUpperCase(),
+              cota: Number(r.total_brl || r.cota || 0),
+              qtd_notas: Number(r.qtd_notas || 0),
+              meses_ativos: Number(r.meses_ativos || 0),
+              cota_disponivel: Number(r.cota_disponivel_brl || r.cota_disponivel || 0),
+              pct,
+              is_suplente: truthy(r.is_suplente),
+              frugalidade: pct,
+              score: 0,
+              sinalizacoes: 0,
+              presenca: 0,
+            };
+          })
           .filter((p) => p.nome !== "—" && p.cota > 0);
         if (!cancel) setData(norm);
       } catch (e) {
@@ -220,6 +232,9 @@ export function usePainelData() {
         nome: p.nome,
         partido: `${p.partido}/${p.uf}`,
         cota: p.cota,
+        pct: p.pct,
+        meses_ativos: p.meses_ativos,
+        is_suplente: p.is_suplente,
       }));
   }, [ranking, rankingReady]);
 
@@ -283,19 +298,23 @@ export function usePainelData() {
     };
   }, [pncp]);
 
-  // B11 — Mais Frugais: TOP 5 PARLAMENTARES por MENOR gasto (REAL, do BigQuery export)
+  // B11 — Mais Frugais: menor % de aproveitamento da cota; prioriza titulares (≥12 meses).
   const maisFrugais = useMemo(() => {
     if (!rankingReady) return null;
-    return [...ranking]
-      .sort((a, b) => a.cota - b.cota)
+    const permanentes = ranking.filter((p) => !p.is_suplente);
+    const fonte = permanentes.length >= 5 ? permanentes : ranking;
+    return [...fonte]
+      .sort((a, b) => a.pct - b.pct)
       .slice(0, 5)
       .map((p) => ({
         id: p.id,
         nome: p.nome,
         partido: `${p.partido}/${p.uf}`,
-        // Frugalidade representada pelo valor (quanto menor, mais frugal — bento mostra como cota)
-        frugalidade: p.cota,
         cota: p.cota,
+        pct: p.pct,
+        meses_ativos: p.meses_ativos,
+        is_suplente: p.is_suplente,
+        frugalidade: p.pct,
       }));
   }, [ranking, rankingReady]);
 

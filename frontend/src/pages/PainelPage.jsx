@@ -45,11 +45,36 @@ export default function PainelPage() {
 
   // Configurações de modal por bento (qual sortKey/valueLabel usar no ranking)
   const M = {
-    cotas:     { title: 'Maiores Cotas — ranking 513',           sortKey: 'cota',         valueLabel: 'Cota R$' },
-    frugais:   { title: 'Mais Frugais — ranking 513',            sortKey: 'frugalidade',  valueLabel: 'Frugalidade' },
-    score:     { title: 'Pontuação Aurora — ranking 513',        sortKey: 'score',        valueLabel: 'Score' },
-    sinaliz:   { title: 'Em Observação — ranking 513',           sortKey: 'sinalizacoes', valueLabel: 'Sinalizações' },
-    presenca:  { title: 'Atividade Legislativa — ranking 513',   sortKey: 'presenca',     valueLabel: 'Presença %' },
+    cotas: {
+      title: 'Maiores Cotas — ranking 513',
+      sortKey: 'cota',
+      valueLabel: 'Cota R$',
+      defaultSortOrder: 'desc',
+    },
+    frugais: {
+      title: 'Mais Frugais — % de aproveitamento da cota',
+      sortKey: 'pct',
+      valueLabel: 'Cota R$',
+      defaultSortOrder: 'asc',
+    },
+    score: {
+      title: 'Pontuação Aurora — ranking 513',
+      sortKey: 'score',
+      valueLabel: 'Score',
+      defaultSortOrder: 'desc',
+    },
+    sinaliz: {
+      title: 'Em Observação — ranking 513',
+      sortKey: 'sinalizacoes',
+      valueLabel: 'Sinalizações',
+      defaultSortOrder: 'desc',
+    },
+    presenca: {
+      title: 'Atividade Legislativa — ranking 513',
+      sortKey: 'presenca',
+      valueLabel: 'Presença %',
+      defaultSortOrder: 'desc',
+    },
   };
 
   return (
@@ -197,6 +222,7 @@ export default function PainelPage() {
           : 'Toda nota é suspeita até prova contrária · 594 parlamentares'}
         data={data.rankingParaModal || data.parlamentares}
         sortKey={modalConfig?.sortKey || 'cota'}
+        defaultSortOrder={modalConfig?.defaultSortOrder || 'desc'}
         valueLabel={modalConfig?.valueLabel || 'Valor'}
       />
     </div>

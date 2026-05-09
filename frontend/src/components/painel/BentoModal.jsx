@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -15,7 +15,8 @@ const HOTPAGE_BASE = '/dossie';
  *  - title: string
  *  - subtitle: string (opcional)
  *  - data: array de parlamentares
- *  - sortKey: 'cota' | 'frugalidade' | 'score' | 'sinalizacoes' | 'presenca' (default: 'cota')
+ *  - sortKey: 'cota' | 'pct' | 'frugalidade' | 'score' | 'sinalizacoes' | 'presenca' (default: 'cota')
+ *  - defaultSortOrder: 'asc' | 'desc' — ordem inicial da tabela (ex.: frugais = asc por %)
  *  - valueLabel: string (rótulo da coluna de valor — ex: "Cota R$")
  *  - valueFormatter: (item) => string (default formata a sortKey)
  */
@@ -30,6 +31,7 @@ export default function BentoModal({
   subtitle,
   data = [],
   sortKey = 'cota',
+  defaultSortOrder = 'desc',
   valueLabel = 'Cota',
   valueFormatter,
 }) {
@@ -37,7 +39,11 @@ export default function BentoModal({
   const [query, setQuery] = useState('');
   const [partidoFiltro, setPartidoFiltro] = useState('');
   const [ufFiltro, setUfFiltro] = useState('');
-  const [order, setOrder] = useState('desc');
+  const [order, setOrder] = useState(defaultSortOrder);
+
+  useEffect(() => {
+    if (open) setOrder(defaultSortOrder);
+  }, [open, defaultSortOrder]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -45,7 +51,13 @@ export default function BentoModal({
     if (q) arr = arr.filter(p => p.nome.toLowerCase().includes(q));
     if (partidoFiltro) arr = arr.filter(p => p.partido === partidoFiltro);
     if (ufFiltro) arr = arr.filter(p => p.uf === ufFiltro);
-    arr.sort((a, b) => order === 'desc' ? b[sortKey] - a[sortKey] : a[sortKey] - b[sortKey]);
+    arr.sort((a, b) => {
+      const av = Number(a[sortKey]);
+      const bv = Number(b[sortKey]);
+      const safeA = Number.isFinite(av) ? av : 0;
+      const safeB = Number.isFinite(bv) ? bv : 0;
+      return order === 'desc' ? safeB - safeA : safeA - safeB;
+    });
     return arr;
   }, [data, query, partidoFiltro, ufFiltro, order, sortKey]);
 
@@ -55,9 +67,19 @@ export default function BentoModal({
   const fmt = valueFormatter || ((item) => {
     const v = item[sortKey];
     if (sortKey === 'cota') return fmtMoney(v);
-    if (sortKey === 'frugalidade' || sortKey === 'score' || sortKey === 'presenca') return `${v}`;
+    if (sortKey === 'pct' || sortKey === 'frugalidade')
+      return `${Number(v ?? 0).toFixed(1)}%`;
+    if (sortKey === 'score' || sortKey === 'presenca') return `${v}`;
     return v;
   });
+
+  const pctClass = (pct) => {
+    const n = Number(pct);
+    if (!Number.isFinite(n)) return 'text-white/90';
+    if (n > 90) return 'text-red-400';
+    if (n < 50) return 'text-emerald-400';
+    return 'text-white/90';
+  };
 
   return (
     <AnimatePresence>
@@ -135,6 +157,8 @@ export default function BentoModal({
                     <th className="px-6 py-3">Parlamentar</th>
                     <th className="px-6 py-3 w-20">Partido</th>
                     <th className="px-6 py-3 w-16">UF</th>
+                    <th className="px-6 py-3 text-right">% Cota</th>
+                    <th className="px-6 py-3 text-right">Meses</th>
                     <th className="px-6 py-3 text-right">{valueLabel}</th>
                   </tr>
                 </thead>
@@ -150,19 +174,32 @@ export default function BentoModal({
                       className="border-b border-white/[0.03] hover:bg-white/[0.04] transition-colors cursor-pointer"
                     >
                       <td className="px-6 py-3 text-white/40 tabular-nums">{i + 1}</td>
-                      <td className="px-6 py-3 text-white">{p.nome}</td>
+                      <td className="px-6 py-3 text-white">
+                        {p.nome}
+                        {p.is_suplente ? (
+                          <span className="ml-2 px-1.5 py-0.5 text-[9px] rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 align-middle">
+                            SUPLENTE
+                          </span>
+                        ) : null}
+                      </td>
                       <td className="px-6 py-3">
                         <span className="px-2 py-0.5 bg-white/5 border border-white/10 rounded text-[11px] text-white/70">
                           {p.partido}
                         </span>
                       </td>
                       <td className="px-6 py-3 text-white/60">{p.uf}</td>
-                      <td className="px-6 py-3 text-right text-white tabular-nums">{fmt(p)}</td>
+                      <td className={`px-6 py-3 text-right tabular-nums ${pctClass(p.pct)}`}>
+                        {Number.isFinite(Number(p.pct)) ? `${Number(p.pct).toFixed(1)}%` : '—'}
+                      </td>
+                      <td className="px-6 py-3 text-right tabular-nums text-white/60">
+                        {Number.isFinite(Number(p.meses_ativos)) ? p.meses_ativos : '—'}
+                      </td>
+                      <td className="px-6 py-3 text-right text-white tabular-nums">{fmtMoney(p.cota)}</td>
                     </tr>
                   ))}
                   {filtered.length === 0 && (
                     <tr>
-                      <td colSpan={5} className="px-6 py-12 text-center text-white/40">Nenhum resultado</td>
+                      <td colSpan={7} className="px-6 py-12 text-center text-white/40">Nenhum resultado</td>
                     </tr>
                   )}
                 </tbody>

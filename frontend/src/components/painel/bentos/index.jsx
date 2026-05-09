@@ -93,14 +93,24 @@ export function MaioresCotas({ data }) {
     return <EmBreveBento subtitulo="Carregando ranking de cotas." />;
   return (
     <ul className="space-y-1.5 text-[12px]">
-      {data.slice(0, 5).map((p, i) => (
-        <li key={p.id} className="flex items-center justify-between">
+      {data.slice(0, 5).map((p) => (
+        <li key={p.id} className="flex items-center justify-between gap-2">
           <span className="flex items-center gap-1.5 min-w-0">
             <span className="w-1.5 h-1.5 rounded-full bg-violet-400 flex-shrink-0" />
             <span className="text-white/80 truncate">{p.nome.split(' ')[0]}</span>
             <span className="px-1.5 py-0.5 text-[9px] bg-white/5 border border-white/10 rounded text-white/60 flex-shrink-0">{p.partido}</span>
+            {p.is_suplente ? (
+              <span className="px-1.5 py-0.5 text-[8px] rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 flex-shrink-0">
+                SUP
+              </span>
+            ) : null}
           </span>
-          <span className="text-white tabular-nums text-[11px] flex-shrink-0">{fmtBRL(p.cota)}</span>
+          <span className="flex flex-col items-end flex-shrink-0">
+            <span className="text-white tabular-nums text-[11px]">{fmtBRL(p.cota)}</span>
+            {Number.isFinite(Number(p.pct)) ? (
+              <span className="text-[9px] text-white/40 tabular-nums">{Number(p.pct).toFixed(0)}% cota</span>
+            ) : null}
+          </span>
         </li>
       ))}
     </ul>
@@ -335,13 +345,25 @@ export function MaisFrugais({ data }) {
     return <EmBreveBento subtitulo="Calculando ranking de frugalidade." />;
   return (
     <ul className="space-y-1.5 text-[12px]">
-      {data.slice(0, 4).map(p => (
-        <li key={p.id} className="flex items-center justify-between">
-          <span className="flex items-center gap-1.5 min-w-0">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 flex-shrink-0" />
-            <span className="text-white/80 truncate">{p.nome.split(' ').slice(0, 2).join(' ')}</span>
+      {data.slice(0, 5).map((p) => (
+        <li key={p.id} className="flex items-center justify-between py-0.5 gap-2">
+          <span className="truncate text-sm text-white/90 min-w-0">
+            {p.nome.split(' ').slice(0, 2).join(' ')}
+            {p.is_suplente ? (
+              <span className="ml-1.5 px-1.5 py-0.5 text-[9px] rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 align-middle">
+                SUP
+              </span>
+            ) : null}
           </span>
-          <span className="text-white tabular-nums text-[11px] flex-shrink-0">{fmtBRL(p.cota)}</span>
+          <span className="flex flex-col items-end ml-2 flex-shrink-0">
+            <span className="text-cyan-400 font-bold tabular-nums text-sm">
+              {Number.isFinite(Number(p.pct)) ? `${Number(p.pct).toFixed(0)}%` : '—'}
+            </span>
+            <span className="text-[10px] text-white/40 tabular-nums">
+              {Number.isFinite(Number(p.meses_ativos)) ? `${p.meses_ativos}m` : '—'} ·{' '}
+              {fmtBRLcompact(p.cota)}
+            </span>
+          </span>
         </li>
       ))}
     </ul>

@@ -1,0 +1,12 @@
+-- Onda 9 — Cotas CEAP oficiais por UF (valores mensais 2026, reajuste fevereiro).
+CREATE OR REPLACE TABLE `transparenciabr.tbr_ceap.ceap_cotas_uf` AS
+SELECT * FROM UNNEST([
+  STRUCT('AC' AS uf, 57359.87 AS cota_mensal_brl),
+  ('AL', 53164.36), ('AM', 56151.46), ('AP', 55929.26), ('BA', 50965.29),
+  ('CE', 54879.34), ('DF', 41612.55), ('ES', 49160.15), ('GO', 46979.73),
+  ('MA', 54537.99), ('MG', 47645.91), ('MS', 52707.93), ('MT', 51439.83),
+  ('PA', 54624.17), ('PB', 54402.48), ('PE', 53997.81), ('PI', 53195.84),
+  ('PR', 50807.19), ('RJ', 47267.41), ('RN', 55198.09), ('RO', 56267.90),
+  ('RR', 58474.70), ('RS', 53086.78), ('SC', 51951.42), ('SE', 52248.86),
+  ('SP', 48727.46), ('TO', 51525.80)
+]);
