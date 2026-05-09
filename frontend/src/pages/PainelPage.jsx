@@ -192,8 +192,10 @@ export default function PainelPage() {
         open={!!modalConfig}
         onClose={closeModal}
         title={modalConfig?.title}
-        subtitle="Toda nota é suspeita até prova contrária · 513 parlamentares"
-        data={data.parlamentares}
+        subtitle={data.rankingGastadores?.length
+          ? `Toda nota é suspeita até prova contrária · ${data.rankingGastadores.length} parlamentares com gasto registrado`
+          : 'Toda nota é suspeita até prova contrária · 594 parlamentares'}
+        data={data.rankingParaModal || data.parlamentares}
         sortKey={modalConfig?.sortKey || 'cota'}
         valueLabel={modalConfig?.valueLabel || 'Valor'}
       />

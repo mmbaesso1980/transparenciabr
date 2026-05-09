@@ -1,12 +1,13 @@
 /**
  * usePainelData — Single source of truth dos dados do Painel.
  *
- * ONDA 8: HÍBRIDO 100% VIVO.
+ * ONDA 8 v2: HÍBRIDO 100% VIVO + RANKING REAL DE PARLAMENTARES.
  *
  * Fontes (todas reais, ZERO mock, ZERO Firestore):
  *   - useUniverseRoster   → 594 parlamentares (deputados+senadores) via CF (GCS)
  *   - useDashboardKPIs    → KPIs do Data Lake CEAP (notas, valor, faixa de risco)
  *   - usePNCPNacional     → Contratos PNCP nacional (CORS aberto, browser direto)
+ *   - useRankingGastadores→ Ranking real CEAP via GCS público (BigQuery export)
  *
  * Filosofia: "Toda nota é suspeita até prova contrária. Não fazemos
  * denúncia — apresentamos fatos." Se não temos o fato, dizemos.
@@ -18,21 +19,17 @@ import { useUserCredits } from "./useUserCredits.js";
 import { useUniverseRoster } from "./useUniverseRoster.js";
 import { useDashboardKPIs } from "./useDashboardKPIs.js";
 
-/** Deriva ranking ordenado por chave numérica. Sempre retorna array. */
-function topBy(arr, key, n = 50, dir = "desc") {
-  if (!Array.isArray(arr) || arr.length === 0) return [];
-  const sign = dir === "desc" ? -1 : 1;
-  return [...arr]
-    .sort((a, b) => sign * (Number(a?.[key] || 0) - Number(b?.[key] || 0)))
-    .slice(0, n);
-}
+// URL pública do ranking exportado de BigQuery v_top_gastadores_recentes
+const RANKING_URL = "https://storage.googleapis.com/tbr-public-dashboard/painel/ranking.json";
 
-/** Média numérica defensiva. */
-function mean(arr) {
-  if (!Array.isArray(arr) || arr.length === 0) return 0;
-  const nums = arr.map((v) => Number(v)).filter((n) => Number.isFinite(n));
-  if (nums.length === 0) return 0;
-  return nums.reduce((a, b) => a + b, 0) / nums.length;
+/** Slugify nome para id estável (fallback quando não há ID Câmara). */
+function slugify(s) {
+  return String(s || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
 }
 
 /** Agrega parlamentares por UF — count + intensidade. */
@@ -46,14 +43,13 @@ function aggregateByUF(parlamentares) {
     cur.total += 1;
     map.set(uf, cur);
   }
-  // intensidade normalizada (0-100) para visualização
   const totals = [...map.values()].map((r) => r.total);
   const max = Math.max(1, ...totals);
   return [...map.values()].map((row) => ({
     uf: row.uf,
     total: row.total,
     intensidade: Math.round((row.total / max) * 100),
-    risco: 0, // sem score real ainda — fica em breve no Mata UF
+    risco: 0,
     cotaMedia: 0,
   }));
 }
@@ -71,6 +67,60 @@ function aggregateByPartido(parlamentares) {
   return [...map.values()].sort((a, b) => b.total - a.total);
 }
 
+/** Hook ranking gastadores — JSON estático no GCS (Cache 5min). */
+function useRankingGastadores() {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancel = false;
+    (async () => {
+      try {
+        const res = await fetch(RANKING_URL, {
+          headers: { Accept: "application/json" },
+          cache: "default",
+        });
+        if (!res.ok) throw new Error(`Ranking HTTP ${res.status}`);
+        const json = await res.json();
+        // Aceita formato {parlamentares:[...]} ou array direto
+        const arr = Array.isArray(json?.parlamentares)
+          ? json.parlamentares
+          : Array.isArray(json)
+            ? json
+            : [];
+        // Normaliza shape — view BQ retorna {deputado, partido, uf, qtd_notas, total_brl}
+        const norm = arr
+          .map((r, i) => ({
+            id: r.id || slugify(r.deputado || r.nome || `top-${i}`),
+            nome: r.deputado || r.nome || "—",
+            partido: String(r.partido || "—").toUpperCase(),
+            uf: String(r.uf || "—").toUpperCase(),
+            cota: Number(r.total_brl || r.cota || 0),
+            qtd_notas: Number(r.qtd_notas || 0),
+            // Frugalidade = inverso do gasto (menor gasto = maior frugalidade)
+            // Não temos métrica oficial, então usamos -cota apenas para ordenação.
+            frugalidade: -Number(r.total_brl || 0),
+            score: 0,
+            sinalizacoes: 0,
+            presenca: 0,
+          }))
+          .filter((p) => p.nome !== "—" && p.cota > 0);
+        if (!cancel) setData(norm);
+      } catch (e) {
+        // Se ranking não estiver no ar ainda, deixa null — bentos mostram "em breve"
+        if (!cancel) setData(null);
+      } finally {
+        if (!cancel) setLoading(false);
+      }
+    })();
+    return () => {
+      cancel = true;
+    };
+  }, []);
+
+  return { data, loading };
+}
+
 /** Hook PNCP nacional — top contratantes nas últimas 30 dias. */
 function usePNCPNacional() {
   const [data, setData] = useState(null);
@@ -80,7 +130,6 @@ function usePNCPNacional() {
     let cancel = false;
     (async () => {
       try {
-        // Janela de 90 dias (PNCP exige limite de janela)
         const end = new Date();
         const start = new Date();
         start.setDate(end.getDate() - 30);
@@ -120,16 +169,14 @@ export function usePainelData() {
   const { roster, loading: rosterLoading } = useUniverseRoster();
   const { data: kpis, loading: kpisLoading } = useDashboardKPIs({ pollMs: 0 });
   const { data: pncp, loading: pncpLoading } = usePNCPNacional();
+  const { data: ranking, loading: rankingLoading } = useRankingGastadores();
   const { user, isAuthenticated } = useAuth();
   const { credits } = useUserCredits();
 
   const realDataReady = Array.isArray(roster) && roster.length > 0;
+  const rankingReady = Array.isArray(ranking) && ranking.length > 0;
 
-  // Normaliza roster para shape esperado pelos bentos.
-  // Roster vem com {id, nome, partido, uf, urlFoto, cargo}.
-  // Para Maiores Cotas/Mais Frugais sem dados granulares, usamos o KPI agregado
-  // do Data Lake (5.787 notas, 8 parlamentares cobertos hoje) e mostramos os
-  // que TÊM cobertura como amostra; resto fica honesto.
+  // Roster completo (594) — usado para mapa, partidos, sankey
   const parlamentares = useMemo(() => {
     if (!realDataReady) return [];
     return roster.map((p) => ({
@@ -139,8 +186,6 @@ export function usePainelData() {
       uf: p.uf || "—",
       cargo: p.cargo || "deputado",
       foto: p.urlFoto || null,
-      // Métricas: zero por padrão — só os 8 cobertos pelo Data Lake terão valor real
-      // (a resolução granular fica para a próxima onda de ETL CEAP).
       cota: 0,
       frugalidade: 0,
       sinalizacoes: 0,
@@ -164,17 +209,19 @@ export function usePainelData() {
     };
   }, [kpis]);
 
-  // B02 — Maiores Cotas: lê KPI do Data Lake — top categorias de risco
-  // (substitui ranking por parlamentar enquanto cobertura CEAP é parcial)
+  // B02 — Maiores Cotas: TOP 5 PARLAMENTARES por valor (REAL, do BigQuery export)
   const maioresCotas = useMemo(() => {
-    if (!kpis?.top_categorias_risco?.length) return null;
-    return kpis.top_categorias_risco.slice(0, 5).map((c, i) => ({
-      id: `cat-${i}`,
-      nome: String(c.categoria || "").slice(0, 18),
-      partido: `${c.qtd}n`,
-      cota: Number(c.valor_total_brl || 0),
-    }));
-  }, [kpis]);
+    if (!rankingReady) return null;
+    return [...ranking]
+      .sort((a, b) => b.cota - a.cota)
+      .slice(0, 5)
+      .map((p) => ({
+        id: p.id,
+        nome: p.nome,
+        partido: `${p.partido}/${p.uf}`,
+        cota: p.cota,
+      }));
+  }, [ranking, rankingReady]);
 
   // B03 — Sinalizações SOC: usa parse_errors + valor_alto_risco como pulso
   const sinalizacoesSOC = useMemo(() => {
@@ -201,7 +248,6 @@ export function usePainelData() {
   const pulsoCEAP = useMemo(() => {
     if (!kpis) return null;
     const queimadoTotal = Number(kpis.valor_total_classificado_brl || 0);
-    // Cota mensal teórica nacional ~R$ 22 mi (média CEAP/mês * 513)
     const quotaMensalNacional = 22_000_000;
     const pct = Math.min(100, Math.round((queimadoTotal / (quotaMensalNacional * 36)) * 100));
     return {
@@ -217,8 +263,6 @@ export function usePainelData() {
   );
 
   // B08 — Contratos PNCP: nacional ao vivo (real)
-  // Bento espera {histograma:[{bucket,count}]}. Construímos histograma de
-  // valor por faixa a partir da amostra PNCP nacional (30d).
   const contratosPNCP = useMemo(() => {
     if (!pncp?.amostra?.length) return null;
     const buckets = [
@@ -239,22 +283,23 @@ export function usePainelData() {
     };
   }, [pncp]);
 
-  // B11 — Mais Frugais: invertido das categorias (menores valores)
+  // B11 — Mais Frugais: TOP 5 PARLAMENTARES por MENOR gasto (REAL, do BigQuery export)
   const maisFrugais = useMemo(() => {
-    if (!kpis?.top_categorias_risco?.length) return null;
-    return [...kpis.top_categorias_risco]
-      .sort((a, b) => Number(a.valor_total_brl || 0) - Number(b.valor_total_brl || 0))
+    if (!rankingReady) return null;
+    return [...ranking]
+      .sort((a, b) => a.cota - b.cota)
       .slice(0, 5)
-      .map((c, i) => ({
-        id: `frug-${i}`,
-        nome: String(c.categoria || "").slice(0, 18),
-        partido: `${c.qtd}n`,
-        frugalidade: Number(c.valor_total_brl || 0),
+      .map((p) => ({
+        id: p.id,
+        nome: p.nome,
+        partido: `${p.partido}/${p.uf}`,
+        // Frugalidade representada pelo valor (quanto menor, mais frugal — bento mostra como cota)
+        frugalidade: p.cota,
+        cota: p.cota,
       }));
-  }, [kpis]);
+  }, [ranking, rankingReady]);
 
   // B12 — Influência Setorial: Sankey UF×Partido (real)
-  // Bento espera {esquerda:[], direita:[], links:[{from,to,valor}]}.
   const influenciaSetorial = useMemo(() => {
     if (!realDataReady) return null;
     const porPartido = aggregateByPartido(parlamentares).slice(0, 5);
@@ -284,7 +329,7 @@ export function usePainelData() {
     const deputados = parlamentares.filter((p) => p.cargo === "deputado").length;
     const senadores = parlamentares.filter((p) => p.cargo === "senador").length;
     return {
-      presenca: 0, // sem snapshot diário ainda
+      presenca: 0,
       votos: null,
       projetos: null,
       faltas: null,
@@ -295,11 +340,9 @@ export function usePainelData() {
   }, [parlamentares, realDataReady]);
 
   // B15 — Pulso Federal: termômetro CEAP executado vs CEAP orçado teórico
-  // Bento espera {pct, executado, orcado}.
   const pulsoFederal = useMemo(() => {
     if (!kpis) return null;
     const executado = Number(kpis.valor_total_classificado_brl || 0);
-    // Orçado teórico = cota CEAP média mensal × 513 × 36 meses (3 anos)
     const orcado = 22_000_000 * 36;
     const pct = Math.min(100, Math.round((executado / orcado) * 100));
     return {
@@ -310,7 +353,6 @@ export function usePainelData() {
   }, [kpis]);
 
   // B17 — Abertura por Órgão: amostra PNCP, score de cobertura
-  // Bento espera array [{orgao, pct}].
   const aberturaOrgao = useMemo(() => {
     if (!pncp?.amostra?.length) return null;
     const orgaoMap = new Map();
@@ -336,13 +378,22 @@ export function usePainelData() {
     [user, isAuthenticated, credits],
   );
 
+  // Para o BentoModal: ranking real preferido (cota>0); se ainda não carregou,
+  // cai para o roster completo (594) — assim sempre há tabela navegável.
+  const rankingParaModal = useMemo(() => {
+    if (rankingReady) return ranking;
+    return parlamentares;
+  }, [ranking, rankingReady, parlamentares]);
+
   return {
-    loading: rosterLoading || kpisLoading || pncpLoading,
+    loading: rosterLoading || kpisLoading || pncpLoading || rankingLoading,
     error: false,
     realDataSource: realDataReady,
 
     // Reais (vivos)
-    parlamentares,
+    parlamentares,            // 594 (roster completo) — usado por mapaUF/sankey
+    rankingGastadores: ranking, // top N CEAP real — usado por modal de cotas/frugais
+    rankingParaModal,           // alias inteligente para o BentoModal
     pontuacaoBrasil,
     maioresCotas,
     sinalizacoesSOC,
@@ -358,10 +409,10 @@ export function usePainelData() {
     headerInfo,
 
     // Em breve (sem fonte pública identificada ainda)
-    emendasCriticas: null,   // requer CGU (chave) ou ETL Câmara emendas individuais
-    radarJuridico: null,     // requer DataJud/CNJ (sem CORS)
-    meuUniverso: null,       // específico do usuário (precisa Firestore-do-USER, não dataset)
-    promessaEntrega: null,   // requer correlação eleição × votação (próxima onda)
-    redeEmpresarial: null,   // requer grafo CNPJ-sócio (próxima onda)
+    emendasCriticas: null,
+    radarJuridico: null,
+    meuUniverso: null,
+    promessaEntrega: null,
+    redeEmpresarial: null,
   };
 }
