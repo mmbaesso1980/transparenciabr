@@ -337,26 +337,65 @@ export function usePainelData() {
     };
   }, [kpis]);
 
-  // B06 — Mata UF: densidade do roster + volume de alto risco por UF (datalake alvos)
+  // B06 — Mata UF: ranking por volume de alto risco (datalake) com
+  // degradação elegânte: se classificador do lake não produziu sinalizações,
+  // mostra concentração de notas por UF como proxy operacional honesto.
   const mataUF = useMemo(() => {
     if (!realDataReady) return null;
     const list = alvosPayload?.alvos;
-    return aggregateUFWithRisk(parlamentares, list);
-  }, [parlamentares, realDataReady, alvosPayload]);
+    const withRisk = aggregateUFWithRisk(parlamentares, list);
+    const totalRisco = withRisk.reduce((s, r) => s + Number(r.risco || 0), 0);
+    if (totalRisco > 0) {
+      return withRisk.map((r) => ({ ...r, modo: "risco" }));
+    }
+    // Sem risco classificado: usa concentração de notas no lake por UF dos
+    // parlamentares cobertos (top_alvos_preview é a base que temos)
+    const cobertos = Array.isArray(kpis?.top_alvos_preview)
+      ? kpis.top_alvos_preview
+      : [];
+    if (cobertos.length === 0) {
+      return withRisk.map((r) => ({ ...r, modo: "densidade" }));
+    }
+    const ufCount = new Map();
+    for (const a of cobertos) {
+      const uf = String(a.uf || "").toUpperCase();
+      if (uf.length !== 2) continue;
+      ufCount.set(uf, (ufCount.get(uf) || 0) + 1);
+    }
+    if (ufCount.size === 0) {
+      return withRisk.map((r) => ({ ...r, modo: "densidade" }));
+    }
+    return [...ufCount.entries()]
+      .map(([uf, qtd]) => ({
+        uf,
+        total: qtd,
+        risco: qtd, // re-uso do campo para o componente filtrar
+        intensidade: 0,
+        cotaMedia: 0,
+        modo: "cobertura",
+      }))
+      .sort((a, b) => b.risco - a.risco);
+  }, [parlamentares, realDataReady, alvosPayload, kpis]);
 
-  // B07 — Emendas críticas (proxy): alto risco CEAP + top fornecedores ou categorias
+  // B07 — Emendas críticas: usa categorias reais do lake; degrada para
+  // top parlamentares cobertos (volume de notas) com selo de "em refinamento"
+  // quando classificador só produz SEM_CATEGORIA.
   const emendasCriticas = useMemo(() => {
     if (!kpis) return null;
-    const total = Math.max(1, Number(kpis.valor_total_classificado_brl || 0));
+    const totalClassificado = Number(kpis.valor_total_classificado_brl || 0);
     const alto = Number(kpis.valor_alto_risco_brl || 0);
-    const pctConsumido = Math.min(100, Math.round((alto / total) * 100));
+    const pctConsumido = totalClassificado > 0
+      ? Math.min(100, Math.round((alto / totalClassificado) * 100))
+      : 0;
     const fromFn = Array.isArray(kpis.top_fornecedores_painel)
       ? kpis.top_fornecedores_painel
       : [];
     let topCnpj = fromFn.map((x) => ({
-      cnpj: String(x.cnpj || "—"),
+      cnpj: String(x.cnpj || "—").slice(0, 18),
       risco: String(x.risco || "—"),
     }));
+    let modo = "risco";
+    let valorPrincipal = alto;
     if (!topCnpj.length) {
       const cats = Array.isArray(kpis.top_categorias_risco)
         ? kpis.top_categorias_risco.filter(
@@ -366,20 +405,34 @@ export function usePainelData() {
                 .indexOf("SEM_CATEGORIA") === -1,
           )
         : [];
-      topCnpj = cats.slice(0, 5).map((c) => ({
-        cnpj: String(c.categoria || "—")
-          .replace(/_/g, " ")
-          .toLowerCase()
-          .replace(/\b\w/g, (m) => m.toUpperCase())
-          .slice(0, 18),
-        risco: `${c.qtd} nt`,
-      }));
-      if (!topCnpj.length) return null;
+      if (cats.length > 0) {
+        topCnpj = cats.slice(0, 5).map((c) => ({
+          cnpj: String(c.categoria || "—")
+            .replace(/_/g, " ")
+            .toLowerCase()
+            .replace(/\b\w/g, (m) => m.toUpperCase())
+            .slice(0, 18),
+          risco: `${c.qtd} nt`,
+        }));
+      } else {
+        // Degradação elegânte: top parlamentares cobertos por volume de notas
+        const cobertos = Array.isArray(kpis.top_alvos_preview)
+          ? kpis.top_alvos_preview
+          : [];
+        if (cobertos.length === 0) return null;
+        modo = "volume";
+        valorPrincipal = totalClassificado;
+        topCnpj = cobertos.slice(0, 5).map((a) => ({
+          cnpj: String(a.nome || a.id).split(" ").slice(0, 2).join(" ").slice(0, 18),
+          risco: `${a.partido}/${a.uf}`,
+        }));
+      }
     }
     return {
-      queimadoHoje: alto,
+      queimadoHoje: valorPrincipal,
       pctConsumido,
       topCnpj,
+      modo,
     };
   }, [kpis]);
 
@@ -449,43 +502,67 @@ export function usePainelData() {
     return null;
   }, [alvosPayload, kpis]);
 
-  // B14 — Promessa × entrega: nuvem a partir das categorias de maior score agregado no lake
+  // B14 — Promessa × entrega: nuvem de categorias do lake. Degradação:
+  // se só SEM_CATEGORIA, usa série anual de valores (que TEMOS) como nuvem
+  // de "capacidade histórica" — fato disponível, não denúncia.
   const promessaEntrega = useMemo(() => {
+    if (!kpis) return null;
     const raw = kpis?.top_categorias_risco;
-    if (!Array.isArray(raw) || raw.length === 0) return null;
-    const cats = raw.filter(
-      (c) =>
-        String(c.categoria || "")
-          .toUpperCase()
-          .indexOf("SEM_CATEGORIA") === -1,
-    );
-    if (cats.length === 0) return null;
-    const campanha = cats.slice(0, 10).map((c) => ({
-      palavra: String(c.categoria || "")
-        .replace(/_/g, " ")
-        .toLowerCase()
-        .replace(/\b\w/g, (m) => m.toUpperCase())
-        .slice(0, 28),
-      tamanho: Math.min(
-        55,
-        14 +
-          Math.min(
-            40,
-            Math.sqrt(Number(c.score_total || 0)) +
-              Math.sqrt(Number(c.qtd || 0)) * 3,
-          ),
-      ),
-    }));
-    const lead = cats[0];
-    return {
-      campanha,
-      entrega: {
-        valor: Number(
-          lead?.valor_total_brl ?? kpis.valor_total_classificado_brl ?? 0,
+    const cats = Array.isArray(raw)
+      ? raw.filter(
+          (c) =>
+            String(c.categoria || "")
+              .toUpperCase()
+              .indexOf("SEM_CATEGORIA") === -1,
+        )
+      : [];
+    // Caminho A: temos categorias reais classificadas
+    if (cats.length > 0) {
+      const campanha = cats.slice(0, 10).map((c) => ({
+        palavra: String(c.categoria || "")
+          .replace(/_/g, " ")
+          .toLowerCase()
+          .replace(/\b\w/g, (m) => m.toUpperCase())
+          .slice(0, 28),
+        tamanho: Math.min(
+          55,
+          14 +
+            Math.min(
+              40,
+              Math.sqrt(Number(c.score_total || 0)) +
+                Math.sqrt(Number(c.qtd || 0)) * 3,
+            ),
         ),
-        metrica: "Valor na categoria líder (CEAP classificado · datalake)",
-      },
-    };
+      }));
+      const lead = cats[0];
+      return {
+        campanha,
+        entrega: {
+          valor: Number(
+            lead?.valor_total_brl ?? kpis.valor_total_classificado_brl ?? 0,
+          ),
+          metrica: "Valor na categoria líder (CEAP classificado · datalake)",
+        },
+      };
+    }
+    // Caminho B: degradação elegânte — série histórica anual
+    const serie = kpis.indicadores_forense?.valor_financeiro_classificado_serie_anual_brl;
+    if (Array.isArray(serie) && serie.length > 0) {
+      const maxV = Math.max(1, ...serie.map((s) => Number(s.valor_brl || 0)));
+      const campanha = serie.map((s) => ({
+        palavra: String(s.ano),
+        tamanho: 18 + Math.round((Number(s.valor_brl || 0) / maxV) * 32),
+      }));
+      const totalSerie = serie.reduce((a, s) => a + Number(s.valor_brl || 0), 0);
+      return {
+        campanha,
+        entrega: {
+          valor: totalSerie,
+          metrica: "Volume histórico classificado · categorização em refinamento",
+        },
+      };
+    }
+    return null;
   }, [kpis]);
 
   // B16 — Rede empresarial: hub CEAP → top fornecedores (com rótulos visíveis)
