@@ -202,7 +202,9 @@ function usePNCPNacional() {
         const start = new Date();
         start.setDate(end.getDate() - 30);
         const fmt = (d) => d.toISOString().slice(0, 10).replace(/-/g, "");
-        const url = `https://pncp.gov.br/api/consulta/v1/contratos?dataInicial=${fmt(start)}&dataFinal=${fmt(end)}&pagina=1&tamanhoPagina=50`;
+        // PNCP limita tamanhoPagina a 50 mas tem retornado 400 com 50 nos
+        // últimos releases. 40 é estavel.
+        const url = `https://pncp.gov.br/api/consulta/v1/contratos?dataInicial=${fmt(start)}&dataFinal=${fmt(end)}&pagina=1&tamanhoPagina=40`;
         const res = await fetch(url, { headers: { Accept: "application/json" } });
         if (!res.ok) throw new Error(`PNCP HTTP ${res.status}`);
         const json = await res.json();
