@@ -212,27 +212,37 @@ export function PulsoCEAP({ data }) {
 }
 
 // =============================================================================
-// B06 MataUFBrasil — mapa "negativo" (alvos críticos por UF)
+// B06 MataUFBrasil — top UFs por volume de alvos de alto risco
 // =============================================================================
 export function MataUFBrasil({ data }) {
   if (!Array.isArray(data) || data.length === 0)
     return <EmBreveBento subtitulo="Calculando alvos críticos por UF." />;
+  const top = [...data]
+    .filter((r) => Number(r.risco || 0) > 0)
+    .sort((a, b) => b.risco - a.risco)
+    .slice(0, 8);
+  if (top.length === 0)
+    return <EmBreveBento subtitulo="Sem sinalizações de alto risco no momento." />;
+  const maxR = Math.max(1, ...top.map((r) => r.risco));
   return (
-    <div className="relative w-full h-full min-h-[80px] flex items-center justify-center">
-      <svg viewBox="0 0 100 60" className="w-full h-full">
-        <defs>
-          <radialGradient id="brMapDark" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="#f87171" stopOpacity="0.5" />
-            <stop offset="100%" stopColor="#1f2937" stopOpacity="0.1" />
-          </radialGradient>
-        </defs>
-        <path
-          d="M 30 10 Q 45 5 60 10 L 70 20 Q 75 30 72 45 L 65 55 Q 55 60 40 57 L 28 50 Q 22 35 25 25 Z"
-          fill="url(#brMapDark)"
-          stroke="rgba(248,113,113,0.3)"
-          strokeWidth="0.5"
-        />
-      </svg>
+    <div className="grid grid-cols-4 gap-1.5 h-full content-center">
+      {top.map((r) => {
+        const intensity = Math.min(1, r.risco / maxR);
+        // gradiente vermelho->amber para "mata" (zonas críticas)
+        const bg = `rgba(${248 - Math.round(60 * intensity)}, ${113 - Math.round(40 * intensity)}, ${113 - Math.round(60 * intensity)}, ${0.18 + 0.42 * intensity})`;
+        const border = `rgba(248, 113, 113, ${0.3 + 0.5 * intensity})`;
+        return (
+          <div
+            key={r.uf}
+            className="rounded-lg px-1 py-1.5 flex flex-col items-center justify-center"
+            style={{ background: bg, border: `1px solid ${border}` }}
+            title={`${r.uf}: ${r.risco} sinalizações de alto risco`}
+          >
+            <span className="text-xs font-bold text-white tabular-nums leading-none">{r.uf}</span>
+            <span className="text-[9px] text-white/70 tabular-nums mt-0.5">{r.risco}</span>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -428,16 +438,16 @@ export function InfluenciaSetorial({ data }) {
 }
 
 // =============================================================================
-// B13 AtividadeLegislativa — 4 KPIs em grid
+// B13 AtividadeLegislativa — 4 KPIs em grid (métricas operacionais reais)
 // =============================================================================
 export function AtividadeLegislativa({ data }) {
   if (!data) return <EmBreveBento subtitulo="Calculando atividade legislativa." />;
   const fmt = (v) => (v == null ? '—' : (typeof v === 'number' ? v.toLocaleString('pt-BR') : v));
   const items = [
-    { label: 'Presença', value: data.presenca != null ? `${data.presenca}%` : '—', color: 'emerald' },
-    { label: 'Votos',    value: fmt(data.votos),                                    color: 'cyan' },
-    { label: 'Projetos', value: fmt(data.projetos),                                 color: 'violet' },
-    { label: 'Faltas',   value: fmt(data.faltas),                                   color: 'red' },
+    { label: 'Parlamentares', value: fmt(data.total),                                          color: 'cyan' },
+    { label: 'Cobertura',     value: data.cobertura != null ? `${data.cobertura}%` : '—',     color: 'emerald' },
+    { label: 'Notas no lake', value: fmt(data.notasLake),                                      color: 'violet' },
+    { label: 'Alto risco',    value: fmt(data.altoRisco),                                      color: 'red' },
   ];
   const colorMap = {
     emerald: 'bg-emerald-500/10 border-emerald-400/30 text-emerald-300',
@@ -523,22 +533,35 @@ export function RedeEmpresarial({ data }) {
   }, {});
   return (
     <div className="w-full h-full flex items-center justify-center">
-      <svg viewBox="0 0 100 100" className="w-full h-full max-h-[110px]">
+      <svg viewBox="0 0 100 100" className="w-full h-full" preserveAspectRatio="xMidYMid meet">
         {data.edges.map((e, i) => {
           const f = positions[e.from], t = positions[e.to];
-          return <line key={i} x1={f.x} y1={f.y} x2={t.x} y2={t.y} stroke="#a78bfa" strokeWidth="0.4" opacity="0.5" />;
+          if (!f || !t) return null;
+          return <line key={i} x1={f.x} y1={f.y} x2={t.x} y2={t.y} stroke="#a78bfa" strokeWidth="0.5" opacity="0.55" />;
         })}
         {data.nodes.map(n => {
           const p = positions[n.id];
+          if (!p) return null;
+          const r = n.tipo === 'parlamentar' ? 4.5 : 3.2;
+          const fill = n.tipo === 'parlamentar' ? '#22d3ee' : '#fbbf24';
+          // afasta o label do nó (raio externo)
+          const dx = (p.x - 50) * 0.16;
+          const dy = (p.y - 50) * 0.16;
           return (
-            <circle
-              key={n.id}
-              cx={p.x}
-              cy={p.y}
-              r={n.tipo === 'parlamentar' ? 3.2 : 2.4}
-              fill={n.tipo === 'parlamentar' ? '#22d3ee' : '#fbbf24'}
-              opacity="0.85"
-            />
+            <g key={n.id}>
+              <circle cx={p.x} cy={p.y} r={r} fill={fill} opacity="0.9" />
+              {n.label ? (
+                <text
+                  x={p.x + dx}
+                  y={p.y + dy + r + 3}
+                  fontSize="3.5"
+                  fill="rgba(255,255,255,0.75)"
+                  textAnchor="middle"
+                >
+                  {n.label}
+                </text>
+              ) : null}
+            </g>
           );
         })}
       </svg>
