@@ -4,8 +4,6 @@
  */
 
 function mountAskVertexAgent(functions, parentExports) {
-  const { SessionsClient } = require("@google-cloud/dialogflow-cx");
-
   const DEFAULT_PROJECT = "transparenciabr";
   const DEFAULT_LOCATION = process.env.DIALOGFLOW_LOCATION || "global";
   const DEFAULT_AGENT_ID = process.env.DIALOGFLOW_AGENT_ID || "1777236402725";
@@ -122,6 +120,8 @@ function mountAskVertexAgent(functions, parentExports) {
         });
         return;
       }
+
+      const { SessionsClient } = require("@google-cloud/dialogflow-cx");
 
       const projectId = process.env.GCLOUD_PROJECT || DEFAULT_PROJECT;
       const location = String(process.env.DIALOGFLOW_LOCATION || DEFAULT_LOCATION).trim();

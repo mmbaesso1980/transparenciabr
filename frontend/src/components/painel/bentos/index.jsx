@@ -256,8 +256,8 @@ export function EmendasCriticas({ data }) {
         </div>
       </div>
       <ul className="space-y-1 text-[11px] flex-shrink-0">
-        {data.topCnpj.map(c => (
-          <li key={c.cnpj} className="flex items-center gap-2">
+        {data.topCnpj.map((c, i) => (
+          <li key={`${c.cnpj}-${i}`} className="flex items-center gap-2">
             <span className="text-white/60">{c.cnpj}</span>
             <span className="px-1.5 py-0.5 bg-red-500/15 text-red-300 border border-red-400/20 rounded text-[9px]">{c.risco}</span>
           </li>
@@ -272,7 +272,8 @@ export function EmendasCriticas({ data }) {
 // =============================================================================
 export function ContratosPNCP({ data }) {
   if (!data) return <EmBreveBento subtitulo="Histograma PNCP em construção." />;
-  const max = Math.max(...data.histograma.map(h => h.count));
+  const max = Math.max(1, ...data.histograma.map(h => h.count));
+  const faixaCeap = data.source === "ceap_faixa";
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-end gap-1 h-16 flex-1">
@@ -286,9 +287,11 @@ export function ContratosPNCP({ data }) {
         ))}
       </div>
       <div className="flex items-center justify-between mt-1">
-        <span className="text-[9px] text-white/30">count</span>
+        <span className="text-[9px] text-white/30">{faixaCeap ? "notas" : "count"}</span>
       </div>
-      <p className="text-[10px] text-white/40 text-center">risk_score</p>
+      <p className="text-[10px] text-white/40 text-center">
+        {faixaCeap ? "faixa de risco · datalake CEAP" : "risk_score"}
+      </p>
     </div>
   );
 }
@@ -444,9 +447,9 @@ export function PromessaEntrega({ data }) {
   return (
     <div className="flex h-full gap-3">
       <div className="flex-1 flex flex-wrap gap-1.5 items-center content-center">
-        {data.campanha.map(w => (
+        {data.campanha.map((w, idx) => (
           <span
-            key={w.palavra}
+            key={`${w.palavra}-${idx}`}
             className="text-white/80 leading-none"
             style={{ fontSize: `${Math.min(28, w.tamanho * 0.6)}px`, fontWeight: w.tamanho > 35 ? 600 : 400 }}
           >

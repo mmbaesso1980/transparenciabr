@@ -94,7 +94,7 @@ export default function StatusPage() {
               Universo 3D →
             </Link>
             <Link
-              to="/alertas"
+              to="/login?redirect=/alertas"
               className="rounded-lg border border-[#30363D] px-3 py-2 text-center text-sm text-[#8B949E] hover:border-[#58A6FF]/40"
             >
               SOC Alertas →
@@ -164,7 +164,7 @@ export default function StatusPage() {
           <Activity className="size-5 shrink-0 text-[#58A6FF]" strokeWidth={1.75} />
           <p>
             Missão SOC: feed em tempo real em{" "}
-            <Link to="/alertas" className="font-semibold text-[#58A6FF] hover:underline">
+            <Link to="/login?redirect=/alertas" className="font-semibold text-[#58A6FF] hover:underline">
               /alertas
             </Link>{" "}
             (área autenticada).

@@ -8,9 +8,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { getPartyColors } from "../utils/partyColors.js";
-
-const ROSTER_URL =
-  "https://southamerica-east1-transparenciabr.cloudfunctions.net/getUniverseRoster";
+import { UNIVERSE_ROSTER_URL } from "../lib/universeRosterApi.js";
 
 /** Normaliza string para busca acento/case-insensitive. */
 function normSearch(s) {
@@ -125,7 +123,7 @@ export function useUniverseRoster() {
 
     (async () => {
       try {
-        const resp = await fetch(ROSTER_URL, { headers: { Accept: "application/json" } });
+        const resp = await fetch(UNIVERSE_ROSTER_URL, { headers: { Accept: "application/json" } });
         if (!resp.ok) {
           throw new Error(`roster_unavailable_${resp.status}`);
         }

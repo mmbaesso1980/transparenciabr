@@ -9,16 +9,6 @@
 /** API v1 (region + https.onCall etc.) — o pacote principal exporta v2 desde firebase-functions v6 */
 const functions = require("firebase-functions/v1");
 const admin = require("firebase-admin");
-const { BigQuery } = require("@google-cloud/bigquery");
-const { GoogleGenerativeAI } = require("@google/generative-ai");
-const Stripe = require("stripe");
-
-const {
-  classifyArea,
-  urgencyFromAnalysis,
-  analyzeWithGemini,
-  dossierDocId,
-} = require("./src/radar/diarioScanner");
 
 const grantRoleModule = require("./src/admin/grantRole");
 
@@ -26,7 +16,15 @@ admin.initializeApp();
 
 const db = admin.firestore();
 const FieldValue = admin.firestore.FieldValue;
-const bigquery = new BigQuery();
+
+/** BigQuery só sob demanda — reduz tempo de carga no `firebase deploy` (evita timeout 10s). */
+function getBigQuery() {
+  if (!global.__tbr_bq) {
+    const { BigQuery } = require("@google-cloud/bigquery");
+    global.__tbr_bq = new BigQuery();
+  }
+  return global.__tbr_bq;
+}
 
 const ASMODEUS_SUPREME_AGENT_ID = "agent_1777236402725";
 const ASMODEUS_GEMINI_MODEL = "gemini-2.5-pro";
@@ -115,6 +113,7 @@ async function analyzeCeapWithSupremeLeader(row) {
     };
   }
 
+  const { GoogleGenerativeAI } = require("@google/generative-ai");
   const genAI = new GoogleGenerativeAI(key);
   const model = genAI.getGenerativeModel({
     model: ASMODEUS_GEMINI_MODEL,
@@ -278,7 +277,7 @@ function buildCeapQuery({ startYear, endYear, limit, targetId, targetName }) {
 }
 
 async function countCeapRows(startYear, endYear) {
-  const [job] = await bigquery.createQueryJob({
+  const [job] = await getBigQuery().createQueryJob({
     query: `
       SELECT COUNT(1) AS total
       FROM \`transparenciabr.ceap_despesas\`
@@ -292,7 +291,7 @@ async function countCeapRows(startYear, endYear) {
 }
 
 async function loadPublicCeapColumns() {
-  const [job] = await bigquery.createQueryJob({
+  const [job] = await getBigQuery().createQueryJob({
     query: `
       SELECT column_name
       FROM \`basedosdados.br_camara_dados_abertos.INFORMATION_SCHEMA.COLUMNS\`
@@ -421,7 +420,7 @@ async function ensureCeapTableSeeded(startYear, endYear) {
     );
   }
 
-  const [job] = await bigquery.createQueryJob({
+  const [job] = await getBigQuery().createQueryJob({
     query: `
       CREATE TABLE IF NOT EXISTS \`transparenciabr.ceap_despesas\` (
         parlamentar_id STRING NOT NULL,
@@ -500,7 +499,7 @@ function plainValue(v) {
 
 async function loadCeapAggregates(startYear, endYear, limit, targetId, targetName) {
   const q = buildCeapQuery({ startYear, endYear, limit, targetId, targetName });
-  const [job] = await bigquery.createQueryJob({
+  const [job] = await getBigQuery().createQueryJob({
     query: q.query,
     params: q.params,
     location: "US",
@@ -677,6 +676,7 @@ function requireStripe() {
   if (!key) {
     throw new Error("STRIPE_SECRET_KEY ausente");
   }
+  const Stripe = require("stripe");
   return new Stripe(key, { apiVersion: "2024-06-20" });
 }
 
@@ -861,6 +861,9 @@ exports.onDiarioAtoCreated = functions
     const data = snap.data() || {};
     const trecho = String(data.trecho_ato || data.texto || "").trim();
     if (!trecho) return null;
+
+    const { classifyArea, urgencyFromAnalysis, analyzeWithGemini, dossierDocId } =
+      require("./src/radar/diarioScanner");
 
     const area = classifyArea(trecho);
     if (!area) return null;
@@ -1055,7 +1058,7 @@ exports.seedUniverseRoster = functions
 
 exports.getUniverseRoster = functions
   .region("southamerica-east1")
-  .runWith({ memory: "256MB", timeoutSeconds: 30 })
+  .runWith({ memory: "512MB", timeoutSeconds: 60 })
   .https.onRequest(async (req, res) => {
     res.set("Access-Control-Allow-Origin", "*");
     res.set("Access-Control-Allow-Methods", "GET");
@@ -1089,16 +1092,8 @@ exports.getUniverseRoster = functions
 
 // ────────────────────────────────────────────────────────────────────────
 // Painel Mestre + Hotpage Alvos — agregação on-the-fly de ceap_classified (GCS).
-// ZERO Firestore.
+// ZERO Firestore. (require do módulo datalake é lazy dentro de cada handler.)
 // ────────────────────────────────────────────────────────────────────────
-const {
-  scanCeapClassified,
-  loadRosterMap,
-  formatDashboardPayload,
-  formatAlvosPayload,
-  formatDossieCeapPayload,
-} = require("./src/datalake/ceapClassifiedAggregates.js");
-
 const KPI_CACHE =
   "public, max-age=300, s-maxage=900, stale-while-revalidate=120";
 
@@ -1117,6 +1112,11 @@ exports.getDashboardKPIs = functions
     }
 
     try {
+      const {
+        scanCeapClassified,
+        loadRosterMap,
+        formatDashboardPayload,
+      } = require("./src/datalake/ceapClassifiedAggregates.js");
       const { Storage } = require("@google-cloud/storage");
       const storage = new Storage();
       const scan = await scanCeapClassified(storage);
@@ -1165,13 +1165,26 @@ exports.getAlvos = functions
     const minRaw = Number(req.query.min_score);
     const minScore = Math.min(100, Math.max(0, Number.isFinite(minRaw) ? minRaw : 0));
     const sortKey = String(req.query.sort || "notas_alto_risco").trim();
+    const partidoFiltro = String(req.query.partido || "").trim();
 
     try {
+      const {
+        scanCeapClassified,
+        loadRosterMap,
+        formatAlvosPayload,
+      } = require("./src/datalake/ceapClassifiedAggregates.js");
       const { Storage } = require("@google-cloud/storage");
       const storage = new Storage();
       const scan = await scanCeapClassified(storage);
       const rosterMap = await loadRosterMap(storage);
-      const body = formatAlvosPayload(scan, rosterMap, limit, minScore, sortKey);
+      const body = formatAlvosPayload(
+        scan,
+        rosterMap,
+        limit,
+        minScore,
+        sortKey,
+        partidoFiltro,
+      );
       res.status(200).json(body);
     } catch (err) {
       console.error("getAlvos error:", err);
@@ -1203,6 +1216,10 @@ exports.getDossieCeapKPIs = functions
     }
 
     try {
+      const {
+        scanCeapClassified,
+        formatDossieCeapPayload,
+      } = require("./src/datalake/ceapClassifiedAggregates.js");
       const { Storage } = require("@google-cloud/storage");
       const storage = new Storage();
       const scan = await scanCeapClassified(storage);

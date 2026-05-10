@@ -3,6 +3,11 @@ import { useQuery } from "@tanstack/react-query";
 
 import { fetchPoliticoByIdOrSlug, getFirestoreDb } from "../lib/firebase.js";
 import { ONE_DAY_MS } from "../lib/queryClient.js";
+import {
+  fetchUniverseRosterList,
+  findPoliticoInUniverseRoster,
+  rosterEntryToDossieRecord,
+} from "../lib/universeRosterApi.js";
 
 export const TRANSPARENCY_REPORTS_COLLECTION = "transparency_reports";
 
@@ -229,8 +234,8 @@ export async function fetchTransparencyReportById(reportId) {
 }
 
 export function transparencyReportQueryKey(reportId) {
-  /** v3: bust persisted cache após correção do mapper CEAP (`investigacao_prisma_ceap`). */
-  return ["dossie-record-v3", TRANSPARENCY_REPORTS_COLLECTION, String(reportId || "").trim()];
+  /** v4: fallback hotpage via roster oficial (`getUniverseRoster`) quando Firestore vazio. */
+  return ["dossie-record-v4", TRANSPARENCY_REPORTS_COLLECTION, String(reportId || "").trim()];
 }
 
 /**
@@ -243,7 +248,17 @@ export function useTransparencyReport(reportId) {
     queryFn: async () => {
       const report = await fetchTransparencyReportById(cleanId);
       if (report) return mapTransparencyReportToDossieRecord(report);
-      return fetchPoliticoByIdOrSlug(cleanId);
+      const politico = await fetchPoliticoByIdOrSlug(cleanId);
+      if (politico) return politico;
+      let roster = [];
+      try {
+        roster = await fetchUniverseRosterList();
+      } catch {
+        roster = [];
+      }
+      const row = findPoliticoInUniverseRoster(roster, cleanId);
+      if (row) return rosterEntryToDossieRecord(row);
+      return null;
     },
     enabled: Boolean(cleanId),
     staleTime: ONE_DAY_MS,

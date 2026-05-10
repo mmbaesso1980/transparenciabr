@@ -17,12 +17,41 @@ import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 
-import { getFirebaseAuth, getFirestoreDb } from "../lib/firebase.js";
+import { getFirestoreDb } from "../lib/firebase.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useUserCredits } from "../hooks/useUserCredits.js";
+import useUniverseRoster from "../hooks/useUniverseRoster.js";
 import { doc, getDoc } from "firebase/firestore";
 
 const STORAGE_KEY = "transparenciabr_watchlist_ids";
+const NOTIF_PREFS_KEY = "transparenciabr_notif_prefs_v1";
+
+function defaultNotifPrefs() {
+  return { emailAlerts: true, pushAlerts: false, weeklyDigest: true };
+}
+
+function loadNotifPrefs() {
+  try {
+    const raw = localStorage.getItem(NOTIF_PREFS_KEY);
+    if (!raw) return defaultNotifPrefs();
+    const j = JSON.parse(raw);
+    return {
+      emailAlerts: j.emailAlerts !== false,
+      pushAlerts: j.pushAlerts === true,
+      weeklyDigest: j.weeklyDigest !== false,
+    };
+  } catch {
+    return defaultNotifPrefs();
+  }
+}
+
+function persistNotifPrefs(p) {
+  try {
+    localStorage.setItem(NOTIF_PREFS_KEY, JSON.stringify(p));
+  } catch {
+    /* quota / private mode */
+  }
+}
 
 const TABS = [
   { id: "conta",     label: "Minha conta",       icon: User },
@@ -53,33 +82,48 @@ function tierFromCredits(credits) {
 export default function PerfilPage() {
   const { user, loading: authLoading } = useAuth();
   const { credits, godMode } = useUserCredits();
+  const { roster: universeRoster } = useUniverseRoster();
   const [tab, setTab] = useState("conta");
   const [ids, setIds] = useState(() => readLocalWatchlist());
   const [remoteIds, setRemoteIds] = useState(null);
+  const [notifPrefs, setNotifPrefs] = useState(() => loadNotifPrefs());
+
+  const rosterById = useMemo(() => {
+    const m = new Map();
+    for (const p of universeRoster) {
+      const id = String(p.id ?? "").trim();
+      if (id) m.set(id, p);
+    }
+    return m;
+  }, [universeRoster]);
 
   useEffect(() => {
     let cancelled = false;
     async function load() {
       const db = getFirestoreDb();
-      const auth = getFirebaseAuth();
-      const uid = auth?.currentUser?.uid;
-      if (!db || !uid) return;
+      const uid = user?.uid;
+      if (!db || !uid) {
+        if (!cancelled) setRemoteIds(null);
+        return;
+      }
       try {
         const snap = await getDoc(doc(db, "usuarios", uid));
         const wl = snap.data()?.watchlist;
         if (cancelled) return;
         if (Array.isArray(wl)) {
           setRemoteIds(wl.map(String));
+        } else {
+          setRemoteIds(null);
         }
       } catch {
-        /* rules / offline */
+        if (!cancelled) setRemoteIds(null);
       }
     }
     load();
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [user?.uid]);
 
   useEffect(() => {
     const onStorage = (e) => {
@@ -260,23 +304,46 @@ export default function PerfilPage() {
 
                     <div className="mt-8 pt-6 border-t border-white/5">
                       <h3 className="text-sm font-semibold text-[#F0F4FC] mb-3">Notificações</h3>
+                      <p className="mb-3 text-[11px] leading-relaxed text-[#8B949E]">
+                        Preferências guardadas neste navegador. Integração com a conta e envio real de e-mail
+                        serão ligados numa próxima versão.
+                      </p>
                       <div className="space-y-2">
                         {[
-                          { icon: Mail,       label: "Email — alertas de novos sinais nos meus alvos", on: true },
-                          { icon: Smartphone, label: "Push — sinalizações críticas em tempo real",     on: false },
-                          { icon: Bell,       label: "Resumo semanal aos domingos",                    on: true },
-                        ].map((n, i) => (
+                          {
+                            key: "emailAlerts",
+                            icon: Mail,
+                            label: "Email — alertas de novos sinais nos meus alvos",
+                          },
+                          {
+                            key: "pushAlerts",
+                            icon: Smartphone,
+                            label: "Push — sinalizações críticas em tempo real",
+                          },
+                          {
+                            key: "weeklyDigest",
+                            icon: Bell,
+                            label: "Resumo semanal aos domingos",
+                          },
+                        ].map((n) => (
                           <label
-                            key={i}
+                            key={n.key}
                             className="flex items-center gap-3 rounded-xl border border-[#30363D] bg-[#080B14] px-4 py-3 cursor-pointer hover:border-cyan-400/30 transition-colors"
                           >
                             <n.icon size={15} className="text-[#8B949E] flex-shrink-0" strokeWidth={1.6} />
                             <span className="flex-1 text-xs text-[#F0F4FC]">{n.label}</span>
                             <input
                               type="checkbox"
-                              defaultChecked={n.on}
+                              checked={Boolean(notifPrefs[n.key])}
                               className="accent-cyan-400 cursor-pointer"
-                              onChange={() => {/* TODO ligar Firestore */}}
+                              onChange={(e) => {
+                                const checked = e.target.checked;
+                                setNotifPrefs((prev) => {
+                                  const next = { ...prev, [n.key]: checked };
+                                  persistNotifPrefs(next);
+                                  return next;
+                                });
+                              }}
                             />
                           </label>
                         ))}
@@ -317,10 +384,10 @@ export default function PerfilPage() {
                     <div className="mt-8">
                       <h3 className="text-sm font-semibold text-[#F0F4FC] mb-3">Atividade recente</h3>
                       <p className="text-xs text-[#8B949E] mb-4">
-                        Histórico de débitos. (Em breve: sincronização com Firestore.)
+                        Exemplo visual do extrato. O histórico real debitado na sua conta será listado aqui
+                        quando o endpoint de transações estiver exposto ao cliente.
                       </p>
                       <ul className="space-y-2">
-                        {/* TODO: ligar Firestore subcoleção transactions */}
                         {[
                           { d: "Hoje", h: "08:14", desc: "Dossiê laboratório premium", val: -200 },
                           { d: "Ontem", h: "21:02", desc: "Compra · pacote Jornalista", val: +1500 },
@@ -384,17 +451,32 @@ export default function PerfilPage() {
                       </div>
                     ) : (
                       <ul className="mt-4 grid sm:grid-cols-2 gap-2">
-                        {effectiveIds.map((polId) => (
+                        {effectiveIds.map((polId) => {
+                          const pol = rosterById.get(polId);
+                          const title = pol?.nome ? String(pol.nome) : polId;
+                          const meta = pol
+                            ? [String(pol.partido || "").trim(), String(pol.uf || "").trim()]
+                                .filter(Boolean)
+                                .join(" · ")
+                            : "";
+                          return (
                           <li key={polId}>
                             <Link
                               to={`/dossie/${encodeURIComponent(polId)}`}
-                              className="flex items-center justify-between rounded-xl border border-[#30363D]/80 bg-[#080B14] px-4 py-3 text-sm transition hover:border-cyan-400/40 hover:bg-cyan-500/[0.04] group"
+                              className="flex items-center justify-between gap-3 rounded-xl border border-[#30363D]/80 bg-[#080B14] px-4 py-3 text-sm transition hover:border-cyan-400/40 hover:bg-cyan-500/[0.04] group"
                             >
-                              <span className="font-mono text-[12px] text-cyan-300 truncate">{polId}</span>
-                              <ChevronRight size={14} className="text-[#484F58] group-hover:text-cyan-400" />
+                              <div className="min-w-0 flex-1">
+                                <span className="block truncate font-medium text-[#F0F4FC]">{title}</span>
+                                <span className="mt-0.5 block truncate font-mono text-[11px] text-[#8B949E]">
+                                  {meta ? `${meta} · ` : ""}
+                                  {polId}
+                                </span>
+                              </div>
+                              <ChevronRight size={14} className="shrink-0 text-[#484F58] group-hover:text-cyan-400" />
                             </Link>
                           </li>
-                        ))}
+                          );
+                        })}
                       </ul>
                     )}
                   </section>
