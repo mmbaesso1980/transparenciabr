@@ -4,10 +4,12 @@ import { useQuery } from "@tanstack/react-query";
 import { fetchPoliticoByIdOrSlug, getFirestoreDb } from "../lib/firebase.js";
 import { ONE_DAY_MS } from "../lib/queryClient.js";
 import {
+  ceapEntryToHistoricoRecord,
   fetchUniverseRosterList,
   findPoliticoInUniverseRoster,
   rosterEntryToDossieRecord,
 } from "../lib/universeRosterApi.js";
+import { fetchPublicCeapRankingRows } from "../lib/publicCeapRanking.js";
 
 export const TRANSPARENCY_REPORTS_COLLECTION = "transparency_reports";
 
@@ -234,8 +236,8 @@ export async function fetchTransparencyReportById(reportId) {
 }
 
 export function transparencyReportQueryKey(reportId) {
-  /** v4: fallback hotpage via roster oficial (`getUniverseRoster`) quando Firestore vazio. */
-  return ["dossie-record-v4", TRANSPARENCY_REPORTS_COLLECTION, String(reportId || "").trim()];
+  /** v5: fallback fuzzy via CEAP ranking + ex-parlamentar histórico. */
+  return ["dossie-record-v5", TRANSPARENCY_REPORTS_COLLECTION, String(reportId || "").trim()];
 }
 
 /**
@@ -246,18 +248,50 @@ export function useTransparencyReport(reportId) {
   return useQuery({
     queryKey: transparencyReportQueryKey(cleanId),
     queryFn: async () => {
+      // 1) Firestore transparency_reports (PNCP / dossiê forense)
       const report = await fetchTransparencyReportById(cleanId);
       if (report) return mapTransparencyReportToDossieRecord(report);
+
+      // 2) Coleção politicos (Firestore) por ID ou slug
       const politico = await fetchPoliticoByIdOrSlug(cleanId);
       if (politico) return politico;
+
+      // 3) Tentar resolver via CEAP ranking (fonte do clique no painel)
+      //    O ID que vem do ranking.json é ideCadastro (CEAP), que muitas vezes
+      //    não bate com o ID atual da Câmara. Usamos o nome como hint para
+      //    fuzzy-match no roster oficial.
+      let ceapHint = null;
+      try {
+        const rows = await fetchPublicCeapRankingRows();
+        ceapHint = rows.find((r) => String(r?.id ?? "") === cleanId) || null;
+      } catch {
+        ceapHint = null;
+      }
+
+      // 4) Roster oficial Câmara/Senado (com fallback fuzzy via ceapHint)
       let roster = [];
       try {
         roster = await fetchUniverseRosterList();
       } catch {
         roster = [];
       }
-      const row = findPoliticoInUniverseRoster(roster, cleanId);
+      const hintNome = ceapHint?.nome || ceapHint?.deputado || "";
+      const row = findPoliticoInUniverseRoster(roster, cleanId, hintNome);
       if (row) return rosterEntryToDossieRecord(row);
+
+      // 5) Fallback final: ex-parlamentar histórico (CEAP só)
+      //    Não caiu em nenhum dos 4 anteriores mas existe no CEAP →
+      //    devolve registro histórico com aviso, em vez de "não encontrado".
+      if (ceapHint) {
+        const hist = ceapEntryToHistoricoRecord({
+          ...ceapHint,
+          deputado: ceapHint.nome,
+          total_brl: ceapHint.cota,
+          pct_aproveitamento: ceapHint.pct,
+        });
+        if (hist) return hist;
+      }
+
       return null;
     },
     enabled: Boolean(cleanId),
