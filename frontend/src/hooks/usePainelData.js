@@ -22,6 +22,7 @@ import { useUniverseRoster } from "./useUniverseRoster.js";
 import { useDashboardKPIs } from "./useDashboardKPIs.js";
 import useAlvos from "./useAlvos.js";
 import { TBR_PUBLIC_RANKING_CEAP_JSON } from "../lib/tbrPublicUrls.js";
+import { denormalizeMojibake } from "../lib/denormalizeMojibake.js";
 
 /** Número vindo do export BigQuery (string ou número, pt/en). */
 function parseAmount(v) {
@@ -142,7 +143,11 @@ function useRankingGastadores() {
         const truthy = (v) => v === true || String(v).toLowerCase() === "true";
         const norm = arr
           .map((r, i) => {
-            const nome = r.deputado || r.nome || "—";
+            // Onda 14: corrigir mojibake CP850→Latin-1 vindo do export BigQuery.
+            const nome = denormalizeMojibake(r.deputado || r.nome || "—");
+            const partido = denormalizeMojibake(
+              String(r.partido || "—"),
+            ).toUpperCase();
             const idRaw = r.id ?? r.nu_deputado_id;
             const id =
               idRaw != null && String(idRaw).trim() !== ""
@@ -155,7 +160,7 @@ function useRankingGastadores() {
             return {
               id,
               nome,
-              partido: String(r.partido || "—").toUpperCase(),
+              partido,
               uf: String(r.uf || "—").toUpperCase(),
               cota,
               qtd_notas: parseAmount(r.qtd_notas ?? 0),
