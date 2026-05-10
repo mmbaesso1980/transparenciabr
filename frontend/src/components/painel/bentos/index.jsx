@@ -212,7 +212,8 @@ export function PulsoCEAP({ data }) {
 }
 
 // =============================================================================
-// B06 MataUFBrasil — top UFs por volume de alvos de alto risco
+// B06 MataUFBrasil — top UFs por volume de alvos (modo "risco" = vermelho;
+// modo "cobertura" = cyan, indicando concentração de notas no lake)
 // =============================================================================
 export function MataUFBrasil({ data }) {
   if (!Array.isArray(data) || data.length === 0)
@@ -224,34 +225,57 @@ export function MataUFBrasil({ data }) {
   if (top.length === 0)
     return <EmBreveBento subtitulo="Sem sinalizações de alto risco no momento." />;
   const maxR = Math.max(1, ...top.map((r) => r.risco));
+  const modo = top[0]?.modo || "risco";
+  const isRisco = modo === "risco";
   return (
-    <div className="grid grid-cols-4 gap-1.5 h-full content-center">
-      {top.map((r) => {
-        const intensity = Math.min(1, r.risco / maxR);
-        // gradiente vermelho->amber para "mata" (zonas críticas)
-        const bg = `rgba(${248 - Math.round(60 * intensity)}, ${113 - Math.round(40 * intensity)}, ${113 - Math.round(60 * intensity)}, ${0.18 + 0.42 * intensity})`;
-        const border = `rgba(248, 113, 113, ${0.3 + 0.5 * intensity})`;
-        return (
-          <div
-            key={r.uf}
-            className="rounded-lg px-1 py-1.5 flex flex-col items-center justify-center"
-            style={{ background: bg, border: `1px solid ${border}` }}
-            title={`${r.uf}: ${r.risco} sinalizações de alto risco`}
-          >
-            <span className="text-xs font-bold text-white tabular-nums leading-none">{r.uf}</span>
-            <span className="text-[9px] text-white/70 tabular-nums mt-0.5">{r.risco}</span>
-          </div>
-        );
-      })}
+    <div className="flex flex-col h-full gap-1">
+      <div className="grid grid-cols-4 gap-1.5 flex-1 content-center">
+        {top.map((r) => {
+          const intensity = Math.min(1, r.risco / maxR);
+          let bg, border;
+          if (isRisco) {
+            // vermelho->amber para risco real
+            bg = `rgba(${248 - Math.round(60 * intensity)}, ${113 - Math.round(40 * intensity)}, ${113 - Math.round(60 * intensity)}, ${0.18 + 0.42 * intensity})`;
+            border = `rgba(248, 113, 113, ${0.3 + 0.5 * intensity})`;
+          } else {
+            // cyan para concentração/cobertura (modo honesto: "o que temos")
+            bg = `rgba(34, 211, 238, ${0.12 + 0.4 * intensity})`;
+            border = `rgba(34, 211, 238, ${0.25 + 0.45 * intensity})`;
+          }
+          return (
+            <div
+              key={r.uf}
+              className="rounded-lg px-1 py-1.5 flex flex-col items-center justify-center"
+              style={{ background: bg, border: `1px solid ${border}` }}
+              title={`${r.uf}: ${r.risco} ${isRisco ? "sinalizações de alto risco" : "parlamentares cobertos"}`}
+            >
+              <span className="text-xs font-bold text-white tabular-nums leading-none">{r.uf}</span>
+              <span className="text-[9px] text-white/70 tabular-nums mt-0.5">{r.risco}</span>
+            </div>
+          );
+        })}
+      </div>
+      <p className="text-[9px] text-white/40 text-center leading-tight">
+        {isRisco
+          ? "sinalizações de alto risco · datalake"
+          : "cobertura no lake · classificação em refinamento"}
+      </p>
     </div>
   );
 }
 
 // =============================================================================
-// B07 EmendasCriticas — número grande + lista CNPJ risco
+// B07 EmendasCriticas — número grande + lista; varia entre risco real e volume
 // =============================================================================
 export function EmendasCriticas({ data }) {
   if (!data) return <EmBreveBento subtitulo="Pipeline de emendas em construção." />;
+  const isRisco = data.modo === "risco";
+  const tagBg = isRisco
+    ? "bg-red-500/15 text-red-300 border border-red-400/20"
+    : "bg-cyan-500/15 text-cyan-300 border border-cyan-400/20";
+  const barGradient = isRisco
+    ? "bg-gradient-to-r from-red-400 to-amber-400"
+    : "bg-gradient-to-r from-cyan-400 to-violet-400";
   return (
     <div className="flex h-full justify-between gap-3">
       <div className="flex flex-col justify-between flex-1 min-w-0">
@@ -259,20 +283,28 @@ export function EmendasCriticas({ data }) {
           <p className="text-3xl font-semibold text-white tabular-nums leading-tight">
             {fmtBRLcompact(data.queimadoHoje)}
           </p>
-          <p className="text-xs text-white/50 mt-0.5">queimados hoje</p>
+          <p className="text-xs text-white/50 mt-0.5">
+            {isRisco ? "alto risco classificado" : "valor classificado no lake"}
+          </p>
         </div>
         <div className="mt-2">
-          <div className="h-1 bg-white/5 rounded-full overflow-hidden">
-            <div className="h-full bg-gradient-to-r from-red-400 to-amber-400" style={{ width: `${data.pctConsumido}%` }} />
-          </div>
-          <p className="text-[10px] text-white/40 mt-1">{data.pctConsumido}% da quota mensal consumida</p>
+          {isRisco ? (
+            <>
+              <div className="h-1 bg-white/5 rounded-full overflow-hidden">
+                <div className={`h-full ${barGradient}`} style={{ width: `${data.pctConsumido}%` }} />
+              </div>
+              <p className="text-[10px] text-white/40 mt-1">{data.pctConsumido}% da quota mensal consumida</p>
+            </>
+          ) : (
+            <p className="text-[10px] text-white/40">categorização em refinamento</p>
+          )}
         </div>
       </div>
       <ul className="space-y-1 text-[11px] flex-shrink-0">
         {data.topCnpj.map((c, i) => (
           <li key={`${c.cnpj}-${i}`} className="flex items-center gap-2">
-            <span className="text-white/60">{c.cnpj}</span>
-            <span className="px-1.5 py-0.5 bg-red-500/15 text-red-300 border border-red-400/20 rounded text-[9px]">{c.risco}</span>
+            <span className="text-white/60 truncate max-w-[120px]">{c.cnpj}</span>
+            <span className={`px-1.5 py-0.5 rounded text-[9px] ${tagBg}`}>{c.risco}</span>
           </li>
         ))}
       </ul>
