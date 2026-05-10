@@ -142,42 +142,45 @@ export function SinalizacoesSOC({ data }) {
 }
 
 // =============================================================================
-// B04 MapaUFBrasil — mock visual de mapa (placeholder gradiente)
+// B04 MapaUFBrasil — grade de top 8 UFs por intensidade (parlamentares)
 // =============================================================================
 export function MapaUFBrasil({ data }) {
   if (!Array.isArray(data) || data.length === 0)
     return <EmBreveBento subtitulo="Calculando distribuição por UF." />;
+  const top = [...data].sort((a, b) => b.total - a.total).slice(0, 8);
+  const max = Math.max(1, ...top.map((d) => d.total));
   return (
-    <div className="relative w-full h-full min-h-[100px] flex items-center justify-center">
-      <svg viewBox="0 0 100 90" className="w-full h-full max-h-[110px]">
-        <defs>
-          <radialGradient id="brMap" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="#fbbf24" stopOpacity="0.6" />
-            <stop offset="60%" stopColor="#9b8cff" stopOpacity="0.3" />
-            <stop offset="100%" stopColor="#22d3ee" stopOpacity="0.1" />
-          </radialGradient>
-        </defs>
-        <path
-          d="M 30 15 Q 45 10 60 15 L 70 25 Q 75 35 72 50 L 65 65 Q 55 75 40 72 L 28 65 Q 22 50 25 35 Z"
-          fill="url(#brMap)"
-          stroke="rgba(255,255,255,0.2)"
-          strokeWidth="0.5"
-        />
-        {data.slice(0, 8).map((d, i) => {
-          const cx = 35 + (i % 4) * 10;
-          const cy = 25 + Math.floor(i / 4) * 25;
+    <div className="flex flex-col h-full justify-between gap-1">
+      <div className="grid grid-cols-4 gap-1">
+        {top.map((d) => {
+          const pct = (d.total / max) * 100;
+          // Cor cyan->amber pela intensidade relativa
+          const hue = 180 - (pct / 100) * 130; // 180 cyan -> 50 amber
           return (
-            <circle
+            <div
               key={d.uf}
-              cx={cx}
-              cy={cy}
-              r={1 + (d.intensidade / 100) * 2}
-              fill="#fbbf24"
-              opacity={0.4 + (d.intensidade / 100) * 0.6}
-            />
+              className="relative aspect-square rounded border border-white/10 overflow-hidden flex flex-col items-center justify-center"
+              title={`${d.uf}: ${d.total} parlamentares`}
+            >
+              <div
+                className="absolute inset-0"
+                style={{
+                  background: `hsla(${hue}, 70%, 50%, ${0.15 + (pct / 100) * 0.4})`,
+                }}
+              />
+              <span className="relative text-[10px] font-bold text-white tabular-nums">
+                {d.uf}
+              </span>
+              <span className="relative text-[9px] text-white/70 tabular-nums">
+                {d.total}
+              </span>
+            </div>
           );
         })}
-      </svg>
+      </div>
+      <p className="text-[10px] text-white/40 text-center">
+        top 8 UFs · parlamentares por estado
+      </p>
     </div>
   );
 }
@@ -268,29 +271,44 @@ export function EmendasCriticas({ data }) {
 }
 
 // =============================================================================
-// B08 ContratosPNCP — histograma
+// B08 ContratosPNCP — histograma + total nacional 30d
 // =============================================================================
 export function ContratosPNCP({ data }) {
-  if (!data) return <EmBreveBento subtitulo="Histograma PNCP em construção." />;
-  const max = Math.max(1, ...data.histograma.map(h => h.count));
+  if (!data || !Array.isArray(data.histograma) || data.histograma.length === 0)
+    return <EmBreveBento subtitulo="Aguardando dados PNCP nacional." />;
+  const max = Math.max(1, ...data.histograma.map((h) => h.count));
   const faixaCeap = data.source === "ceap_faixa";
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex items-end gap-1 h-16 flex-1">
-        {data.histograma.map(h => (
-          <div key={h.bucket} className="flex-1 flex flex-col items-center gap-1">
+    <div className="flex flex-col h-full justify-between">
+      {!faixaCeap && data.total != null ? (
+        <div className="mb-1">
+          <p className="text-2xl font-semibold text-white tabular-nums leading-tight">
+            {Number(data.total).toLocaleString("pt-BR")}
+          </p>
+          <p className="text-[10px] text-white/50">contratos federais · 30d</p>
+          {data.valor30d ? (
+            <p className="text-[11px] text-cyan-300 tabular-nums mt-0.5">
+              {fmtBRLcompact(data.valor30d)}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+      <div className="flex items-end gap-1 h-12">
+        {data.histograma.map((h) => (
+          <div key={h.bucket} className="flex-1 flex flex-col items-center gap-0.5">
             <div
-              className="w-full bg-gradient-to-t from-cyan-500/40 to-cyan-300/80 rounded-t"
+              className="w-full bg-gradient-to-t from-cyan-500/40 to-cyan-300/80 rounded-t min-h-[2px]"
               style={{ height: `${(h.count / max) * 100}%` }}
+              title={`${h.bucket}: ${h.count}`}
             />
+            <span className="text-[8px] text-white/40 truncate w-full text-center">
+              {h.bucket}
+            </span>
           </div>
         ))}
       </div>
-      <div className="flex items-center justify-between mt-1">
-        <span className="text-[9px] text-white/30">{faixaCeap ? "notas" : "count"}</span>
-      </div>
-      <p className="text-[10px] text-white/40 text-center">
-        {faixaCeap ? "faixa de risco · datalake CEAP" : "risk_score"}
+      <p className="text-[10px] text-white/40 text-center mt-1">
+        {faixaCeap ? "faixa de risco · datalake CEAP" : "valor por faixa · PNCP nacional"}
       </p>
     </div>
   );
