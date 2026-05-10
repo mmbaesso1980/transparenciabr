@@ -201,7 +201,8 @@ function CameraTargetRig({ controlsRef, trackingRef }) {
       tr.pendingNavigateId = null;
       tr.startedAt = null;
       if (id && tr.navigateFn) {
-        tr.navigateFn(`/dossie/${encodeURIComponent(id)}`);
+        // Vitrine pública: resolve qualquer ID via cadeia universal (Onda 13).
+        tr.navigateFn(`/politico/${encodeURIComponent(id)}`);
       }
     }
   });

@@ -2,8 +2,10 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// Rota real da hotpage de político no App.jsx é `/dossie/:id` (não `/politico/:id`).
-const HOTPAGE_BASE = '/dossie';
+// `/politico/:id` é a vitrine pública (anônimo + logado vêem) — abre para QUALQUER
+// ID/slug graças ao resolver universal (Firestore + CEAP + roster + histórico).
+// `/dossie/:id` continua autenticado e é acessado via CTA na própria vitrine.
+const HOTPAGE_BASE = '/politico';
 
 /**
  * BentoModal — Overlay full-screen ao clicar num card.
