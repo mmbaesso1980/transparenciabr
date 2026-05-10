@@ -358,9 +358,19 @@ export function usePainelData() {
       risco: String(x.risco || "—"),
     }));
     if (!topCnpj.length) {
-      topCnpj = (kpis.top_categorias_risco || []).slice(0, 5).map((c, i) => ({
+      const cats = Array.isArray(kpis.top_categorias_risco)
+        ? kpis.top_categorias_risco.filter(
+            (c) =>
+              String(c.categoria || "")
+                .toUpperCase()
+                .indexOf("SEM_CATEGORIA") === -1,
+          )
+        : [];
+      topCnpj = cats.slice(0, 5).map((c) => ({
         cnpj: String(c.categoria || "—")
           .replace(/_/g, " ")
+          .toLowerCase()
+          .replace(/\b\w/g, (m) => m.toUpperCase())
           .slice(0, 18),
         risco: `${c.qtd} nt`,
       }));
@@ -441,11 +451,20 @@ export function usePainelData() {
 
   // B14 — Promessa × entrega: nuvem a partir das categorias de maior score agregado no lake
   const promessaEntrega = useMemo(() => {
-    const cats = kpis?.top_categorias_risco;
-    if (!Array.isArray(cats) || cats.length === 0) return null;
+    const raw = kpis?.top_categorias_risco;
+    if (!Array.isArray(raw) || raw.length === 0) return null;
+    const cats = raw.filter(
+      (c) =>
+        String(c.categoria || "")
+          .toUpperCase()
+          .indexOf("SEM_CATEGORIA") === -1,
+    );
+    if (cats.length === 0) return null;
     const campanha = cats.slice(0, 10).map((c) => ({
       palavra: String(c.categoria || "")
         .replace(/_/g, " ")
+        .toLowerCase()
+        .replace(/\b\w/g, (m) => m.toUpperCase())
         .slice(0, 28),
       tamanho: Math.min(
         55,
@@ -469,26 +488,43 @@ export function usePainelData() {
     };
   }, [kpis]);
 
-  // B16 — Rede empresarial: hub CEAP → top fornecedores; fallback hub → deputados em destaque
+  // B16 — Rede empresarial: hub CEAP → top fornecedores (com rótulos visíveis)
   const redeEmpresarial = useMemo(() => {
     const fn = Array.isArray(kpis?.top_fornecedores_painel)
       ? kpis.top_fornecedores_painel
       : [];
     if (fn.length > 0) {
       const nodes = [
-        { id: "ceap", tipo: "parlamentar" },
-        ...fn.map((_, i) => ({ id: `f${i}`, tipo: "empresa" })),
+        { id: "ceap", tipo: "parlamentar", label: "CEAP" },
+        ...fn.slice(0, 6).map((x, i) => ({
+          id: `f${i}`,
+          tipo: "empresa",
+          label: String(x.cnpj || x.nome || `Forn ${i + 1}`).slice(0, 14),
+          risco: String(x.risco || "—"),
+        })),
       ];
-      const edges = fn.map((_, i) => ({ from: "ceap", to: `f${i}` }));
+      const edges = nodes
+        .filter((n) => n.id !== "ceap")
+        .map((n) => ({ from: "ceap", to: n.id }));
       return { nodes, edges };
     }
     const prev = kpis?.top_alvos_preview;
     if (Array.isArray(prev) && prev.length > 0) {
       const nodes = [
-        { id: "ceap", tipo: "parlamentar" },
-        ...prev.map((_, i) => ({ id: `p${i}`, tipo: "empresa" })),
+        { id: "ceap", tipo: "parlamentar", label: "CEAP" },
+        ...prev.slice(0, 6).map((a, i) => ({
+          id: `p${i}`,
+          tipo: "empresa",
+          label: String(a.nome || a.id || `Alvo ${i + 1}`)
+            .split(" ")
+            .slice(0, 2)
+            .join(" ")
+            .slice(0, 14),
+        })),
       ];
-      const edges = prev.map((_, i) => ({ from: "ceap", to: `p${i}` }));
+      const edges = nodes
+        .filter((n) => n.id !== "ceap")
+        .map((n) => ({ from: "ceap", to: n.id }));
       return { nodes, edges };
     }
     return null;
@@ -538,19 +574,21 @@ export function usePainelData() {
     };
   }, [parlamentares, realDataReady]);
 
-  // B13 — Atividade Legislativa: roster real + proxies operacionais do datalake (rótulos na UI)
+  // B13 — Atividade Legislativa: métricas operacionais do datalake CEAP/roster
+  // Antes mostrávamos votos=notas_classificadas (rotulo enganoso). Agora exibimos
+  // KPIs reais e relevantes do que temos: cobertura, parlamentares, notas, alertas.
   const atividadeLegislativa = useMemo(() => {
     if (!realDataReady) return null;
     const deputados = parlamentares.filter((p) => p.cargo === "deputado").length;
     const senadores = parlamentares.filter((p) => p.cargo === "senador").length;
     return {
-      presenca: kpis ? Math.round(Number(kpis.cobertura_pct || 0)) : 0,
-      votos: kpis?.total_notas_classificadas ?? null,
-      projetos: kpis?.total_parlamentares_cobertos ?? null,
-      faltas: kpis?.parse_errors ?? null,
       total: parlamentares.length,
       deputados,
       senadores,
+      cobertura: kpis ? Math.round(Number(kpis.cobertura_pct || 0)) : null,
+      cobertosLake: kpis?.total_parlamentares_cobertos ?? null,
+      notasLake: kpis?.total_notas_classificadas ?? null,
+      altoRisco: kpis?.notas_por_faixa_risco?.alto ?? null,
     };
   }, [parlamentares, realDataReady, kpis]);
 
@@ -567,28 +605,42 @@ export function usePainelData() {
     };
   }, [kpis]);
 
-  // B17 — Abertura por Órgão: amostra PNCP; fallback categorias CEAP (datalake)
+  // B17 — Abertura por Órgão: amostra PNCP ponderada por valor; fallback categorias CEAP
   const aberturaOrgao = useMemo(() => {
     if (pncp?.amostra?.length) {
+      // Pondera por VALOR do contrato (não contagem) — contagem em amostra
+      // pequena gera ranking artificial 20%/20%/20%.
       const orgaoMap = new Map();
       pncp.amostra.forEach((c) => {
-        orgaoMap.set(c.orgao, (orgaoMap.get(c.orgao) || 0) + 1);
+        const k = String(c.orgao || "—").slice(0, 28);
+        orgaoMap.set(k, (orgaoMap.get(k) || 0) + Number(c.valor || 0));
       });
-      const total = pncp.amostra.length;
-      return [...orgaoMap.entries()]
-        .map(([orgao, qtd]) => ({
-          orgao: String(orgao || "—").slice(0, 28),
-          pct: Math.round((qtd / total) * 100),
+      const total = [...orgaoMap.values()].reduce((a, b) => a + b, 0) || 1;
+      const out = [...orgaoMap.entries()]
+        .map(([orgao, valor]) => ({
+          orgao,
+          pct: Math.round((valor / total) * 100),
         }))
         .sort((a, b) => b.pct - a.pct)
         .slice(0, 5);
+      // Se mesmo assim só temos 1 órgão repetido, deixa fallback CEAP assumir
+      if (out.length >= 2) return out;
     }
-    const cats = kpis?.top_categorias_risco;
-    if (!Array.isArray(cats) || cats.length === 0) return null;
+    const raw = kpis?.top_categorias_risco;
+    if (!Array.isArray(raw) || raw.length === 0) return null;
+    const cats = raw.filter(
+      (c) =>
+        String(c.categoria || "")
+          .toUpperCase()
+          .indexOf("SEM_CATEGORIA") === -1,
+    );
+    if (cats.length === 0) return null;
     const sum = cats.reduce((acc, c) => acc + Number(c.score_total || 0), 0) || 1;
     return cats.slice(0, 5).map((c) => ({
       orgao: String(c.categoria || "—")
         .replace(/_/g, " ")
+        .toLowerCase()
+        .replace(/\b\w/g, (m) => m.toUpperCase())
         .slice(0, 28),
       pct: Math.round((Number(c.score_total || 0) / sum) * 100),
     }));
