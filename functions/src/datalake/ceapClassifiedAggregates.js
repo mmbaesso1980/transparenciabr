@@ -14,15 +14,27 @@ const PREFIX = "ceap_classified/";
 function parseCeapBlobPath(fileName) {
   const rel = String(fileName || "").replace(new RegExp(`^${PREFIX}`), "");
   const parts = rel.split("/").filter(Boolean);
+  // Layout 1 (burner padrão): ceap_classified/{ano}/{deputadoId}/notas.jsonl
   if (parts.length >= 3 && parts[parts.length - 1] === "notas.jsonl") {
     const ano = parts[0];
     const deputadoId = parts[1];
     if (/^\d{4}$/.test(ano) && deputadoId) return { deputadoId, ano };
   }
+  // Layout 2 (legado A): ceap_classified/{deputadoId}/{ano}.jsonl
   if (parts.length === 2 && /\.jsonl$/i.test(parts[1])) {
     const deputadoId = parts[0];
     const ano = parts[1].replace(/\.jsonl$/i, "");
     if (deputadoId && /^\d{4}$/.test(ano)) return { deputadoId, ano };
+  }
+  // Onda 18 — Layout 3 (legado B observado em prod):
+  //   ceap_classified/{deputadoId}.jsonl   (sem ano no path)
+  // Quando este formato é detectado, devolvemos deputadoId e marcamos
+  // ano=undefined para que o agregador use row.year/row.ano de cada nota.
+  if (parts.length === 1 && /\.jsonl$/i.test(parts[0])) {
+    const deputadoId = parts[0].replace(/\.jsonl$/i, "");
+    if (deputadoId && /^\d+$/.test(deputadoId)) {
+      return { deputadoId, ano: null };
+    }
   }
   return null;
 }
@@ -84,15 +96,56 @@ function parseUtcMs(isoLike) {
   return Number.isFinite(t) ? t : NaN;
 }
 
+/**
+ * Onda 18 — extrai 'YYYY' de qualquer campo de data presente na nota.
+ * Suporta dat_emissao/data_emissao/dataDocumento/published_at/etc.
+ */
+function extractYearFromDate(row) {
+  if (!row) return null;
+  const candidates = [
+    row.dat_emissao, row.data_emissao, row.dataEmissao,
+    row.data_publicacao, row.dataPublicacao,
+    row.data_documento, row.dataDocumento,
+    row.data, row.published_at, row.publishedAt,
+  ];
+  for (const c of candidates) {
+    if (!c) continue;
+    const m = String(c).match(/(\d{4})/);
+    if (m) {
+      const y = m[1];
+      if (/^(19|20)\d{2}$/.test(y)) return y;
+    }
+  }
+  return null;
+}
+
+/**
+ * Onda 18 — mapeia 'risco' textual ('alto'/'médio'/'baixo') em score_risco
+ * numérico compatível com riskBand() (banda alto >= 85).
+ */
+function scoreFromRiscoLabel(label) {
+  if (!label) return NaN;
+  const s = String(label).trim().toLowerCase();
+  if (s === "alto") return 90;
+  if (s === "medio" || s === "m\u00e9dio") return 70;
+  if (s === "baixo") return 30;
+  return NaN;
+}
+
 function extractNoteFields(row) {
-  const score = num(row.score_risco ?? row.scoreRisco ?? row.score, NaN);
+  // Prioridade: campo numérico explícito > derivação de risco textual.
+  let score = num(row.score_risco ?? row.scoreRisco ?? row.score, NaN);
+  if (!Number.isFinite(score)) {
+    score = scoreFromRiscoLabel(row.risco);
+  }
   const valor = Math.abs(
     num(
       row.valor ??
         row.valor_liquido ??
         row.valorLiquido ??
         row.valor_documento ??
-        row.valorDocumento,
+        row.valorDocumento ??
+        row.vlr_documento, // Onda 18: schema BQ Vertex
       0,
     ),
   );
@@ -103,7 +156,11 @@ function extractNoteFields(row) {
     .slice(0, 160);
   const classifiedAt = String(row.classified_at ?? row.classifiedAt ?? "").trim();
   const cnpjFornecedor = normalizeCnpj(
-    row.cnpj_fornecedor ?? row.cnpjFornecedor ?? row.fornecedor_cnpj ?? row.cnpj,
+    row.cnpj_fornecedor ??
+      row.cnpjFornecedor ??
+      row.fornecedor_cnpj ??
+      row.cnpj ??
+      row.txt_cnpjcpf, // Onda 18: schema BQ Vertex
   );
   const docUrl = extractDocUrl(row);
   const publishedRaw = extractPublishedAtRaw(row);
@@ -282,7 +339,7 @@ async function scanCeapClassified(storage) {
     const parsedPath = parseCeapBlobPath(name);
     if (!parsedPath) continue;
 
-    anos.add(parsedPath.ano);
+    if (parsedPath.ano) anos.add(parsedPath.ano);
     deps.add(parsedPath.deputadoId);
     meta.files_read += 1;
 
@@ -293,6 +350,13 @@ async function scanCeapClassified(storage) {
       rl.on("line", (line) => {
         const row = parseJsonlLine(line, meta);
         if (!row) return;
+        // Onda 18 — quando o path não tem ano (layout legado B {id}.jsonl),
+        // extrair de row.year/row.ano. Falha graciosa se ainda não existir.
+        const rowAno = parsedPath.ano
+          || (row.year != null ? String(row.year) : null)
+          || (row.ano != null ? String(row.ano) : null)
+          || extractYearFromDate(row);
+        if (rowAno) anos.add(rowAno);
         meta.lines_ok += 1;
         global.total_notas_classificadas += 1;
 
@@ -315,7 +379,7 @@ async function scanCeapClassified(storage) {
           global.valor_medio_risco_brl += valor;
         }
 
-        const anoKey = String(parsedPath.ano || "").trim();
+        const anoKey = String(parsedPath.ano || rowAno || "").trim();
         if (anoKey) {
           const va = global.valor_por_ano.get(anoKey) || 0;
           global.valor_por_ano.set(anoKey, va + valor);
