@@ -122,21 +122,34 @@ function extractYearFromDate(row) {
 /**
  * Onda 18 — mapeia 'risco' textual ('alto'/'médio'/'baixo') em score_risco
  * numérico compatível com riskBand() (banda alto >= 85).
+ * Onda 19 — também aceita o vocabulário do burner L4 ('_alerta_l4'):
+ *   'CRITICO', 'ALERTA', 'ATENCAO', 'INFO', 'OK'.
  */
 function scoreFromRiscoLabel(label) {
   if (!label) return NaN;
   const s = String(label).trim().toLowerCase();
-  if (s === "alto") return 90;
-  if (s === "medio" || s === "m\u00e9dio") return 70;
-  if (s === "baixo") return 30;
+  if (s === "alto" || s === "critico" || s === "cr\u00edtico") return 90;
+  if (
+    s === "medio" ||
+    s === "m\u00e9dio" ||
+    s === "alerta" ||
+    s === "atencao" ||
+    s === "aten\u00e7\u00e3o"
+  ) return 70;
+  if (s === "baixo" || s === "info" || s === "ok") return 30;
   return NaN;
 }
 
 function extractNoteFields(row) {
-  // Prioridade: campo numérico explícito > derivação de risco textual.
-  let score = num(row.score_risco ?? row.scoreRisco ?? row.score, NaN);
+  // Prioridade:
+  //  1) campo numérico explícito (score_risco / _score_l4 do burner)
+  //  2) derivação de risco textual (risco BQ Vertex / _alerta_l4 burner)
+  let score = num(
+    row.score_risco ?? row.scoreRisco ?? row.score ?? row._score_l4,
+    NaN,
+  );
   if (!Number.isFinite(score)) {
-    score = scoreFromRiscoLabel(row.risco);
+    score = scoreFromRiscoLabel(row.risco ?? row._alerta_l4);
   }
   const valor = Math.abs(
     num(
@@ -149,15 +162,27 @@ function extractNoteFields(row) {
       0,
     ),
   );
+  // Onda 19 — aceita _categoria_l4 (burner) e tipoDespesa (rubrica oficial)
+  // como fallbacks antes de cair em SEM_CATEGORIA.
   const categoria = String(
-    row.categoria ?? row.rubrica ?? row.descricao_categoria ?? "SEM_CATEGORIA",
+    row.categoria ??
+      row._categoria_l4 ??
+      row.rubrica ??
+      row.descricao_categoria ??
+      row.tipoDespesa ??
+      row.tipo_despesa ??
+      "SEM_CATEGORIA",
   )
     .trim()
     .slice(0, 160);
-  const classifiedAt = String(row.classified_at ?? row.classifiedAt ?? "").trim();
+  // Onda 19 — burner L4 grava '_processed_at' como timestamp da classificação.
+  const classifiedAt = String(
+    row.classified_at ?? row.classifiedAt ?? row._processed_at ?? "",
+  ).trim();
   const cnpjFornecedor = normalizeCnpj(
     row.cnpj_fornecedor ??
       row.cnpjFornecedor ??
+      row.cnpjCpfFornecedor ?? // Onda 19: schema burner L4
       row.fornecedor_cnpj ??
       row.cnpj ??
       row.txt_cnpjcpf, // Onda 18: schema BQ Vertex
@@ -333,16 +358,23 @@ async function scanCeapClassified(storage) {
     return byDep.get(sid);
   }
 
-  for (const file of files) {
-    const name = file.name;
-    if (!name.endsWith(".jsonl")) continue;
-    const parsedPath = parseCeapBlobPath(name);
-    if (!parsedPath) continue;
+  // Onda 19 — paralelismo limitado para evitar timeout 408 com 490+ arquivos.
+  // O scan original era serial (await por arquivo). Com 490 .jsonl o p99 batia
+  // 60s default da CF. Concurrency=8 é segura no plano Gen1 e põe o p99 < 15s
+  // para o lake atual. Aumentar não ajuda (limite de saturate de I/O do GCS
+  // single-instance).
+  const CONCURRENCY = 8;
+  const targets = files
+    .map((f) => ({ file: f, parsedPath: parseCeapBlobPath(f.name) }))
+    .filter((t) => t.file.name.endsWith(".jsonl") && t.parsedPath);
 
-    if (parsedPath.ano) anos.add(parsedPath.ano);
-    deps.add(parsedPath.deputadoId);
+  for (const t of targets) {
+    if (t.parsedPath.ano) anos.add(t.parsedPath.ano);
+    deps.add(t.parsedPath.deputadoId);
+  }
+
+  async function processOne(file, parsedPath) {
     meta.files_read += 1;
-
     await new Promise((resolve, reject) => {
       const stream = file.createReadStream();
       const rl = readline.createInterface({ input: stream, crlfDelay: Infinity });
@@ -482,6 +514,26 @@ async function scanCeapClassified(storage) {
       stream.on("error", reject);
     });
   }
+
+  // Worker pool simples sem deps externas.
+  let cursor = 0;
+  async function worker() {
+    while (cursor < targets.length) {
+      const idx = cursor++;
+      const t = targets[idx];
+      if (!t) return;
+      try {
+        await processOne(t.file, t.parsedPath);
+      } catch (e) {
+        meta.parse_errors += 1;
+      }
+    }
+  }
+  const workers = [];
+  for (let i = 0; i < Math.min(CONCURRENCY, targets.length); i++) {
+    workers.push(worker());
+  }
+  await Promise.all(workers);
 
   return {
     meta,
