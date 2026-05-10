@@ -40,10 +40,17 @@ export default function BentoModal({
   const [partidoFiltro, setPartidoFiltro] = useState('');
   const [ufFiltro, setUfFiltro] = useState('');
   const [order, setOrder] = useState(defaultSortOrder);
+  // Quando ranking é por % de aproveitamento, suplentes (1-2 meses) distorcem
+  // o topo. Por padrão, ocultamos suplentes nesse ranking, mas com toggle.
+  const isPctRanking = sortKey === 'pct' || sortKey === 'frugalidade';
+  const [hideSuplentes, setHideSuplentes] = useState(isPctRanking);
 
   useEffect(() => {
-    if (open) setOrder(defaultSortOrder);
-  }, [open, defaultSortOrder]);
+    if (open) {
+      setOrder(defaultSortOrder);
+      setHideSuplentes(isPctRanking);
+    }
+  }, [open, defaultSortOrder, isPctRanking]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -51,6 +58,7 @@ export default function BentoModal({
     if (q) arr = arr.filter(p => p.nome.toLowerCase().includes(q));
     if (partidoFiltro) arr = arr.filter(p => p.partido === partidoFiltro);
     if (ufFiltro) arr = arr.filter(p => p.uf === ufFiltro);
+    if (hideSuplentes) arr = arr.filter(p => !p.is_suplente);
     arr.sort((a, b) => {
       const av = Number(a[sortKey]);
       const bv = Number(b[sortKey]);
@@ -59,7 +67,7 @@ export default function BentoModal({
       return order === 'desc' ? safeB - safeA : safeA - safeB;
     });
     return arr;
-  }, [data, query, partidoFiltro, ufFiltro, order, sortKey]);
+  }, [data, query, partidoFiltro, ufFiltro, order, sortKey, hideSuplentes]);
 
   const partidos = useMemo(() => [...new Set(data.map(p => p.partido))].sort(), [data]);
   const ufs = useMemo(() => [...new Set(data.map(p => p.uf))].sort(), [data]);
@@ -145,7 +153,20 @@ export default function BentoModal({
               >
                 {order === 'desc' ? '↓' : '↑'} {valueLabel}
               </button>
-              <span className="text-xs text-white/50 ml-auto">{filtered.length} de {data.length}</span>
+              <button
+                onClick={() => setHideSuplentes(v => !v)}
+                title="Suplentes com 1-2 meses ativos distorcem o ranking de %"
+                className={`border rounded-lg px-3 py-2 text-sm transition ${
+                  hideSuplentes
+                    ? 'bg-amber-500/10 border-amber-500/40 text-amber-300 hover:bg-amber-500/20'
+                    : 'bg-white/5 border-white/10 text-white/70 hover:bg-white/10'
+                }`}
+              >
+                {hideSuplentes ? '✓ Só titulares' : 'Inclui suplentes'}
+              </button>
+              <span className="text-xs text-white/50 ml-auto">
+                {filtered.length} de {data.length}{hideSuplentes ? ' (titulares)' : ''}
+              </span>
             </div>
 
             {/* Tabela ranking */}
