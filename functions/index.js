@@ -1099,7 +1099,10 @@ const KPI_CACHE =
 
 exports.getDashboardKPIs = functions
   .region("southamerica-east1")
-  .runWith({ memory: "512MB", timeoutSeconds: 120 })
+  // Onda 19 — 1GB + 540s (máx Gen1) para suportar scan paralelo de 490+
+  // arquivos JSONL no datalake-tbr-clean/ceap_classified/. Com Concurrency=8
+  // o p99 deve ficar < 20s, mas o headroom evita 408 em cold start.
+  .runWith({ memory: "1GB", timeoutSeconds: 540 })
   .https.onRequest(async (req, res) => {
     res.set("Access-Control-Allow-Origin", "*");
     res.set("Access-Control-Allow-Methods", "GET");
@@ -1148,7 +1151,8 @@ exports.getDashboardKPIs = functions
 
 exports.getAlvos = functions
   .region("southamerica-east1")
-  .runWith({ memory: "512MB", timeoutSeconds: 120 })
+  // Onda 19 — mesmo scan de getDashboardKPIs; sobe para 1GB/540s.
+  .runWith({ memory: "1GB", timeoutSeconds: 540 })
   .https.onRequest(async (req, res) => {
     res.set("Access-Control-Allow-Origin", "*");
     res.set("Access-Control-Allow-Methods", "GET");
@@ -1197,7 +1201,8 @@ exports.getAlvos = functions
 
 exports.getDossieCeapKPIs = functions
   .region("southamerica-east1")
-  .runWith({ memory: "512MB", timeoutSeconds: 120 })
+  // Onda 19 — sobe para 1GB/540s (mesmo scan).
+  .runWith({ memory: "1GB", timeoutSeconds: 540 })
   .https.onRequest(async (req, res) => {
     res.set("Access-Control-Allow-Origin", "*");
     res.set("Access-Control-Allow-Methods", "GET");
