@@ -45,3 +45,12 @@ firebase deploy --only functions:processDossieJob --project transparenciabr
 
 - `processDossieJob` (Onda 4 — trigger Firestore em `dossie_jobs/{jobId}`)
   arquivo: `functions/src/dossie/processDossieJob.js`
+- `getDashboardKPIs` (Onda 16 — cap `top_alvos_preview` e `top_fornecedores_painel`
+  elevado de 5 → 50, alimenta Mata UF e Top Fornecedores no painel)
+  arquivo: `functions/src/datalake/ceapClassifiedAggregates.js`
+
+  Deploy rápido (Cloud Shell):
+  ```bash
+  cd functions && npm ci --omit=dev
+  firebase deploy --only functions:getDashboardKPIs --project transparenciabr
+  ```

@@ -569,10 +569,12 @@ function formatDashboardPayload(scan, rosterTotal = 594, rosterMap = null) {
     top_categorias_risco: top,
     ultima_classificacao_utc: global.ultima_classificacao_utc,
     indicadores_forense,
+    // Onda 16 — cap elevado de 5 → 50 para alimentar Mata UF + Top Fornecedores
+    // sem novo round-trip ao backend. payload extra ~< 5KB JSON.
     top_alvos_preview: rosterMap
-      ? topAlvosPreviewFromScan(scan, rosterMap, 5)
-      : topAlvosPreviewFromScan(scan, new Map(), 5),
-    top_fornecedores_painel: topFornecedoresPainel(global, 5),
+      ? topAlvosPreviewFromScan(scan, rosterMap, 50)
+      : topAlvosPreviewFromScan(scan, new Map(), 50),
+    top_fornecedores_painel: topFornecedoresPainel(global, 50),
   };
 }
 
