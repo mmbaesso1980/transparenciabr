@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
 
+import FirebaseConfigMissing from "../components/FirebaseConfigMissing.jsx";
 import BrazilHeatmap from "../components/BrazilHeatmap.jsx";
 import BrazilUFTileMap from "../components/BrazilUFTileMap.jsx";
 import {
@@ -101,10 +102,7 @@ export default function MapaPage() {
       </header>
 
       {error === "missing_config" ? (
-        <p className="mx-auto mt-10 max-w-lg text-center text-sm text-[#8B949E]">
-          Firebase não configurado — defina as variáveis{" "}
-          <code className="font-mono text-[#58A6FF]">VITE_FIREBASE_*</code>.
-        </p>
+        <FirebaseConfigMissing context="o mapa forense por UF" />
       ) : null}
 
       {error && error !== "missing_config" ? (

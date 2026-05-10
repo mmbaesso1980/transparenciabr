@@ -46,12 +46,22 @@ function NotFoundPage() {
         A rota não existe nesta versão do site, ou o bundle em produção ainda não inclui esta rota. Faça um
         deploy após o merge mais recente.
       </p>
-      <Link
-        to="/"
-        className="mt-8 text-sm font-semibold text-[var(--accent-primary)] hover:brightness-110"
-      >
-        Ir à página inicial
-      </Link>
+      <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
+        <Link
+          to="/"
+          className="text-sm font-semibold text-[var(--accent-primary)] hover:brightness-110"
+        >
+          Página inicial
+        </Link>
+        <span className="text-[var(--text-muted)]">·</span>
+        <Link to="/partido" className="text-sm font-semibold text-[var(--accent-primary)] hover:brightness-110">
+          Partidos
+        </Link>
+        <span className="text-[var(--text-muted)]">·</span>
+        <Link to="/status" className="text-sm font-semibold text-[var(--accent-primary)] hover:brightness-110">
+          Status
+        </Link>
+      </div>
     </div>
   );
 }
@@ -62,6 +72,7 @@ export default function App() {
       <AuthProvider>
         <CreditosGODProvider>
           <CameraFocusProvider>
+            <div id="conteudo-principal" tabIndex={-1} className="outline-none">
             <Suspense fallback={<RouteFallback />}>
               <Routes>
                 <Route path="/" element={<LandingPage />} />
@@ -110,6 +121,7 @@ export default function App() {
                 <Route path="*" element={<NotFoundPage />} />
               </Routes>
             </Suspense>
+            </div>
           </CameraFocusProvider>
         </CreditosGODProvider>
       </AuthProvider>

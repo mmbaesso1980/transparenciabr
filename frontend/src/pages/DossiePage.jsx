@@ -394,12 +394,12 @@ export default function DossiePage() {
           Registro não encontrado
         </p>
         <p className="max-w-md text-xs text-[#8B949E]">
-          Não existe documento em{" "}
+          Não há documento em{" "}
           <span className="font-mono text-[#C9D1D9]">transparency_reports</span>
           , nem em <span className="font-mono text-[#C9D1D9]">politicos</span>{" "}
           (ID ou <span className="font-mono text-[#C9D1D9]">slug</span>), nem em{" "}
-          <span className="font-mono text-[#C9D1D9]">parlamentares</span> por slug,
-          para o identificador informado.
+          <span className="font-mono text-[#C9D1D9]">parlamentares</span> por slug — e o ID não consta no
+          cadastro público de parlamentares (roster Câmara/Senado).
         </p>
       </div>
     );
@@ -462,6 +462,12 @@ export default function DossiePage() {
                       <p className="mt-1 text-sm text-[#8B949E]">{partidoSigla}</p>
                     ) : null}
                     <p className="mt-2 font-mono text-[11px] text-[#484F58]">ID {politicoId}</p>
+                    {displayRecord?.snapshot_origem === "universe_roster" ? (
+                      <p className="mt-2 rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-[11px] leading-snug text-amber-100/95">
+                        Hotpage dinâmica — cadastro oficial Câmara/Senado. Blocos forenses completos quando o
+                        dossiê existir em Firestore ou após gerar coleta sob demanda.
+                      </p>
+                    ) : null}
                   </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">

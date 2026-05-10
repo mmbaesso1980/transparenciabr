@@ -134,6 +134,34 @@ export default function PainelPage() {
         </div>
       </header>
 
+      {!data.loading && (data.kpisFetchError || data.rankingFetchError) ? (
+        <div className="max-w-[1400px] mx-auto px-4 md:px-6 pt-4">
+          <div className="rounded-xl border border-amber-500/35 bg-amber-950/30 px-4 py-3 text-left text-[12px] leading-relaxed text-amber-50/95">
+            <p className="font-semibold text-amber-100">Alguns dados do painel falharam ao carregar</p>
+            <ul className="mt-2 list-disc space-y-1 pl-4 text-white/55">
+              {data.rankingFetchError ? (
+                <li>
+                  <span className="text-white/75">Ranking CEAP (JSON público):</span>{" "}
+                  <span className="font-mono text-[11px]">{data.rankingFetchError}</span>
+                  {" — "}
+                  no Hosting, o CSP já deve permitir{" "}
+                  <code className="text-cyan-300/90">https://storage.googleapis.com</code>; no bucket{" "}
+                  <code className="text-cyan-300/90">tbr-public-dashboard</code>, aplique CORS (
+                  <code className="text-cyan-300/90">scripts/gcs-cors-tbr-public-dashboard.json</code>
+                  ).
+                </li>
+              ) : null}
+              {data.kpisFetchError ? (
+                <li>
+                  <span className="text-white/75">KPIs datalake:</span>{" "}
+                  <span className="font-mono text-[11px]">{data.kpisFetchError}</span>
+                </li>
+              ) : null}
+            </ul>
+          </div>
+        </div>
+      ) : null}
+
       {/* Grid principal */}
       <main className="max-w-[1400px] mx-auto px-4 md:px-6 py-6">
         <motion.div

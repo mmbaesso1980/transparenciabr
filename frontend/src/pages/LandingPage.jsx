@@ -1,4 +1,4 @@
-import { ArrowRight, Loader2, Lock, Search, Sparkles, Zap } from "lucide-react";
+import { ArrowRight, Loader2, Lock, Search, Sparkles, Users, Zap } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link, useNavigate } from "react-router-dom";
@@ -237,6 +237,14 @@ export default function LandingPage() {
           >
             Painel
           </Link>
+          <Link
+            to="/partido"
+            aria-label="Ver catálogo de partidos e bancadas"
+            className="hidden h-9 items-center gap-1.5 rounded-md border border-[#30363D] px-3 text-[12.5px] font-semibold uppercase tracking-[0.12em] text-[#E6EDF3] transition hover:border-[#7DD3FC]/45 hover:text-[#7DD3FC] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7DD3FC] sm:inline-flex"
+          >
+            <Users className="size-3.5" strokeWidth={2.25} aria-hidden />
+            Partidos
+          </Link>
           {isAuthenticated ? (
             <Link
               to="/perfil"
@@ -309,6 +317,13 @@ export default function LandingPage() {
                 className="inline-flex h-12 items-center gap-2.5 rounded-md border border-[#58A6FF]/40 bg-[#58A6FF]/10 px-7 text-[14px] font-bold uppercase tracking-[0.14em] text-[#7DD3FC] transition hover:border-[#58A6FF]/70 hover:bg-[#58A6FF]/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7DD3FC]"
               >
                 Universo 3D
+              </Link>
+              <Link
+                to="/partido"
+                className="inline-flex h-12 items-center gap-2 rounded-md border border-[#30363D] bg-[#0D1117]/80 px-7 text-[14px] font-bold uppercase tracking-[0.14em] text-[#C9D1D9] transition hover:border-[#7DD3FC]/45 hover:text-[#F0F4FC] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7DD3FC]"
+              >
+                <Users className="size-4" strokeWidth={2} aria-hidden />
+                Partidos
               </Link>
             </div>
           )}

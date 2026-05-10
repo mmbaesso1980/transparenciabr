@@ -482,6 +482,31 @@ function topAlvosPreviewFromScan(scan, rosterMap, n = 5) {
   return rows.slice(0, n);
 }
 
+/** Top fornecedores por valor agregado no CEAP classificado (para painel / rede empresarial). */
+function topFornecedoresPainel(global, n = 5) {
+  const rows = [...global.fornecedores.entries()]
+    .map(([raw, valor]) => ({
+      digits: String(raw || "").replace(/\D/g, ""),
+      valor_brl: valor,
+    }))
+    .filter((r) => r.digits.length >= 11)
+    .sort((a, b) => b.valor_brl - a.valor_brl)
+    .slice(0, n);
+
+  return rows.map((r) => {
+    const d =
+      r.digits.length >= 14
+        ? r.digits.slice(0, 14)
+        : r.digits.padStart(14, "0").slice(-14);
+    const label = `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8, 12)}-${d.slice(12)}`;
+    const vb = Math.round(r.valor_brl * 100) / 100;
+    let risco = "MONITORAR";
+    if (vb >= 800000) risco = "ALTO";
+    else if (vb >= 80000) risco = "MÉDIO";
+    return { cnpj: label, risco, valor_brl: vb };
+  });
+}
+
 function formatDashboardPayload(scan, rosterTotal = 594, rosterMap = null) {
   const { global, meta, anos, deps } = scan;
   const top = [...global.categorias.entries()]
@@ -547,11 +572,46 @@ function formatDashboardPayload(scan, rosterTotal = 594, rosterMap = null) {
     top_alvos_preview: rosterMap
       ? topAlvosPreviewFromScan(scan, rosterMap, 5)
       : topAlvosPreviewFromScan(scan, new Map(), 5),
+    top_fornecedores_painel: topFornecedoresPainel(global, 5),
   };
 }
 
-function formatAlvosPayload(scan, rosterMap, limit, minScore, sortKey = "notas_alto_risco") {
+function normalizePartidoApi(raw) {
+  return String(raw || "")
+    .trim()
+    .toUpperCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/** Filtro opcional ?partido= — alinhado às siglas do roster (tolerância UNIAO / PCDOB). */
+function partidoMatchesApiFilter(rowPartido, filterRaw) {
+  const f = normalizePartidoApi(filterRaw);
+  if (!f) return true;
+  const p = normalizePartidoApi(rowPartido);
+  if (!p) return false;
+  if (p === f) return true;
+  const pc = p.replace(/\s+/g, "");
+  const fc = f.replace(/\s+/g, "");
+  if (pc === fc) return true;
+  if (fc === "UNIAO" && (pc.startsWith("UNIAO") || p.includes("BRASIL"))) return true;
+  if (fc === "PCDOB" && (pc.includes("PCDOB") || p.includes("PC DO B"))) return true;
+  if (fc === "REP" && pc.startsWith("REPUBLICANOS")) return true;
+  return false;
+}
+
+function formatAlvosPayload(
+  scan,
+  rosterMap,
+  limit,
+  minScore,
+  sortKey = "notas_alto_risco",
+  partidoFilterRaw = "",
+) {
   const rows = [];
+  const filtro = String(partidoFilterRaw || "").trim();
   for (const [id, agg] of scan.byDep.entries()) {
     const sm = scoreMedioDep(agg);
     if (sm < minScore) continue;
@@ -563,6 +623,7 @@ function formatAlvosPayload(scan, rosterMap, limit, minScore, sortKey = "notas_a
       cargo: "deputado",
       urlFoto: "",
     };
+    if (filtro && !partidoMatchesApiFilter(rowMeta.partido, filtro)) continue;
     const hhi = hhiFromValorMap(agg.fornecedores);
     const catValorMap = new Map();
     for (const [k, v] of agg.categorias.entries()) {
@@ -615,6 +676,7 @@ function formatAlvosPayload(scan, rosterMap, limit, minScore, sortKey = "notas_a
     generated_at: new Date().toISOString(),
     total_alvos: sliced.length,
     ordenacao: sk,
+    filtro_partido: filtro || null,
     parse_errors: scan.meta.parse_errors,
     alvos: sliced,
   };

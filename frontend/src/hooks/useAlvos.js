@@ -6,9 +6,15 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { alvosUrl } from "../lib/datalakeApi.js";
 
-export function useAlvos({ limit = 50, minScore = 0, sort = "notas_alto_risco" } = {}) {
+export function useAlvos({
+  limit = 50,
+  minScore = 0,
+  sort = "notas_alto_risco",
+  partido = "",
+  enabled = true,
+} = {}) {
   const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => enabled);
   const [error, setError] = useState(null);
 
   const qs = useMemo(() => {
@@ -16,8 +22,10 @@ export function useAlvos({ limit = 50, minScore = 0, sort = "notas_alto_risco" }
     p.set("limit", String(limit));
     p.set("min_score", String(minScore));
     p.set("sort", String(sort || "notas_alto_risco"));
+    const pf = String(partido || "").trim();
+    if (pf) p.set("partido", pf);
     return p.toString();
-  }, [limit, minScore, sort]);
+  }, [limit, minScore, sort, partido]);
 
   const fetchAlvos = useCallback(async () => {
     setLoading(true);
@@ -41,8 +49,14 @@ export function useAlvos({ limit = 50, minScore = 0, sort = "notas_alto_risco" }
   }, [qs]);
 
   useEffect(() => {
+    if (!enabled) {
+      setLoading(false);
+      setError(null);
+      setData(null);
+      return;
+    }
     fetchAlvos();
-  }, [fetchAlvos]);
+  }, [fetchAlvos, enabled]);
 
   return { data, loading, error, refetch: fetchAlvos };
 }
