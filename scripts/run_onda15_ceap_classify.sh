@@ -43,9 +43,9 @@ echo "  Modelo:  $VERTEX_MODEL"
 echo "  Projeto: $GCP_PROJECT_ID"
 echo "════════════════════════════════════════════════════════════"
 
-# Anos a classificar (SEM_CATEGORIA atual concentra em 2024-2026)
-YEARS=("${@:-2024 2025 2026}")
-[ "${#YEARS[@]}" -eq 0 ] && YEARS=(2024 2025 2026)
+# Anos a classificar — diretiva: CEAP só legislatura atual (2023+).
+YEARS=("${@:-2023 2024 2025 2026}")
+[ "${#YEARS[@]}" -eq 0 ] && YEARS=(2023 2024 2025 2026)
 
 cd "$PROJ_DIR/engines/vertex"
 [ ! -d node_modules ] && [ -f package.json ] && npm ci --silent 2>/dev/null || true
