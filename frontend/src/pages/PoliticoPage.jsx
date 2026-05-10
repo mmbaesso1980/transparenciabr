@@ -689,6 +689,12 @@ export default function PoliticoPage() {
     );
   const fotoUrl =
     politico?.foto ?? politico?.urlFoto ?? politico?.url_foto ?? null;
+  // Onda 14 — selo “ex-parlamentar” quando o registro veio do CEAP histórico
+  // (parâmetro povoado por ceapEntryToHistoricoRecord em universeRosterApi.js).
+  const isHistorico = politico?.snapshot_origem === "ceap_historico";
+  const avisoHistorico =
+    politico?.aviso_historico ||
+    "Parlamentar registrado no CEAP histórico, mas não consta no roster atual da Câmara/Senado.";
 
   return (
     <div className="min-h-screen bg-[#05060d] text-[#F0F4FC]">
@@ -754,11 +760,25 @@ export default function PoliticoPage() {
           )}
 
           <div className="min-w-0 flex-1">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-cyan-300">
-              Parlamentar federal · Câmara dos Deputados
+            <p
+              className={`text-[10px] font-semibold uppercase tracking-[0.28em] ${
+                isHistorico ? "text-amber-300" : "text-cyan-300"
+              }`}
+            >
+              {isHistorico
+                ? "Ex-parlamentar · Registro CEAP histórico"
+                : "Parlamentar federal · Câmara dos Deputados"}
             </p>
-            <h1 className="mt-1 text-3xl font-semibold tracking-tight sm:text-4xl">
-              {nome}
+            <h1 className="mt-1 flex flex-wrap items-center gap-3 text-3xl font-semibold tracking-tight sm:text-4xl">
+              <span>{nome}</span>
+              {isHistorico && (
+                <span
+                  className="inline-flex items-center gap-1 rounded-full border border-amber-300/40 bg-amber-300/10 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-amber-200"
+                  title={avisoHistorico}
+                >
+                  Histórico
+                </span>
+              )}
             </h1>
             <p className="mt-1 text-sm text-[#8B949E]">
               <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-0.5 font-mono text-xs">
@@ -841,6 +861,19 @@ export default function PoliticoPage() {
                 }
               />
             </div>
+
+            {/* Onda 14 — banner explicando que o parlamentar não consta no roster atual */}
+            {isHistorico && (
+              <div className="mt-4 flex items-start gap-3 rounded-xl border border-amber-300/30 bg-amber-300/5 p-3 text-sm">
+                <span className="mt-0.5 size-2 shrink-0 rounded-full bg-amber-300" />
+                <p className="text-[#D1D5DB]">
+                  <span className="font-semibold text-amber-200">Registro histórico.</span>{" "}
+                  {avisoHistorico} Os dados exibidos vieram do CEAP arquivado — o
+                  parlamentar pode ter encerrado o mandato ou trocado de casa
+                  legislativa.
+                </p>
+              </div>
+            )}
 
             {/* Banner honesto quando o parlamentar ainda não foi classificado */}
             {!loadingKpis && !hasKpis && (
