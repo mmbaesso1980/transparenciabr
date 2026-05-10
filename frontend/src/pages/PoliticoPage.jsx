@@ -31,7 +31,7 @@ import {
   Users,
 } from "lucide-react";
 
-import { fetchPoliticoByIdOrSlug } from "../lib/firebase.js";
+import { resolvePoliticoUniversal } from "../lib/resolvePolitico.js";
 import {
   useKPIsParlamentar,
   extractHeroKPIs,
@@ -587,7 +587,10 @@ export default function PoliticoPage() {
     let mounted = true;
     setLoading(true);
     setError(null);
-    fetchPoliticoByIdOrSlug(id)
+    // Cadeia universal: Firestore politicos → CEAP hint → roster (fuzzy) →
+    // ex-parlamentar histórico. Mesmo lookup do /dossie/:id, garantindo
+    // que qualquer ID/slug do painel ou link compartilhado abra uma hotpage.
+    resolvePoliticoUniversal(id)
       .then((p) => {
         if (!mounted) return;
         setPolitico(p);

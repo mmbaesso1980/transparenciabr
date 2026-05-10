@@ -100,7 +100,8 @@ export default function GlobalSearch({ className = "" }) {
       if (location.pathname === "/") {
         requestTrackToPolitician(clean);
       }
-      navigate(`/dossie/${encodeURIComponent(clean)}`);
+      // Vitrine pública: resolve qualquer ID via cadeia universal (Onda 13).
+      navigate(`/politico/${encodeURIComponent(clean)}`);
       setQ("");
       setOpen(false);
     },
