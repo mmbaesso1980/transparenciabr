@@ -281,14 +281,22 @@ export function usePainelData() {
   // BENTOS REAIS — todos saem de fonte viva
   // ─────────────────────────────────────────────────────────────────────
 
-  // B01 — Pontuação Brasil: rastreabilidade % do Data Lake (real)
+  // B01 — Pontuação Brasil: score nacional via faixas de risco (real)
   const pontuacaoBrasil = useMemo(() => {
     if (!kpis) return null;
-    const score = Math.round(Number(kpis?.indicadores_forense?.rastreabilidade_pct || 0));
+    const alto = Number(kpis?.notas_por_faixa_risco?.alto || 0);
+    const medio = Number(kpis?.notas_por_faixa_risco?.medio || 0);
+    const baixo = Number(kpis?.notas_por_faixa_risco?.baixo || 0);
+    const total = alto + medio + baixo;
+    const score = total > 0 ? Math.round((alto * 100 + medio * 50) / total) : null;
     return {
-      score: Math.max(0, Math.min(100, score)),
-      delta: 0,
-      serie30d: [],
+      score: Number.isFinite(score) ? Math.max(0, Math.min(100, score)) : null,
+      faixas: { alto, medio, baixo },
+      totalNotas: total,
+      coberturaPct: Number(kpis?.cobertura_pct || 0),
+      totalParlamentares: Number(
+        kpis?.total_parlamentares_cobertos ?? kpis?.total_parlamentares ?? 0,
+      ),
     };
   }, [kpis]);
 
@@ -309,19 +317,22 @@ export function usePainelData() {
       }));
   }, [ranking, rankingReady]);
 
-  // B03 — Sinalizações SOC: usa parse_errors + valor_alto_risco como pulso
+  // B03 — Parlamentares em alerta: top 5 por score médio do datalake
   const sinalizacoesSOC = useMemo(() => {
     if (!kpis) return null;
-    const total = Number(kpis.parse_errors || 0);
-    const cobertura = Number(kpis.cobertura_pct || 0);
-    return {
-      total,
-      feed: [
-        { id: "s1", texto: `Parse errors no pipeline: ${total} (${cobertura}% cobertura)` },
-        { id: "s2", texto: `${kpis.total_notas_classificadas || 0} notas classificadas no Data Lake` },
-        { id: "s3", texto: `Rastreabilidade ${kpis.indicadores_forense?.rastreabilidade_pct || 0}%` },
-      ],
-    };
+    const preview = Array.isArray(kpis.top_alvos_preview) ? kpis.top_alvos_preview : [];
+    if (preview.length === 0) return null;
+    return [...preview]
+      .sort((a, b) => Number(b?.score_medio || 0) - Number(a?.score_medio || 0))
+      .slice(0, 5)
+      .map((item, idx) => ({
+        id: String(item?.id || `alvo-${idx}`),
+        nome: String(item?.nome || "Parlamentar sem nome"),
+        partido: String(item?.partido || "—").toUpperCase(),
+        uf: String(item?.uf || "—").toUpperCase(),
+        scoreMedio: Number(item?.score_medio || 0),
+        valorTotal: Number(item?.valor_total || 0),
+      }));
   }, [kpis]);
 
   // B04 — Mapa UF: distribuição de parlamentares por UF (real)

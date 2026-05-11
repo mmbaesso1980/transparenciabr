@@ -7,8 +7,6 @@
 // denúncia — apresentamos fatos."
 
 import React from 'react';
-import EmBreve from '../../dossie/EmBreve';
-
 /** Helper: renderiza estado "em breve" inline com mensagem honesta. */
 function EmBreveBento({ titulo = 'Em breve', subtitulo = 'Aurora ainda não processou esta camada. Em breve.' }) {
   return (
@@ -16,6 +14,21 @@ function EmBreveBento({ titulo = 'Em breve', subtitulo = 'Aurora ainda não proc
       <div className="text-center px-2">
         <p className="text-[9px] font-semibold uppercase tracking-[0.22em] text-amber-200/80">{titulo}</p>
         <p className="mt-1 text-[10px] leading-tight text-white/45">{subtitulo}</p>
+      </div>
+    </div>
+  );
+}
+
+function SkeletonBento() {
+  return (
+    <div className="h-full animate-pulse">
+      <div className="h-5 w-20 rounded bg-white/10" />
+      <div className="mt-2 h-8 w-24 rounded bg-white/10" />
+      <div className="mt-3 h-2 w-full rounded bg-white/10" />
+      <div className="mt-3 space-y-1.5">
+        <div className="h-2 w-full rounded bg-white/10" />
+        <div className="h-2 w-11/12 rounded bg-white/10" />
+        <div className="h-2 w-10/12 rounded bg-white/10" />
       </div>
     </div>
   );
@@ -32,55 +45,46 @@ const fmtBRLcompact = (v) => {
 // =============================================================================
 // B01 PontuacaoBrasil — gauge + sparkline
 // =============================================================================
-export function PontuacaoBrasil({ data }) {
-  if (!data) return <EmBreveBento subtitulo="Coletando snapshots para score nacional." />;
-  const { score = 0, serie30d = [] } = data;
-  const hasSerie = Array.isArray(serie30d) && serie30d.length > 1;
-  const max = hasSerie ? Math.max(...serie30d, 100) : 100;
-  const min = hasSerie ? Math.min(...serie30d, 0) : 0;
-  const range = max - min || 1;
-  const pts = hasSerie
-    ? serie30d
-        .map((v, i) => `${(i / (serie30d.length - 1)) * 100},${100 - ((v - min) / range) * 100}`)
-        .join(' ')
-    : '';
-
-  const angle = (score / 100) * 180; // semi-circle
-
+export function PontuacaoBrasil({ data, loading = false }) {
+  if (loading || !data || data.score == null) return <SkeletonBento />;
+  const score = Number(data.score || 0);
+  const faixas = data.faixas || {};
+  const alto = Number(faixas.alto || 0);
+  const medio = Number(faixas.medio || 0);
+  const baixo = Number(faixas.baixo || 0);
+  const coberturaPct = Number(data.coberturaPct || 0);
+  const totalParlamentares = Number(data.totalParlamentares || 0);
+  const scoreTone =
+    score <= 30
+      ? 'text-emerald-300 border-emerald-400/40 bg-emerald-500/10'
+      : score <= 60
+        ? 'text-amber-300 border-amber-400/40 bg-amber-500/10'
+        : 'text-red-300 border-red-400/40 bg-red-500/10';
+  const scoreBar =
+    score <= 30 ? 'from-emerald-400 to-emerald-300' : score <= 60 ? 'from-amber-400 to-amber-300' : 'from-red-500 to-red-400';
   return (
-    <div className="flex flex-col items-center justify-between h-full">
-      <div className="relative w-32 h-16">
-        <svg viewBox="0 0 100 50" className="w-full h-full">
-          <path d="M 5 50 A 45 45 0 0 1 95 50" stroke="#1f2937" strokeWidth="6" fill="none" strokeLinecap="round" />
-          <path
-            d="M 5 50 A 45 45 0 0 1 95 50"
-            stroke="url(#scoreGrad)"
-            strokeWidth="6"
-            fill="none"
-            strokeDasharray={`${(angle / 180) * 141.37} 141.37`}
-            strokeLinecap="round"
-          />
-          <defs>
-            <linearGradient id="scoreGrad" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%" stopColor="#22d3ee" />
-              <stop offset="100%" stopColor="#a78bfa" />
-            </linearGradient>
-          </defs>
-        </svg>
-        <div className="absolute inset-0 flex items-end justify-center pb-1">
-          <span className="text-2xl font-semibold text-white tabular-nums">
-            {score}<span className="text-sm text-white/40"> / 100</span>
+    <div className="flex h-full flex-col justify-between gap-1.5">
+      <div className="flex items-end justify-between">
+        <div className="flex flex-col">
+          <span className="text-[9px] uppercase tracking-[0.18em] text-white/50">score nacional</span>
+          <span className="text-2xl font-semibold text-white tabular-nums leading-none">
+            {score}
+            <span className="text-xs text-white/45"> / 100</span>
           </span>
         </div>
+        <span className={`rounded-full border px-2 py-0.5 text-[9px] font-semibold ${scoreTone}`}>{score <= 30 ? 'baixo' : score <= 60 ? 'médio' : 'alto'}</span>
       </div>
-      {hasSerie ? (
-        <svg viewBox="0 0 100 30" className="w-full h-8 mt-1" preserveAspectRatio="none">
-          <polyline points={pts} fill="none" stroke="#fbbf24" strokeWidth="1.5" />
-        </svg>
-      ) : (
-        <div className="h-8 mt-1 flex items-center justify-center text-[9px] text-white/30">série 30d em breve</div>
-      )}
-      <p className="text-[11px] text-white/40 mt-1">Indicador Aurora · média 513 parlamentares</p>
+      <div className="h-1.5 w-full rounded-full bg-white/10 overflow-hidden">
+        <div className={`h-full bg-gradient-to-r ${scoreBar}`} style={{ width: `${score}%` }} />
+      </div>
+      <ul className="space-y-1 text-[10px] text-white/70 tabular-nums leading-tight">
+        <li className="flex items-center justify-between"><span>● Alto risco</span><span>{alto.toLocaleString('pt-BR')} notas</span></li>
+        <li className="flex items-center justify-between"><span>● Médio risco</span><span>{medio.toLocaleString('pt-BR')} notas</span></li>
+        <li className="flex items-center justify-between"><span>● Baixo risco</span><span>{baixo.toLocaleString('pt-BR')} notas</span></li>
+      </ul>
+      <p className="text-[10px] text-white/45 tabular-nums">
+        Cobertura {coberturaPct.toFixed(1)}% · {totalParlamentares.toLocaleString('pt-BR')} parlamentares
+      </p>
     </div>
   );
 }
@@ -120,21 +124,33 @@ export function MaioresCotas({ data }) {
 // =============================================================================
 // B03 SinalizacoesSOC — feed live
 // =============================================================================
-export function SinalizacoesSOC({ data }) {
-  if (!data) return <EmBreveBento subtitulo="Feed live de sinalizações em construção." />;
+export function SinalizacoesSOC({ data, loading = false }) {
+  if (loading || !Array.isArray(data) || data.length === 0) return <SkeletonBento />;
+  const scoreClass = (score) =>
+    score <= 30
+      ? 'border-emerald-400/30 bg-emerald-500/10 text-emerald-300'
+      : score <= 60
+        ? 'border-amber-400/30 bg-amber-500/10 text-amber-300'
+        : 'border-red-400/30 bg-red-500/10 text-red-300';
   return (
-    <div className="flex flex-col gap-2 h-full">
-      <div className="flex items-center gap-2">
-        <span className="relative flex h-2 w-2">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
-          <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
-        </span>
-        <span className="text-2xl font-semibold text-white tabular-nums">{data.total}</span>
-        <span className="text-xs text-white/50">ao vivo</span>
-      </div>
-      <ul className="space-y-1 text-[10.5px] text-white/55 leading-tight">
-        {data.feed.slice(0, 3).map(item => (
-          <li key={item.id} className="line-clamp-2">{item.texto}</li>
+    <div className="flex h-full flex-col gap-1.5">
+      <p className="text-[10px] uppercase tracking-[0.2em] text-white/45">Parlamentares em alerta</p>
+      <ul className="space-y-1">
+        {data.slice(0, 5).map((item) => (
+          <li key={item.id} className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <p className="truncate text-[11px] text-white/90">{item.nome}</p>
+              <p className="text-[9px] text-white/50 tabular-nums">{item.partido}/{item.uf}</p>
+            </div>
+            <div className="flex flex-col items-end gap-0.5 flex-shrink-0">
+              <span className={`rounded border px-1.5 py-0.5 text-[9px] font-semibold tabular-nums ${scoreClass(item.scoreMedio)}`}>
+                {Math.round(Number(item.scoreMedio || 0))}/100
+              </span>
+              {item.valorTotal > 0 ? (
+                <span className="text-[8px] text-white/40 tabular-nums">{fmtBRLcompact(item.valorTotal)}</span>
+              ) : null}
+            </div>
+          </li>
         ))}
       </ul>
     </div>

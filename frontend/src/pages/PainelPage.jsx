@@ -176,11 +176,11 @@ export default function PainelPage() {
           {[
             // ─── Linha 1 ───
             { key: 'b01', span: 'lg:col-span-1 lg:row-span-1', accent: 'cyan',   icon: '🏆', title: 'Pontuação Brasil',
-              child: <PontuacaoBrasil data={data.pontuacaoBrasil} />, modal: M.score },
+              child: <PontuacaoBrasil data={data.pontuacaoBrasil} loading={data.loading} />, modal: M.score },
             { key: 'b02', span: 'lg:col-span-1 lg:row-span-1', accent: 'violet', icon: '⚠️', title: 'Maiores Cotas',
               child: <MaioresCotas data={data.maioresCotas} />, modal: M.cotas },
-            { key: 'b03', span: 'lg:col-span-1 lg:row-span-1', accent: 'red',    icon: '⚡', title: 'Sinalizações SOC',
-              child: <SinalizacoesSOC data={data.sinalizacoesSOC} />, modal: M.sinaliz },
+            { key: 'b03', span: 'lg:col-span-1 lg:row-span-1', accent: 'red',    icon: '⚡', title: 'Parlamentares em alerta',
+              child: <SinalizacoesSOC data={data.sinalizacoesSOC} loading={data.loading} />, modal: M.sinaliz },
             { key: 'b04', span: 'lg:col-span-1 lg:row-span-1', accent: 'cyan',   icon: '🇧🇷', title: 'Mapa UF Brasil',
               child: <MapaUFBrasil data={data.mapaUF} />, modal: M.cotas },
             { key: 'b05', span: 'lg:col-span-1 lg:row-span-1', accent: 'amber',  icon: '📈', title: 'Pulso CEAP',
