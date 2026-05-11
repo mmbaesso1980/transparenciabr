@@ -288,7 +288,35 @@ export function usePainelData() {
     const medio = Number(kpis?.notas_por_faixa_risco?.medio || 0);
     const baixo = Number(kpis?.notas_por_faixa_risco?.baixo || 0);
     const total = alto + medio + baixo;
-    const score = total > 0 ? Math.round((alto * 100 + medio * 50) / total) : null;
+    const scorePorFaixa = total > 0 ? Math.round((alto * 100 + medio * 50) / total) : null;
+    const topPreview = Array.isArray(kpis?.top_alvos_preview) ? kpis.top_alvos_preview : [];
+    const pesoTotalPreview = topPreview.reduce(
+      (acc, item) => acc + Math.max(0, Number(item?.valor_total || 0)),
+      0,
+    );
+    const scorePonderadoPreview =
+      pesoTotalPreview > 0
+        ? Math.round(
+            topPreview.reduce(
+              (acc, item) =>
+                acc +
+                Number(item?.score_medio || 0) *
+                  Math.max(0, Number(item?.valor_total || 0)),
+              0,
+            ) / pesoTotalPreview,
+          )
+        : null;
+    const scoreFallbackMedia =
+      scorePonderadoPreview != null
+        ? scorePonderadoPreview
+        : topPreview.length > 0
+          ? Math.round(
+              topPreview.reduce((acc, item) => acc + Number(item?.score_medio || 0), 0) /
+                topPreview.length,
+            )
+          : null;
+    const score =
+      scorePorFaixa != null && scorePorFaixa > 0 ? scorePorFaixa : scoreFallbackMedia;
     return {
       score: Number.isFinite(score) ? Math.max(0, Math.min(100, score)) : null,
       faixas: { alto, medio, baixo },
