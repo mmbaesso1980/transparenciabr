@@ -30,6 +30,7 @@ import { nameSimilarity, tokenizeName, findMatches } from './utils/fuzzy.js';
 
 const STORAGE = new Storage();
 const CLEAN_BUCKET = process.env.GCS_CLEAN_BUCKET || 'datalake-tbr-clean';
+const DETECTOR_PUBLIC_NAME = 'Payroll Integrity';
 
 // Mapa UF → cidades base (heurística pra detectar voos entre BSB e base eleitoral)
 const UF_TO_CIDADES = {
@@ -342,7 +343,7 @@ export async function runFlavio(options = {}) {
   });
 
   const summary = {
-    detector: 'FLAVIO',
+    detector: DETECTOR_PUBLIC_NAME,
     snapshot,
     ceap_years: ceapYears,
     total_secretarios_analisados: secretariosCamara.length,
@@ -363,7 +364,9 @@ export async function runFlavio(options = {}) {
   };
 
   const summaryPath = `forensic/flavio/snapshot=${snapshot}/summary.json`;
-  await uploadJsonl(CLEAN_BUCKET, summaryPath, [summary], { detector: 'flavio_summary' });
+  await uploadJsonl(CLEAN_BUCKET, summaryPath, [summary], {
+    detector: 'payroll_integrity_summary',
+  });
 
   logger.info('flavio_done', summary);
   return summary;

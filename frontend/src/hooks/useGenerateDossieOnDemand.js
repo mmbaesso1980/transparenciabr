@@ -1,7 +1,7 @@
 /**
  * useGenerateDossieOnDemand — Mutation que dispara a CF callable.
  *
- * Onda 1 — pay-per-dossier. Debita 200 créditos e enfileira job de coleta
+ * Onda 1 — pay-per-dossier. Debita créditos e enfileira job de coleta
  * (a coleta real fica para Onda 4). UI usa este hook no botão "Atualizar
  * agora" do DossiePage e na CTA do PoliticoPage (quando o usuário já estiver
  * logado e quiser disparar uma re-coleta sem ir pelo Stripe).

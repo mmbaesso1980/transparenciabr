@@ -60,19 +60,19 @@ import {
   pickRiskScore,
 } from "../utils/dataParsers.js";
 
-/** Alinhar com `oracleLaboratorioCost()` em `firestore.rules` (200). */
-const ORACLE_LABORATORIO_CREDITS = 200;
+/** Preço do desbloqueio premium do dossiê matador. */
+const ORACLE_LABORATORIO_CREDITS = 800;
 
 /**
  * Botão "Atualizar agora" — dispara generateDossieOnDemand (Onda 1).
- * Debita 200 créditos e enfileira coleta. Desabilitado para visitantes.
+ * Debita créditos e enfileira coleta. Desabilitado para visitantes.
  */
 function RefreshDossieButton({ politicoId }) {
   const { generate, loading, error, result } = useGenerateDossieOnDemand();
   const onClick = async () => {
     if (!politicoId || loading) return;
     if (!window.confirm(
-      "Disparar nova coleta sob demanda? Isso debitará 200 créditos e marcará o dossiê como em processamento.",
+      `Disparar nova coleta sob demanda? Isso debitará ${ORACLE_LABORATORIO_CREDITS} créditos e marcará o dossiê como em processamento.`,
     )) return;
     try {
       await generate(politicoId);
@@ -88,7 +88,7 @@ function RefreshDossieButton({ politicoId }) {
         disabled={loading}
         className="inline-flex w-fit items-center gap-2 rounded-full border border-cyan-400/40 bg-cyan-400/10 px-4 py-2 text-xs font-bold uppercase tracking-widest text-cyan-200 transition hover:bg-cyan-400/20 disabled:opacity-50"
       >
-        {loading ? "Agendando…" : "Atualizar agora — 200 cr"}
+        {loading ? "Agendando…" : `Atualizar agora — ${ORACLE_LABORATORIO_CREDITS} cr`}
       </button>
       {error ? (
         <span className="text-[10px] text-rose-300">{error}</span>
@@ -516,7 +516,7 @@ export default function DossiePage() {
                   {
                     k: "Créditos disponíveis",
                     v: credits === null ? "…" : String(credits),
-                    sub: "Laboratório: 200 créditos",
+                    sub: `Laboratório: ${ORACLE_LABORATORIO_CREDITS} créditos`,
                   },
                 ].map((box) => (
                   <div
@@ -811,7 +811,7 @@ export default function DossiePage() {
             <OsintCeapCrossSection items={osintCeapCross} />
             <HealthAuditSection politico={displayRecord} />
 
-            {/* Linha 5 — paywall 200 créditos */}
+            {/* Linha 5 — paywall do dossiê premium */}
             <div id="dossie-premium-cta" className="min-w-0 scroll-mt-28 pb-4">
               <div className="mb-4 flex flex-wrap items-center gap-2">
                 <Sparkles className="size-4 text-[#7DD3FC]" strokeWidth={1.75} />

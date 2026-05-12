@@ -5,10 +5,10 @@
  *
  * Esta é a "página de vendas" prioritária do TransparênciaBR. Visitante chega,
  * vê o esqueleto preview do dossiê (header rico, KPIs públicos, índices das 6
- * categorias canônicas) e recebe CTA para abrir o dossiê completo (200 cr).
+ * categorias canônicas) e recebe CTA para abrir o dossiê completo (800 cr).
  *
  * Fluxo:
- *   Anônimo  → "Comprar dossiê (200 cr)" → /login?redirect=/dossie/:id
+ *   Anônimo  → "Comprar dossiê (800 cr)" → /login?redirect=/dossie/:id
  *   Logado   → "Abrir dossiê completo"  → /dossie/:id (paywall interno cuida do débito)
  *
  * Filosofia: "Toda nota é suspeita até prova contrária." Mostramos só o que é
@@ -42,10 +42,15 @@ import {
   useComissoesParlamentar,
   useEventosParlamentar,
 } from "../hooks/useCamadasParlamentar.js";
+import { useUserCredits } from "../hooks/useUserCredits.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import CamadaDrawer from "../components/CamadaDrawer.jsx";
 
-const DOSSIE_PRICE_CREDITS = 200;
+const CEAP_VIEW_CREDITS = 300;
+const EMENDAS_COMPLETAS_CREDITS = 300;
+const DOSSIE_PRICE_CREDITS = 800;
+const PDF_LAUDO_EXTRA_CREDITS = 150;
+const COMPARACOES_AVANCADAS_CREDITS = 200;
 
 const fmtBRL = (v) =>
   Number.isFinite(Number(v))
@@ -58,6 +63,19 @@ const fmtBRL = (v) =>
 
 const fmtNum = (v) =>
   Number.isFinite(Number(v)) ? Number(v).toLocaleString("pt-BR") : "—";
+
+function getMsUntilMidnight(now = new Date()) {
+  const next = new Date(now);
+  next.setHours(24, 0, 0, 0);
+  return Math.max(0, next.getTime() - now.getTime());
+}
+
+function formatResetCountdown(ms) {
+  const totalSeconds = Math.floor(ms / 1000);
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  return `${h}h ${String(m).padStart(2, "0")}m`;
+}
 
 /**
  * 6 categorias canônicas — Plano Mestre. Cada uma tem ícone, status e teaser.
@@ -565,9 +583,13 @@ function buildCamadaDrawerPayload(
 export default function PoliticoPage() {
   const { id } = useParams();
   const { isAuthenticated } = useAuth();
+  const { credits } = useUserCredits();
   const [politico, setPolitico] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [resetCountdown, setResetCountdown] = useState(() =>
+    formatResetCountdown(getMsUntilMidnight()),
+  );
 
   // Onda 5 — KPIs reais do Data Lake (GCS ceap_classified/) via CF pública.
   const { kpis: kpisRaw, hasData: hasKpis, loading: loadingKpis } = useKPIsParlamentar(id);
@@ -582,6 +604,13 @@ export default function PoliticoPage() {
   const ceapDet = useCEAPDetalhado(id);
   const comissoes = useComissoesParlamentar(id);
   const eventos = useEventosParlamentar(id);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setResetCountdown(formatResetCountdown(getMsUntilMidnight()));
+    }, 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -896,30 +925,77 @@ export default function PoliticoPage() {
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1, duration: 0.4 }}
-          className="mb-10 flex flex-col items-stretch gap-4 rounded-2xl border border-cyan-400/30 bg-gradient-to-r from-cyan-400/10 via-violet-500/10 to-transparent p-5 sm:flex-row sm:items-center sm:justify-between"
+          className="mb-10 rounded-2xl border border-cyan-400/30 bg-gradient-to-r from-cyan-400/10 via-violet-500/10 to-transparent p-5"
         >
-          <div className="flex items-start gap-3">
-            <Sparkles className="mt-0.5 size-5 shrink-0 text-cyan-300" strokeWidth={1.75} />
-            <div>
-              <p className="text-base font-semibold text-white">
-                Dossiê completo on-demand
-              </p>
-              <p className="mt-0.5 text-sm text-[#8B949E]">
-                Cruzamento das 6 camadas canônicas (CEAP, TSE, Folha, Viagens,
-                Emendas, PNCP) + Espectro político e radar OSINT.{" "}
-                <span className="text-cyan-300">
-                  {DOSSIE_PRICE_CREDITS} créditos por dossiê.
-                </span>
-              </p>
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-start gap-3">
+                <Sparkles className="mt-0.5 size-5 shrink-0 text-cyan-300" strokeWidth={1.75} />
+                <div>
+                  <p className="text-base font-semibold text-white">
+                    Dossiê completo on-demand
+                  </p>
+                  <p className="mt-0.5 text-sm text-[#8B949E]">
+                    Cruzamento das 6 camadas canônicas (CEAP, TSE, Folha, Viagens,
+                    Emendas, PNCP) + Espectro político e radar OSINT.{" "}
+                    <span className="text-cyan-300">
+                      {DOSSIE_PRICE_CREDITS} créditos por dossiê completo matador.
+                    </span>
+                  </p>
+                  <p className="mt-1 text-xs text-amber-200/90">
+                    FOMO diário: faltam{" "}
+                    <span className="font-semibold text-amber-100">{resetCountdown}</span>{" "}
+                    para resetar seus 300 créditos diários
+                    {typeof credits === "number" ? ` (saldo atual: ${credits})` : ""}.
+                  </p>
+                </div>
+              </div>
+              <Link
+                to={ctaTo}
+                className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-400 to-violet-500 px-5 py-3 text-sm font-bold uppercase tracking-wider text-[#02040a] transition hover:brightness-110"
+              >
+                <Coins className="size-4" strokeWidth={2.25} />
+                {ctaLabel}
+              </Link>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+              {[
+                {
+                  label: "Ver despesas CEAP",
+                  value: CEAP_VIEW_CREDITS,
+                  tone: "border-emerald-400/35 bg-emerald-500/10 text-emerald-100",
+                },
+                {
+                  label: "Ver emendas completas",
+                  value: EMENDAS_COMPLETAS_CREDITS,
+                  tone: "border-cyan-400/35 bg-cyan-500/10 text-cyan-100",
+                },
+                {
+                  label: "Dossiê completo matador",
+                  value: DOSSIE_PRICE_CREDITS,
+                  tone: "border-violet-400/35 bg-violet-500/10 text-violet-100",
+                },
+                {
+                  label: "PDF + Laudo",
+                  value: PDF_LAUDO_EXTRA_CREDITS,
+                  tone: "border-amber-400/35 bg-amber-500/10 text-amber-100",
+                },
+                {
+                  label: "Comparações avançadas",
+                  value: COMPARACOES_AVANCADAS_CREDITS,
+                  tone: "border-rose-400/35 bg-rose-500/10 text-rose-100",
+                },
+              ].map((priceItem) => (
+                <div
+                  key={priceItem.label}
+                  className={`rounded-xl border px-3 py-3 ${priceItem.tone}`}
+                >
+                  <p className="text-[10px] uppercase tracking-[0.18em]">{priceItem.label}</p>
+                  <p className="mt-1 font-mono text-lg font-bold">{priceItem.value} cr</p>
+                </div>
+              ))}
             </div>
           </div>
-          <Link
-            to={ctaTo}
-            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-400 to-violet-500 px-5 py-3 text-sm font-bold uppercase tracking-wider text-[#02040a] transition hover:brightness-110"
-          >
-            <Coins className="size-4" strokeWidth={2.25} />
-            {ctaLabel}
-          </Link>
         </motion.section>
 
         {/* 6 categorias canônicas — preview público */}

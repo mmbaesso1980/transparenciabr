@@ -3,27 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 
 import BentoBox from "../components/painel/BentoBox";
+import { AURORA_AGENT_NAMES } from "../constants/auroraAgents.js";
 import { fetchPoliticosCollection, getFirebaseApp } from "../lib/firebase.js";
 import { pickNome, pickPartidoSigla, pickUf } from "../utils/dataParsers";
-
-const AGENTES_AURORA = [
-  "Payroll Integrity",
-  "Public Health Watch",
-  "Benford Sentinel",
-  "Anomaly Oracle",
-  "Contract Prism",
-  "Receipt Hawk",
-  "Mandate Watch",
-  "Risk Atlas",
-  "Ledger Guardian",
-  "Signal Weaver",
-  "Quota Lens",
-  "Forensic Pulse",
-  "Graph Hunter",
-  "Fraud Compass",
-  "Civic Radar",
-  "Integrity Nexus",
-];
 
 const TAB_ITEMS = [
   { key: "todos", label: "Todos" },
@@ -31,9 +13,46 @@ const TAB_ITEMS = [
   { key: "senadores", label: "Senadores" },
 ];
 
-function safeNumber(value) {
-  const n = Number(value);
-  return Number.isFinite(n) ? n : 0;
+function clampScore(score) {
+  return Math.max(0, Math.min(100, Math.round(score)));
+}
+
+function pickFirstFinite(raw, keys) {
+  for (const key of keys) {
+    const n = Number(raw?.[key]);
+    if (Number.isFinite(n)) return n;
+  }
+  return null;
+}
+
+function computeAuroraScore(raw) {
+  const asmodeus = pickFirstFinite(raw, [
+    "score_asmodeus",
+    "scoreAsmodeus",
+    "asmodeus_score",
+  ]);
+  if (asmodeus != null) return clampScore(asmodeus);
+
+  // Fórmula da view `vw_score_parlamentar` (pesos oficiais)
+  const benford = pickFirstFinite(raw, ["score_benford", "benford_score"]) ?? 0;
+  const contratos =
+    pickFirstFinite(raw, ["score_contratos", "contracts_score"]) ?? 0;
+  const nepotismo =
+    pickFirstFinite(raw, ["score_nepotismo", "nepotismo_score"]) ?? 0;
+  const sancoes = pickFirstFinite(raw, ["score_sancoes", "sancoes_score"]) ?? 0;
+  const weighted =
+    benford * 0.25 + contratos * 0.3 + nepotismo * 0.2 + sancoes * 0.25;
+  if (weighted > 0) return clampScore(weighted);
+
+  const fallback = pickFirstFinite(raw, [
+    "score_risco",
+    "score_medio",
+    "risk_score",
+    "score",
+    "indice_risco",
+    "kpi_score_risco",
+  ]);
+  return clampScore(fallback ?? 0);
 }
 
 function inferCargo(raw) {
@@ -55,15 +74,7 @@ function inferCargo(raw) {
 function normalizePolitico(raw, idx) {
   if (!raw?.id) return null;
   const nome = pickNome(raw) || "Sem nome";
-  const score = safeNumber(
-    raw?.score_risco ??
-      raw?.score_medio ??
-      raw?.risk_score ??
-      raw?.score ??
-      raw?.indice_risco ??
-      raw?.kpi_score_risco ??
-      0,
-  );
+  const score = computeAuroraScore(raw);
 
   return {
     id: String(raw.id),
@@ -73,7 +84,7 @@ function normalizePolitico(raw, idx) {
     cargo: inferCargo(raw),
     foto: raw?.foto ?? raw?.fotoUrl ?? raw?.urlFoto ?? raw?.avatar ?? null,
     score,
-    agente: AGENTES_AURORA[idx % AGENTES_AURORA.length],
+    agente: AURORA_AGENT_NAMES[idx % AURORA_AGENT_NAMES.length],
   };
 }
 
