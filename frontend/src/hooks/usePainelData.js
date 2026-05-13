@@ -254,7 +254,7 @@ export function usePainelData() {
     sort: "notas_alto_risco",
   });
   const { user, isAuthenticated } = useAuth();
-  const { credits } = useUserCredits();
+  const { credits, godMode, unlimited, profileDisplayName } = useUserCredits();
 
   const realDataReady = Array.isArray(roster) && roster.length > 0;
   const rankingReady = Array.isArray(ranking) && ranking.length > 0;
@@ -731,10 +731,19 @@ export function usePainelData() {
   // Header — real (user logado) ou ghost
   const headerInfo = useMemo(
     () => ({
-      user: user?.displayName || (isAuthenticated ? "Visitante autenticado" : "Visitante"),
-      creditos: typeof credits === "number" ? credits : null,
+      user:
+        profileDisplayName?.trim() ||
+        user?.displayName ||
+        (isAuthenticated ? "Visitante autenticado" : "Visitante"),
+      creditos:
+        godMode || unlimited
+          ? null
+          : typeof credits === "number"
+            ? credits
+            : null,
+      ilimitado: Boolean(godMode || unlimited),
     }),
-    [user, isAuthenticated, credits],
+    [user, isAuthenticated, credits, godMode, unlimited, profileDisplayName],
   );
 
   // Para o BentoModal: ranking real preferido (cota>0); se ainda não carregou,

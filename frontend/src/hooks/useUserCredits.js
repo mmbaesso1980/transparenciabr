@@ -12,6 +12,7 @@ import { isFrontendGodModeBypass } from "../lib/godModeEnv.js";
 
 /**
  * Saldo em tempo real (`usuarios/{uid}`) após sessão Firebase.
+ * Lê `creditos` (com fallbacks de nomes legados) e `nome_exibicao` / `nome` para exibição no perfil.
  * Sem login explícito, não há utilizador nem subscrição de créditos.
  */
 export function useUserCredits() {
@@ -19,6 +20,7 @@ export function useUserCredits() {
   const [godMode, setGodMode] = useState(false);
   const [unlimited, setUnlimited] = useState(false);
   const [user, setUser] = useState(null);
+  const [profileDisplayName, setProfileDisplayName] = useState(null);
 
   useEffect(() => {
     const app = getFirebaseApp();
@@ -43,6 +45,7 @@ export function useUserCredits() {
         setGodMode(false);
         setUnlimited(false);
         setCredits(null);
+        setProfileDisplayName(null);
         return;
       }
       setUser(user);
@@ -72,13 +75,25 @@ export function useUserCredits() {
       docUnsub = onSnapshot(
         ref,
         (snap) => {
-          const n = Number(snap.data()?.creditos ?? 0);
+          const d = snap.data() ?? {};
+          const raw =
+            d.creditos ??
+            d.creditos_balance ??
+            d.saldo_creditos ??
+            d.saldo ??
+            0;
+          const n = typeof raw === "number" ? raw : Number(String(raw).replace(",", "."));
           setCredits(Number.isFinite(n) ? n : 0);
-          setUnlimited(snap.data()?.creditos_ilimitados === true);
+          setUnlimited(d.creditos_ilimitados === true);
+          const nameFromDoc = [d.nome_exibicao, d.nome, d.displayName, d.apelido]
+            .map((x) => String(x ?? "").trim())
+            .find(Boolean);
+          setProfileDisplayName(nameFromDoc || null);
         },
         () => {
           setCredits(0);
           setUnlimited(false);
+          setProfileDisplayName(null);
         },
       );
     });
@@ -89,5 +104,5 @@ export function useUserCredits() {
     };
   }, []);
 
-  return { credits, godMode, unlimited, user };
+  return { credits, godMode, unlimited, user, profileDisplayName };
 }

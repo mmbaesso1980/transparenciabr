@@ -40,7 +40,7 @@ exports.openContactBigData = functions.https.onCall(
   {
     region: 'us-central1',
     timeoutSeconds: 60,
-    memory: '512MiB',
+    memory: '1GiB',
   },
   async (data, context) => {
     // ══════════════════════════════════════════════════════════════════════

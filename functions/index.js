@@ -1408,6 +1408,10 @@ exports.generateDossieOnDemand = functions
 // ── Módulo Leads / Paywall ────────────────────────────────────────────────
 // Cloud Functions HTTP callable do paywall de contatos + petição automática.
 // Documentação: functions/src/leads/README.md
+//
+// Gen1 `openContactBigData` / `generateInitialPetition`: opções `{ memory, timeoutSeconds }`
+// ficam em `src/leads/*.js` (API `functions.https.onCall(opts, handler)`). Não usar
+// `.runWith({ cpu: ... })` aqui — não aplica a estes exports e pode falhar deploy.
 const leadsPaywall = require("./src/leads");
 exports.openContactBigData = leadsPaywall.openContactBigData;
 exports.generateInitialPetition = leadsPaywall.generateInitialPetition;

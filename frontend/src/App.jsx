@@ -11,7 +11,6 @@ import MetodologiaPage from "./pages/MetodologiaPage.jsx";
 import PainelPage from "./pages/PainelPage.jsx";
 import PartidoPage from "./pages/PartidoPage.jsx";
 import PrivacidadePage from "./pages/PrivacidadePage.jsx";
-import RadarINSS from "./pages/RadarINSS.jsx";
 import RadarJuridico from "./pages/RadarJuridico.jsx";
 import SobrePage from "./pages/SobrePage.jsx";
 import StatusPage from "./pages/StatusPage.jsx";
@@ -94,7 +93,8 @@ export default function App() {
                 <Route path="/termos" element={<TermosPage />} />
                 <Route path="/privacidade" element={<PrivacidadePage />} />
                 <Route path="/radar-legal" element={<RadarJuridico />} />
-                <Route path="/radar-inss" element={<RadarINSS />} />
+                {/* Radar INSS (/radar-inss) oculto temporariamente no lançamento — sem entrada no menu. */}
+                <Route path="/radar-inss" element={<Navigate to="/universo" replace />} />
                 <Route path="/login" element={<LoginPage />} />
 
                 <Route path="/politica/busca" element={<BuscaPage />} />

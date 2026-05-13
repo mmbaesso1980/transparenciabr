@@ -2,10 +2,8 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// `/politico/:id` é a vitrine pública (anônimo + logado vêem) — abre para QUALQUER
-// ID/slug graças ao resolver universal (Firestore + CEAP + roster + histórico).
-// `/dossie/:id` continua autenticado e é acessado via CTA na própria vitrine.
-const HOTPAGE_BASE = '/politico';
+// `/dossie/:id` — hotpage alvo pós-clique no ranking (rota protegida; login se necessário).
+const HOTPAGE_BASE = '/dossie';
 
 /**
  * BentoModal — Overlay full-screen ao clicar num card.

@@ -33,8 +33,9 @@ export default function UniversePage() {
   const focusedRef = useRef(""); // garante fly-to apenas uma vez por id
   const { isAuthenticated, user } = useAuth();
   const { saldo } = useCreditosGOD();
-  const { credits } = useUserCredits();
-  const creditDisplay = Number.isFinite(credits) ? credits : saldo;
+  const { credits, unlimited, godMode, profileDisplayName } = useUserCredits();
+  const creditDisplay =
+    godMode || unlimited ? null : Number.isFinite(credits) ? credits : saldo;
 
   const { graphData, loading, error, findPoliticoByQuery, roster, total } =
     useUniverseRoster();
@@ -303,12 +304,14 @@ export default function UniversePage() {
               <UserOrb user={user} size={28} />
               <span className="hidden flex-col items-start leading-tight sm:flex">
                 <span className="max-w-[140px] truncate text-[12.5px] font-semibold tracking-tight text-[#F0F4FC] sm:max-w-[200px]">
-                  {firstName(user) || "Analista"}
+                  {firstName(user, profileDisplayName) || "Analista"}
                 </span>
                 <span className="text-[10.5px] font-medium uppercase tracking-[0.12em] text-[#7DD3FC]/85">
-                  {Number.isFinite(creditDisplay)
-                    ? `${creditDisplay.toLocaleString("pt-BR")} créditos`
-                    : "…"}
+                  {godMode || unlimited
+                    ? "Ilimitado"
+                    : Number.isFinite(creditDisplay)
+                      ? `${creditDisplay.toLocaleString("pt-BR")} créditos`
+                      : "…"}
                 </span>
               </span>
             </Link>
@@ -586,7 +589,11 @@ export default function UniversePage() {
   );
 }
 
-function firstName(user) {
+function firstName(user, profileFromFirestore) {
+  const fromDoc = String(profileFromFirestore || "").trim();
+  if (fromDoc) {
+    return fromDoc.split(/\s+/)[0];
+  }
   if (!user) return "";
   const display = (user.displayName || "").trim();
   if (display) {

@@ -81,7 +81,7 @@ function tierFromCredits(credits) {
 
 export default function PerfilPage() {
   const { user, loading: authLoading } = useAuth();
-  const { credits, godMode } = useUserCredits();
+  const { credits, godMode, unlimited, profileDisplayName } = useUserCredits();
   const { roster: universeRoster } = useUniverseRoster();
   const [tab, setTab] = useState("conta");
   const [ids, setIds] = useState(() => readLocalWatchlist());
@@ -138,9 +138,14 @@ export default function PerfilPage() {
     return ids;
   }, [remoteIds, ids]);
 
-  const tier = tierFromCredits(godMode ? 9999 : credits);
+  const tier = tierFromCredits(godMode || unlimited ? 9999 : credits);
   const TierIcon = tier.icon;
-  const initial = (user?.email || user?.displayName || "?")[0]?.toUpperCase() || "?";
+  const displayName =
+    profileDisplayName?.trim() ||
+    user?.displayName?.trim() ||
+    user?.email?.split("@")[0] ||
+    "Operador";
+  const initial = (displayName || user?.email || "?")[0]?.toUpperCase() || "?";
 
   return (
     <>
@@ -181,7 +186,7 @@ export default function PerfilPage() {
                     </div>
                   </div>
                   <p className="mt-4 text-sm font-semibold text-[#F0F4FC] truncate max-w-full">
-                    {user?.displayName || user?.email?.split("@")[0] || "Operador"}
+                    {displayName}
                   </p>
                   <p className="text-[11px] text-[#8B949E] truncate max-w-full">{user?.email || "—"}</p>
 
@@ -201,7 +206,7 @@ export default function PerfilPage() {
                 <div className="mt-5 pt-4 border-t border-white/5">
                   <p className="text-[10px] uppercase tracking-wider text-[#8B949E]">Saldo</p>
                   <p className="text-2xl font-bold tabular-nums text-cyan-300 mt-1">
-                    {godMode ? "∞" : credits ?? "…"}{" "}
+                    {godMode || unlimited ? "∞" : credits ?? "…"}{" "}
                     <span className="text-xs font-normal text-[#8B949E]">créditos</span>
                   </p>
                   <Link
@@ -272,7 +277,15 @@ export default function PerfilPage() {
                         {[
                           { label: "UID", value: user.uid, mono: true, accent: "cyan" },
                           { label: "Email", value: user.email || "—", mono: false },
-                          { label: "Modo de operação", value: godMode ? "Operador elevado (god mode)" : "Standard", mono: false, accent: godMode ? "violet" : null },
+                          {
+                            label: "Modo de operação",
+                            value:
+                              godMode || unlimited
+                                ? "Operador elevado (ilimitado / god mode)"
+                                : "Standard",
+                            mono: false,
+                            accent: godMode || unlimited ? "violet" : null,
+                          },
                           { label: "Provedor", value: user.providerData?.[0]?.providerId || "—", mono: true },
                         ].map((f, i) => (
                           <div
@@ -369,7 +382,7 @@ export default function PerfilPage() {
                     >
                       <p className="text-[10px] uppercase tracking-wider text-cyan-300/70">Saldo atual</p>
                       <p className="mt-1 text-5xl font-bold tabular-nums text-cyan-300">
-                        {godMode ? "∞" : credits === null ? "…" : credits}
+                        {godMode || unlimited ? "∞" : credits === null ? "…" : credits}
                       </p>
                       <p className="text-sm text-[#8B949E] mt-1">créditos disponíveis</p>
                       <Link
