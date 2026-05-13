@@ -38,7 +38,7 @@ export default function OsintRadarSection({ osint = [] }) {
               Radar OSINT — Fato ou Fake
             </h2>
             <p className="text-[11px] text-[#8B949E]">
-              Subagentes Vertex IA sob o Líder Supremo ({SUPREME_AGENT_ID}); Compliance valida antes de publicar.
+              Subagentes Aurora (16 agentes nomeados) sob o Líder Supremo ({SUPREME_AGENT_ID}); Compliance valida antes de publicar.
             </p>
           </div>
         </div>

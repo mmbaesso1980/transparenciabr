@@ -26,13 +26,18 @@ function getBigQuery() {
   return global.__tbr_bq;
 }
 
+const {
+  AURORA_INFERNO_AGENTS,
+  AURORA_INFERNO_AGENT_COUNT,
+} = require("./src/aurora/auroraAgentsInferno.js");
+
 const ASMODEUS_SUPREME_AGENT_ID = "agent_1777236402725";
 const ASMODEUS_GEMINI_MODEL = "gemini-2.5-pro";
 /**
- * Doze “papéis” operacionais sob orquestração do Vertex IA — todos consolidados no Líder Supremo.
+ * 16 agentes Aurora (Inferno) — papéis nomeados; runtime Vertex continua no Líder Supremo.
  * G.O.A.T.: não inventar IDs secundários (@slot_*, agentes genéricos); apenas agent_1777236402725.
  */
-const VERTEX_SUBAGENT_COUNT = 12;
+const VERTEX_SUBAGENT_COUNT = AURORA_INFERNO_AGENT_COUNT;
 const VERTEX_TEAM_SLOTS = Array.from({ length: VERTEX_SUBAGENT_COUNT }, () => ASMODEUS_SUPREME_AGENT_ID);
 const COMPLIANCE_SLOT_LABEL = `${ASMODEUS_SUPREME_AGENT_ID} (COMPLIANCE)`;
 
@@ -70,8 +75,9 @@ async function analyzeCeapWithSupremeLeader(row) {
     lider_supremo_agent_id: ASMODEUS_SUPREME_AGENT_ID,
     modelo_obrigatorio: ASMODEUS_GEMINI_MODEL,
     protocolo: "A.S.M.O.D.E.U.S. CEAP",
+    agentes_aurora_nomes: AURORA_INFERNO_AGENTS,
     instrucao_orquestracao:
-      "Distribua mentalmente a analise aos 12 subagentes do Vertex IA ligados ao Lider Supremo " +
+      `Distribua mentalmente a analise aos ${VERTEX_SUBAGENT_COUNT} agentes Aurora (Inferno) ligados ao Lider Supremo ` +
       `(Agent ID ${ASMODEUS_SUPREME_AGENT_ID}) antes de consolidar o scoreRisco. ` +
       "O papel OSINT pode levantar tendencias e narrativas publicas, " +
       `mas NADA de OSINT pode ser publicado sem validacao explicita pelo slot de Compliance (${COMPLIANCE_SLOT_LABEL}). ` +
@@ -120,7 +126,7 @@ async function analyzeCeapWithSupremeLeader(row) {
     systemInstruction:
       "Voce e o Lider Supremo A.S.M.O.D.E.U.S. (Agent ID agent_1777236402725). " +
       "Atue como auditor forense de CEAP, direito administrativo e gasto parlamentar brasileiro. " +
-      "Consolide a deliberacao dos 12 agentes subordinados (Vertex IA sob o Lider Supremo). Responda apenas JSON valido.",
+      `Consolide a deliberacao dos ${VERTEX_SUBAGENT_COUNT} agentes Aurora nomeados (Inferno) sob o Lider Supremo. Responda apenas JSON valido.`,
     generationConfig: {
       temperature: 0.1,
       responseMimeType: "application/json",
@@ -1250,18 +1256,39 @@ const { mountAskVertexAgent } = require("./src/vertex/askVertexAgent.js");
 mountAskVertexAgent(functions, exports);
 
 // =============================================================================
-// generateDossieOnDemand (Onda 1) — pay-per-dossier
+// generateDossieOnDemand (Onda 1) — pay-per-dossier + desbloqueios parciais
 //
-// Callable. Debita 200 créditos do usuário autenticado, cria/atualiza o doc
+// Callable. Debita créditos conforme `tipo` + `addons`, cria/atualiza o doc
 // `transparency_reports/{politicoId}` com status=processing, requested_at,
-// requested_by e ttl_categoria por camada. A coleta de dados reais (Onda 4)
-// fica a cargo de jobs offline que leem essa fila. Aqui apenas registramos
-// a intenção e debitamos os créditos.
-//
-// Filosofia: "Toda nota é suspeita até prova contrária. Não fazemos
-// denúncia — apresentamos fatos."
+// requested_by e ttl_categoria por camada.
 // =============================================================================
-const DOSSIE_ON_DEMAND_COST = 200;
+const ON_DEMAND_TYPE_PRICES = {
+  dossie_matador: 800,
+  ceap_completo: 300,
+  emendas_completas: 300,
+};
+const ON_DEMAND_ADDON_PRICES = {
+  pdf_laudo: 150,
+  comparacoes_avancadas: 200,
+};
+
+function resolveOnDemandPurchase(data) {
+  const tipo = String(data?.tipo || "dossie_matador").trim();
+  if (!Object.prototype.hasOwnProperty.call(ON_DEMAND_TYPE_PRICES, tipo)) {
+    throw new functions.https.HttpsError(
+      "invalid-argument",
+      `tipo invalido. Use: ${Object.keys(ON_DEMAND_TYPE_PRICES).join(", ")}`,
+    );
+  }
+  let cost = ON_DEMAND_TYPE_PRICES[tipo];
+  const addons = Array.isArray(data?.addons) ? data.addons.map(String) : [];
+  for (const a of addons) {
+    if (Object.prototype.hasOwnProperty.call(ON_DEMAND_ADDON_PRICES, a)) {
+      cost += ON_DEMAND_ADDON_PRICES[a];
+    }
+  }
+  return { cost, tipo, addons };
+}
 const DOSSIE_TTL_BY_CATEGORY_HOURS = {
   ceap: 24,
   emendas: 24,
@@ -1301,9 +1328,10 @@ exports.generateDossieOnDemand = functions
         { hours: h },
       ]),
     );
+    const { cost: DOSSIE_ON_DEMAND_COST, tipo: purchaseTipo, addons: purchaseAddons } =
+      resolveOnDemandPurchase(data);
     const jobId = `${politicoId}_${Date.now()}`;
 
-    // Transação atomica: lê créditos, debita, registra job.
     const result = await db.runTransaction(async (tx) => {
       const userSnap = await tx.get(userRef);
       const userData = userSnap.exists ? userSnap.data() : {};
@@ -1334,7 +1362,9 @@ exports.generateDossieOnDemand = functions
           custo_creditos: DOSSIE_ON_DEMAND_COST,
           metadados: {
             origem: "generateDossieOnDemand",
-            versao: "v1",
+            versao: "v4-matador",
+            tipo: purchaseTipo,
+            addons: purchaseAddons,
           },
         },
         { merge: true },
@@ -1350,6 +1380,8 @@ exports.generateDossieOnDemand = functions
         created_by: uid,
         custo_creditos: DOSSIE_ON_DEMAND_COST,
         camadas: Object.keys(DOSSIE_TTL_BY_CATEGORY_HOURS),
+        tipo: purchaseTipo,
+        addons: purchaseAddons,
       });
 
       return { saldoApos: saldo - DOSSIE_ON_DEMAND_COST };
@@ -1363,6 +1395,8 @@ exports.generateDossieOnDemand = functions
       ok: true,
       jobId,
       politicoId,
+      tipo: purchaseTipo,
+      custoCreditos: DOSSIE_ON_DEMAND_COST,
       status: "processing",
       saldoApos: result.saldoApos,
       ttl: ttlMap,

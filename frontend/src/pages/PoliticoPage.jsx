@@ -9,14 +9,14 @@
  *
  * Fluxo:
  *   Anônimo  → "Comprar dossiê (200 cr)" → /login?redirect=/dossie/:id
- *   Logado   → "Abrir dossiê completo"  → /dossie/:id (paywall interno cuida do débito)
+ *   Logado   → "Abrir dossiê" → /dossie/:id (débito opcional via botões de ação)
  *
  * Filosofia: "Toda nota é suspeita até prova contrária." Mostramos só o que é
  * público — KPIs agregados que já vêm do Firestore. Detalhes ficam atrás do paywall.
  */
 
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { motion } from "framer-motion";
 import {
@@ -44,8 +44,14 @@ import {
 } from "../hooks/useCamadasParlamentar.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import CamadaDrawer from "../components/CamadaDrawer.jsx";
-
-const DOSSIE_PRICE_CREDITS = 200;
+import {
+  CREDIT_PRICE_CEAP_COMPLETO,
+  CREDIT_PRICE_DOSSIE_MATADOR,
+  CREDIT_PRICE_EMENDAS_COMPLETAS,
+} from "../data/creditPricing.js";
+import { useDailyFreemiumCountdown } from "../hooks/useDailyFreemiumCountdown.js";
+import { useGenerateDossieOnDemand } from "../hooks/useGenerateDossieOnDemand.js";
+import { useUserCredits } from "../hooks/useUserCredits.js";
 
 const fmtBRL = (v) =>
   Number.isFinite(Number(v))
@@ -570,9 +576,23 @@ export default function PoliticoPage() {
   const [error, setError] = useState(null);
 
   // Onda 5 — KPIs reais do Data Lake (GCS ceap_classified/) via CF pública.
-  const { kpis: kpisRaw, hasData: hasKpis, loading: loadingKpis } = useKPIsParlamentar(id);
-  const heroKpis = extractHeroKPIs(kpisRaw);
-  const breakdown = extractCeapBreakdown(kpisRaw);
+  const navigate = useNavigate();
+  const { generate, loading: purchaseBusy, error: purchaseError } =
+    useGenerateDossieOnDemand();
+  const { unlimited: creditsUnlimited } = useUserCredits();
+  const countdown = useDailyFreemiumCountdown(
+    isAuthenticated && !creditsUnlimited,
+  );
+
+  const purchaseThenGo = async (tipo, addons = []) => {
+    if (!id || purchaseBusy) return;
+    try {
+      await generate(id, { tipo, addons });
+      navigate(`/dossie/${encodeURIComponent(id)}`);
+    } catch {
+      /* estado em purchaseError */
+    }
+  };
 
   // Onda 6 — drawer inline para drill-down clicável.
   const [drawer, setDrawer] = useState({ open: false, payload: null });
@@ -612,8 +632,8 @@ export default function PoliticoPage() {
     ? dossieRoute
     : `/login?redirect=${encodeURIComponent(dossieRoute)}`;
   const ctaLabel = isAuthenticated
-    ? "Abrir dossiê completo"
-    : `Comprar dossiê (${DOSSIE_PRICE_CREDITS} créditos)`;
+    ? "Ir para o dossiê"
+    : `Entrar e abrir dossiê (${CREDIT_PRICE_DOSSIE_MATADOR} cr)`;
 
   if (loading) {
     return (
@@ -667,7 +687,8 @@ export default function PoliticoPage() {
   const score =
     heroKpis.score_aurora ??
     Number(
-      politico?.score_risco ??
+      politico?.score_asmodeus ??
+        politico?.score_risco ??
         politico?.risk_score ??
         politico?.score ??
         politico?.kpi_score_risco ??
@@ -704,7 +725,7 @@ export default function PoliticoPage() {
         </title>
         <meta
           name="description"
-          content={`Dossiê completo de ${nome} (${partido}/${uf}) — CEAP, emendas, PNCP, TSE, folha do gabinete e mais. Pagamento on-demand a partir de ${DOSSIE_PRICE_CREDITS} créditos.`}
+          content={`Dossiê completo de ${nome} (${partido}/${uf}) — CEAP, emendas, PNCP, TSE, folha do gabinete e mais. Pagamento on-demand a partir de ${CREDIT_PRICE_DOSSIE_MATADOR} créditos.`}
         />
       </Helmet>
 
@@ -738,6 +759,17 @@ export default function PoliticoPage() {
           <ChevronRight className="size-3" />
           <span className="text-white/80">{nome}</span>
         </nav>
+
+        {isAuthenticated && !creditsUnlimited && countdown.labelShort ? (
+          <div className="mb-6 rounded-2xl border border-amber-400/25 bg-amber-400/5 px-4 py-3 text-sm text-amber-100/90">
+            <span className="font-semibold text-amber-200">Créditos diários.</span>{" "}
+            Faltam{" "}
+            <span className="font-mono text-white">{countdown.labelShort}</span>{" "}
+            para resetar seus{" "}
+            <span className="font-mono text-white">{countdown.dailyCap}</span>{" "}
+            créditos diários (cota não cumulativa — horário de Brasília).
+          </div>
+        ) : null}
 
         {/* Hero — header rico */}
         <motion.header
@@ -908,7 +940,7 @@ export default function PoliticoPage() {
                 Cruzamento das 6 camadas canônicas (CEAP, TSE, Folha, Viagens,
                 Emendas, PNCP) + Espectro político e radar OSINT.{" "}
                 <span className="text-cyan-300">
-                  {DOSSIE_PRICE_CREDITS} créditos por dossiê.
+                  {CREDIT_PRICE_DOSSIE_MATADOR} créditos no pacote dossiê matador.
                 </span>
               </p>
             </div>
@@ -921,6 +953,77 @@ export default function PoliticoPage() {
             {ctaLabel}
           </Link>
         </motion.section>
+
+        {isAuthenticated ? (
+          <section className="mb-10 space-y-3">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/50">
+              Débito imediato + fila de coleta
+            </p>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <button
+                type="button"
+                disabled={purchaseBusy}
+                onClick={() => purchaseThenGo("dossie_matador")}
+                className="flex flex-col items-start gap-1 rounded-2xl border border-rose-400/40 bg-gradient-to-br from-rose-500/20 to-orange-600/10 px-4 py-4 text-left transition hover:brightness-110 disabled:opacity-50"
+              >
+                <span className="text-xs font-black uppercase tracking-widest text-rose-100">
+                  Dossiê matador
+                </span>
+                <span className="text-2xl font-bold tabular-nums text-white">
+                  {CREDIT_PRICE_DOSSIE_MATADOR}{" "}
+                  <span className="text-sm font-semibold text-rose-200/80">cr</span>
+                </span>
+                <span className="text-[11px] leading-snug text-[#cbd5e1]">
+                  Agenda coleta completa e abre o painel forense na sequência.
+                </span>
+              </button>
+              <button
+                type="button"
+                disabled={purchaseBusy}
+                onClick={() => purchaseThenGo("ceap_completo")}
+                className="flex flex-col items-start gap-1 rounded-2xl border border-cyan-400/35 bg-cyan-500/10 px-4 py-4 text-left transition hover:bg-cyan-500/15 disabled:opacity-50"
+              >
+                <span className="text-xs font-black uppercase tracking-widest text-cyan-100">
+                  Ver CEAP completo
+                </span>
+                <span className="text-2xl font-bold tabular-nums text-white">
+                  {CREDIT_PRICE_CEAP_COMPLETO}{" "}
+                  <span className="text-sm font-semibold text-cyan-200/80">cr</span>
+                </span>
+                <span className="text-[11px] leading-snug text-[#8B949E]">
+                  Foco CEAP classificado + fornecedores.
+                </span>
+              </button>
+              <button
+                type="button"
+                disabled={purchaseBusy}
+                onClick={() => purchaseThenGo("emendas_completas")}
+                className="flex flex-col items-start gap-1 rounded-2xl border border-violet-400/35 bg-violet-500/10 px-4 py-4 text-left transition hover:bg-violet-500/15 disabled:opacity-50"
+              >
+                <span className="text-xs font-black uppercase tracking-widest text-violet-100">
+                  Ver emendas completas
+                </span>
+                <span className="text-2xl font-bold tabular-nums text-white">
+                  {CREDIT_PRICE_EMENDAS_COMPLETAS}{" "}
+                  <span className="text-sm font-semibold text-violet-200/80">cr</span>
+                </span>
+                <span className="text-[11px] leading-snug text-[#8B949E]">
+                  Prioriza microdados de emendas e beneficiários.
+                </span>
+              </button>
+            </div>
+            <p className="text-[11px] text-[#8B949E]">
+              Add-ons no checkout interno: PDF + laudo (+150 cr) · comparações avançadas
+              (+200 cr).
+            </p>
+            {purchaseBusy ? (
+              <p className="text-xs text-cyan-300">Processando débito…</p>
+            ) : null}
+            {purchaseError ? (
+              <p className="text-xs text-rose-300">{purchaseError}</p>
+            ) : null}
+          </section>
+        ) : null}
 
         {/* 6 categorias canônicas — preview público */}
         <section className="mb-10">
