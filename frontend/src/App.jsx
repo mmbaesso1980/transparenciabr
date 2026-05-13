@@ -93,7 +93,7 @@ export default function App() {
                 <Route path="/termos" element={<TermosPage />} />
                 <Route path="/privacidade" element={<PrivacidadePage />} />
                 <Route path="/radar-legal" element={<RadarJuridico />} />
-                {/* Radar INSS (/radar-inss) oculto temporariamente no lançamento — sem entrada no menu. */}
+                {/* Radar Jurídico (INSS) — /radar-inss oculto temporariamente; redireciona para o Universo. */}
                 <Route path="/radar-inss" element={<Navigate to="/universo" replace />} />
                 <Route path="/login" element={<LoginPage />} />
 

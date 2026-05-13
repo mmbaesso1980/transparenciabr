@@ -129,9 +129,7 @@ export default function DashboardLayout() {
             <NavLink to="/creditos" className={navTabClass}>
               Financeiro
             </NavLink>
-            <NavLink to="/radar-legal" className={navTabClass}>
-              Radar jurídico
-            </NavLink>
+            {/* Radar Jurídico (INSS) — oculto temporariamente no lançamento; rota /radar-legal mantida para URLs diretas. */}
             <NavLink to="/perfil" className={navTabClass}>
               Perfil
             </NavLink>

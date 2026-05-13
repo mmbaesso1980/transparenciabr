@@ -232,9 +232,6 @@ export default function HomePage() {
           <Link className="transition hover:text-[#58A6FF]" to="/alertas">
             Alerts
           </Link>
-          <Link className="transition hover:text-[#58A6FF]" to="/radar-legal">
-            Radar jurídico
-          </Link>
         </nav>
       </header>
 

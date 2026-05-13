@@ -206,7 +206,12 @@ export default function PerfilPage() {
                 <div className="mt-5 pt-4 border-t border-white/5">
                   <p className="text-[10px] uppercase tracking-wider text-[#8B949E]">Saldo</p>
                   <p className="text-2xl font-bold tabular-nums text-cyan-300 mt-1">
-                    {godMode || unlimited ? "∞" : credits ?? "…"}{" "}
+                    {godMode || unlimited
+                      ? "∞"
+                      : credits == null
+                        ? "…"
+                        : credits.toLocaleString("pt-BR")}
+                    {" "}
                     <span className="text-xs font-normal text-[#8B949E]">créditos</span>
                   </p>
                   <Link
@@ -382,7 +387,11 @@ export default function PerfilPage() {
                     >
                       <p className="text-[10px] uppercase tracking-wider text-cyan-300/70">Saldo atual</p>
                       <p className="mt-1 text-5xl font-bold tabular-nums text-cyan-300">
-                        {godMode || unlimited ? "∞" : credits === null ? "…" : credits}
+                        {godMode || unlimited
+                          ? "∞"
+                          : credits === null
+                            ? "…"
+                            : credits.toLocaleString("pt-BR")}
                       </p>
                       <p className="text-sm text-[#8B949E] mt-1">créditos disponíveis</p>
                       <Link

@@ -1,3 +1,7 @@
+/**
+ * Painel Aurora — grelha 17 Bento cards (layout pedido para `painel_drop`; essa pasta não está no repo).
+ * Fonte canónica: este ficheiro + `usePainelData` + `components/painel/*`.
+ */
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';

@@ -282,13 +282,7 @@ export default function UniversePage() {
           >
             Modo Clássico
           </Link>
-          <Link
-            to="/radar-legal"
-            title="Console de leads qualificados — Operação Trilho 1"
-            className="hidden h-9 items-center rounded-lg border border-emerald-400/40 bg-emerald-500/10 px-3 text-[10.5px] font-bold uppercase tracking-[0.16em] text-emerald-200 transition hover:bg-emerald-500/20 sm:inline-flex"
-          >
-            Radar Legal
-          </Link>
+          {/* Radar Jurídico (INSS) — link removido temporariamente para o lançamento. */}
           <Link
             to="/painel"
             className="inline-flex items-center gap-2 bg-cyan-500/15 border border-cyan-400/30 rounded-xl px-4 py-2 text-cyan-200 hover:bg-cyan-500/25 transition-colors text-sm font-medium"
