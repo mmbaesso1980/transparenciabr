@@ -16,9 +16,9 @@
 
 'use strict';
 
-const functions = require('firebase-functions');
+/** Gen 1: usar `firebase-functions/v1` + `.region().runWith({ memory, timeoutSeconds })` — sem `cpu` nem opções v2. */
+const functions = require('firebase-functions/v1');
 const { logger } = require('firebase-functions');
-const { HttpsError } = require('firebase-functions/v2/https');
 
 function loadGenerateInitialPetitionDeps() {
   if (!global.__tbr_gen_petition_deps) {
@@ -92,13 +92,10 @@ const UF_COMARCA_MAP = {
  *
  * @type {functions.HttpsFunction}
  */
-exports.generateInitialPetition = functions.https.onCall(
-  {
-    region: 'us-central1',
-    timeoutSeconds: 300, // 5 minutos — Vertex + DOCX podem demorar
-    memory: '1GiB',
-  },
-  async (data, context) => {
+exports.generateInitialPetition = functions
+  .region('us-central1')
+  .runWith({ memory: '1GB', timeoutSeconds: 300 })
+  .https.onCall(async (data, context) => {
     const {
       Storage,
       PizZip,
@@ -117,7 +114,7 @@ exports.generateInitialPetition = functions.https.onCall(
     // ══════════════════════════════════════════════════════════════════════
     if (!context.auth) {
       logger.warn('generateInitialPetition: tentativa sem autenticação.');
-      throw new HttpsError(
+      throw new functions.https.HttpsError(
         'unauthenticated',
         'Autenticação obrigatória para gerar petições.'
       );
@@ -131,13 +128,13 @@ exports.generateInitialPetition = functions.https.onCall(
     const { leadId, advogadoOAB, advogadoCNPJ, templateOverride } = data || {};
 
     if (!leadId || typeof leadId !== 'string' || !leadId.trim()) {
-      throw new HttpsError('invalid-argument', 'leadId é obrigatório.');
+      throw new functions.https.HttpsError('invalid-argument', 'leadId é obrigatório.');
     }
     if (!advogadoOAB || typeof advogadoOAB !== 'string' || !advogadoOAB.trim()) {
-      throw new HttpsError('invalid-argument', 'advogadoOAB é obrigatório.');
+      throw new functions.https.HttpsError('invalid-argument', 'advogadoOAB é obrigatório.');
     }
     if (!advogadoCNPJ || typeof advogadoCNPJ !== 'string' || !advogadoCNPJ.trim()) {
-      throw new HttpsError('invalid-argument', 'advogadoCNPJ é obrigatório.');
+      throw new functions.https.HttpsError('invalid-argument', 'advogadoCNPJ é obrigatório.');
     }
 
     const leadIdLimpo = leadId.trim();
@@ -162,12 +159,12 @@ exports.generateInitialPetition = functions.https.onCall(
     try {
       unlockData = await getUnlockData(lockKey);
     } catch (err) {
-      throw new HttpsError('internal', 'Erro ao verificar pré-condição de desbloqueio.');
+      throw new functions.https.HttpsError('internal', 'Erro ao verificar pré-condição de desbloqueio.');
     }
 
     if (!unlockData) {
       logger.warn('generateInitialPetition: unlock de contato inexistente.', { lockKey });
-      throw new HttpsError(
+      throw new functions.https.HttpsError(
         'failed-precondition',
         'É necessário desbloquear o contato do lead antes de gerar a petição. ' +
           'Chame openContactBigData primeiro. (must_unlock_contact_first)'
@@ -181,7 +178,7 @@ exports.generateInitialPetition = functions.https.onCall(
     try {
       pricing = await getPricing();
     } catch (err) {
-      throw new HttpsError('internal', 'Erro ao carregar tabela de preços.');
+      throw new functions.https.HttpsError('internal', 'Erro ao carregar tabela de preços.');
     }
 
     const custo = pricing.peticao_initial;
@@ -190,14 +187,14 @@ exports.generateInitialPetition = functions.https.onCall(
     try {
       saldoAtual = await getSaldo(uid);
     } catch (err) {
-      throw new HttpsError('internal', 'Erro ao consultar saldo de créditos.');
+      throw new functions.https.HttpsError('internal', 'Erro ao consultar saldo de créditos.');
     }
 
     if (saldoAtual < custo) {
       logger.warn('generateInitialPetition: saldo insuficiente.', {
         uid, saldo: saldoAtual, custo,
       });
-      throw new HttpsError(
+      throw new functions.https.HttpsError(
         'resource-exhausted',
         `Créditos insuficientes. Saldo: ${saldoAtual}. Necessário: ${custo}. (insufficient_credits)`
       );
@@ -210,11 +207,11 @@ exports.generateInitialPetition = functions.https.onCall(
     try {
       lead = await fetchLeadByHash(leadIdLimpo);
     } catch (err) {
-      throw new HttpsError('internal', 'Erro ao consultar base de dados de leads.');
+      throw new functions.https.HttpsError('internal', 'Erro ao consultar base de dados de leads.');
     }
 
     if (!lead) {
-      throw new HttpsError('not-found', `Lead ${leadIdLimpo} não encontrado.`);
+      throw new functions.https.HttpsError('not-found', `Lead ${leadIdLimpo} não encontrado.`);
     }
 
     // ══════════════════════════════════════════════════════════════════════
@@ -263,13 +260,13 @@ exports.generateInitialPetition = functions.https.onCall(
       });
     } catch (err) {
       if (err.message?.startsWith('VERTEX_DAILY_CAP_EXCEEDED')) {
-        throw new HttpsError(
+        throw new functions.https.HttpsError(
           'resource-exhausted',
           'Limite diário de processamento Vertex AI atingido. Tente novamente amanhã.'
         );
       }
       logger.error('generateInitialPetition: falha no Vertex AI.', { message: err.message });
-      throw new HttpsError('internal', 'Falha ao gerar tese jurídica. Tente novamente.');
+      throw new functions.https.HttpsError('internal', 'Falha ao gerar tese jurídica. Tente novamente.');
     }
 
     // ══════════════════════════════════════════════════════════════════════
@@ -296,7 +293,7 @@ exports.generateInitialPetition = functions.https.onCall(
         templatePath,
         message: err.message,
       });
-      throw new HttpsError(
+      throw new functions.https.HttpsError(
         'not-found',
         `Template ${templateNome} não encontrado. Verifique se o arquivo foi enviado para ` +
           `gs://${GCS_BUCKET}/${templatePath}`
@@ -353,7 +350,7 @@ exports.generateInitialPetition = functions.https.onCall(
         message: err.message,
         properties: err.properties,
       });
-      throw new HttpsError(
+      throw new functions.https.HttpsError(
         'internal',
         'Erro ao gerar documento DOCX. Verifique o template e tente novamente.'
       );
@@ -385,7 +382,7 @@ exports.generateInitialPetition = functions.https.onCall(
       });
     } catch (err) {
       logger.error('generateInitialPetition: falha no upload GCS.', { message: err.message });
-      throw new HttpsError('internal', 'Erro ao salvar petição. Tente novamente.');
+      throw new functions.https.HttpsError('internal', 'Erro ao salvar petição. Tente novamente.');
     }
 
     // ══════════════════════════════════════════════════════════════════════
@@ -400,7 +397,7 @@ exports.generateInitialPetition = functions.https.onCall(
       downloadUrl = signedUrl;
     } catch (err) {
       logger.error('generateInitialPetition: falha ao gerar Signed URL.', { message: err.message });
-      throw new HttpsError('internal', 'Petição gerada mas erro ao criar link de download.');
+      throw new functions.https.HttpsError('internal', 'Petição gerada mas erro ao criar link de download.');
     }
 
     // ══════════════════════════════════════════════════════════════════════
@@ -424,7 +421,7 @@ exports.generateInitialPetition = functions.https.onCall(
       });
     } catch (err) {
       if (err.message?.startsWith('SALDO_INSUFICIENTE')) {
-        throw new HttpsError(
+        throw new functions.https.HttpsError(
           'resource-exhausted',
           'Créditos insuficientes (verificação concorrente). (insufficient_credits)'
         );
@@ -463,8 +460,7 @@ exports.generateInitialPetition = functions.https.onCall(
         signedUrlExpiraEm: new Date(Date.now() + SIGNED_URL_MINUTES * 60 * 1000).toISOString(),
       },
     };
-  }
-);
+  });
 
 // ── Helpers de formatação ─────────────────────────────────────────────────────
 
