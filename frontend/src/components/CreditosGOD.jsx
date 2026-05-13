@@ -2,15 +2,14 @@ import { Coins, Lock } from "lucide-react";
 import { Link } from "react-router-dom";
 
 import { useAuth } from "../context/AuthContext.jsx";
-import { useCreditosGOD } from "../context/CreditosGODContext.jsx";
+import { useUserCredits } from "../hooks/useUserCredits.js";
 
 /**
- * HUD de créditos (demonstração no cliente; saldo real vem de `usuarios/{uid}` no painel).
- * Não autenticado: cadeado. Autenticado: saldo de créditos.
+ * HUD de créditos: visitante vê cadeado; logado vê saldo real (`usuarios/{uid}` via useUserCredits).
  */
 export default function CreditosGOD({ className = "" }) {
   const { isAuthenticated, loading } = useAuth();
-  const { saldo } = useCreditosGOD();
+  const { credits, unlimited, godMode } = useUserCredits();
 
   if (loading) {
     return (
@@ -36,14 +35,27 @@ export default function CreditosGOD({ className = "" }) {
     );
   }
 
+  const display =
+    godMode || unlimited
+      ? { main: "Ilimitado", suffix: "" }
+      : Number.isFinite(credits)
+        ? { main: credits.toLocaleString("pt-BR"), suffix: "Cr" }
+        : { main: "…", suffix: "Cr" };
+
   return (
     <div
       className={`inline-flex h-9 items-center gap-2 rounded-lg border border-[#58A6FF]/35 bg-[#0D1117]/80 px-3 text-xs font-data font-semibold text-[#E6EDF3] shadow-[0_0_24px_rgba(88,166,255,0.15)] backdrop-blur-md ${className}`}
-      title="Saldo de créditos — engine AURORA"
+      title="Saldo de créditos — Firestore usuarios/{uid}"
     >
       <Coins className="size-3.5 shrink-0 text-[#FBD87F]" strokeWidth={2} aria-hidden />
       <span>
-        {saldo.toLocaleString("pt-BR")} <span className="text-[#8B949E]">Cr</span>
+        {display.main}
+        {display.suffix ? (
+          <>
+            {" "}
+            <span className="text-[#8B949E]">{display.suffix}</span>
+          </>
+        ) : null}
       </span>
     </div>
   );

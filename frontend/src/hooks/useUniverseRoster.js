@@ -59,7 +59,7 @@ function buildGraphFromRoster(roster) {
       tipo: "politico",
       tier: "medio",
       politicoId: String(p.id),
-      dossiePath: `/dossie/${encodeURIComponent(String(p.id))}`,
+      dossiePath: `/politico/${encodeURIComponent(String(p.id))}`,
       riskScore: 35, // placeholder \u2014 risk vem em fase futura via outro endpoint
       partido: sigla,
       uf: String(p.uf || ""),

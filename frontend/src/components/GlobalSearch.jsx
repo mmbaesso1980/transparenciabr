@@ -93,15 +93,14 @@ export default function GlobalSearch({ className = "" }) {
     return out;
   }, [q, catalog]);
 
-  const goDossie = useCallback(
+  const goPolitico = useCallback(
     (id) => {
       const clean = String(id).trim();
       if (!clean) return;
       if (location.pathname === "/") {
         requestTrackToPolitician(clean);
       }
-      // Dossiê autenticado (login se necessário via ProtectedRoute).
-      navigate(`/dossie/${encodeURIComponent(clean)}`);
+      navigate(`/politico/${encodeURIComponent(clean)}`);
       setQ("");
       setOpen(false);
     },
@@ -113,10 +112,10 @@ export default function GlobalSearch({ className = "" }) {
     const id = q.trim();
     if (!id) return;
     if (matches.length === 1) {
-      goDossie(matches[0].id);
+      goPolitico(matches[0].id);
       return;
     }
-    goDossie(id);
+    goPolitico(id);
   }
 
   return (
@@ -167,7 +166,7 @@ export default function GlobalSearch({ className = "" }) {
                 type="button"
                 className="flex w-full flex-col gap-0.5 px-3 py-2 text-left text-sm text-[#F0F4FC] transition hover:bg-[#21262D] focus-visible:bg-[#21262D] focus-visible:outline-none"
                 onMouseDown={(e) => e.preventDefault()}
-                onClick={() => goDossie(m.id)}
+                onClick={() => goPolitico(m.id)}
               >
                 <span className="truncate font-medium">{m.nome}</span>
                 <span className="font-mono text-[11px] text-[#8B949E]">{m.id}</span>

@@ -168,7 +168,7 @@ export function buildGraphFromReports(rows) {
       tipo: "politico",
       tier: "medio",
       politicoId: id,
-      dossiePath: `/dossie/${encodeURIComponent(id)}`,
+      dossiePath: `/politico/${encodeURIComponent(id)}`,
       riskScore,
       mass: 5,
     });

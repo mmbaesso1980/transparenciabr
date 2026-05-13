@@ -14,7 +14,6 @@ import UserOrb from "../components/UserOrb.jsx";
 import { INVESTIGATION_CATEGORIES } from "../constants/investigationCategories.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import { detectPerfTier, getCanvasOptionsForTier, setOverrideTier } from "../utils/perfTier.js";
-import { useCreditosGOD } from "../context/CreditosGODContext.jsx";
 import { useUniverseRoster } from "../hooks/useUniverseRoster.js";
 import { useUserCredits } from "../hooks/useUserCredits.js";
 
@@ -32,10 +31,8 @@ export default function UniversePage() {
   const graphRef = useRef(null);
   const focusedRef = useRef(""); // garante fly-to apenas uma vez por id
   const { isAuthenticated, user } = useAuth();
-  const { saldo } = useCreditosGOD();
   const { credits, unlimited, godMode, profileDisplayName } = useUserCredits();
-  const creditDisplay =
-    godMode || unlimited ? null : Number.isFinite(credits) ? credits : saldo;
+  const creditDisplay = godMode || unlimited ? null : Number.isFinite(credits) ? credits : null;
 
   const { graphData, loading, error, findPoliticoByQuery, roster, total } =
     useUniverseRoster();
@@ -131,18 +128,12 @@ export default function UniversePage() {
     !loading && (!graphData.nodes?.length || error === "firebase_unavailable");
 
   const openGate = useCallback(
-    (nome, politicoId) => {
+    (_nome, politicoId) => {
       const id = String(politicoId || "").trim();
-      const name = String(nome || "").trim() || "este parlamentar";
       if (!id) return;
-      if (isAuthenticated) {
-        navigate(`/dossie/${encodeURIComponent(id)}`);
-        return;
-      }
-      setModalPolitico({ id, nome: name });
-      setModalOpen(true);
+      navigate(`/politico/${encodeURIComponent(id)}`);
     },
-    [isAuthenticated, navigate],
+    [navigate],
   );
 
   const resolvePoliticoIdFromNode = useCallback(
@@ -224,7 +215,7 @@ export default function UniversePage() {
 
   const loginHref = useMemo(() => {
     if (!modalPolitico.id) return "/login";
-    return `/login?redirect=${encodeURIComponent(`/dossie/${modalPolitico.id}`)}`;
+    return `/login?redirect=${encodeURIComponent(`/politico/${modalPolitico.id}`)}`;
   }, [modalPolitico.id]);
 
   return (
@@ -569,7 +560,7 @@ export default function UniversePage() {
               </button>
               <Link
                 to={loginHref}
-                state={modalPolitico.id ? { from: `/dossie/${modalPolitico.id}` } : undefined}
+                state={modalPolitico.id ? { from: `/politico/${modalPolitico.id}` } : undefined}
                 className="rounded-xl bg-[#F0F4FC] px-4 py-2.5 text-sm font-semibold text-[#02040a] hover:bg-white"
                 onClick={() => setModalOpen(false)}
               >
