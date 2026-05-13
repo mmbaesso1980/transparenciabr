@@ -3,9 +3,11 @@ import { useEffect, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 
+import FirebaseConfigMissing from "../components/FirebaseConfigMissing.jsx";
 import PoliticianOrb from "../components/PoliticianOrb.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import {
+  HAS_FULL_FIREBASE_CONFIG,
   signInWithEmail,
   signInWithGoogle,
   signUpWithEmail,
@@ -160,7 +162,7 @@ export default function LoginPage() {
   }
 
   const isAnonymousSession = !!user?.isAnonymous;
-  const formDisabled = submitting || !!busyProvider;
+  const formDisabled = submitting || !!busyProvider || !HAS_FULL_FIREBASE_CONFIG;
 
   return (
     <div className="relative flex min-h-dvh overflow-hidden bg-[#0A0E1A] text-[#F0F4FC]">
@@ -251,6 +253,12 @@ export default function LoginPage() {
             Centro de Operações · Dossiês · Radar de Mandatos
           </p>
 
+          {!HAS_FULL_FIREBASE_CONFIG ? (
+            <div className="mt-6">
+              <FirebaseConfigMissing context="o login" />
+            </div>
+          ) : (
+            <>
           {/* CTA primário: Google (branco sólido, dominante) */}
           <button
             type="button"
@@ -339,6 +347,8 @@ export default function LoginPage() {
               {mode === "signup" ? "Fazer login" : "Criar agora"}
             </button>
           </p>
+            </>
+          )}
 
           {isAnonymousSession ? (
             <p className="mt-4 rounded-md border border-[#21262D] bg-[#0A0E1A] px-3 py-2 text-[11px] leading-relaxed text-[#8B949E]">
