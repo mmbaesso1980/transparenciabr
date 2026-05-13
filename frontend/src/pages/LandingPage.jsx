@@ -118,10 +118,6 @@ export default function LandingPage() {
   const [query, setQuery] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
-  const [pendingPolitico, setPendingPolitico] = useState({
-    id: "",
-    nome: "",
-  });
 
   // Autocomplete — sugestões de políticos enquanto digita.
   const suggestions = useMemo(() => {
@@ -149,26 +145,21 @@ export default function LandingPage() {
 
   const emptyGraph = !loading && (!graphData.nodes?.length || error === "firebase_unavailable");
 
-  // Sem bypass: SEMPRE leva ao /universo focando a orbe do parlamentar.
-  // O dossiê só abre via clique deliberado na orbe dentro do universo (FOMO preservado).
-  const openGate = useCallback((nome, politicoId) => {
-    const id = String(politicoId || "").trim();
-    const name = String(nome || "").trim() || "este parlamentar";
-    if (!id) return;
-    if (isAuthenticated) {
-      navigate(`/universo?focus=${encodeURIComponent(id)}`);
-      return;
-    }
-    setPendingPolitico({ id, nome: name });
-    setModalOpen(true);
-  }, [isAuthenticated, navigate]);
+  // Pesquisa com match: ficha pública `/politico/:id` (dossiê completo continua em /dossie/:id após login).
+  const openGate = useCallback(
+    (_nome, politicoId) => {
+      const id = String(politicoId || "").trim();
+      if (!id) return;
+      navigate(`/politico/${encodeURIComponent(id)}`);
+    },
+    [navigate],
+  );
 
   const handleSearch = useCallback(
     (e) => {
       e.preventDefault();
       const match = findPoliticoByQuery(query);
       if (!match) {
-        setPendingPolitico({ id: "", nome: "" });
         setModalOpen(true);
         return;
       }
@@ -188,11 +179,7 @@ export default function LandingPage() {
     [openGate],
   );
 
-  // Pós-login deslogado retoma no /universo focando a orbe (não /dossie direto).
-  const loginHref = useMemo(() => {
-    if (!pendingPolitico.id) return "/login";
-    return `/login?redirect=${encodeURIComponent(`/universo?focus=${pendingPolitico.id}`)}`;
-  }, [pendingPolitico.id]);
+  const loginHref = "/login";
 
   return (
     <div className="relative min-h-dvh overflow-hidden bg-[#02040a] text-[#F0F4FC]">
@@ -229,7 +216,6 @@ export default function LandingPage() {
         <BrandLogo to="/" variant="full" size="md" />
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           {!isAuthenticated ? <CreditosGOD /> : null}
-          {/* Acesso direto ao Painel investigativo (em construção) */}
           <Link
             to="/painel"
             aria-label="Abrir painel investigativo"
@@ -511,20 +497,12 @@ export default function LandingPage() {
               </span>
               <div className="text-left">
                 <h2 id="gate-title" className="text-lg font-semibold text-[#F0F4FC]">
-                  Inicie sessão
+                  Pesquisa sem resultado
                 </h2>
                 <p className="mt-2 text-sm leading-relaxed text-[#C9D1D9]">
-                  Faça login para abrir o dossiê investigativo de{" "}
-                  <strong className="text-[#F0F4FC]">
-                    {pendingPolitico.nome || "o parlamentar"}
-                  </strong>{" "}
-                  e ganhe <strong className="text-[#FBD87F]">300 créditos</strong> na sua conta (cota diária freemium).
+                  Ajuste o nome, tente o ID na Câmara/Senado ou explore o grafo. Com sessão iniciada você
+                  desbloqueia o dossiê completo e a cota diária de créditos.
                 </p>
-                {!pendingPolitico.id ? (
-                  <p className="mt-2 text-xs text-amber-200/90">
-                    Não encontrámos correspondência para a pesquisa. Ajuste o nome ou use o grafo.
-                  </p>
-                ) : null}
               </div>
             </div>
             <div className="mt-6 flex flex-wrap gap-2">
@@ -537,7 +515,6 @@ export default function LandingPage() {
               </button>
               <Link
                 to={loginHref}
-                state={pendingPolitico.id ? { from: `/universo?focus=${pendingPolitico.id}` } : undefined}
                 className="rounded-xl bg-[#F0F4FC] px-4 py-2.5 text-sm font-semibold text-[#02040a] hover:bg-white"
                 onClick={() => setModalOpen(false)}
               >

@@ -100,7 +100,7 @@ const FAQ = [
   },
   {
     q: "Posso pedir reembolso?",
-    a: "Sim. Garantimos 7 dias de devolução integral, sem perguntas, para créditos não utilizados. Basta enviar um e-mail e devolvemos no mesmo método de pagamento.",
+    a: "Políticas de reembolso são tratadas caso a caso. Escreva para financeiro@transparenciabr.com.br com o e-mail da conta Stripe e o comprovante.",
   },
   {
     q: "O pagamento é seguro?",
@@ -108,7 +108,7 @@ const FAQ = [
   },
   {
     q: "Posso emitir nota fiscal?",
-    a: "Sim. Após a compra, envie e-mail para fiscal@transparenciabr.app com seu CNPJ ou CPF e emitimos a NFS-e em até 2 dias úteis.",
+    a: "Sim. Após a compra, envie e-mail para financeiro@transparenciabr.com.br com seu CNPJ ou CPF e emitimos a NFS-e em até 2 dias úteis.",
   },
 ];
 
@@ -664,8 +664,8 @@ export default function CreditosPage() {
               <Check className="size-5" strokeWidth={1.75} />
             </div>
             <div>
-              <p className="text-sm font-semibold text-[#F0F4FC]">Garantia de 7 dias</p>
-              <p className="text-xs text-[#8B949E]">Reembolso integral, sem perguntas</p>
+              <p className="text-sm font-semibold text-[#F0F4FC]">Faturamento</p>
+              <p className="text-xs text-[#8B949E]">NF-e e cobrança via financeiro@transparenciabr.com.br</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -681,7 +681,7 @@ export default function CreditosPage() {
 
         <p className="mx-auto mt-12 max-w-3xl text-center text-xs leading-relaxed text-[#5c6784]">
           Precisa de NF-e? Envie CNPJ/CPF para{" "}
-          <span className="font-mono text-cyan-300/80">fiscal@transparenciabr.app</span> após a
+          <span className="font-mono text-cyan-300/80">financeiro@transparenciabr.com.br</span> após a
           compra. Modo desenvolvimento: se as Cloud Functions ou a chave Stripe não estiverem
           configuradas, retorna erro descritivo (sem URL fake).
         </p>

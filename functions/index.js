@@ -773,6 +773,35 @@ exports.stripeWebhook = functions
     res.json({ received: true });
   });
 
+/**
+ * Origem permitida para success/cancel do Checkout (evita open redirect; suporta domínio .com.br).
+ * @param {unknown} raw
+ * @returns {string | null}
+ */
+function sanitizeCheckoutOrigin(raw) {
+  const s = String(raw || "")
+    .trim()
+    .replace(/\/$/, "");
+  if (!/^https:\/\//i.test(s)) return null;
+  let host;
+  try {
+    host = new URL(s).hostname.toLowerCase();
+  } catch {
+    return null;
+  }
+  if (
+    host === "transparenciabr.web.app" ||
+    host === "transparenciabr.firebaseapp.com" ||
+    host === "localhost" ||
+    host === "127.0.0.1" ||
+    host.endsWith(".transparenciabr.com.br") ||
+    host === "transparenciabr.com.br"
+  ) {
+    return s;
+  }
+  return null;
+}
+
 /** Callable — devolve { url } para Checkout Stripe */
 exports.createCheckoutSession = functions
   .region("southamerica-east1")
@@ -796,8 +825,10 @@ exports.createCheckoutSession = functions
     const credits = parseInt(data.credits || data.creditos || "0", 10);
     const priceId = (data.priceId || data.price_id || "").trim();
 
-    // Checkout redirects: domínio oficial (catálogo Stripe V2)
-    const checkoutBase = "https://transparenciabr.web.app";
+    const safeOrigin = sanitizeCheckoutOrigin(data.origin);
+    const checkoutBase = safeOrigin || "https://transparenciabr.web.app";
+
+    // Checkout redirects: domínio atual quando permitido; fallback Hosting oficial.
     const successUrl = `${checkoutBase}/sucesso?session_id={CHECKOUT_SESSION_ID}`;
     const cancelUrl = `${checkoutBase}/creditos?canceled=1`;
 
