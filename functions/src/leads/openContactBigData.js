@@ -18,15 +18,17 @@ const functions = require('firebase-functions');
 const { logger } = require('firebase-functions');
 const { HttpsError } = require('firebase-functions/v2/https');
 
-const bigDataAdapter = require('./adapters/bigDataAdapter');
-const pjeAdapter = require('./adapters/pjeAdapter');
-const { fetchLeadByHash, marcarDesqualificado } = require('./utils/bqLeadFetcher');
-const {
-  getPricing,
-  getSaldo,
-  cobrarCreditos,
-  getUnlockData,
-} = require('./utils/firestoreCredits');
+function loadOpenContactDeps() {
+  if (!global.__tbr_open_contact_deps) {
+    global.__tbr_open_contact_deps = {
+      bigDataAdapter: require('./adapters/bigDataAdapter'),
+      pjeAdapter: require('./adapters/pjeAdapter'),
+      bq: require('./utils/bqLeadFetcher'),
+      credits: require('./utils/firestoreCredits'),
+    };
+  }
+  return global.__tbr_open_contact_deps;
+}
 
 /**
  * Cloud Function HTTPS callable: openContactBigData
@@ -43,6 +45,10 @@ exports.openContactBigData = functions.https.onCall(
     memory: '1GiB',
   },
   async (data, context) => {
+    const { bigDataAdapter, pjeAdapter, bq, credits } = loadOpenContactDeps();
+    const { fetchLeadByHash, marcarDesqualificado } = bq;
+    const { getPricing, getSaldo, cobrarCreditos, getUnlockData } = credits;
+
     // ══════════════════════════════════════════════════════════════════════
     // 1. AUTENTICAÇÃO
     // ══════════════════════════════════════════════════════════════════════

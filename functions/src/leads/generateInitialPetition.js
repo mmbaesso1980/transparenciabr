@@ -19,21 +19,28 @@
 const functions = require('firebase-functions');
 const { logger } = require('firebase-functions');
 const { HttpsError } = require('firebase-functions/v2/https');
-const { Storage } = require('@google-cloud/storage');
-const PizZip = require('pizzip');
-const Docxtemplater = require('docxtemplater');
-const axios = require('axios');
 
-const vertexProAdapter = require('./adapters/vertexProAdapter');
-const cnpjAdapter = require('./adapters/cnpjAdapter');
-const { fetchLeadByHash } = require('./utils/bqLeadFetcher');
-const {
-  getPricing,
-  getSaldo,
-  cobrarCreditos,
-  getUnlockData,
-  unlockExists,
-} = require('./utils/firestoreCredits');
+function loadGenerateInitialPetitionDeps() {
+  if (!global.__tbr_gen_petition_deps) {
+    const { Storage } = require('@google-cloud/storage');
+    const bqf = require('./utils/bqLeadFetcher');
+    const fc = require('./utils/firestoreCredits');
+    global.__tbr_gen_petition_deps = {
+      Storage,
+      PizZip: require('pizzip'),
+      Docxtemplater: require('docxtemplater'),
+      vertexProAdapter: require('./adapters/vertexProAdapter'),
+      cnpjAdapter: require('./adapters/cnpjAdapter'),
+      fetchLeadByHash: bqf.fetchLeadByHash,
+      getPricing: fc.getPricing,
+      getSaldo: fc.getSaldo,
+      cobrarCreditos: fc.cobrarCreditos,
+      getUnlockData: fc.getUnlockData,
+      unlockExists: fc.unlockExists,
+    };
+  }
+  return global.__tbr_gen_petition_deps;
+}
 
 /** Projeto GCP */
 const GCP_PROJECT = process.env.GCLOUD_PROJECT || 'transparenciabr';
@@ -92,6 +99,19 @@ exports.generateInitialPetition = functions.https.onCall(
     memory: '1GiB',
   },
   async (data, context) => {
+    const {
+      Storage,
+      PizZip,
+      Docxtemplater,
+      vertexProAdapter,
+      cnpjAdapter,
+      fetchLeadByHash,
+      getPricing,
+      getSaldo,
+      cobrarCreditos,
+      getUnlockData,
+    } = loadGenerateInitialPetitionDeps();
+
     // ══════════════════════════════════════════════════════════════════════
     // 1. AUTENTICAÇÃO
     // ══════════════════════════════════════════════════════════════════════

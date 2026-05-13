@@ -1,6 +1,9 @@
 /**
  * Firebase Functions — Stripe Checkout (callable) + webhook de créditos.
  *
+ * Genkit (`@genkit-ai/*`) não é importado por este ficheiro; motores Genkit vivem em `src/flows/*`
+ * e `src/genkit.config.js` e só entram em runtime quando esses módulos são required.
+ *
  * Definir em ambiente Firebase:
  *   stripeWebhook: STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET
  *   createCheckoutSession: STRIPE_SECRET_KEY
@@ -26,20 +29,30 @@ function getBigQuery() {
   return global.__tbr_bq;
 }
 
-const {
-  AURORA_INFERNO_AGENTS,
-  AURORA_INFERNO_AGENT_COUNT,
-} = require("./src/aurora/auroraAgentsInferno.js");
-
 const ASMODEUS_SUPREME_AGENT_ID = "agent_1777236402725";
 const ASMODEUS_GEMINI_MODEL = "gemini-2.5-pro";
+const COMPLIANCE_SLOT_LABEL = `${ASMODEUS_SUPREME_AGENT_ID} (COMPLIANCE)`;
+
+/** Lista de agentes Aurora (Inferno) — require lazy para não alongar cold-parse do `index.js` no deploy. */
+function getAuroraInfernoAgentsModule() {
+  if (!global.__tbr_aurora_inferno_mod) {
+    global.__tbr_aurora_inferno_mod = require("./src/aurora/auroraAgentsInferno.js");
+  }
+  return global.__tbr_aurora_inferno_mod;
+}
+function auroraAgentNames() {
+  return getAuroraInfernoAgentsModule().AURORA_INFERNO_AGENTS;
+}
+function auroraAgentCount() {
+  return getAuroraInfernoAgentsModule().AURORA_INFERNO_AGENT_COUNT;
+}
+function vertexTeamSlots() {
+  return Array.from({ length: auroraAgentCount() }, () => ASMODEUS_SUPREME_AGENT_ID);
+}
 /**
  * 16 agentes Aurora (Inferno) — papéis nomeados; runtime Vertex continua no Líder Supremo.
  * G.O.A.T.: não inventar IDs secundários (@slot_*, agentes genéricos); apenas agent_1777236402725.
  */
-const VERTEX_SUBAGENT_COUNT = AURORA_INFERNO_AGENT_COUNT;
-const VERTEX_TEAM_SLOTS = Array.from({ length: VERTEX_SUBAGENT_COUNT }, () => ASMODEUS_SUPREME_AGENT_ID);
-const COMPLIANCE_SLOT_LABEL = `${ASMODEUS_SUPREME_AGENT_ID} (COMPLIANCE)`;
 
 function clampScore(n) {
   const x = Number(n);
@@ -75,14 +88,14 @@ async function analyzeCeapWithSupremeLeader(row) {
     lider_supremo_agent_id: ASMODEUS_SUPREME_AGENT_ID,
     modelo_obrigatorio: ASMODEUS_GEMINI_MODEL,
     protocolo: "A.S.M.O.D.E.U.S. CEAP",
-    agentes_aurora_nomes: AURORA_INFERNO_AGENTS,
+    agentes_aurora_nomes: auroraAgentNames(),
     instrucao_orquestracao:
-      `Distribua mentalmente a analise aos ${VERTEX_SUBAGENT_COUNT} agentes Aurora (Inferno) ligados ao Lider Supremo ` +
+      `Distribua mentalmente a analise aos ${auroraAgentCount()} agentes Aurora (Inferno) ligados ao Lider Supremo ` +
       `(Agent ID ${ASMODEUS_SUPREME_AGENT_ID}) antes de consolidar o scoreRisco. ` +
       "O papel OSINT pode levantar tendencias e narrativas publicas, " +
       `mas NADA de OSINT pode ser publicado sem validacao explicita pelo slot de Compliance (${COMPLIANCE_SLOT_LABEL}). ` +
       "Nao acuse crimes; classifique risco heuristico, auditavel e extra-judicial.",
-    agentes_subordinados: VERTEX_TEAM_SLOTS,
+    agentes_subordinados: vertexTeamSlots(),
     registro_ceap_agregado: row,
     schema_saida: {
       scoreRisco: "integer 0..100",
@@ -112,7 +125,7 @@ async function analyzeCeapWithSupremeLeader(row) {
       nivelRisco: heuristic >= 85 ? "CRITICO" : heuristic >= 70 ? "ALTO" : heuristic >= 40 ? "MEDIO" : "BAIXO",
       fraudesDetectadas: heuristic >= 70 ? ["concentracao_ceap", "volume_atipico"] : [],
       resumoAuditoria: "Classificacao heuristica local; GEMINI_API_KEY/GOOGLE_API_KEY ausente na Cloud Function.",
-      agentesAcionados: VERTEX_TEAM_SLOTS,
+      agentesAcionados: vertexTeamSlots(),
       radarOsint: buildDeterministicOsint(row),
       modelo: "heuristic-fallback",
       liderSupremoAgentId: ASMODEUS_SUPREME_AGENT_ID,
@@ -126,7 +139,7 @@ async function analyzeCeapWithSupremeLeader(row) {
     systemInstruction:
       "Voce e o Lider Supremo A.S.M.O.D.E.U.S. (Agent ID agent_1777236402725). " +
       "Atue como auditor forense de CEAP, direito administrativo e gasto parlamentar brasileiro. " +
-      `Consolide a deliberacao dos ${VERTEX_SUBAGENT_COUNT} agentes Aurora nomeados (Inferno) sob o Lider Supremo. Responda apenas JSON valido.`,
+      `Consolide a deliberacao dos ${auroraAgentCount()} agentes Aurora nomeados (Inferno) sob o Lider Supremo. Responda apenas JSON valido.`,
     generationConfig: {
       temperature: 0.1,
       responseMimeType: "application/json",
@@ -146,7 +159,7 @@ async function analyzeCeapWithSupremeLeader(row) {
     resumoAuditoria: String(parsed.resumoAuditoria || "Analise CEAP consolidada pelo Lider Supremo."),
     agentesAcionados: Array.isArray(parsed.agentesAcionados)
       ? parsed.agentesAcionados.map(String)
-      : VERTEX_TEAM_SLOTS,
+      : vertexTeamSlots(),
     radarOsint: filterComplianceApprovedOsint(parsed.radarOsint, row),
     modelo: ASMODEUS_GEMINI_MODEL,
     liderSupremoAgentId: ASMODEUS_SUPREME_AGENT_ID,
@@ -642,7 +655,7 @@ exports.syncBigQueryToFirestore = functions
         sensor: "syncBigQueryToFirestore",
         liderSupremoAgentId: ASMODEUS_SUPREME_AGENT_ID,
         modelo: ASMODEUS_GEMINI_MODEL,
-        agentesAtivos: VERTEX_TEAM_SLOTS,
+        agentesAtivos: vertexTeamSlots(),
         ...result,
       });
     } catch (err) {
@@ -668,7 +681,7 @@ exports.retroactiveScanBigQueryToFirestore = functions
         sensor: "retroactiveScanBigQueryToFirestore",
         liderSupremoAgentId: ASMODEUS_SUPREME_AGENT_ID,
         modelo: ASMODEUS_GEMINI_MODEL,
-        agentesAtivos: VERTEX_TEAM_SLOTS,
+        agentesAtivos: vertexTeamSlots(),
         ...result,
       });
     } catch (err) {
@@ -1252,8 +1265,12 @@ exports.getDossieCeapKPIs = functions
     }
   });
 
-const { mountAskVertexAgent } = require("./src/vertex/askVertexAgent.js");
-mountAskVertexAgent(functions, exports);
+try {
+  const { mountAskVertexAgent } = require("./src/vertex/askVertexAgent.js");
+  mountAskVertexAgent(functions, exports);
+} catch (err) {
+  console.warn("[functions] askVertexAgent não montado (lazy):", err && err.message);
+}
 
 // =============================================================================
 // generateDossieOnDemand (Onda 1) — pay-per-dossier + desbloqueios parciais

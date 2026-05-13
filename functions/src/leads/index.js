@@ -1,27 +1,19 @@
 /**
  * @fileoverview Ponto de exportação do módulo Leads/Paywall — TransparênciaBR
  *
- * Este arquivo exporta as Cloud Functions deste módulo para integração
- * com o arquivo principal functions/src/index.js do projeto.
- *
- * ── COMO INTEGRAR AO functions/src/index.js ───────────────────────────────
- *
- *   // Módulo Leads / Paywall
- *   const leadsPaywall = require('./leads'); // ou caminho relativo correto
- *   exports.openContactBigData    = leadsPaywall.openContactBigData;
- *   exports.generateInitialPetition = leadsPaywall.generateInitialPetition;
- *
- * ─────────────────────────────────────────────────────────────────────────
+ * Getters lazy: cada callable só carrega o seu ficheiro quando o export é lido,
+ * evitando puxar Vertex/DOCX/BigQuery de `generateInitialPetition` no parse de `openContactBigData`.
  *
  * @module leads/index
  */
 
 'use strict';
 
-const { openContactBigData } = require('./openContactBigData');
-const { generateInitialPetition } = require('./generateInitialPetition');
-
 module.exports = {
-  openContactBigData,
-  generateInitialPetition,
+  get openContactBigData() {
+    return require('./openContactBigData').openContactBigData;
+  },
+  get generateInitialPetition() {
+    return require('./generateInitialPetition').generateInitialPetition;
+  },
 };

@@ -13,7 +13,6 @@
 
 'use strict';
 
-const { VertexAI } = require('@google-cloud/aiplatform');
 const { getFirestore } = require('firebase-admin/firestore');
 const { logger } = require('firebase-functions');
 
@@ -145,6 +144,7 @@ async function generateLegalThesis(leadData) {
   const prompt = _buildPrompt(leadData);
 
   // ── Chamada Vertex AI ────────────────────────────────────────────────────
+  const { VertexAI } = require('@google-cloud/aiplatform');
   const vertexAI = new VertexAI({ project: GCP_PROJECT, location: VERTEX_LOCATION });
   const model = vertexAI.getGenerativeModel({
     model: GEMINI_MODEL,

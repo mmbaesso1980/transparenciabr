@@ -11,11 +11,20 @@
 
 'use strict';
 
-const { BigQuery } = require('@google-cloud/bigquery');
 const { logger } = require('firebase-functions');
 
 /** Projeto GCP */
 const GCP_PROJECT = process.env.GCLOUD_PROJECT || 'transparenciabr';
+
+/** BigQuery client — carregado só na primeira consulta (deploy/analisador não puxa o SDK). */
+let _bq = null;
+function getBigQuery() {
+  if (!_bq) {
+    const { BigQuery } = require('@google-cloud/bigquery');
+    _bq = new BigQuery({ projectId: GCP_PROJECT });
+  }
+  return _bq;
+}
 
 /** Referência completa da tabela de leads */
 const BQ_TABLE = `${GCP_PROJECT}.tbr_leads_prev.indeferimentos_brasil_raw`;
@@ -50,7 +59,7 @@ async function fetchLeadByHash(leadId) {
     leadId: leadId.slice(0, 8) + '...',
   });
 
-  const bq = new BigQuery({ projectId: GCP_PROJECT });
+  const bq = getBigQuery();
 
   // Parameterized query — previne SQL injection
   const query = `
@@ -121,7 +130,7 @@ async function marcarDesqualificado(leadId, motivoDq) {
     motivoDq,
   });
 
-  const bq = new BigQuery({ projectId: GCP_PROJECT });
+  const bq = getBigQuery();
 
   const query = `
     UPDATE \`${BQ_TABLE}\`
