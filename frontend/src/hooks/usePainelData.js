@@ -6,7 +6,7 @@
  *
  * Fontes (todas reais, ZERO mock, ZERO Firestore):
  *   - useUniverseRoster   → 594 parlamentares (deputados+senadores) via CF (GCS)
- *   - useDashboardKPIs    → KPIs do Data Lake CEAP (notas, valor, faixa de risco)
+ *   - useDashboardKPIs    → KPIs agregados (mesma origem que getDossieCeapKPIs / dashboard rewrite)
  *   - usePNCPNacional     → Contratos PNCP nacional (CORS aberto, browser direto)
  *   - useRankingGastadores→ Ranking real CEAP via GCS público (BigQuery export)
  *   - useAlvos           → Ranking datalake de parlamentares com alto risco (Cloud Function)
@@ -102,6 +102,49 @@ function aggregateByUF(parlamentares) {
     risco: 0,
     cotaMedia: 0,
   }));
+}
+
+/** Junta ranking CEAP (GCS) ao roster para modais com cota, %, score e sinais. */
+function mergeRankingIntoRoster(parlamentares, ranking) {
+  if (!Array.isArray(parlamentares) || parlamentares.length === 0) return [];
+  const m = new Map((ranking || []).map((r) => [String(r.id ?? "").trim(), r]));
+  return parlamentares.map((p) => {
+    const r = m.get(String(p.id ?? "").trim());
+    if (!r) {
+      return {
+        ...p,
+        cota: 0,
+        pct: 0,
+        meses_ativos: 0,
+        qtd_notas: 0,
+        score: 0,
+        sinalizacoes: 0,
+        presenca: 0,
+        is_suplente: false,
+      };
+    }
+    const pctN = Number(r.pct) || 0;
+    const cotaN = Number(r.cota) || 0;
+    const score = Math.min(
+      100,
+      Math.round(pctN * 0.65 + Math.min(35, Math.log10(1 + Math.max(cotaN, 1)) * 9)),
+    );
+    return {
+      ...p,
+      nome: r.nome || p.nome,
+      partido: String(r.partido || p.partido || "—").toUpperCase(),
+      uf: String(r.uf || p.uf || "—").toUpperCase(),
+      cota: cotaN,
+      pct: pctN,
+      meses_ativos: Number(r.meses_ativos) || 0,
+      qtd_notas: Number(r.qtd_notas) || 0,
+      is_suplente: Boolean(r.is_suplente),
+      frugalidade: pctN,
+      score,
+      sinalizacoes: Math.min(99_999, Number(r.qtd_notas) || 0),
+      presenca: Math.min(100, Math.round(pctN)),
+    };
+  });
 }
 
 /** Agrega parlamentares por partido. */
@@ -281,10 +324,11 @@ export function usePainelData() {
   // BENTOS REAIS — todos saem de fonte viva
   // ─────────────────────────────────────────────────────────────────────
 
-  // B01 — Pontuação Brasil: rastreabilidade % do Data Lake (real)
+  // B01 — Pontuação Brasil: rastreabilidade % do Data Lake (real; 0 se KPIs ainda não chegaram)
   const pontuacaoBrasil = useMemo(() => {
-    if (!kpis) return null;
-    const score = Math.round(Number(kpis?.indicadores_forense?.rastreabilidade_pct || 0));
+    const score = kpis
+      ? Math.round(Number(kpis?.indicadores_forense?.rastreabilidade_pct || 0))
+      : 0;
     return {
       score: Math.max(0, Math.min(100, score)),
       delta: 0,
@@ -311,7 +355,14 @@ export function usePainelData() {
 
   // B03 — Sinalizações SOC: usa parse_errors + valor_alto_risco como pulso
   const sinalizacoesSOC = useMemo(() => {
-    if (!kpis) return null;
+    if (!kpis) {
+      return {
+        total: 0,
+        feed: [
+          { id: "s0", texto: "Datalake CEAP: aguardando KPIs agregados (Cloud Function)." },
+        ],
+      };
+    }
     const total = Number(kpis.parse_errors || 0);
     const cobertura = Number(kpis.cobertura_pct || 0);
     return {
@@ -326,13 +377,13 @@ export function usePainelData() {
 
   // B04 — Mapa UF: distribuição de parlamentares por UF (real)
   const mapaUF = useMemo(
-    () => (realDataReady ? aggregateByUF(parlamentares) : null),
+    () => (realDataReady ? aggregateByUF(parlamentares) : []),
     [parlamentares, realDataReady],
   );
 
   // B05 — Pulso CEAP: valor total classificado no Data Lake (real)
   const pulsoCEAP = useMemo(() => {
-    if (!kpis) return null;
+    if (!kpis) return { queimadoHoje: 0, pctConsumido: 0 };
     const queimadoTotal = Number(kpis.valor_total_classificado_brl || 0);
     const quotaMensalNacional = 22_000_000;
     const pct = Math.min(100, Math.round((queimadoTotal / (quotaMensalNacional * 36)) * 100));
@@ -346,7 +397,7 @@ export function usePainelData() {
   // degradação elegânte: se classificador do lake não produziu sinalizações,
   // mostra concentração de notas por UF como proxy operacional honesto.
   const mataUF = useMemo(() => {
-    if (!realDataReady) return null;
+    if (!realDataReady) return [];
     const list = alvosPayload?.alvos;
     const withRisk = aggregateUFWithRisk(parlamentares, list);
     const totalRisco = withRisk.reduce((s, r) => s + Number(r.risco || 0), 0);
@@ -386,7 +437,7 @@ export function usePainelData() {
   // top parlamentares cobertos (volume de notas) com selo de "em refinamento"
   // quando classificador só produz SEM_CATEGORIA.
   const emendasCriticas = useMemo(() => {
-    if (!kpis) return null;
+    if (kpis) {
     const totalClassificado = Number(kpis.valor_total_classificado_brl || 0);
     const alto = Number(kpis.valor_alto_risco_brl || 0);
     const pctConsumido = totalClassificado > 0
@@ -424,22 +475,42 @@ export function usePainelData() {
         const cobertos = Array.isArray(kpis.top_alvos_preview)
           ? kpis.top_alvos_preview
           : [];
-        if (cobertos.length === 0) return null;
+        if (cobertos.length === 0) {
+          /* cai para ranking CEAP público abaixo */
+        } else {
         modo = "volume";
         valorPrincipal = totalClassificado;
         topCnpj = cobertos.slice(0, 5).map((a) => ({
           cnpj: String(a.nome || a.id).split(" ").slice(0, 2).join(" ").slice(0, 18),
           risco: `${a.partido}/${a.uf}`,
         }));
+        }
       }
     }
-    return {
-      queimadoHoje: valorPrincipal,
-      pctConsumido,
-      topCnpj,
-      modo,
-    };
-  }, [kpis]);
+    if (topCnpj.length > 0) {
+      return {
+        queimadoHoje: valorPrincipal,
+        pctConsumido,
+        topCnpj,
+        modo,
+      };
+    }
+    }
+    if (rankingReady && Array.isArray(ranking) && ranking.length > 0) {
+      const top = [...ranking].sort((a, b) => b.cota - a.cota).slice(0, 5);
+      const vol = top.reduce((s, p) => s + Number(p.cota || 0), 0);
+      return {
+        queimadoHoje: vol,
+        pctConsumido: Math.min(100, Math.round(Number(top[0]?.pct || 0))),
+        topCnpj: top.map((p) => ({
+          cnpj: String(p.nome || p.id || "—").slice(0, 18),
+          risco: `${Number(p.pct || 0).toFixed(0)}% · ${String(p.partido || "—")}/${String(p.uf || "—")}`,
+        })),
+        modo: "ranking_ceap",
+      };
+    }
+    return null;
+  }, [kpis, ranking, rankingReady]);
 
   // B08 — Contratos PNCP: nacional ao vivo; fallback = histograma de faixas CEAP (datalake)
   const contratosPNCP = useMemo(() => {
@@ -475,16 +546,27 @@ export function usePainelData() {
         ],
       };
     }
+    const tn = Number(kpis?.total_notas_classificadas || 0);
+    if (kpis && tn > 0) {
+      return {
+        source: "ceap_total",
+        total: tn,
+        valor30d: kpis.valor_total_classificado_brl,
+        histograma: [{ bucket: "Notas class.", count: tn }],
+      };
+    }
     return null;
   }, [pncp, kpis]);
 
-  // B09 — Radar jurídico: parlamentares com notas classificadas no lake (cobertura operacional)
-  const radarJuridico = useMemo(() => {
-    if (!kpis) return null;
-    const n = Number(kpis.total_parlamentares_cobertos || 0);
-    if (n <= 0) return null;
-    return { leadsAtivos: n };
-  }, [kpis]);
+  // B09 — Cobertura datalake (parlamentares cobertos no classificador vs roster público)
+  const coberturaDatalake = useMemo(() => {
+    const rosterTotal = parlamentares.length;
+    const cobertos = kpis ? Number(kpis.total_parlamentares_cobertos || 0) : 0;
+    return {
+      parlamentaresCobertos: cobertos > 0 ? cobertos : rosterTotal,
+      rosterTotal,
+    };
+  }, [kpis, parlamentares]);
 
   // B10 — Meu universo: top alvos do ranking datalake (substitui lista manual até haver favoritos)
   const meuUniverso = useMemo(() => {
@@ -504,14 +586,21 @@ export function usePainelData() {
         cor: hashColor(`${a.partido}|${a.id}`),
       }));
     }
-    return null;
-  }, [alvosPayload, kpis]);
+    if (realDataReady && parlamentares.length > 0) {
+      return parlamentares.slice(0, 6).map((p) => ({
+        id: String(p.id),
+        nome: String(p.nome || p.id),
+        cor: hashColor(`${p.partido}|${p.id}`),
+      }));
+    }
+    return [];
+  }, [alvosPayload, kpis, parlamentares, realDataReady]);
 
   // B14 — Promessa × entrega: nuvem de categorias do lake. Degradação:
   // se só SEM_CATEGORIA, usa série anual de valores (que TEMOS) como nuvem
   // de "capacidade histórica" — fato disponível, não denúncia.
   const promessaEntrega = useMemo(() => {
-    if (!kpis) return null;
+    if (kpis) {
     const raw = kpis?.top_categorias_risco;
     const cats = Array.isArray(raw)
       ? raw.filter(
@@ -563,12 +652,29 @@ export function usePainelData() {
         campanha,
         entrega: {
           valor: totalSerie,
-          metrica: "Volume histórico classificado · categorização em refinamento",
+          metrica: "Volume histórico classificado (datalake CEAP)",
+        },
+      };
+    }
+    }
+    if (realDataReady && parlamentares.length > 0) {
+      const porP = aggregateByPartido(parlamentares).slice(0, 8);
+      const maxT = Math.max(1, ...porP.map((x) => x.total));
+      const campanha = porP.map((x) => ({
+        palavra: x.sigla,
+        tamanho: 16 + Math.round((x.total / maxT) * 28),
+      }));
+      const tot = parlamentares.length;
+      return {
+        campanha,
+        entrega: {
+          valor: 0,
+          metrica: `${tot} mandatos no roster · composição partidária`,
         },
       };
     }
     return null;
-  }, [kpis]);
+  }, [kpis, parlamentares, realDataReady]);
 
   // B16 — Rede empresarial: hub CEAP → top fornecedores (com rótulos visíveis)
   const redeEmpresarial = useMemo(() => {
@@ -609,8 +715,23 @@ export function usePainelData() {
         .map((n) => ({ from: "ceap", to: n.id }));
       return { nodes, edges };
     }
+    if (realDataReady && parlamentares.length > 0) {
+      const topUf = aggregateByUF(parlamentares)
+        .sort((a, b) => b.total - a.total)
+        .slice(0, 6);
+      const nodes = [
+        { id: "ceap", tipo: "parlamentar", label: "CEAP" },
+        ...topUf.map((u, i) => ({
+          id: `uf${i}`,
+          tipo: "empresa",
+          label: u.uf,
+        })),
+      ];
+      const edges = nodes.filter((n) => n.id !== "ceap").map((n) => ({ from: "ceap", to: n.id }));
+      return { nodes, edges };
+    }
     return null;
-  }, [kpis]);
+  }, [kpis, parlamentares, realDataReady]);
 
   // B11 — Mais Frugais: menor % de aproveitamento da cota; prioriza titulares (≥12 meses).
   const maisFrugais = useMemo(() => {
@@ -660,7 +781,17 @@ export function usePainelData() {
   // Antes mostrávamos votos=notas_classificadas (rotulo enganoso). Agora exibimos
   // KPIs reais e relevantes do que temos: cobertura, parlamentares, notas, alertas.
   const atividadeLegislativa = useMemo(() => {
-    if (!realDataReady) return null;
+    if (!realDataReady) {
+      return {
+        total: 0,
+        deputados: 0,
+        senadores: 0,
+        cobertura: kpis ? Math.round(Number(kpis.cobertura_pct || 0)) : null,
+        cobertosLake: kpis?.total_parlamentares_cobertos ?? null,
+        notasLake: kpis?.total_notas_classificadas ?? null,
+        altoRisco: kpis?.notas_por_faixa_risco?.alto ?? null,
+      };
+    }
     const deputados = parlamentares.filter((p) => p.cargo === "deputado").length;
     const senadores = parlamentares.filter((p) => p.cargo === "senador").length;
     return {
@@ -676,7 +807,10 @@ export function usePainelData() {
 
   // B15 — Pulso Federal: termômetro CEAP executado vs CEAP orçado teórico
   const pulsoFederal = useMemo(() => {
-    if (!kpis) return null;
+    if (!kpis) {
+      const orcado = 22_000_000 * 36;
+      return { pct: 0, executado: 0, orcado };
+    }
     const executado = Number(kpis.valor_total_classificado_brl || 0);
     const orcado = 22_000_000 * 36;
     const pct = Math.min(100, Math.round((executado / orcado) * 100));
@@ -709,24 +843,37 @@ export function usePainelData() {
       if (out.length >= 2) return out;
     }
     const raw = kpis?.top_categorias_risco;
-    if (!Array.isArray(raw) || raw.length === 0) return null;
-    const cats = raw.filter(
-      (c) =>
-        String(c.categoria || "")
-          .toUpperCase()
-          .indexOf("SEM_CATEGORIA") === -1,
-    );
-    if (cats.length === 0) return null;
-    const sum = cats.reduce((acc, c) => acc + Number(c.score_total || 0), 0) || 1;
-    return cats.slice(0, 5).map((c) => ({
-      orgao: String(c.categoria || "—")
-        .replace(/_/g, " ")
-        .toLowerCase()
-        .replace(/\b\w/g, (m) => m.toUpperCase())
-        .slice(0, 28),
-      pct: Math.round((Number(c.score_total || 0) / sum) * 100),
-    }));
-  }, [pncp, kpis]);
+    if (Array.isArray(raw) && raw.length > 0) {
+      const cats = raw.filter(
+        (c) =>
+          String(c.categoria || "")
+            .toUpperCase()
+            .indexOf("SEM_CATEGORIA") === -1,
+      );
+      if (cats.length > 0) {
+        const sum = cats.reduce((acc, c) => acc + Number(c.score_total || 0), 0) || 1;
+        return cats.slice(0, 5).map((c) => ({
+          orgao: String(c.categoria || "—")
+            .replace(/_/g, " ")
+            .toLowerCase()
+            .replace(/\b\w/g, (m) => m.toUpperCase())
+            .slice(0, 28),
+          pct: Math.round((Number(c.score_total || 0) / sum) * 100),
+        }));
+      }
+    }
+    if (realDataReady && parlamentares.length > 0) {
+      const ufRows = aggregateByUF(parlamentares)
+        .sort((a, b) => b.total - a.total)
+        .slice(0, 5);
+      const sum = ufRows.reduce((s, r) => s + r.total, 0) || 1;
+      return ufRows.map((r) => ({
+        orgao: `Bancada ${r.uf}`,
+        pct: Math.round((r.total / sum) * 100),
+      }));
+    }
+    return null;
+  }, [pncp, kpis, parlamentares, realDataReady]);
 
   // Header — real (user logado) ou ghost
   const headerInfo = useMemo(
@@ -748,10 +895,10 @@ export function usePainelData() {
 
   // Para o BentoModal: ranking real preferido (cota>0); se ainda não carregou,
   // cai para o roster completo (594) — assim sempre há tabela navegável.
-  const rankingParaModal = useMemo(() => {
-    if (rankingReady) return ranking;
-    return parlamentares;
-  }, [ranking, rankingReady, parlamentares]);
+  const rankingParaModal = useMemo(
+    () => mergeRankingIntoRoster(parlamentares, rankingReady ? ranking : []),
+    [parlamentares, ranking, rankingReady],
+  );
 
   return {
     loading:
@@ -784,7 +931,7 @@ export function usePainelData() {
     headerInfo,
 
     emendasCriticas,
-    radarJuridico,
+    coberturaDatalake,
     meuUniverso,
     promessaEntrega,
     redeEmpresarial,

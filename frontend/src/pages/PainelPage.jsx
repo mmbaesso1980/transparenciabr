@@ -8,6 +8,7 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import BentoCard from '../components/painel/BentoCard';
 import BentoModal from '../components/painel/BentoModal';
+import GlobalSearch from '../components/GlobalSearch.jsx';
 import { usePainelData } from '../hooks/usePainelData';
 import {
   PontuacaoBrasil,
@@ -18,7 +19,7 @@ import {
   MataUFBrasil,
   EmendasCriticas,
   ContratosPNCP,
-  RadarJuridico,
+  CoberturaDatalake,
   MeuUniverso,
   MaisFrugais,
   InfluenciaSetorial,
@@ -51,7 +52,7 @@ export default function PainelPage() {
   // Configurações de modal por bento (qual sortKey/valueLabel usar no ranking)
   const M = {
     cotas: {
-      title: 'Maiores Cotas — ranking 513',
+      title: 'Maiores Cotas — ranking CEAP',
       sortKey: 'cota',
       valueLabel: 'Cota R$',
       defaultSortOrder: 'desc',
@@ -63,19 +64,19 @@ export default function PainelPage() {
       defaultSortOrder: 'asc',
     },
     score: {
-      title: 'Pontuação Aurora — ranking 513',
+      title: 'Pontuação Aurora — ranking',
       sortKey: 'score',
       valueLabel: 'Score',
       defaultSortOrder: 'desc',
     },
     sinaliz: {
-      title: 'Em Observação — ranking 513',
+      title: 'Em Observação — ranking',
       sortKey: 'sinalizacoes',
       valueLabel: 'Sinalizações',
       defaultSortOrder: 'desc',
     },
     presenca: {
-      title: 'Atividade Legislativa — ranking 513',
+      title: 'Atividade legislativa — ranking',
       sortKey: 'presenca',
       valueLabel: 'Presença %',
       defaultSortOrder: 'desc',
@@ -113,14 +114,7 @@ export default function PainelPage() {
           </div>
 
           <div className="flex-1 max-w-xl">
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40">🔍</span>
-              <input
-                type="text"
-                placeholder="O que você quer auditar hoje?"
-                className="w-full bg-white/[0.04] border border-white/10 rounded-xl pl-10 pr-4 py-2 text-sm placeholder-white/40 focus:outline-none focus:border-cyan-400/40 transition-colors"
-              />
-            </div>
+            <GlobalSearch className="w-full" />
           </div>
 
           <Link
@@ -202,8 +196,8 @@ export default function PainelPage() {
               child: <EmendasCriticas data={data.emendasCriticas} />, modal: M.cotas },
             { key: 'b08', span: 'lg:col-span-1 lg:row-span-1', accent: 'cyan',   icon: '📊', title: 'Contratos PNCP',
               child: <ContratosPNCP data={data.contratosPNCP} />, modal: M.cotas },
-            { key: 'b09', span: 'lg:col-span-1 lg:row-span-1', accent: 'green',  icon: '⚖️', title: 'Radar Jurídico',
-              child: <RadarJuridico data={data.radarJuridico} />, modal: M.sinaliz },
+            { key: 'b09', span: 'lg:col-span-1 lg:row-span-1', accent: 'green',  icon: '📡', title: 'Cobertura datalake',
+              child: <CoberturaDatalake data={data.coberturaDatalake} />, modal: M.sinaliz },
             { key: 'b10', span: 'lg:col-span-1 lg:row-span-2', accent: 'violet', icon: '🪐', title: 'Meu Universo',
               child: <MeuUniverso data={data.meuUniverso} />, modal: null },
 
@@ -246,7 +240,7 @@ export default function PainelPage() {
         </motion.div>
 
         <p className="text-center text-[11px] text-white/30 mt-8">
-          Aurora · TransparênciaBR · dados reais quando disponíveis · “em breve” quando ainda em coleta
+          Aurora · TransparênciaBR · dados públicos (Câmara, Senado, CEAP classificado, PNCP)
         </p>
       </main>
 
