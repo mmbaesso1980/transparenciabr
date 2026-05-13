@@ -11,7 +11,6 @@ import MetodologiaPage from "./pages/MetodologiaPage.jsx";
 import PainelPage from "./pages/PainelPage.jsx";
 import PartidoPage from "./pages/PartidoPage.jsx";
 import PrivacidadePage from "./pages/PrivacidadePage.jsx";
-import RadarJuridico from "./pages/RadarJuridico.jsx";
 import SobrePage from "./pages/SobrePage.jsx";
 import StatusPage from "./pages/StatusPage.jsx";
 import TermosPage from "./pages/TermosPage.jsx";
@@ -80,21 +79,21 @@ export default function App() {
                 <Route path="/partido" element={<PartidoPage />} />
                 <Route path="/partido/:sigla" element={<PartidoPage />} />
                 <Route path="/comercial" element={<Navigate to="/partido" replace />} />
-
+                {/* Painel clássico 17 Bento cards — rota pública de vitrine. */}
                 <Route path="/painel" element={<PainelPage />} />
                 <Route path="/alvos" element={<Navigate to="/universo" replace />} />
                 <Route path="/dashboard" element={<Navigate to="/status" replace />} />
                 <Route path="/ranking" element={<Navigate to="/universo" replace />} />
-                <Route path="/radar/dossiers" element={<Navigate to="/radar-legal" replace />} />
-                <Route path="/radar" element={<Navigate to="/radar-legal" replace />} />
+                <Route path="/radar/dossiers" element={<Navigate to="/painel" replace />} />
+                <Route path="/radar" element={<Navigate to="/painel" replace />} />
 
                 <Route path="/sobre" element={<SobrePage />} />
                 <Route path="/metodologia" element={<MetodologiaPage />} />
                 <Route path="/termos" element={<TermosPage />} />
                 <Route path="/privacidade" element={<PrivacidadePage />} />
-                <Route path="/radar-legal" element={<RadarJuridico />} />
-                {/* Radar Jurídico (INSS) — /radar-inss oculto temporariamente; redireciona para o Universo. */}
-                <Route path="/radar-inss" element={<Navigate to="/universo" replace />} />
+                {/* Radar jurídico (INSS / leads): oculto no lançamento — URLs antigas vão ao painel. */}
+                <Route path="/radar-legal" element={<Navigate to="/painel" replace />} />
+                <Route path="/radar-inss" element={<Navigate to="/painel" replace />} />
                 <Route path="/login" element={<LoginPage />} />
 
                 <Route path="/politica/busca" element={<BuscaPage />} />

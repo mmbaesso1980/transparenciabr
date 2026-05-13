@@ -55,7 +55,7 @@ export default function BentoModal({
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     let arr = [...data];
-    if (q) arr = arr.filter(p => p.nome.toLowerCase().includes(q));
+    if (q) arr = arr.filter((p) => String(p.nome || "").toLowerCase().includes(q));
     if (partidoFiltro) arr = arr.filter(p => p.partido === partidoFiltro);
     if (ufFiltro) arr = arr.filter(p => p.uf === ufFiltro);
     if (hideSuplentes) arr = arr.filter(p => !p.is_suplente);

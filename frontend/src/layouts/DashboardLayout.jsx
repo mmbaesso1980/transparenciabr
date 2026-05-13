@@ -1,9 +1,9 @@
 import {
   Activity,
   Coins,
+  Globe2,
   Hexagon,
   LayoutDashboard,
-  Radar,
   Shield,
 } from "lucide-react";
 import { NavLink, Outlet } from "react-router-dom";
@@ -59,7 +59,7 @@ export default function DashboardLayout() {
         </NavLink>
         <NavLink
           to="/universo"
-          title="Universo"
+          title="Universo 3D"
           className={({ isActive }) =>
             [
               "flex size-10 items-center justify-center rounded-xl border transition-colors",
@@ -69,7 +69,7 @@ export default function DashboardLayout() {
             ].join(" ")
           }
         >
-          <Radar className="size-[1.35rem]" strokeWidth={1.75} />
+          <Globe2 className="size-[1.35rem]" strokeWidth={1.75} />
         </NavLink>
         <NavLink
           to="/login"
@@ -129,7 +129,7 @@ export default function DashboardLayout() {
             <NavLink to="/creditos" className={navTabClass}>
               Financeiro
             </NavLink>
-            {/* Radar Jurídico (INSS) — oculto temporariamente no lançamento; rota /radar-legal mantida para URLs diretas. */}
+            {/* Radar Jurídico (INSS) — oculto no lançamento (sem link). Rotas /radar-legal e /radar-inss permanecem no App para URLs antigas. */}
             <NavLink to="/perfil" className={navTabClass}>
               Perfil
             </NavLink>

@@ -1,20 +1,17 @@
 // bentos/index.jsx — Conteúdo interno de cada um dos 17 bentos.
-// Cada componente recebe `data` (real do hook) e renderiza SOMENTE o miolo
+// Cada componente recebe `data` (real do hook `usePainelData`) e renderiza SOMENTE o miolo
 // do card (BentoCard wrappa do lado de fora).
 //
-// MOCK ZERO: quando `data` é null/inválido, renderiza <EmBreve variant="inline" />.
-// Filosofia: "Toda nota é suspeita até prova contrária. Não fazemos
-// denúncia — apresentamos fatos."
+// Estados vazios: mensagens operacionais (sem copy de "em breve").
 
 import React from 'react';
-import EmBreve from '../../dossie/EmBreve';
 
-/** Helper: renderiza estado "em breve" inline com mensagem honesta. */
-function EmBreveBento({ titulo = 'Em breve', subtitulo = 'Aurora ainda não processou esta camada. Em breve.' }) {
+/** Estado neutro quando ainda não há dados agregados (roster / ranking / KPIs a sincronizar). */
+function PainelAwaitingData({ titulo = 'Sincronização', subtitulo = 'A aguardar dados do datalake ou do ranking público.' }) {
   return (
     <div className="flex h-full items-center justify-center">
       <div className="text-center px-2">
-        <p className="text-[9px] font-semibold uppercase tracking-[0.22em] text-amber-200/80">{titulo}</p>
+        <p className="text-[9px] font-semibold uppercase tracking-[0.22em] text-cyan-200/85">{titulo}</p>
         <p className="mt-1 text-[10px] leading-tight text-white/45">{subtitulo}</p>
       </div>
     </div>
@@ -33,7 +30,7 @@ const fmtBRLcompact = (v) => {
 // B01 PontuacaoBrasil — gauge + sparkline
 // =============================================================================
 export function PontuacaoBrasil({ data }) {
-  if (!data) return <EmBreveBento subtitulo="Coletando snapshots para score nacional." />;
+  if (!data) return <PainelAwaitingData subtitulo="KPIs do datalake a sincronizar." />;
   const { score = 0, serie30d = [] } = data;
   const hasSerie = Array.isArray(serie30d) && serie30d.length > 1;
   const max = hasSerie ? Math.max(...serie30d, 100) : 100;
@@ -78,7 +75,9 @@ export function PontuacaoBrasil({ data }) {
           <polyline points={pts} fill="none" stroke="#fbbf24" strokeWidth="1.5" />
         </svg>
       ) : (
-        <div className="h-8 mt-1 flex items-center justify-center text-[9px] text-white/30">série 30d em breve</div>
+        <div className="h-8 mt-1 flex items-center justify-center text-[9px] text-white/35">
+          série 30d · indisponível nesta carga
+        </div>
       )}
       <p className="text-[11px] text-white/40 mt-1">Indicador Aurora · média 513 parlamentares</p>
     </div>
@@ -90,7 +89,7 @@ export function PontuacaoBrasil({ data }) {
 // =============================================================================
 export function MaioresCotas({ data }) {
   if (!Array.isArray(data) || data.length === 0)
-    return <EmBreveBento subtitulo="Carregando ranking de cotas." />;
+    return <PainelAwaitingData subtitulo="Ranking CEAP (GCS público) a sincronizar." />;
   return (
     <ul className="space-y-1.5 text-[12px]">
       {data.slice(0, 5).map((p) => (
@@ -121,7 +120,7 @@ export function MaioresCotas({ data }) {
 // B03 SinalizacoesSOC — feed live
 // =============================================================================
 export function SinalizacoesSOC({ data }) {
-  if (!data) return <EmBreveBento subtitulo="Feed live de sinalizações em construção." />;
+  if (!data) return <PainelAwaitingData subtitulo="KPIs de auditoria a sincronizar." />;
   return (
     <div className="flex flex-col gap-2 h-full">
       <div className="flex items-center gap-2">
@@ -146,7 +145,7 @@ export function SinalizacoesSOC({ data }) {
 // =============================================================================
 export function MapaUFBrasil({ data }) {
   if (!Array.isArray(data) || data.length === 0)
-    return <EmBreveBento subtitulo="Calculando distribuição por UF." />;
+    return <PainelAwaitingData subtitulo="Roster nacional a sincronizar." />;
   const top = [...data].sort((a, b) => b.total - a.total).slice(0, 8);
   const max = Math.max(1, ...top.map((d) => d.total));
   return (
@@ -189,7 +188,7 @@ export function MapaUFBrasil({ data }) {
 // B05 PulsoCEAP — número grande + barra de quota
 // =============================================================================
 export function PulsoCEAP({ data }) {
-  if (!data) return <EmBreveBento subtitulo="Pulso CEAP diário em breve." />;
+  if (!data) return <PainelAwaitingData subtitulo="KPIs CEAP classificado a sincronizar." />;
   return (
     <div className="flex flex-col justify-between h-full">
       <div>
@@ -217,16 +216,19 @@ export function PulsoCEAP({ data }) {
 // =============================================================================
 export function MataUFBrasil({ data }) {
   if (!Array.isArray(data) || data.length === 0)
-    return <EmBreveBento subtitulo="Calculando alvos críticos por UF." />;
-  const top = [...data]
+    return <PainelAwaitingData subtitulo="Mapa UF a sincronizar." />;
+  let top = [...data]
     .filter((r) => Number(r.risco || 0) > 0)
     .sort((a, b) => b.risco - a.risco)
     .slice(0, 8);
+  if (top.length === 0) {
+    top = [...data].sort((a, b) => b.total - a.total).slice(0, 8);
+  }
   if (top.length === 0)
-    return <EmBreveBento subtitulo="Sem sinalizações de alto risco no momento." />;
-  const maxR = Math.max(1, ...top.map((r) => r.risco));
+    return <PainelAwaitingData subtitulo="Sem dados UF nesta carga." />;
+  const maxR = Math.max(1, ...top.map((r) => Number(r.risco || r.total || 0)));
   const modo = top[0]?.modo || "risco";
-  const isRisco = modo === "risco";
+  const isRisco = modo === "risco" && Number(top[0]?.risco || 0) > 0;
   return (
     <div className="flex flex-col h-full gap-1">
       <div className="grid grid-cols-4 gap-1.5 flex-1 content-center">
@@ -247,10 +249,10 @@ export function MataUFBrasil({ data }) {
               key={r.uf}
               className="rounded-lg px-1 py-1.5 flex flex-col items-center justify-center"
               style={{ background: bg, border: `1px solid ${border}` }}
-              title={`${r.uf}: ${r.risco} ${isRisco ? "sinalizações de alto risco" : "parlamentares cobertos"}`}
+              title={`${r.uf}: ${r.risco ?? r.total} ${isRisco ? "sinalizações de alto risco" : "parlamentares"}`}
             >
               <span className="text-xs font-bold text-white tabular-nums leading-none">{r.uf}</span>
-              <span className="text-[9px] text-white/70 tabular-nums mt-0.5">{r.risco}</span>
+              <span className="text-[9px] text-white/70 tabular-nums mt-0.5">{r.risco ?? r.total}</span>
             </div>
           );
         })}
@@ -268,7 +270,7 @@ export function MataUFBrasil({ data }) {
 // B07 EmendasCriticas — número grande + lista; varia entre risco real e volume
 // =============================================================================
 export function EmendasCriticas({ data }) {
-  if (!data) return <EmBreveBento subtitulo="Pipeline de emendas em construção." />;
+  if (!data) return <PainelAwaitingData subtitulo="KPIs de emendas / fornecedores a sincronizar." />;
   const isRisco = data.modo === "risco";
   const tagBg = isRisco
     ? "bg-red-500/15 text-red-300 border border-red-400/20"
@@ -317,7 +319,7 @@ export function EmendasCriticas({ data }) {
 // =============================================================================
 export function ContratosPNCP({ data }) {
   if (!data || !Array.isArray(data.histograma) || data.histograma.length === 0)
-    return <EmBreveBento subtitulo="Aguardando dados PNCP nacional." />;
+    return <PainelAwaitingData subtitulo="PNCP ou faixas CEAP a sincronizar." />;
   const max = Math.max(1, ...data.histograma.map((h) => h.count));
   const faixaCeap = data.source === "ceap_faixa";
   return (
@@ -357,23 +359,32 @@ export function ContratosPNCP({ data }) {
 }
 
 // =============================================================================
-// B09 RadarJuridico — funil estilizado
+// B09 CoberturaDatalake — parlamentares cobertos no classificador CEAP (substitui “radar jurídico” no painel)
 // =============================================================================
-export function RadarJuridico({ data }) {
-  if (!data) return <EmBreveBento subtitulo="Radar Jurídico em construção." />;
+export function CoberturaDatalake({ data }) {
+  if (!data) return <PainelAwaitingData subtitulo="KPIs de cobertura a sincronizar." />;
   return (
     <div className="flex flex-col items-center justify-center h-full gap-2">
-      <div className="relative">
-        <div className="px-3 py-2 bg-emerald-400/10 border border-emerald-400/30 rounded text-emerald-300 text-xs font-medium tabular-nums">
-          {data.leadsAtivos} leads ativos
+      <div className="relative text-center">
+        <p className="text-[10px] uppercase tracking-wider text-white/45">Parlamentares no lake</p>
+        <div className="mt-1 px-3 py-2 bg-cyan-400/10 border border-cyan-400/30 rounded text-cyan-200 text-lg font-semibold tabular-nums">
+          {data.parlamentaresCobertos.toLocaleString("pt-BR")}
         </div>
-        <svg viewBox="0 0 60 30" className="w-16 h-8 mx-auto mt-1" fill="none">
-          <path d="M 5 5 L 55 5 L 40 25 L 20 25 Z" stroke="#34d399" strokeWidth="1" opacity="0.6" />
-          <path d="M 15 12 L 45 12 L 35 22 L 25 22 Z" stroke="#34d399" strokeWidth="1" opacity="0.4" />
+        <p className="mt-1 text-[9px] text-white/40">
+          Roster público: {data.rosterTotal.toLocaleString("pt-BR")}
+        </p>
+        <svg viewBox="0 0 60 30" className="w-16 h-8 mx-auto mt-1" fill="none" aria-hidden>
+          <path d="M 5 5 L 55 5 L 40 25 L 20 25 Z" stroke="#22d3ee" strokeWidth="1" opacity="0.6" />
+          <path d="M 15 12 L 45 12 L 35 22 L 25 22 Z" stroke="#22d3ee" strokeWidth="1" opacity="0.4" />
         </svg>
       </div>
     </div>
   );
+}
+
+/** @deprecated Use CoberturaDatalake — mantido para imports legados. */
+export function RadarJuridico(props) {
+  return <CoberturaDatalake {...props} />;
 }
 
 // =============================================================================
@@ -381,7 +392,7 @@ export function RadarJuridico({ data }) {
 // =============================================================================
 export function MeuUniverso({ data }) {
   if (!Array.isArray(data) || data.length === 0)
-    return <EmBreveBento subtitulo="Adicione alvos pessoais para popular seu universo." />;
+    return <PainelAwaitingData subtitulo="Ranking de alvos a sincronizar." />;
   return (
     <div className="grid grid-cols-3 gap-3 h-full content-center">
       {data.slice(0, 6).map(p => (
@@ -405,7 +416,7 @@ export function MeuUniverso({ data }) {
 // =============================================================================
 export function MaisFrugais({ data }) {
   if (!Array.isArray(data) || data.length === 0)
-    return <EmBreveBento subtitulo="Calculando ranking de frugalidade." />;
+    return <PainelAwaitingData subtitulo="Ranking CEAP a sincronizar." />;
   return (
     <ul className="space-y-1.5 text-[12px]">
       {data.slice(0, 5).map((p) => (
@@ -437,7 +448,7 @@ export function MaisFrugais({ data }) {
 // B12 InfluenciaSetorial — mini-Sankey (linhas curvas)
 // =============================================================================
 export function InfluenciaSetorial({ data }) {
-  if (!data) return <EmBreveBento subtitulo="Sankey setor × partido em construção." />;
+  if (!data) return <PainelAwaitingData subtitulo="Roster + links UF×partido a sincronizar." />;
   const colors = ['#22d3ee', '#a78bfa', '#fbbf24', '#34d399', '#f87171'];
   return (
     <div className="relative w-full h-full min-h-[100px]">
@@ -451,8 +462,10 @@ export function InfluenciaSetorial({ data }) {
         {data.links.map((l, i) => {
           const fromIdx = data.esquerda.indexOf(l.from);
           const toIdx = data.direita.indexOf(l.to);
-          const y1 = 12 + fromIdx * (76 / (data.esquerda.length - 1));
-          const y2 = 12 + toIdx * (76 / (data.direita.length - 1));
+          const denomL = Math.max(1, data.esquerda.length - 1);
+          const denomR = Math.max(1, data.direita.length - 1);
+          const y1 = 12 + fromIdx * (76 / denomL);
+          const y2 = 12 + toIdx * (76 / denomR);
           return (
             <path
               key={i}
@@ -473,7 +486,7 @@ export function InfluenciaSetorial({ data }) {
 // B13 AtividadeLegislativa — 4 KPIs em grid (métricas operacionais reais)
 // =============================================================================
 export function AtividadeLegislativa({ data }) {
-  if (!data) return <EmBreveBento subtitulo="Calculando atividade legislativa." />;
+  if (!data) return <PainelAwaitingData subtitulo="Roster legislativo a sincronizar." />;
   const fmt = (v) => (v == null ? '—' : (typeof v === 'number' ? v.toLocaleString('pt-BR') : v));
   const items = [
     { label: 'Parlamentares', value: fmt(data.total),                                          color: 'cyan' },
@@ -503,7 +516,7 @@ export function AtividadeLegislativa({ data }) {
 // B14 PromessaEntrega — wordcloud + valor entregue
 // =============================================================================
 export function PromessaEntrega({ data }) {
-  if (!data) return <EmBreveBento subtitulo="Promessa × Entrega em construção." />;
+  if (!data) return <PainelAwaitingData subtitulo="Categorias CEAP a sincronizar." />;
   return (
     <div className="flex h-full gap-3">
       <div className="flex-1 flex flex-wrap gap-1.5 items-center content-center">
@@ -532,7 +545,7 @@ export function PromessaEntrega({ data }) {
 // B15 PulsoFederal — termômetro horizontal
 // =============================================================================
 export function PulsoFederal({ data }) {
-  if (!data) return <EmBreveBento subtitulo="Pulso federal em construção." />;
+  if (!data) return <PainelAwaitingData subtitulo="KPIs executado vs orçado a sincronizar." />;
   return (
     <div className="flex flex-col justify-center h-full gap-2">
       <p className="text-[10px] text-white/50">Real-time termômetro · R$ executed vs budgeted</p>
@@ -555,7 +568,7 @@ export function PulsoFederal({ data }) {
 // =============================================================================
 export function RedeEmpresarial({ data }) {
   if (!data || !Array.isArray(data?.nodes) || data.nodes.length === 0)
-    return <EmBreveBento subtitulo="Mapa de rede empresarial em construção." />;
+    return <PainelAwaitingData subtitulo="Grafo fornecedores / alvos a sincronizar." />;
   // posições circulares
   const N = data.nodes.length;
   const positions = data.nodes.reduce((acc, n, i) => {
@@ -606,7 +619,7 @@ export function RedeEmpresarial({ data }) {
 // =============================================================================
 export function AberturaOrgao({ data }) {
   if (!Array.isArray(data) || data.length === 0)
-    return <EmBreveBento subtitulo="Score de abertura por órgão em construção." />;
+    return <PainelAwaitingData subtitulo="PNCP ou categorias CEAP a sincronizar." />;
   return (
     <ul className="space-y-2 h-full flex flex-col justify-center">
       {data.map((o, i) => (
