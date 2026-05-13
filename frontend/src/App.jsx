@@ -80,7 +80,7 @@ export default function App() {
                 <Route path="/partido" element={<PartidoPage />} />
                 <Route path="/partido/:sigla" element={<PartidoPage />} />
                 <Route path="/comercial" element={<Navigate to="/partido" replace />} />
-
+                {/* Painel clássico 17 Bento cards — rota pública de vitrine. */}
                 <Route path="/painel" element={<PainelPage />} />
                 <Route path="/alvos" element={<Navigate to="/universo" replace />} />
                 <Route path="/dashboard" element={<Navigate to="/status" replace />} />

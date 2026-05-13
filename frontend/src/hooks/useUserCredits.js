@@ -13,7 +13,9 @@ import { isFrontendGodModeBypass } from "../lib/godModeEnv.js";
 /** Interpreta `creditos` vindo do Firestore (número ou string pt-BR, ex.: "7.000"). */
 function parseUsuarioCreditos(raw) {
   if (typeof raw === "number" && Number.isFinite(raw)) return raw;
-  const s = String(raw ?? "").trim();
+  const s = String(raw ?? "")
+    .replace(/\s/g, "")
+    .trim();
   if (!s) return 0;
   if (/^\d+$/.test(s)) return Number(s);
   const hasComma = s.includes(",");
@@ -87,7 +89,10 @@ export function useUserCredits() {
       }
 
       try {
-        await ensureUsuarioDoc(user.uid, { email: user.email });
+        await ensureUsuarioDoc(user.uid, {
+          email: user.email,
+          displayName: user.displayName || undefined,
+        });
       } catch {
         /* rules / rede */
       }
@@ -116,7 +121,9 @@ export function useUserCredits() {
           ]
             .map((x) => String(x ?? "").trim())
             .find(Boolean);
-          setProfileDisplayName(nameFromDoc || null);
+          setProfileDisplayName(
+            nameFromDoc || (user?.displayName ? String(user.displayName).trim() : null) || null,
+          );
         },
         () => {
           setCredits(0);

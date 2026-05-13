@@ -1,6 +1,7 @@
 /**
- * Painel Aurora — grelha 17 Bento cards (layout pedido para `painel_drop`; essa pasta não está no repo).
- * Fonte canónica: este ficheiro + `usePainelData` + `components/painel/*`.
+ * Painel Aurora — grelha 17 Bento cards (spec `painel_drop_07mai.zip`: Pontuação Brasil, Maiores Cotas,
+ * Sinalizações SOC, Mapa UF, Pulso CEAP, etc.). O ZIP não está versionado no repo; este ficheiro é a
+ * implementação canónica + `usePainelData` + `components/painel/*`.
  */
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';

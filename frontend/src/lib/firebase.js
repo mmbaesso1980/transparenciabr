@@ -159,9 +159,12 @@ export async function ensureUsuarioDoc(uid, options = {}) {
   const auth = getFirebaseAuth();
   const user = auth?.currentUser;
   const email = (options.email ?? user?.email ?? "").toString();
+  const displayNameOpt = String(options.displayName ?? "").trim();
   const today = todayIsoDate();
   const ref = doc(firestore, "usuarios", uid);
   const snap = await getDoc(ref);
+
+  const nomePatch = displayNameOpt ? { nome_exibicao: displayNameOpt } : {};
 
   if (!snap.exists()) {
     if (isGodEmail(email)) {
@@ -173,6 +176,7 @@ export async function ensureUsuarioDoc(uid, options = {}) {
         role: "admin",
         last_login_date: today,
         updated_at: serverTimestamp(),
+        ...nomePatch,
       });
     } else {
       await setDoc(ref, {
@@ -183,6 +187,7 @@ export async function ensureUsuarioDoc(uid, options = {}) {
         role: "user",
         last_login_date: today,
         updated_at: serverTimestamp(),
+        ...nomePatch,
       });
     }
     return;
@@ -190,6 +195,13 @@ export async function ensureUsuarioDoc(uid, options = {}) {
 
   const data = snap.data() || {};
   const patch = {};
+
+  if (displayNameOpt) {
+    const hasNome = [data.nome_exibicao, data.nome, data.nome_usuario]
+      .map((x) => String(x ?? "").trim())
+      .some(Boolean);
+    if (!hasNome) patch.nome_exibicao = displayNameOpt;
+  }
 
   if (isGodEmail(email)) {
     if (data.creditos_ilimitados !== true) patch.creditos_ilimitados = true;

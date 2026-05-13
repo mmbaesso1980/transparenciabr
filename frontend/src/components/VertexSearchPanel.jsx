@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
-import { Search, Loader2, AlertTriangle, FileText, Database } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Search, Loader2, AlertTriangle, FileText, Database, ExternalLink } from "lucide-react";
 
 /**
  * VertexSearchPanel — busca consolidada nos 10 datastores Vertex AI Search via Cloud Function v2.
@@ -32,6 +33,28 @@ const TONE_CLASS = {
   primary: "border-cyan-500/40 bg-cyan-500/10 text-cyan-200",
 };
 
+/** Tenta extrair ID de parlamentar em Firestore (dossiê em `/dossie/:id`). */
+function pickPoliticoIdFromEvidence(ev) {
+  const d = ev?.dados || {};
+  const candidates = [
+    d.id,
+    d.politico_id,
+    d.politicoId,
+    d.deputado_id,
+    d.parlamentar_id,
+  ];
+  for (const c of candidates) {
+    const s = String(c ?? "").trim();
+    if (s) return s;
+  }
+  const fonte = String(ev?.fonte || "");
+  if (fonte === "tbr-fs2-politicos" || fonte === "tbr-fs2-dossies") {
+    const id = String(ev?.id ?? "").trim();
+    if (id) return id;
+  }
+  return null;
+}
+
 function ResumoCard({ resumo, total, elapsed }) {
   if (!resumo) return null;
   return (
@@ -50,10 +73,12 @@ function ResumoCard({ resumo, total, elapsed }) {
   );
 }
 
-function EvidenciaCard({ ev }) {
+function EvidenciaCard({ ev, onOpenDossie }) {
   const meta = FONTE_LABELS[ev.fonte] || { label: ev.fonte, icon: "📄", tone: "primary" };
   const tone = TONE_CLASS[meta.tone];
   const dados = ev.dados || {};
+  const politicoId = pickPoliticoIdFromEvidence(ev);
+  const canOpen = typeof onOpenDossie === "function" && politicoId;
   // Heurística pra extrair título legível do struct
   const titulo =
     dados.nome ||
@@ -75,7 +100,24 @@ function EvidenciaCard({ ev }) {
     .join(" · ");
 
   return (
-    <div className={`rounded-lg border ${tone} p-4 transition hover:bg-slate-800/40`}>
+    <div
+      className={`rounded-lg border ${tone} p-4 transition hover:bg-slate-800/40 ${
+        canOpen ? "cursor-pointer ring-1 ring-transparent hover:ring-cyan-500/30" : ""
+      }`}
+      role={canOpen ? "button" : undefined}
+      tabIndex={canOpen ? 0 : undefined}
+      onClick={canOpen ? () => onOpenDossie(politicoId) : undefined}
+      onKeyDown={
+        canOpen
+          ? (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onOpenDossie(politicoId);
+              }
+            }
+          : undefined
+      }
+    >
       <div className="mb-2 flex items-center gap-2 text-xs uppercase tracking-wider opacity-80">
         <span>{meta.icon}</span>
         <span>{meta.label}</span>
@@ -86,6 +128,12 @@ function EvidenciaCard({ ev }) {
       {ev.snippet && (
         <p className="mt-2 text-sm leading-relaxed text-slate-300">{ev.snippet}</p>
       )}
+      {canOpen ? (
+        <p className="mt-3 flex items-center gap-1.5 text-xs font-semibold text-cyan-300/90">
+          <ExternalLink className="h-3.5 w-3.5" aria-hidden />
+          Abrir dossiê
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -120,10 +168,20 @@ function FontesPills({ searches }) {
 }
 
 export default function VertexSearchPanel() {
+  const navigate = useNavigate();
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [data, setData] = useState(null);
+
+  const goDossie = useCallback(
+    (id) => {
+      const clean = String(id ?? "").trim();
+      if (!clean) return;
+      navigate(`/dossie/${encodeURIComponent(clean)}`);
+    },
+    [navigate],
+  );
 
   const handleSubmit = useCallback(
     async (e) => {
@@ -200,7 +258,7 @@ export default function VertexSearchPanel() {
           {data.evidencias?.length > 0 ? (
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
               {data.evidencias.map((ev, i) => (
-                <EvidenciaCard key={`${ev.fonte}-${ev.id}-${i}`} ev={ev} />
+                <EvidenciaCard key={`${ev.fonte}-${ev.id}-${i}`} ev={ev} onOpenDossie={goDossie} />
               ))}
             </div>
           ) : (
