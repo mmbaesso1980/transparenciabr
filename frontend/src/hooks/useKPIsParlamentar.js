@@ -142,10 +142,17 @@ export function extractHeroKPIs(kpis) {
 
   return {
     // Score 0-100, baseado no índice de risco Aurora (0-1)
-    score_aurora:
-      typeof kpis.indice_risco_aurora === "number"
+    score_aurora: (() => {
+      const rawAsm = kpis.score_asmodeus;
+      if (typeof rawAsm === "number" && Number.isFinite(rawAsm)) {
+        let v = rawAsm;
+        if (v > 0 && v <= 1) v *= 100;
+        return Math.round(Math.max(0, Math.min(100, v)));
+      }
+      return typeof kpis.indice_risco_aurora === "number"
         ? Math.round(kpis.indice_risco_aurora * 100)
-        : null,
+        : null;
+    })(),
     // Total CEAP classificado em BRL (acumulado nos anos disponíveis)
     ceap_acumulado: ceapDerivado,
     // Quantidade de notas (alto risco quando há score; senão total classificado)

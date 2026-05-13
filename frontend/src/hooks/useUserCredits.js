@@ -17,6 +17,7 @@ import { isFrontendGodModeBypass } from "../lib/godModeEnv.js";
 export function useUserCredits() {
   const [credits, setCredits] = useState(null);
   const [godMode, setGodMode] = useState(false);
+  const [unlimited, setUnlimited] = useState(false);
   const [user, setUser] = useState(null);
 
   useEffect(() => {
@@ -40,6 +41,7 @@ export function useUserCredits() {
       if (!user) {
         setUser(null);
         setGodMode(false);
+        setUnlimited(false);
         setCredits(null);
         return;
       }
@@ -72,8 +74,12 @@ export function useUserCredits() {
         (snap) => {
           const n = Number(snap.data()?.creditos ?? 0);
           setCredits(Number.isFinite(n) ? n : 0);
+          setUnlimited(snap.data()?.creditos_ilimitados === true);
         },
-        () => setCredits(0),
+        () => {
+          setCredits(0);
+          setUnlimited(false);
+        },
       );
     });
 
@@ -83,5 +89,5 @@ export function useUserCredits() {
     };
   }, []);
 
-  return { credits, godMode, user };
+  return { credits, godMode, unlimited, user };
 }

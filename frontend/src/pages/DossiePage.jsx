@@ -72,10 +72,10 @@ function RefreshDossieButton({ politicoId }) {
   const onClick = async () => {
     if (!politicoId || loading) return;
     if (!window.confirm(
-      "Disparar nova coleta sob demanda? Isso debitará 200 créditos e marcará o dossiê como em processamento.",
+      "Disparar nova coleta sob demanda? Isso debitará 800 créditos (dossiê matador) e marcará o dossiê como em processamento.",
     )) return;
     try {
-      await generate(politicoId);
+      await generate(politicoId, { tipo: "dossie_matador" });
     } catch {
       /* erro tratado abaixo via state */
     }
@@ -88,7 +88,7 @@ function RefreshDossieButton({ politicoId }) {
         disabled={loading}
         className="inline-flex w-fit items-center gap-2 rounded-full border border-cyan-400/40 bg-cyan-400/10 px-4 py-2 text-xs font-bold uppercase tracking-widest text-cyan-200 transition hover:bg-cyan-400/20 disabled:opacity-50"
       >
-        {loading ? "Agendando…" : "Atualizar agora — 200 cr"}
+        {loading ? "Agendando…" : "Atualizar agora — 800 cr"}
       </button>
       {error ? (
         <span className="text-[10px] text-rose-300">{error}</span>

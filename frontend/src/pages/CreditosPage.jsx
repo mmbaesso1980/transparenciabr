@@ -22,6 +22,7 @@ import {
 import { getFirebaseApp, getFirebaseAuth, getFirestoreDb } from "../lib/firebase.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useUserCredits } from "../hooks/useUserCredits.js";
+import { CREDIT_PRICE_DOSSIE_MATADOR } from "../data/creditPricing.js";
 
 // =============================================================================
 // CATÁLOGO Sprint 2.7 — preservado verbatim do repo (NÃO ALTERAR PREÇOS / IDs)
@@ -95,7 +96,7 @@ const PACKAGES = [
 const FAQ = [
   {
     q: "Como funcionam os créditos?",
-    a: "Cada análise consome créditos: 1 dossiê completo = 200 créditos, 1 nota fiscal detalhada = 100 créditos. Os créditos não expiram e ficam vinculados à sua conta para sempre.",
+    a: `Cada análise consome créditos: 1 dossiê matador = ${CREDIT_PRICE_DOSSIE_MATADOR} créditos, 1 nota fiscal detalhada = 100 créditos. Créditos comprados não expiram; a cota diária gratuita (300) reinicia quando você retorna em outro dia — ver regras no perfil.`,
   },
   {
     q: "Posso pedir reembolso?",
@@ -146,7 +147,7 @@ export default function CreditosPage() {
 
   // Calculadora — sugere o melhor pacote dado N dossiês/mês
   const recommendedPkg = useMemo(() => {
-    const need = calcDossies * 200;
+    const need = calcDossies * CREDIT_PRICE_DOSSIE_MATADOR;
     const eligible = PACKAGES.filter((p) => p.credits >= need);
     if (eligible.length === 0) return PACKAGES[PACKAGES.length - 1];
     return eligible.reduce((best, p) => (p.perCredit < best.perCredit ? p : best), eligible[0]);
@@ -447,7 +448,7 @@ export default function CreditosPage() {
                     ))}
                   </tr>
                   <tr>
-                    <td className="px-5 py-3.5 text-[#cbd5e1]">Dossiês completos (~200 cr)</td>
+                    <td className="px-5 py-3.5 text-[#cbd5e1]">{`Dossiês matador (~${CREDIT_PRICE_DOSSIE_MATADOR} cr)`}</td>
                     {PACKAGES.map((p) => (
                       <td
                         key={p.id}
@@ -556,7 +557,7 @@ export default function CreditosPage() {
                 <div className="flex justify-between">
                   <span className="text-[#8B949E]">Créditos necessários</span>
                   <span className="font-mono tabular-nums text-[#F0F4FC]">
-                    {num(calcDossies * 200)}
+                    {num(calcDossies * CREDIT_PRICE_DOSSIE_MATADOR)}
                   </span>
                 </div>
                 <div className="flex justify-between">
