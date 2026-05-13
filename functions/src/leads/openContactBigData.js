@@ -14,9 +14,9 @@
 
 'use strict';
 
-const functions = require('firebase-functions');
+/** Gen 1: usar `firebase-functions/v1` + `.region().runWith({ memory, timeoutSeconds })` — sem `cpu` nem opções v2. */
+const functions = require('firebase-functions/v1');
 const { logger } = require('firebase-functions');
-const { HttpsError } = require('firebase-functions/v2/https');
 
 function loadOpenContactDeps() {
   if (!global.__tbr_open_contact_deps) {
@@ -38,13 +38,10 @@ function loadOpenContactDeps() {
  *
  * @type {functions.HttpsFunction}
  */
-exports.openContactBigData = functions.https.onCall(
-  {
-    region: 'us-central1',
-    timeoutSeconds: 60,
-    memory: '1GiB',
-  },
-  async (data, context) => {
+exports.openContactBigData = functions
+  .region('us-central1')
+  .runWith({ memory: '1GB', timeoutSeconds: 60 })
+  .https.onCall(async (data, context) => {
     const { bigDataAdapter, pjeAdapter, bq, credits } = loadOpenContactDeps();
     const { fetchLeadByHash, marcarDesqualificado } = bq;
     const { getPricing, getSaldo, cobrarCreditos, getUnlockData } = credits;
@@ -54,7 +51,7 @@ exports.openContactBigData = functions.https.onCall(
     // ══════════════════════════════════════════════════════════════════════
     if (!context.auth) {
       logger.warn('openContactBigData: tentativa sem autenticação.');
-      throw new HttpsError(
+      throw new functions.https.HttpsError(
         'unauthenticated',
         'Autenticação obrigatória para acessar dados de contato.'
       );
@@ -68,11 +65,11 @@ exports.openContactBigData = functions.https.onCall(
     const { leadId, advogadoOAB } = data || {};
 
     if (!leadId || typeof leadId !== 'string' || leadId.trim().length === 0) {
-      throw new HttpsError('invalid-argument', 'leadId é obrigatório e deve ser uma string válida.');
+      throw new functions.https.HttpsError('invalid-argument', 'leadId é obrigatório e deve ser uma string válida.');
     }
 
     if (!advogadoOAB || typeof advogadoOAB !== 'string' || advogadoOAB.trim().length === 0) {
-      throw new HttpsError(
+      throw new functions.https.HttpsError(
         'permission-denied',
         'advogadoOAB é obrigatório. ' +
           'TODO: validação de OAB via API oficial será implementada na Sprint 2.'
@@ -115,7 +112,7 @@ exports.openContactBigData = functions.https.onCall(
       }
     } catch (err) {
       logger.error('openContactBigData: erro ao verificar unlock existente.', { message: err.message });
-      throw new HttpsError('internal', 'Erro ao verificar histórico de desbloqueio.');
+      throw new functions.https.HttpsError('internal', 'Erro ao verificar histórico de desbloqueio.');
     }
 
     // ══════════════════════════════════════════════════════════════════════
@@ -126,15 +123,15 @@ exports.openContactBigData = functions.https.onCall(
       lead = await fetchLeadByHash(leadIdLimpo);
     } catch (err) {
       logger.error('openContactBigData: erro ao buscar lead no BQ.', { message: err.message });
-      throw new HttpsError('internal', 'Erro ao consultar base de dados de leads.');
+      throw new functions.https.HttpsError('internal', 'Erro ao consultar base de dados de leads.');
     }
 
     if (!lead) {
-      throw new HttpsError('not-found', `Lead ${leadIdLimpo} não encontrado na base de dados.`);
+      throw new functions.https.HttpsError('not-found', `Lead ${leadIdLimpo} não encontrado na base de dados.`);
     }
 
     if (lead.status_lead === 'desqualificado') {
-      throw new HttpsError(
+      throw new functions.https.HttpsError(
         'failed-precondition',
         'Este lead já foi desqualificado e não pode ser processado.'
       );
@@ -169,15 +166,15 @@ exports.openContactBigData = functions.https.onCall(
           numeroProcesso: pjeResult.numeroProcesso,
         });
 
-        throw new HttpsError(
+        throw new functions.https.HttpsError(
           'failed-precondition',
           'Este lead já possui processo judicial ativo no PJe (lead_already_processed). ' +
             'Nenhum crédito foi cobrado.'
         );
       }
     } catch (err) {
-      // Re-lança HttpsError diretamente
-      if (err instanceof HttpsError) throw err;
+      // Re-lança functions.https.HttpsError diretamente
+      if (err instanceof functions.https.HttpsError) throw err;
 
       // Falha técnica no PJe — log e segue (não bloqueia por falha do adapter)
       logger.error('openContactBigData: falha no adapter PJe — seguindo sem verificação.', {
@@ -194,7 +191,7 @@ exports.openContactBigData = functions.https.onCall(
       pricing = await getPricing();
     } catch (err) {
       logger.error('openContactBigData: erro ao buscar pricing.', { message: err.message });
-      throw new HttpsError('internal', 'Erro ao carregar tabela de preços.');
+      throw new functions.https.HttpsError('internal', 'Erro ao carregar tabela de preços.');
     }
 
     const custo = pricing.contato_bigdata;
@@ -206,7 +203,7 @@ exports.openContactBigData = functions.https.onCall(
     try {
       saldoAtual = await getSaldo(uid);
     } catch (err) {
-      throw new HttpsError('internal', 'Erro ao consultar saldo de créditos.');
+      throw new functions.https.HttpsError('internal', 'Erro ao consultar saldo de créditos.');
     }
 
     if (saldoAtual < custo) {
@@ -215,7 +212,7 @@ exports.openContactBigData = functions.https.onCall(
         saldo: saldoAtual,
         custo,
       });
-      throw new HttpsError(
+      throw new functions.https.HttpsError(
         'resource-exhausted',
         `Créditos insuficientes. Saldo: ${saldoAtual}. Necessário: ${custo}. ` +
           'Adquira mais créditos para continuar. (insufficient_credits)'
@@ -232,7 +229,7 @@ exports.openContactBigData = functions.https.onCall(
       logger.error('openContactBigData: falha na consulta BigDataCorp.', {
         message: err.message,
       });
-      throw new HttpsError(
+      throw new functions.https.HttpsError(
         'internal',
         'Falha ao consultar base de dados de contato. Tente novamente em instantes.'
       );
@@ -263,19 +260,19 @@ exports.openContactBigData = functions.https.onCall(
     } catch (err) {
       // Trata erros conhecidos da transação
       if (err.message?.startsWith('SALDO_INSUFICIENTE')) {
-        throw new HttpsError(
+        throw new functions.https.HttpsError(
           'resource-exhausted',
           'Créditos insuficientes (verificação concorrente). (insufficient_credits)'
         );
       }
       if (err.message === 'USUARIO_NAO_ENCONTRADO') {
-        throw new HttpsError('not-found', 'Usuário não encontrado no sistema.');
+        throw new functions.https.HttpsError('not-found', 'Usuário não encontrado no sistema.');
       }
 
       logger.error('openContactBigData: falha na transação de cobrança.', {
         message: err.message,
       });
-      throw new HttpsError('internal', 'Erro ao processar cobrança. Nenhum crédito foi debitado.');
+      throw new functions.https.HttpsError('internal', 'Erro ao processar cobrança. Nenhum crédito foi debitado.');
     }
 
     // ══════════════════════════════════════════════════════════════════════
@@ -305,5 +302,4 @@ exports.openContactBigData = functions.https.onCall(
         mockReason: contactData.reason || null,
       },
     };
-  }
-);
+  });
