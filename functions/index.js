@@ -2009,3 +2009,33 @@ exports.getDossieAurora = functions
       res.status(503).json({ error: "query_failed", detail: String(err.message || err) });
     }
   });
+
+// ── getSacanagens — Motor de detecção de irregularidades (Onda 25) ──
+const { queryTopSacanagens, querySacanagensDetalhe } = require("./src/datalake/getSacanagens.js");
+exports.getSacanagens = functions
+  .region("southamerica-east1")
+  .runWith({ memory: "1GB", timeoutSeconds: 120 })
+  .https.onRequest(async (req, res) => {
+    res.set("Access-Control-Allow-Origin", "*");
+    res.set("Cache-Control", KPI_CACHE);
+    res.set("Content-Type", "application/json; charset=utf-8");
+    if (req.method !== "GET" && req.method !== "HEAD") {
+      res.status(405).json({ error: "Method not allowed" });
+      return;
+    }
+    const nome = String(req.query.nome || "").trim();
+    const limitRaw = Number(req.query.limit);
+    const limit = Math.min(100, Math.max(1, Number.isFinite(limitRaw) ? limitRaw : 50));
+    try {
+      if (nome) {
+        const data = await querySacanagensDetalhe(nome);
+        res.status(200).json(data);
+      } else {
+        const data = await queryTopSacanagens(limit);
+        res.status(200).json(data);
+      }
+    } catch (err) {
+      console.error("getSacanagens error:", err);
+      res.status(503).json({ error: "datalake unavailable", detail: String(err.message || err) });
+    }
+  });
