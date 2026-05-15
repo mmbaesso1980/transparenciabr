@@ -8,6 +8,13 @@
     ],
     "rewrites": [
       {
+        "source": "/api/datalake/universe-roster",
+        "function": {
+          "functionId": "getUniverseRoster",
+          "region": "southamerica-east1"
+        }
+      },
+      {
         "source": "/api/sprint/status",
         "function": {
           "functionId": "getSprintStatus",
@@ -39,6 +46,83 @@
         "source": "/api/vertex/ask",
         "function": {
           "functionId": "askVertexAgent",
+          "region": "southamerica-east1"
+        }
+      },
+      {
+        "source": "/api/datalake/emendas-kpis",
+        "function": {
+          "functionId": "getEmendasKPIs",
+          "region": "southamerica-east1"
+        }
+      },
+      {
+        "source": "/api/datalake/patrimonio-kpis",
+        "function": {
+          "functionId": "getPatrimonioKPIs",
+          "region": "southamerica-east1"
+        }
+      },
+      {
+        "source": "/api/datalake/viagens-kpis",
+        "function": {
+          "functionId": "getViagensKPIs",
+          "region": "southamerica-east1"
+        }
+      },
+      {
+        "source": "/api/datalake/gabinete-kpis",
+        "function": {
+          "functionId": "getNepotismoKPIs",
+          "region": "southamerica-east1"
+        }
+      },
+      {
+        "source": "/api/datalake/nepotismo-kpis",
+        "function": {
+          "functionId": "getNepotismoKPIs",
+          "region": "southamerica-east1"
+        }
+      },
+      {
+        "source": "/api/datalake/nepotismo-cruzado-kpis",
+        "function": {
+          "functionId": "getNepotismoCruzadoKPIs",
+          "region": "southamerica-east1"
+        }
+      },
+      {
+        "source": "/api/datalake/empresas-prefeituras-kpis",
+        "function": {
+          "functionId": "getEmpresasPrefeiturasKPIs",
+          "region": "southamerica-east1"
+        }
+      },
+      {
+        "source": "/api/datalake/anomalias-kpis",
+        "function": {
+          "functionId": "getAnomaliasKPIs",
+          "region": "southamerica-east1"
+        }
+      },
+      {
+        "source": "/api/datalake/risco-kpis",
+        "function": {
+          "functionId": "getRiscoKPIs",
+          "region": "southamerica-east1"
+        }
+      },
+      {
+        "source": "/api/datalake/politico-despesas",
+        "function": {
+          "functionId": "getPoliticoDespesas",
+          "region": "southamerica-east1"
+        }
+      },
+      {
+        "source": "/api/datalake/dossie-aurora",
+        "function": {
+          "functionId": "getDossieAurora",
           "region": "southamerica-east1"
         }
       },

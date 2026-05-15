@@ -28,6 +28,15 @@ const SuccessPage = lazy(() => import("./pages/SuccessPage.jsx"));
 const LogoutPage = lazy(() => import("./pages/LogoutPage.jsx"));
 const BuscaPage = lazy(() => import("./pages/BuscaPage.jsx"));
 const DossieGroundedPage = lazy(() => import("./pages/DossieGroundedPage.jsx"));
+const GabinetePage = lazy(() => import("./pages/GabinetePage.jsx"));
+const EmendasPage = lazy(() => import("./pages/EmendasPage.jsx"));
+const PatrimonioPage = lazy(() => import("./pages/PatrimonioPage.jsx"));
+const ViagensPage = lazy(() => import("./pages/ViagensPage.jsx"));
+const NepotismoPage = lazy(() => import("./pages/NepotismoPage.jsx"));
+const NepotismoCruzadoPage = lazy(() => import("./pages/NepotismoCruzadoPage.jsx"));
+const EmpresasPrefeiturasPage = lazy(() => import("./pages/EmpresasPrefeiturasPage.jsx"));
+const AnomaliesPage = lazy(() => import("./pages/AnomaliesPage.jsx"));
+const RiscoPage = lazy(() => import("./pages/RiscoPage.jsx"));
 
 // Vite: BASE_URL costuma ser "/" ou "/subpath/" (com barra final). React Router: basename sem barra final;
 // na raiz omitimos a prop.
@@ -86,6 +95,17 @@ export default function App() {
                 <Route path="/ranking" element={<Navigate to="/universo" replace />} />
                 <Route path="/radar/dossiers" element={<Navigate to="/painel" replace />} />
                 <Route path="/radar" element={<Navigate to="/painel" replace />} />
+                
+                {/* Análises especializadas */}
+                <Route path="/gabinete" element={<GabinetePage />} />
+                <Route path="/emendas" element={<EmendasPage />} />
+                <Route path="/patrimonio" element={<PatrimonioPage />} />
+                <Route path="/viagens" element={<ViagensPage />} />
+                <Route path="/nepotismo" element={<NepotismoPage />} />
+                <Route path="/nepotismo-cruzado" element={<NepotismoCruzadoPage />} />
+                <Route path="/empresas-prefeituras" element={<EmpresasPrefeiturasPage />} />
+                <Route path="/anomalias" element={<AnomaliesPage />} />
+                <Route path="/risco" element={<RiscoPage />} />
 
                 <Route path="/sobre" element={<SobrePage />} />
                 <Route path="/metodologia" element={<MetodologiaPage />} />

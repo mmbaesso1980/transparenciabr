@@ -4,7 +4,7 @@
  * implementação canónica + `usePainelData` + `components/painel/*`.
  */
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import BentoCard from '../components/painel/BentoCard';
 import BentoModal from '../components/painel/BentoModal';
@@ -46,6 +46,7 @@ export default function PainelPage() {
   const data = usePainelData();
   const [modalConfig, setModalConfig] = useState(null);
 
+  const navigate = useNavigate();
   const openModal = (cfg) => setModalConfig(cfg);
   const closeModal = () => setModalConfig(null);
 
@@ -179,7 +180,7 @@ export default function PainelPage() {
           {[
             // ─── Linha 1 ───
             { key: 'b01', span: 'lg:col-span-1 lg:row-span-1', accent: 'cyan',   icon: '🏆', title: 'Pontuação Brasil',
-              child: <PontuacaoBrasil data={data.pontuacaoBrasil} />, modal: M.score },
+              child: <PontuacaoBrasil data={data.pontuacaoBrasil} />, modal: null, href: '/risco' },
             { key: 'b02', span: 'lg:col-span-1 lg:row-span-1', accent: 'violet', icon: '⚠️', title: 'Maiores Cotas',
               child: <MaioresCotas data={data.maioresCotas} />, modal: M.cotas },
             { key: 'b03', span: 'lg:col-span-1 lg:row-span-1', accent: 'red',    icon: '⚡', title: 'Sinalizações SOC',
@@ -231,7 +232,7 @@ export default function PainelPage() {
                 title={b.title}
                 icon={b.icon}
                 accent={b.accent}
-                onClick={() => b.modal && openModal(b.modal)}
+                onClick={() => b.href ? navigate(b.href) : b.modal && openModal(b.modal)}
               >
                 {b.child}
               </BentoCard>

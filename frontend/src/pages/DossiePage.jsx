@@ -37,6 +37,8 @@ import PrismaCeapSection from "../components/dossie/PrismaCeapSection.jsx";
 import BrazilHeatmap from "../components/BrazilHeatmap.jsx";
 import NetworkGraph from "../components/dossie/NetworkGraph.jsx";
 import DossierPremiumInsights from "../components/dossie/DossierPremiumInsights.jsx";
+import AuroraInsightsSection from "../components/dossie/AuroraInsightsSection.jsx";
+import { resolvePoliticoUniversal } from "../lib/resolvePolitico.js";
 import useDossieCeapKPIs from "../hooks/useDossieCeapKPIs.js";
 import { useUserCredits } from "../hooks/useUserCredits.js";
 import { useUserClaims } from "../hooks/useUserClaims.js";
@@ -250,11 +252,29 @@ export default function DossiePage() {
     }
 
     if (reportQuery.isSuccess) {
-      if (!reportQuery.data) {
-        setError("not_found");
-        setRecord(null);
+      const fsData = reportQuery.data;
+      const hasUsefulData = fsData && typeof fsData === "object" && (fsData.nome || fsData.nome_completo || fsData.apelido_publico);
+      if (!hasUsefulData) {
+        // Fallback: Firestore doc missing or empty — try roster + CEAP
+        resolvePoliticoUniversal(politicoId.trim())
+          .then((p) => {
+            if (p) {
+              // Merge Firestore fields (if any) with roster data
+              setRecord(fsData ? { ...p, ...fsData, nome: p.nome, urlFoto: p.urlFoto || fsData.urlFoto } : p);
+              setError(null);
+            } else {
+              setError("not_found");
+              setRecord(null);
+            }
+          })
+          .catch(() => {
+            setError("not_found");
+            setRecord(null);
+          })
+          .finally(() => setLoading(false));
+        return;
       } else {
-        setRecord(reportQuery.data);
+        setRecord(fsData);
       }
       setLoading(false);
     }
@@ -602,6 +622,7 @@ export default function DossiePage() {
               politicoId={politicoId}
               loading={ceapKpiLoading}
             />
+            <AuroraInsightsSection politicoId={politicoId} mode="full" />
 
             <section
               className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"

@@ -711,7 +711,7 @@ function creditsFromSession(session) {
 /** HTTP — Stripe webhook (checkout.session.completed) */
 exports.stripeWebhook = functions
   .region("southamerica-east1")
-  .runWith({ secrets: ["STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET"] })
+  .runWith({ memory: "512MB", timeoutSeconds: 30 })
   .https.onRequest(async (req, res) => {
     if (req.method !== "POST") {
       res.status(405).send("Method Not Allowed");
@@ -805,7 +805,7 @@ function sanitizeCheckoutOrigin(raw) {
 /** Callable — devolve { url } para Checkout Stripe */
 exports.createCheckoutSession = functions
   .region("southamerica-east1")
-  .runWith({ secrets: ["STRIPE_SECRET_KEY"] })
+  .runWith({ memory: "512MB", timeoutSeconds: 30 })
   .https.onCall(async (data, context) => {
     if (!context.auth) {
       throw new functions.https.HttpsError(
@@ -1149,10 +1149,8 @@ const KPI_CACHE =
 
 exports.getDashboardKPIs = functions
   .region("southamerica-east1")
-  // Onda 19 — 1GB + 540s (máx Gen1) para suportar scan paralelo de 490+
-  // arquivos JSONL no datalake-tbr-clean/ceap_classified/. Com Concurrency=8
-  // o p99 deve ficar < 20s, mas o headroom evita 408 em cold start.
-  .runWith({ memory: "1GB", timeoutSeconds: 540 })
+  // Onda 20 — Versão otimizada: carrega roster + ranking público, agrega em memória
+  .runWith({ memory: "512MB", timeoutSeconds: 60 })
   .https.onRequest(async (req, res) => {
     res.set("Access-Control-Allow-Origin", "*");
     res.set("Access-Control-Allow-Methods", "GET");
@@ -1166,30 +1164,20 @@ exports.getDashboardKPIs = functions
 
     try {
       const {
-        scanCeapClassified,
-        loadRosterMap,
-        formatDashboardPayload,
-      } = require("./src/datalake/ceapClassifiedAggregates.js");
-      const { Storage } = require("@google-cloud/storage");
-      const storage = new Storage();
-      const scan = await scanCeapClassified(storage);
-      let rosterTotal = 594;
-      let rosterMap = new Map();
-      const rosterFile = storage.bucket("datalake-tbr-clean").file("universe/roster.json");
-      const [rex] = await rosterFile.exists();
-      if (rex) {
-        const [b] = await rosterFile.download();
-        try {
-          const j = JSON.parse(b.toString("utf-8"));
-          if (Number.isFinite(Number(j.total))) rosterTotal = Number(j.total);
-          else if (Array.isArray(j.roster)) rosterTotal = j.roster.length;
-        } catch (_) {
-          /* ignore */
-        }
-        rosterMap = await loadRosterMap(storage);
-      }
-      const body = formatDashboardPayload(scan, rosterTotal, rosterMap);
-      res.status(200).json(body);
+        loadRosterJson,
+        loadPublicRanking,
+        aggregateDashboardKPIs,
+      } = require("./src/datalake/dashboardKpisOptimized.js");
+
+      const [roster, ranking] = await Promise.all([
+        loadRosterJson(),
+        loadPublicRanking(),
+      ]);
+
+      const rosterArr = roster.roster || roster || [];
+      const kpis = aggregateDashboardKPIs(rosterArr, ranking);
+
+      res.status(200).json(kpis);
     } catch (err) {
       console.error("getDashboardKPIs error:", err);
       res.status(503).json({
@@ -1461,11 +1449,563 @@ exports.generateDossieOnDemand = functions
 // `functions.https.onCall({ region, memory, timeoutSeconds }, handler)` apenas — sem `cpu`.
 // Não envolver estes exports em `.runWith({ cpu: ... })` em index.js (Gen1 não usa esse padrão aqui).
 const leadsPaywall = require("./src/leads");
-exports.openContactBigData = leadsPaywall.openContactBigData;
-exports.generateInitialPetition = leadsPaywall.generateInitialPetition;
+// exports.openContactBigData = leadsPaywall.openContactBigData;
+// exports.generateInitialPetition = leadsPaywall.generateInitialPetition;
+
+// ── Análises Especializadas: 8 KPI Endpoints ────────────────────────────────────
+const { getEmendasKPIs } = require("./src/datalake/getEmendasKPIs.js");
+const { getPatrimonioKPIs } = require("./src/datalake/getPatrimonioKPIs.js");
+const { getViagensKPIs } = require("./src/datalake/getViagensKPIs.js");
+const { getNepotismoKPIs } = require("./src/datalake/getNepotismoKPIs.js");
+const { getNepotismoCruzadoKPIs } = require("./src/datalake/getNepotismoCruzadoKPIs.js");
+const { getEmpresasPrefeiturasKPIs } = require("./src/datalake/getEmpresasPrefeiturasKPIs.js");
+const { getAnomaliasKPIs } = require("./src/datalake/getAnomaliasKPIs.js");
+const { getRiscoKPIs } = require("./src/datalake/getRiscoKPIs.js");
+
+// Emendas Parlamentares
+exports.getEmendasKPIs = functions
+  .region("southamerica-east1")
+  .runWith({ memory: "1GB", timeoutSeconds: 60 })
+  .https.onRequest(async (req, res) => {
+    res.set("Access-Control-Allow-Origin", "*");
+    res.set("Cache-Control", KPI_CACHE);
+    res.set("Content-Type", "application/json; charset=utf-8");
+    if (req.method !== "GET" && req.method !== "HEAD") {
+      res.status(405).json({ error: "Method not allowed" });
+      return;
+    }
+    try {
+      const data = await getEmendasKPIs();
+      res.status(200).json(data);
+    } catch (err) {
+      console.error("getEmendasKPIs error:", err);
+      res.status(503).json({ error: "datalake unavailable", detail: String(err.message || err) });
+    }
+  });
+
+// Patrimônio TSE
+exports.getPatrimonioKPIs = functions
+  .region("southamerica-east1")
+  .runWith({ memory: "512MB", timeoutSeconds: 30 })
+  .https.onRequest(async (req, res) => {
+    res.set("Access-Control-Allow-Origin", "*");
+    res.set("Cache-Control", KPI_CACHE);
+    res.set("Content-Type", "application/json; charset=utf-8");
+    if (req.method !== "GET" && req.method !== "HEAD") {
+      res.status(405).json({ error: "Method not allowed" });
+      return;
+    }
+    try {
+      const data = await getPatrimonioKPIs();
+      res.status(200).json(data);
+    } catch (err) {
+      console.error("getPatrimonioKPIs error:", err);
+      res.status(503).json({ error: "datalake unavailable", detail: String(err.message || err) });
+    }
+  });
+
+// Viagens e Agenda
+exports.getViagensKPIs = functions
+  .region("southamerica-east1")
+  .runWith({ memory: "512MB", timeoutSeconds: 30 })
+  .https.onRequest(async (req, res) => {
+    res.set("Access-Control-Allow-Origin", "*");
+    res.set("Cache-Control", KPI_CACHE);
+    res.set("Content-Type", "application/json; charset=utf-8");
+    if (req.method !== "GET" && req.method !== "HEAD") {
+      res.status(405).json({ error: "Method not allowed" });
+      return;
+    }
+    try {
+      const data = await getViagensKPIs();
+      res.status(200).json(data);
+    } catch (err) {
+      console.error("getViagensKPIs error:", err);
+      res.status(503).json({ error: "datalake unavailable", detail: String(err.message || err) });
+    }
+  });
+
+// Nepotismo
+exports.getNepotismoKPIs = functions
+  .region("southamerica-east1")
+  .runWith({ memory: "512MB", timeoutSeconds: 30 })
+  .https.onRequest(async (req, res) => {
+    res.set("Access-Control-Allow-Origin", "*");
+    res.set("Cache-Control", KPI_CACHE);
+    res.set("Content-Type", "application/json; charset=utf-8");
+    if (req.method !== "GET" && req.method !== "HEAD") {
+      res.status(405).json({ error: "Method not allowed" });
+      return;
+    }
+    try {
+      const data = await getNepotismoKPIs();
+      res.status(200).json(data);
+    } catch (err) {
+      console.error("getNepotismoKPIs error:", err);
+      res.status(503).json({ error: "datalake unavailable", detail: String(err.message || err) });
+    }
+  });
+
+// Nepotismo Cruzado
+exports.getNepotismoCruzadoKPIs = functions
+  .region("southamerica-east1")
+  .runWith({ memory: "1GB", timeoutSeconds: 120 })
+  .https.onRequest(async (req, res) => {
+    res.set("Access-Control-Allow-Origin", "*");
+    res.set("Cache-Control", KPI_CACHE);
+    res.set("Content-Type", "application/json; charset=utf-8");
+    if (req.method !== "GET" && req.method !== "HEAD") {
+      res.status(405).json({ error: "Method not allowed" });
+      return;
+    }
+    try {
+      const data = await getNepotismoCruzadoKPIs();
+      res.status(200).json(data);
+    } catch (err) {
+      console.error("getNepotismoCruzadoKPIs error:", err);
+      res.status(503).json({ error: "datalake unavailable", detail: String(err.message || err) });
+    }
+  });
+
+// Empresas × Prefeituras
+exports.getEmpresasPrefeiturasKPIs = functions
+  .region("southamerica-east1")
+  .runWith({ memory: "512MB", timeoutSeconds: 30 })
+  .https.onRequest(async (req, res) => {
+    res.set("Access-Control-Allow-Origin", "*");
+    res.set("Cache-Control", KPI_CACHE);
+    res.set("Content-Type", "application/json; charset=utf-8");
+    if (req.method !== "GET" && req.method !== "HEAD") {
+      res.status(405).json({ error: "Method not allowed" });
+      return;
+    }
+    try {
+      const data = await getEmpresasPrefeiturasKPIs();
+      res.status(200).json(data);
+    } catch (err) {
+      console.error("getEmpresasPrefeiturasKPIs error:", err);
+      res.status(503).json({ error: "datalake unavailable", detail: String(err.message || err) });
+    }
+  });
+
+// Anomalias (Lei de Benford)
+exports.getAnomaliasKPIs = functions
+  .region("southamerica-east1")
+  .runWith({ memory: "1GB", timeoutSeconds: 120 })
+  .https.onRequest(async (req, res) => {
+    res.set("Access-Control-Allow-Origin", "*");
+    res.set("Cache-Control", KPI_CACHE);
+    res.set("Content-Type", "application/json; charset=utf-8");
+    if (req.method !== "GET" && req.method !== "HEAD") {
+      res.status(405).json({ error: "Method not allowed" });
+      return;
+    }
+    try {
+      const data = await getAnomaliasKPIs();
+      res.status(200).json(data);
+    } catch (err) {
+      console.error("getAnomaliasKPIs error:", err);
+      res.status(503).json({ error: "datalake unavailable", detail: String(err.message || err) });
+    }
+  });
+
+// Score de Risco
+exports.getRiscoKPIs = functions
+  .region("southamerica-east1")
+  .runWith({ memory: "1GB", timeoutSeconds: 120 })
+  .https.onRequest(async (req, res) => {
+    res.set("Access-Control-Allow-Origin", "*");
+    res.set("Cache-Control", KPI_CACHE);
+    res.set("Content-Type", "application/json; charset=utf-8");
+    if (req.method !== "GET" && req.method !== "HEAD") {
+      res.status(405).json({ error: "Method not allowed" });
+      return;
+    }
+    try {
+      const data = await getRiscoKPIs();
+      res.status(200).json(data);
+    } catch (err) {
+      console.error("getRiscoKPIs error:", err);
+      res.status(503).json({ error: "datalake unavailable", detail: String(err.message || err) });
+    }
+  });
 
 // ── Onda 4: Worker do dossiê on-demand ────────────────────────────────────
 // Trigger Firestore onCreate em dossie_jobs/{jobId} → coleta camadas → grava
 // em transparency_reports/{politicoId}.camadas.{nome}. Documentação inline.
 const processDossieJobModule = require("./src/dossie/processDossieJob");
 exports.processDossieJob = processDossieJobModule.processDossieJob;
+
+
+// ── getPoliticoDespesas — Despesas detalhadas com alertas (Onda 24) ──
+exports.getPoliticoDespesas = functions
+  .region("southamerica-east1")
+  .runWith({ memory: "1GB", timeoutSeconds: 300 })
+  .https.onRequest(async (req, res) => {
+    res.set("Access-Control-Allow-Origin", "*");
+    res.set("Access-Control-Allow-Methods", "GET,OPTIONS");
+    res.set("Access-Control-Allow-Headers", "Content-Type,Authorization");
+    if (req.method === "OPTIONS") { res.status(204).send(""); return; }
+    res.set("Cache-Control", "public, max-age=300");
+    res.set("Content-Type", "application/json; charset=utf-8");
+
+    const nome = String(req.query.nome || "").trim();
+    const id = String(req.query.id || "").trim();
+    const mode = String(req.query.mode || "preview").trim();
+
+    if (!nome && !id) {
+      res.status(400).json({ error: "missing_param", hint: "Use ?nome=POMPEO DE MATTOS ou ?id=204554" });
+      return;
+    }
+
+    try {
+      const { queryDespesas, computeStats, formatRow } = require("./src/datalake/getPoliticoDespesas.js");
+      const rows = await queryDespesas(id, nome || null);
+
+      if (!rows || rows.length === 0) {
+        res.status(404).json({ error: "no_data", detail: "Nenhuma despesa encontrada para este parlamentar na legislatura atual." });
+        return;
+      }
+
+      const stats = computeStats(rows);
+      const parlamentar = String(rows[0].nome_parlamentar || nome || id);
+
+      if (mode === "preview") {
+        const sorted = [...rows].sort((a, b) => Number(b.valor_documento || 0) - Number(a.valor_documento || 0));
+        const preview = sorted.slice(0, 10).map(r => formatRow(r, stats, false));
+        const totalAlertas = rows.filter(r => {
+          const val = Number(r.valor_documento || 0);
+          return (val >= 500 && val % 100 === 0) || val >= 10000;
+        }).length;
+
+        res.status(200).json({
+          parlamentar,
+          mode: "preview",
+          resumo: {
+            total_despesas: stats.total_despesas,
+            total_brl: stats.total_brl,
+            total_com_alerta: totalAlertas,
+            periodo: stats.periodo,
+            topFornecedores: stats.topFornecedores,
+            tipoBreakdown: stats.tipoBreakdown,
+          },
+          despesas: preview,
+          paywall: {
+            custo: 100,
+            msg: "Desbloqueie todas as despesas com links clicáveis e alertas detalhados por 100 créditos.",
+            total_ocultas: Math.max(0, rows.length - 10),
+          },
+        });
+        return;
+      }
+
+      // Full mode
+      const full = rows.map(r => formatRow(r, stats, true));
+      const alertCount = full.filter(r => r.tem_alerta).length;
+
+      res.status(200).json({
+        parlamentar,
+        mode: "full",
+        resumo: {
+          total_despesas: stats.total_despesas,
+          total_brl: stats.total_brl,
+          total_com_alerta: alertCount,
+          periodo: stats.periodo,
+          topFornecedores: stats.topFornecedores,
+          tipoBreakdown: stats.tipoBreakdown,
+        },
+        despesas: full,
+      });
+    } catch (err) {
+      console.error("getPoliticoDespesas error:", err);
+      res.status(503).json({ error: "query_failed", detail: String(err.message || err) });
+    }
+  });
+
+// ── getDossieAurora — Dossiê Aurora 360 completo (v2 — sem dependência de tb_dossie_aurora_360) ──
+exports.getDossieAurora = functions
+  .region("southamerica-east1")
+  .runWith({ memory: "1GB", timeoutSeconds: 300 })
+  .https.onRequest(async (req, res) => {
+    res.set("Access-Control-Allow-Origin", "*");
+    res.set("Access-Control-Allow-Methods", "GET,OPTIONS");
+    res.set("Access-Control-Allow-Headers", "Content-Type,Authorization");
+    if (req.method === "OPTIONS") { res.status(204).send(""); return; }
+    res.set("Cache-Control", "public, max-age=600");
+    res.set("Content-Type", "application/json; charset=utf-8");
+
+    const nome = String(req.query.nome || "").trim();
+    const id = String(req.query.id || "").trim();
+    const mode = String(req.query.mode || "preview").trim();
+
+    if (!nome && !id) {
+      res.status(400).json({ error: "missing_param", hint: "Use ?nome=POMPEO DE MATTOS ou ?id=204554" });
+      return;
+    }
+
+    try {
+      const {
+        resolveNome, queryCeapStats, queryTopFornecedores, queryTipoDespesas,
+        queryGastosMensais, queryEmendas, queryBenford, queryZscoreOutliers,
+        queryBaseEleitoral, querySacanagens, queryFornecedorConcentrado,
+        queryF15DuplaCobranca, queryF15FretamentoRota, queryF04TrechoInconsistente,
+        queryEmendasCeapCruzamento, queryEmendasConcentracao, queryEmendasFuncaoCeap,
+      } = require("./src/datalake/getDossieAurora.js");
+
+      // Resolve parlamentar — NÃO depende de tb_dossie_aurora_360
+      let parlamentarNome = nome;
+      let parlamentarId = id;
+      if (id && !nome) {
+        const resolved = await resolveNome(id);
+        if (!resolved) {
+          res.status(404).json({ error: "not_found", detail: "Parlamentar não encontrado com este ID." });
+          return;
+        }
+        parlamentarNome = resolved.nome_parlamentar;
+        parlamentarId = resolved.parlamentar_id;
+      }
+
+      // Preview: dados rápidos gratuitos
+      const ceapStats = await queryCeapStats(parlamentarNome);
+      if (!ceapStats && mode === "preview") {
+        // Sem dados CEAP — tenta emendas
+        const emendas = await queryEmendas(parlamentarNome);
+        if (emendas.length === 0) {
+          res.status(404).json({ error: "no_data", detail: "Sem dados CEAP ou emendas para este parlamentar." });
+          return;
+        }
+        const totalEmp = emendas.reduce((s, e) => s + Number(e.valorEmpenhado || 0), 0);
+        res.status(200).json({
+          parlamentar: parlamentarNome,
+          parlamentar_id: parlamentarId,
+          mode: "preview",
+          resumo: { total_ceap_brl: 0, total_notas: 0, total_emendas: emendas.length, total_emendas_brl: totalEmp },
+          paywall: { custo: 800, msg: "Dossiê Matador: CEAP + Emendas + Benford + Fornecedores + Z-Score + Base Eleitoral. 800 créditos." },
+        });
+        return;
+      }
+
+      const pid = ceapStats ? ceapStats.parlamentar_id : parlamentarId;
+      const benford = await queryBenford(pid);
+      const benfordAlerts = benford.filter(b => b.flag_desvio_gt_30pct);
+
+      if (mode === "preview") {
+        res.status(200).json({
+          parlamentar: parlamentarNome,
+          parlamentar_id: pid,
+          mode: "preview",
+          resumo: {
+            total_ceap_brl: ceapStats ? Math.round(ceapStats.total_brl * 100) / 100 : 0,
+            total_notas: ceapStats ? ceapStats.total_notas : 0,
+            notas_redondas: ceapStats ? ceapStats.notas_redondas : 0,
+            notas_altas: ceapStats ? ceapStats.notas_altas : 0,
+            fornecedores_distintos: ceapStats ? ceapStats.fornecedores_distintos : 0,
+            benford_alertas: benfordAlerts.length,
+            periodo: ceapStats ? {
+              inicio: ceapStats.primeira_nota?.value || "",
+              fim: ceapStats.ultima_nota?.value || "",
+            } : null,
+          },
+          paywall: {
+            custo: 800,
+            msg: "Dossiê Matador: CEAP + Emendas + Benford + Fornecedores + Z-Score + Base Eleitoral. 800 créditos.",
+          },
+        });
+        return;
+      }
+
+      // ── FULL MODE — 16 queries em paralelo (10 originais + 6 forenses) ──
+      const [topFornecedores, tipoDespesas, gastosMensais, emendas, zscoreOutliers, baseEleitoral, sacanagens, fornecedorConcentrado, f15Dupla, f15Rota, f04Trecho, emendasCeap, emendasConc, emendasFuncao] = await Promise.all([
+        queryTopFornecedores(parlamentarNome),
+        queryTipoDespesas(parlamentarNome),
+        queryGastosMensais(parlamentarNome),
+        queryEmendas(parlamentarNome),
+        queryZscoreOutliers(pid),
+        queryBaseEleitoral(parlamentarNome),
+        querySacanagens(parlamentarNome),
+        queryFornecedorConcentrado(parlamentarNome),
+        queryF15DuplaCobranca(parlamentarNome),
+        queryF15FretamentoRota(parlamentarNome),
+        queryF04TrechoInconsistente(parlamentarNome),
+        queryEmendasCeapCruzamento(parlamentarNome),
+        queryEmendasConcentracao(parlamentarNome),
+        queryEmendasFuncaoCeap(parlamentarNome),
+      ]);
+
+      const emendasSuspeitas = emendas.filter(e => {
+        const val = Number(e.valorEmpenhado || 0);
+        return val >= 1000000 || (val >= 100000 && val % 100000 === 0);
+      });
+
+      // Score de risco ASMODEUS (v2 — inclui filtros forenses)
+      const f15Count = (f15Dupla || []).filter(f => f.severidade === 'CRITICO').length;
+      const f04Count = (f04Trecho || []).filter(f => f.severidade === 'ALTO').length;
+      const emendasCruzCount = (emendasCeap || []).filter(f => f.severidade === 'CRITICO').length;
+      const scoreRisco = Math.min(100, Math.round(
+        (benfordAlerts.length * 15) +
+        (ceapStats ? ceapStats.notas_redondas : 0) * 0.1 +
+        (ceapStats ? ceapStats.notas_altas : 0) * 2 +
+        emendasSuspeitas.length * 5 +
+        zscoreOutliers.length * 3 +
+        fornecedorConcentrado.filter(f => f.notas >= 10).length * 4 +
+        f15Count * 12 +
+        f04Count * 3 +
+        emendasCruzCount * 8
+      ));
+
+      res.status(200).json({
+        parlamentar: parlamentarNome,
+        parlamentar_id: pid,
+        mode: "full",
+        ceap: {
+          total_brl: ceapStats ? Math.round(ceapStats.total_brl * 100) / 100 : 0,
+          total_notas: ceapStats ? ceapStats.total_notas : 0,
+          notas_redondas: ceapStats ? ceapStats.notas_redondas : 0,
+          notas_altas: ceapStats ? ceapStats.notas_altas : 0,
+          fornecedores_distintos: ceapStats ? ceapStats.fornecedores_distintos : 0,
+          periodo: ceapStats ? { inicio: ceapStats.primeira_nota?.value || "", fim: ceapStats.ultima_nota?.value || "" } : null,
+          top_fornecedores: (topFornecedores || []).map(f => ({
+            nome: f.nome_fornecedor, total: Math.round(Number(f.total) * 100) / 100, notas: f.notas,
+            pct: ceapStats && ceapStats.total_brl > 0 ? Math.round((Number(f.total) / ceapStats.total_brl) * 1000) / 10 : 0,
+          })),
+          tipo_despesas: (tipoDespesas || []).map(t => ({ tipo: t.tipo_despesa, total: Math.round(Number(t.total) * 100) / 100, notas: t.notas })),
+          gastos_mensais: (gastosMensais || []).map(g => ({ mes: g.mes, total: Math.round(Number(g.total) * 100) / 100, notas: g.notas })),
+        },
+        benford: {
+          total_digitos_analisados: benford.length,
+          alertas: benfordAlerts.map(b => ({ digito: b.digito, observado_pct: b.pct_observado_pct, teorico_pct: b.pct_teorico_pct, gap_pct: b.gap_relativo_pct })),
+          distribuicao: benford.map(b => ({ digito: b.digito, observado: b.pct_observado_pct, teorico: b.pct_teorico_pct })),
+        },
+        zscore: {
+          outliers: zscoreOutliers.map(z => ({ data: z.data_emissao?.value || "", gasto_dia: z.gasto_dia, zscore: Math.round((z.zscore || 0) * 100) / 100 })),
+        },
+        emendas: {
+          total: emendas.length,
+          total_empenhado: emendas.reduce((s, e) => s + Number(e.valorEmpenhado || 0), 0),
+          total_pago: emendas.reduce((s, e) => s + Number(e.valorPago || 0), 0),
+          suspeitas: emendasSuspeitas.length,
+          lista: emendas.map(e => ({
+            descricao: e.descricao, valor_empenhado: Number(e.valorEmpenhado || 0), valor_pago: Number(e.valorPago || 0),
+            funcao: e.funcao, subfuncao: e.subfuncao, municipio: e.municipio, estado: e.estado, ano: e.ano,
+            suspeita: Number(e.valorEmpenhado || 0) >= 1000000 || (Number(e.valorEmpenhado || 0) >= 100000 && Number(e.valorEmpenhado || 0) % 100000 === 0),
+          })),
+        },
+        base_eleitoral: (baseEleitoral || []).map(b => ({
+          municipio: b.nome_municipio, uf: b.uf, total_emendas: Math.round(Number(b.total_emendas_valor || 0) * 100) / 100,
+          n_documentos: b.n_documentos, populacao: b.populacao, idh: b.idh_municipal,
+        })),
+        sacanagens: {
+          notas_suspeitas: (sacanagens || []).map(s => ({
+            fornecedor: s.nome_fornecedor, valor: s.valor_documento, tipo: s.tipo_despesa,
+            data: s.data_emissao?.value || "", alerta: s.tipo_alerta, numero_documento: s.numero_documento,
+          })),
+          fornecedores_concentrados: (fornecedorConcentrado || []).map(f => ({
+            nome: f.nome_fornecedor, notas: f.notas, total: Math.round(Number(f.total) * 100) / 100,
+            primeira: f.primeira?.value || "", ultima: f.ultima?.value || "", meses: f.meses_distintos,
+          })),
+        },
+        filtros_forenses: {
+          f15_dupla_cobranca: {
+            total: (f15Dupla || []).length,
+            criticos: (f15Dupla || []).filter(f => f.severidade === 'CRITICO').length,
+            valor_total_suspeito: (f15Dupla || []).reduce((s, f) => s + Number(f.valor_total_suspeito || 0), 0),
+            casos: (f15Dupla || []).map(f => ({
+              data_fretamento: f.data_fretamento?.value || '',
+              valor_fretamento: f.valor_fretamento,
+              fornecedor_fretamento: f.fornecedor_fretamento,
+              url_fretamento: f.url_fretamento,
+              data_passagem: f.data_passagem?.value || '',
+              valor_passagem: f.valor_passagem,
+              fornecedor_passagem: f.fornecedor_passagem,
+              trecho_passagem: f.trecho_passagem,
+              dias_diferenca: f.dias_diferenca,
+              valor_total: f.valor_total_suspeito,
+              severidade: f.severidade,
+            })),
+          },
+          f15_fretamento_rota_comercial: {
+            total: (f15Rota || []).length,
+            valor_total: (f15Rota || []).reduce((s, f) => s + Number(f.valor || 0), 0),
+            casos: (f15Rota || []).map(f => ({
+              data: f.data_nota?.value || '',
+              valor: f.valor,
+              fornecedor: f.fornecedor,
+              trecho: f.trecho,
+              url: f.url_documento,
+              severidade: f.severidade,
+            })),
+          },
+          f04_trecho_inconsistente: {
+            total: (f04Trecho || []).length,
+            sem_trecho: (f04Trecho || []).filter(f => f.tipo_alerta === 'F04_SEM_TRECHO_DECLARADO').length,
+            sem_brasilia: (f04Trecho || []).filter(f => f.tipo_alerta === 'F04_TRECHO_SEM_BRASILIA').length,
+            casos: (f04Trecho || []).slice(0, 15).map(f => ({
+              data: f.data_nota?.value || '',
+              valor: f.valor,
+              fornecedor: f.fornecedor,
+              trecho: f.trecho,
+              tipo_alerta: f.tipo_alerta,
+              url: f.url_documento,
+              severidade: f.severidade,
+            })),
+          },
+          emendas_x_ceap: {
+            total: (emendasCeap || []).length,
+            criticos: (emendasCeap || []).filter(f => f.severidade === 'CRITICO').length,
+            valor_circuito: (emendasCeap || []).reduce((s, f) => s + Number(f.valor_circuito_total || 0), 0),
+            casos: (emendasCeap || []).slice(0, 10).map(f => ({
+              municipio: f.municipio_emenda,
+              estado: f.estado,
+              emenda_valor: f.emenda_total_empenhado,
+              ceap_fornecedor: f.ceap_fornecedor,
+              ceap_cnpj: f.ceap_cnpj_fornecedor,
+              ceap_valor: f.total_ceap,
+              ceap_notas: f.ceap_notas,
+              valor_circuito: f.valor_circuito_total,
+              severidade: f.severidade,
+            })),
+          },
+          emendas_concentracao: {
+            total: (emendasConc || []).length,
+            casos: (emendasConc || []).map(f => ({
+              municipio: f.municipio,
+              estado: f.estado,
+              valor: f.total_municipio,
+              pct: f.pct_concentracao,
+              severidade: f.severidade,
+            })),
+          },
+          emendas_funcao_x_ceap: {
+            total: (emendasFuncao || []).length,
+            casos: (emendasFuncao || []).slice(0, 10).map(f => ({
+              emenda_funcao: f.emenda_funcao,
+              emenda_municipio: f.emenda_municipio,
+              emenda_ano: f.emenda_ano,
+              emenda_valor: f.emenda_valor,
+              ceap_fornecedor: f.ceap_fornecedor,
+              ceap_tipo: f.ceap_tipo,
+              ceap_valor: f.total_ceap,
+              severidade: f.severidade,
+            })),
+          },
+        },
+        alertas_consolidados: {
+          benford_desvios: benfordAlerts.length,
+          notas_redondas: ceapStats ? ceapStats.notas_redondas : 0,
+          notas_acima_10k: ceapStats ? ceapStats.notas_altas : 0,
+          emendas_suspeitas: emendasSuspeitas.length,
+          zscore_outliers: zscoreOutliers.length,
+          fornecedores_concentrados: fornecedorConcentrado.filter(f => f.notas >= 10).length,
+          f15_dupla_cobranca: (f15Dupla || []).length,
+          f15_fretamento_rota: (f15Rota || []).length,
+          f04_trecho_irregular: (f04Trecho || []).length,
+          emendas_x_ceap_criticos: (emendasCeap || []).filter(f => f.severidade === 'CRITICO').length,
+          emendas_concentracao: (emendasConc || []).length,
+          score_risco: scoreRisco,
+        },
+      });
+    } catch (err) {
+      console.error("getDossieAurora error:", err);
+      res.status(503).json({ error: "query_failed", detail: String(err.message || err) });
+    }
+  });
