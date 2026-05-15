@@ -276,6 +276,7 @@ def run_emendas_ingestion_pipeline() -> int:
             # por codigoEmenda cobre eventuais sobreposições.
             pagina = max(1, (counts_by_year.get(ano, 0) // 15) + 1)
         ano_total = 0
+        _reset_attempted = False
         while True:
             elapsed = time.monotonic() - started_at
             if elapsed >= MAX_RUNTIME_SECONDS:
@@ -294,11 +295,34 @@ def run_emendas_ingestion_pipeline() -> int:
             params = {"ano": ano, "pagina": pagina}
             try:
                 resp = session.get(url, headers=headers, params=params, timeout=(15, 90))
-                if resp.status_code == 404:
-                    logger.info(f"Ano {ano} pág {pagina}: 404 — fim de paginação.")
+                if resp.status_code in (404, 405, 416):
+                    # API CGU pode retornar 405 para páginas além do limite real.
+                    # Se estávamos retomando de uma página alta, tenta resetar para pág 1.
+                    if pagina > 1 and not _reset_attempted:
+                        logger.warning(
+                            "Ano %s pág %s: HTTP %s — API pode ter mudado. "
+                            "Resetando para página 1 para tentar novamente.",
+                            ano, pagina, resp.status_code,
+                        )
+                        pagina = 1
+                        _reset_attempted = True
+                        continue
+                    logger.info(f"Ano {ano} pág {pagina}: {resp.status_code} — fim de paginação.")
                     break
+                if resp.status_code == 429:
+                    logger.warning("Rate limit (429) em ano=%s pág=%s. Esperando 30s...", ano, pagina)
+                    time.sleep(30)
+                    continue
                 resp.raise_for_status()
                 data = resp.json()
+            except requests.exceptions.HTTPError as e:
+                logger.error(f"HTTP erro ao buscar emendas ano={ano} pagina={pagina}: {e}")
+                if pagina > 1 and not _reset_attempted:
+                    logger.info("Tentando resetar para página 1...")
+                    pagina = 1
+                    _reset_attempted = True
+                    continue
+                break
             except Exception as e:
                 logger.error(f"Falha ao buscar emendas ano={ano} pagina={pagina}: {e}")
                 break

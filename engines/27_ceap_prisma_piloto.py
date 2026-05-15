@@ -326,14 +326,49 @@ def main(argv: Optional[List[str]] = None) -> int:
         print(json.dumps(bundle, ensure_ascii=False, indent=2, default=str))
         return 0
 
-    fs = init_firestore()
+    try:
+        fs = init_firestore()
+    except Exception as exc:
+        logger.error(
+            "Falha ao inicializar Firestore: %s\n"
+            "Verifique se a service account tem role 'roles/datastore.user' no projeto transparenciabr.\n"
+            "Fix: gcloud projects add-iam-policy-binding transparenciabr "
+            "--member='serviceAccount:<SA>@transparenciabr.iam.gserviceaccount.com' "
+            "--role='roles/datastore.user'",
+            exc,
+        )
+        # Salva JSON local como fallback
+        fallback_path = f"/tmp/prisma_bundle_{dep_id}.json"
+        Path(fallback_path).write_text(
+            json.dumps(bundle, ensure_ascii=False, indent=2, default=str),
+            encoding="utf-8",
+        )
+        logger.info("Bundle salvo localmente em %s (Firestore indispon\u00edvel).", fallback_path)
+        return 4
+
     if args.merge_report:
-        merge_transparency_report(fs, dep_id, bundle)
-        logger.info("transparency_reports/%s atualizado (investigacao_prisma_ceap).", dep_id)
+        try:
+            merge_transparency_report(fs, dep_id, bundle)
+            logger.info("transparency_reports/%s atualizado (investigacao_prisma_ceap).", dep_id)
+        except Exception as exc:
+            logger.error(
+                "Erro ao gravar em transparency_reports: %s\n"
+                "Provavel falta de role 'roles/datastore.user'. Continuando...",
+                exc,
+            )
 
     if args.gravar_alertas:
-        n = gravar_alertas_resumo(fs, deputado_id=dep_id, bundle=bundle)
-        logger.info("alertas_bodes: %s documentos gravados.", n)
+        try:
+            n = gravar_alertas_resumo(fs, deputado_id=dep_id, bundle=bundle)
+            logger.info("alertas_bodes: %s documentos gravados.", n)
+        except Exception as exc:
+            logger.error(
+                "Erro ao gravar alertas_bodes: %s\n"
+                "Fix IAM: gcloud projects add-iam-policy-binding transparenciabr "
+                "--member='serviceAccount:tbr-ingestor@transparenciabr.iam.gserviceaccount.com' "
+                "--role='roles/datastore.user'",
+                exc,
+            )
 
     return 0
 

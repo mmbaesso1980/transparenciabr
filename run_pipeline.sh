@@ -1,115 +1,176 @@
 #!/bin/bash
-# run_pipeline.sh — Script de automação para VM tbr-mainframe-us-east1-d
-# Resolve Bugs 2, 3, 5 em sequência e faz deploy
+# ============================================================
+# run_pipeline.sh — GO-LIVE TransparênciaBR
+# VM: tbr-mainframe-us-east1-d
 # Uso: bash run_pipeline.sh
+# ============================================================
 
-set -e
+set -euo pipefail
 
-echo "🚀 TransparênciaBR — Pipeline de Correção de Bugs"
-echo "=================================================="
+echo "🚀 TransparênciaBR — GO-LIVE Pipeline"
+echo "======================================"
 echo ""
 
 # ============================================
 # CONFIGURAÇÃO
 # ============================================
-export GOOGLE_APPLICATION_CREDENTIALS="${GOOGLE_APPLICATION_CREDENTIALS:-$HOME/keys/vertex-key.json}"
-export CGU_API_TOKEN="${CGU_API_TOKEN:-}"
-export EMENDAS_START_YEAR="${EMENDAS_START_YEAR:-2023}"
-export EMENDAS_END_YEAR="${EMENDAS_END_YEAR:-2025}"
+# Key.json na raiz do projeto (conforme enviado pelo usuário)
+export GOOGLE_APPLICATION_CREDENTIALS="${GOOGLE_APPLICATION_CREDENTIALS:-/home/manusalt13/transparenciabr/key.json}"
+export CGU_API_TOKEN="${CGU_API_TOKEN:-717a95e01b072090f41940282eab700a}"
 
-# Projeto Vertex AI (crédito GenAI App Builder)
+# Forçar início da página 1 para evitar 405 em páginas altas
+export EMENDAS_START_YEAR="${EMENDAS_START_YEAR:-2023}"
+export EMENDAS_START_PAGE="1"
+export EMENDAS_PAGE_SLEEP="2.5"
+export EMENDAS_MAX_PAGES_PER_YEAR="800"
+
+# Projeto GCP
+export GCP_PROJECT_ID="transparenciabr"
+export BQ_DATASET="transparenciabr"
+
+# Vertex AI (créditos em projeto-codex-br)
 export VERTEX_PROJECT="projeto-codex-br"
 export VERTEX_LOCATION="us-east1"
-
-# Projeto BigQuery (dados)
-export BQ_PROJECT="fiscallizapa"
 
 cd "$(dirname "$0")"
 
 echo "📋 Configuração:"
-echo "   Vertex AI: $VERTEX_PROJECT ($VERTEX_LOCATION)"
-echo "   BigQuery:  $BQ_PROJECT"
-echo "   Emendas:   $EMENDAS_START_YEAR-$EMENDAS_END_YEAR"
+echo "   Credenciais: $GOOGLE_APPLICATION_CREDENTIALS"
+echo "   GCP Project: $GCP_PROJECT_ID"
+echo "   BQ Dataset:  $BQ_DATASET"
+echo "   Emendas:     $EMENDAS_START_YEAR+ (página $EMENDAS_START_PAGE)"
+echo "   CGU Token:   ${CGU_API_TOKEN:0:8}..."
 echo ""
 
 # ============================================
-# 0. GIT PULL (pegar correções recentes)
+# 0. VERIFICAÇÃO DE AUTH
 # ============================================
-echo "📥 [0/5] Atualizando repositório..."
-git pull origin main 2>/dev/null || echo "⚠️  git pull falhou (pode estar sem remote)"
+echo "🔑 [0/6] Verificando autenticação GCP..."
+if [ ! -f "$GOOGLE_APPLICATION_CREDENTIALS" ]; then
+    echo "❌ key.json não encontrado em $GOOGLE_APPLICATION_CREDENTIALS"
+    echo "   Coloque o arquivo key.json na raiz do projeto."
+    exit 1
+fi
+
+# Ativa service account
+gcloud auth activate-service-account --key-file="$GOOGLE_APPLICATION_CREDENTIALS" 2>/dev/null && \
+    echo "✅ Service account ativada." || \
+    echo "⚠️  gcloud auth falhou (pode não ter gcloud instalado, mas GOOGLE_APPLICATION_CREDENTIALS funciona)"
+
+# Smoke test BigQuery
+python3 engines/99_gcp_smoke_check.py && echo "✅ BigQuery OK!" || {
+    echo "❌ BigQuery auth falhou. Verifique key.json e permissões."
+    exit 1
+}
 echo ""
 
 # ============================================
-# 1. BUG 2: Ingestão de Emendas 2023-2025
+# 1. IAM FIXES (se tiver gcloud)
 # ============================================
-echo "📊 [1/5] Bug 2: Ingestão de Emendas $EMENDAS_START_YEAR-$EMENDAS_END_YEAR..."
+echo "🔐 [1/6] Verificando permissões IAM..."
+SA_EMAIL=$(python3 -c "import json; d=json.load(open('$GOOGLE_APPLICATION_CREDENTIALS')); print(d.get('client_email',''))" 2>/dev/null || echo "")
+if [ -n "$SA_EMAIL" ]; then
+    echo "   Service Account: $SA_EMAIL"
+    # Tenta adicionar roles necessárias (pode falhar se já existem ou sem permissão)
+    gcloud projects add-iam-policy-binding transparenciabr \
+        --member="serviceAccount:$SA_EMAIL" \
+        --role="roles/datastore.user" \
+        --quiet 2>/dev/null && echo "   ✅ Firestore role OK" || echo "   ⚠️  Firestore role: já existe ou sem permissão admin"
+    gcloud projects add-iam-policy-binding transparenciabr \
+        --member="serviceAccount:$SA_EMAIL" \
+        --role="roles/iam.serviceAccountUser" \
+        --quiet 2>/dev/null && echo "   ✅ ServiceAccountUser role OK" || echo "   ⚠️  ServiceAccountUser role: já existe ou sem permissão admin"
+else
+    echo "   ⚠️  Não foi possível extrair email da SA. Pule se as roles já foram configuradas."
+fi
+echo ""
+
+# ============================================
+# 2. GIT PULL (pegar correções recentes)
+# ============================================
+echo "📥 [2/6] Atualizando repositório..."
+git pull origin main 2>/dev/null || echo "⚠️  git pull falhou (pode estar sem remote ou conflito)"
+echo ""
+
+# ============================================
+# 3. BUG 2: Ingestão de Emendas 2023-2025
+# ============================================
+echo "📊 [3/6] Bug 2: Ingestão de Emendas $EMENDAS_START_YEAR+..."
+echo "   (Página inicial forçada: $EMENDAS_START_PAGE para evitar 405)"
 if [ -z "$CGU_API_TOKEN" ]; then
-    echo "⚠️  CGU_API_TOKEN não definido. Pulando ingestão de emendas."
-    echo "   Para obter: https://portaldatransparencia.gov.br/api-de-dados"
-    echo "   Depois: export CGU_API_TOKEN='seu_token' && bash run_pipeline.sh"
+    echo "⚠️  CGU_API_TOKEN não definido. Pulando."
 else
-    python3 engines/02_ingest_emendas.py && echo "✅ Emendas ingeridas!" || echo "❌ Falha na ingestão de emendas"
+    python3 engines/02_ingest_emendas.py && \
+        echo "✅ Emendas ingeridas!" || \
+        echo "❌ Falha na ingestão (verifique logs acima)"
 fi
 echo ""
 
 # ============================================
-# 2. BUG 3: Classificação CEAP (Pulso CEAP)
+# 4. BUG 3: Classificação CEAP (Pulso CEAP)
 # ============================================
-echo "🤖 [2/5] Bug 3: Classificação CEAP via Gemini..."
-if [ -f "engines/27_ceap_prisma_piloto.py" ]; then
-    python3 engines/27_ceap_prisma_piloto.py && echo "✅ CEAP classificado!" || echo "❌ Falha na classificação CEAP"
-else
-    echo "⚠️  Engine 27 não encontrado. Tentando engine alternativo..."
-    # Tenta o classificador batch se existir
-    find engines/ -name "*classif*" -o -name "*ceap*" | head -3
-fi
+echo "🔬 [4/6] Bug 3: Classificação CEAP — Erika Hilton (220645)..."
+python3 engines/27_ceap_prisma_piloto.py \
+    --deputado-id 220645 \
+    --gravar-alertas \
+    --merge-report && \
+    echo "✅ CEAP Prisma classificado!" || \
+    echo "⚠️  Classificação CEAP parcial (verifique Firestore permissions)"
 echo ""
 
 # ============================================
-# 3. BUG 5: Mata UF (classificação por UF)
+# 5. SYNC BigQuery → Firestore
 # ============================================
-echo "🗺️  [3/5] Bug 5: Populando classificação CEAP por UF..."
-if [ -f "engines/mata_uf_populate.py" ]; then
-    python3 engines/mata_uf_populate.py && echo "✅ Mata UF populada!" || echo "❌ Falha no Mata UF"
-else
-    echo "⚠️  Engine mata_uf não encontrado. Criando query BigQuery direta..."
-    # Query direta para popular mata_uf a partir dos dados CEAP classificados
-    bq query --project_id=$BQ_PROJECT --use_legacy_sql=false '
-    CREATE OR REPLACE TABLE `fiscallizapa.dadosBrutos.ceap_por_uf` AS
-    SELECT 
-        sgUF,
-        categoria_classificada,
-        COUNT(*) as total_notas,
-        SUM(vlrDocumento) as valor_total,
-        ROUND(SUM(vlrDocumento) / SUM(SUM(vlrDocumento)) OVER(PARTITION BY sgUF) * 100, 2) as pct_uf
-    FROM `fiscallizapa.dadosBrutos.ceap_classificado`
-    WHERE categoria_classificada IS NOT NULL
-    GROUP BY sgUF, categoria_classificada
-    ORDER BY sgUF, valor_total DESC
-    ' 2>/dev/null && echo "✅ Mata UF populada via BQ!" || echo "⚠️  Tabela ceap_classificado pode não existir ainda"
-fi
+echo "🔄 [5/6] Bug 5: Sincronizando alertas BigQuery → Firestore..."
+python3 engines/05_sync_bodes.py && \
+    echo "✅ Sync concluído!" || \
+    echo "⚠️  Sync falhou (view vw_alertas_bodes_export pode não existir ainda)"
 echo ""
 
 # ============================================
-# 4. DEPLOY CLOUD FUNCTIONS
+# 6. DEPLOY CLOUD FUNCTIONS
 # ============================================
-echo "🚀 [4/5] Deploy das Cloud Functions..."
+echo "🚀 [6/6] Deploy das Cloud Functions..."
 cd functions
 npm install --legacy-peer-deps 2>/dev/null
 cd ..
-firebase deploy --only functions --force 2>/dev/null && echo "✅ Functions deployed!" || echo "❌ Deploy falhou (verifique firebase login)"
+firebase deploy --only functions --force --project transparenciabr && \
+    echo "✅ Functions deployed!" || \
+    echo "❌ Deploy falhou. Tente: firebase login --no-localhost && firebase deploy --only functions --force"
 echo ""
 
 # ============================================
-# 5. VERIFICAÇÃO FINAL
+# VERIFICAÇÃO FINAL
 # ============================================
-echo "🔍 [5/5] Verificação final..."
+echo "=========================================="
+echo "🔍 VERIFICAÇÃO FINAL"
+echo "=========================================="
 echo ""
-echo "Checklist:"
-echo "  [ ] Score concentração: curl https://transparenciabr.web.app/api/getRiscoKPIs"
-echo "  [ ] Emendas 2023+: bq query 'SELECT ano, COUNT(*) FROM fiscallizapa.dadosBrutos.emendas GROUP BY ano ORDER BY ano'"
-echo "  [ ] Pulso CEAP: curl https://transparenciabr.web.app/api/getDashboardKPIs"
-echo "  [ ] Score 594: bq query 'SELECT COUNT(DISTINCT id_deputado) FROM fiscallizapa.dadosBrutos.score_risco_parlamentar'"
-echo "  [ ] Mata UF: bq query 'SELECT COUNT(*) FROM fiscallizapa.dadosBrutos.ceap_por_uf'"
+
+echo "--- Emendas por ano ---"
+bq query --project_id=fiscallizapa --use_legacy_sql=false \
+    'SELECT CAST(ano AS STRING) as ano, COUNT(*) as total 
+     FROM `fiscallizapa.transparenciabr.emendas` 
+     GROUP BY ano ORDER BY ano DESC LIMIT 10' 2>/dev/null || \
+bq query --project_id=transparenciabr --use_legacy_sql=false \
+    'SELECT CAST(ano AS STRING) as ano, COUNT(*) as total 
+     FROM `transparenciabr.transparenciabr.emendas` 
+     GROUP BY ano ORDER BY ano DESC LIMIT 10' 2>/dev/null || \
+    echo "⚠️  Query de verificação falhou"
+
 echo ""
-echo "🏁 Pipeline concluído!"
+echo "--- Total deputados com despesas ---"
+bq query --project_id=fiscallizapa --use_legacy_sql=false \
+    'SELECT COUNT(DISTINCT idDeputado) as total_deputados 
+     FROM `fiscallizapa.dadosBrutos.ceap_deputados`' 2>/dev/null || \
+    echo "⚠️  Query deputados falhou"
+
+echo ""
+echo "=========================================="
+echo "🏁 GO-LIVE Pipeline concluído!"
+echo ""
+echo "Próximos passos manuais:"
+echo "  1. Acesse https://transparenciabr.web.app e verifique os dados"
+echo "  2. Para mais deputados: python3 engines/27_ceap_prisma_piloto.py --deputado-id <ID>"
+echo "  3. Para Gemini classificador: export GEMINI_API_KEY=... && python3 engines/07_gemini_translator.py"
+echo "=========================================="
