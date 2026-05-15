@@ -96,13 +96,22 @@ echo ""
 # 3. BUG 2: Ingestão de Emendas 2023-2025
 # ============================================
 echo "📊 [3/6] Bug 2: Ingestão de Emendas $EMENDAS_START_YEAR+..."
-echo "   (Página inicial forçada: $EMENDAS_START_PAGE para evitar 405)"
+echo "   Tentativa 1: API CGU paginada..."
 if [ -z "$CGU_API_TOKEN" ]; then
-    echo "⚠️  CGU_API_TOKEN não definido. Pulando."
+    echo "⚠️  CGU_API_TOKEN não definido. Pulando API."
+    API_OK=false
 else
-    python3 engines/02_ingest_emendas.py && \
-        echo "✅ Emendas ingeridas!" || \
-        echo "❌ Falha na ingestão (verifique logs acima)"
+    python3 engines/02_ingest_emendas.py && API_OK=true || API_OK=false
+fi
+
+if [ "$API_OK" = false ]; then
+    echo ""
+    echo "   Tentativa 2: CSV Bulk do Portal da Transparência (sem API key)..."
+    python3 engines/02b_ingest_emendas_bulk.py --ano-min ${EMENDAS_START_YEAR:-2023} && \
+        echo "✅ Emendas ingeridas via CSV bulk!" || \
+        echo "❌ Ambas as fontes falharam. Verifique conexão e permissões."
+else
+    echo "✅ Emendas ingeridas via API!"
 fi
 echo ""
 
