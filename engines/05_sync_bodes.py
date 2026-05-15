@@ -12,7 +12,8 @@ from lib.firebase_app import init_firestore
 from lib.project_config import bq_dataset_id, gcp_project_id
 
 # ==============================================================================
-# PROTOCOLO A.S.M.O.D.E.U.S. — BigQuery → Firestore
+# AURORA — BigQuery → Firestore
+# CROSS-PROJECT: BigQuery e Firestore → transparenciabr (dados de produção)
 #  - `politicos` (array `alertas_anexados`)
 #  - `alertas_bodes` (documentos planos para fila / mapa)
 # Contexto socioeconómico (cadência baixa): ver `06_sync_context_socio.py`.

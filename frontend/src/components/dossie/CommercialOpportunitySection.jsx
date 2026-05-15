@@ -75,9 +75,7 @@ export default function CommercialOpportunitySection({ politico }) {
           </h3>
         </div>
         <p className="mt-3 text-xs leading-relaxed text-[#8B949E]">
-          Sem snapshot comercial sincronizado para este perfil. Execute o motor PCA e a
-          sincronização agregada (BigQuery → Firestore) para preencher próximas aquisições e
-          caixa municipal por IBGE.
+          Aguardando processamento. Os dados de oportunidades de mercado serão exibidos após a sincronização.
         </p>
       </div>
     );

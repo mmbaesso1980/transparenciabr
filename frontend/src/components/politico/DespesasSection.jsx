@@ -383,13 +383,26 @@ export default function DespesasSection({ nome, politicoId }) {
 
                   {/* Valor + link */}
                   <div className="flex shrink-0 flex-col items-end gap-1">
-                    <p
-                      className={`font-mono text-lg font-bold tabular-nums ${
-                        hasAlert ? "text-red-400" : "text-cyan-300"
-                      }`}
-                    >
-                      {fmtBrl(d.valor)}
-                    </p>
+                    {d.url_documento ? (
+                      <a
+                        href={d.url_documento}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={`font-mono text-lg font-bold tabular-nums hover:underline ${
+                          hasAlert ? "text-red-400" : "text-cyan-300"
+                        }`}
+                      >
+                        {fmtBrl(d.valor)}
+                      </a>
+                    ) : (
+                      <p
+                        className={`font-mono text-lg font-bold tabular-nums ${
+                          hasAlert ? "text-red-400" : "text-cyan-300"
+                        }`}
+                      >
+                        {fmtBrl(d.valor)}
+                      </p>
+                    )}
                     {d.url_documento ? (
                       <a
                         href={d.url_documento}

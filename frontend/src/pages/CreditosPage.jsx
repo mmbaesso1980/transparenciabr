@@ -198,11 +198,11 @@ export default function CreditosPage() {
         const msg = e instanceof Error ? e.message : String(e);
         if (msg.includes("STRIPE_SECRET_KEY") || msg.includes("failed-precondition")) {
           setError(
-            "Stripe ainda não foi configurado em produção. Rode: firebase functions:secrets:set STRIPE_SECRET_KEY",
+            "Sistema de pagamento em manutenção. Tente novamente em alguns minutos.",
           );
         } else if (msg.includes("not-found") || msg.includes("functions/not-found")) {
           setError(
-            "Cloud Function 'createCheckoutSession' não está implantada nesta região (southamerica-east1).",
+            "Serviço de pagamento temporariamente indisponível. Tente novamente em breve.",
           );
         } else if (msg.includes("unauthenticated")) {
           setError("Sessão expirou. Saia e entre novamente.");

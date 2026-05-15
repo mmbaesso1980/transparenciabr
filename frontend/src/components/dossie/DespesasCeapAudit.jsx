@@ -208,23 +208,14 @@ export default function DespesasCeapAudit({
         <h2 className="text-2xl font-bold tracking-tight text-[#F0F4FC] md:text-3xl">
           Monitor CEAP — auditoria de notas
         </h2>
-        <p className="mt-3 text-lg leading-relaxed text-[#8B949E]">
-          {hasBundleSemCatalogo ? (
-            <>
-              O relatório tem metadados CEAP (motor), mas o array{" "}
-              <span className="font-mono text-[#58A6FF]">despesas_ceap_catalogo</span> está ausente.
-              Rode novamente{" "}
-              <span className="font-mono text-[#58A6FF]">node ceap_motor.js</span> ou limpe o cache
-              do navegador e atualize a página.
-            </>
-          ) : (
-            <>
-              Sem catálogo CEAP neste registo. Rode o motor{" "}
-              <span className="font-mono text-[#58A6FF]">node ceap_motor.js</span> para sincronizar o
-              documento <span className="font-mono text-[#58A6FF]">transparency_reports</span>.
-            </>
-          )}
-        </p>
+        <div className="mt-4 flex items-center gap-3">
+          <div className="size-3 animate-pulse rounded-full bg-[#58A6FF]"></div>
+          <p className="text-lg leading-relaxed text-[#8B949E]">
+            {hasBundleSemCatalogo
+              ? "Processamento forense em andamento. O catálogo de notas será exibido assim que a análise for concluída."
+              : "Aguardando processamento forense. As notas CEAP deste parlamentar serão exibidas após a classificação pelo motor Aurora."}
+          </p>
+        </div>
       </div>
     );
   }
@@ -288,9 +279,20 @@ export default function DespesasCeapAudit({
                 ) : null}
               </div>
               <div className="flex w-full shrink-0 flex-col items-end gap-1 sm:ms-auto sm:w-auto sm:min-w-[11rem] sm:max-w-[min(100%,14rem)] sm:text-right">
-                <p className="font-data text-xl font-bold tabular-nums text-[#7DD3FC] md:text-2xl">
-                  {fmtBrl(pickValor(row))}
-                </p>
+                {url ? (
+                  <a
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-data text-xl font-bold tabular-nums text-[#7DD3FC] hover:underline md:text-2xl"
+                  >
+                    {fmtBrl(pickValor(row))}
+                  </a>
+                ) : (
+                  <p className="font-data text-xl font-bold tabular-nums text-[#7DD3FC] md:text-2xl">
+                    {fmtBrl(pickValor(row))}
+                  </p>
+                )}
                 {url ? (
                   <a
                     href={url}
