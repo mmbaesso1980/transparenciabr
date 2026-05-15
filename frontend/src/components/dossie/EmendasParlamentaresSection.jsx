@@ -166,13 +166,31 @@ export default function EmendasParlamentaresSection({ politico = null }) {
             Nenhuma emenda neste filtro.
           </li>
         ) : (
-          filtradas.map((row, idx) => (
+          filtradas.map((row, idx) => {
+            const emendaUrl = row.codigo_emenda
+              ? `https://portaldatransparencia.gov.br/emendas/detalhe?codigoEmenda=${row.codigo_emenda}`
+              : row.ano
+                ? `https://api.portaldatransparencia.gov.br/api-de-dados/emendas-parlamentares?ano=${row.ano}`
+                : null;
+            return (
             <li key={row.id ?? row.codigo_emenda ?? idx} className="py-3">
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div className="min-w-0 flex-1">
-                  <span className="inline-flex rounded-md border border-[#30363D] bg-[#21262D] px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wide text-[#a371f7]">
-                    {labelRpForTipo(row.tipo_emenda)}
-                  </span>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="inline-flex rounded-md border border-[#30363D] bg-[#21262D] px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wide text-[#a371f7]">
+                      {labelRpForTipo(row.tipo_emenda)}
+                    </span>
+                    {row.municipio && (
+                      <span className="text-[10px] text-[#8B949E]">
+                        {row.municipio}{row.estado ? ` — ${row.estado}` : ""}
+                      </span>
+                    )}
+                    {row.funcao && (
+                      <span className="text-[10px] text-[#58A6FF]">
+                        {row.funcao}{row.subfuncao ? ` / ${row.subfuncao}` : ""}
+                      </span>
+                    )}
+                  </div>
                   <p className="mt-2 text-sm font-medium leading-snug text-[#F0F4FC]">
                     {row.descricao_normalizada}
                   </p>
@@ -181,13 +199,48 @@ export default function EmendasParlamentaresSection({ politico = null }) {
                       Exercício {row.ano}
                     </p>
                   ) : null}
+                  {row.suspeita && (
+                    <span className="mt-1 inline-flex items-center gap-1 rounded border border-[#f85149]/50 bg-[#f85149]/10 px-2 py-0.5 text-[10px] font-semibold uppercase text-[#f85149]">
+                      Valor suspeito
+                    </span>
+                  )}
                 </div>
-                <span className="shrink-0 font-mono text-sm font-semibold tabular-nums text-[#C9D1D9]">
-                  {fmtBrl(row.valor_normalizado)}
-                </span>
+                <div className="flex shrink-0 flex-col items-end gap-1">
+                  {emendaUrl ? (
+                    <a
+                      href={emendaUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-mono text-sm font-semibold tabular-nums text-[#3fb950] hover:underline"
+                    >
+                      {fmtBrl(row.valor_normalizado)}
+                    </a>
+                  ) : (
+                    <span className="font-mono text-sm font-semibold tabular-nums text-[#C9D1D9]">
+                      {fmtBrl(row.valor_normalizado)}
+                    </span>
+                  )}
+                  {emendaUrl && (
+                    <a
+                      href={emendaUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-[10px] font-medium text-[#58A6FF] hover:underline"
+                    >
+                      Portal Transparência
+                      <ExternalLink className="size-3" strokeWidth={2} aria-hidden />
+                    </a>
+                  )}
+                  {row.valor_pago != null && Number(row.valor_pago) > 0 && (
+                    <span className="text-[10px] text-[#8B949E]">
+                      Pago: {fmtBrl(row.valor_pago)}
+                    </span>
+                  )}
+                </div>
               </div>
             </li>
-          ))
+            );
+          })
         )}
       </ul>
       )}

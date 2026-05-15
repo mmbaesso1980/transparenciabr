@@ -1699,9 +1699,10 @@ exports.getPoliticoDespesas = functions
         return;
       }
 
-      // Full mode
+      // Full mode — TODAS as notas com URLs clicáveis
       const full = rows.map(r => formatRow(r, stats, true));
       const alertCount = full.filter(r => r.tem_alerta).length;
+      const comUrl = full.filter(r => r.url_documento).length;
 
       res.status(200).json({
         parlamentar,
@@ -1710,6 +1711,7 @@ exports.getPoliticoDespesas = functions
           total_despesas: stats.total_despesas,
           total_brl: stats.total_brl,
           total_com_alerta: alertCount,
+          total_com_url: comUrl,
           periodo: stats.periodo,
           topFornecedores: stats.topFornecedores,
           tipoBreakdown: stats.tipoBreakdown,

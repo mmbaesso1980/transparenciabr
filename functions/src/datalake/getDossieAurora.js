@@ -111,7 +111,7 @@ async function queryEmendas(nome) {
       FROM \`${PROJECT}.${DATASET}.emendas\`
       WHERE LOWER(autor) LIKE CONCAT('%', LOWER(@nome), '%')
       ORDER BY CAST(valorEmpenhado AS FLOAT64) DESC
-      LIMIT 50
+      LIMIT 500
     `,
     params: { nome },
     location: "US",

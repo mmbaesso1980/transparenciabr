@@ -75,6 +75,7 @@ export function normalizeEmendaRow(row, idx) {
       row.valor ??
         row.valor_aprovado ??
         row.valorEmpenhado ??
+        row.valor_empenhado ??
         row.valor_emenda ??
         row.valorRepassado,
     ) || 0;
@@ -82,12 +83,20 @@ export function normalizeEmendaRow(row, idx) {
     row.descricao ?? row.objeto ?? row.nome ?? `Emenda ${idx + 1}`,
   );
   const ano = row.ano ?? row.exercicio ?? null;
+  const valor_pago = Number(row.valorPago ?? row.valor_pago ?? 0) || 0;
   return {
     ...row,
     tipo_emenda,
     valor_normalizado: valor,
+    valor_pago,
     descricao_normalizada: descricao,
     ano,
+    municipio: row.municipio ?? row.localidade ?? null,
+    estado: row.estado ?? row.uf ?? null,
+    funcao: row.funcao ?? null,
+    subfuncao: row.subfuncao ?? null,
+    codigo_emenda: row.codigo_emenda ?? row.codigoEmenda ?? null,
+    suspeita: row.suspeita ?? false,
   };
 }
 

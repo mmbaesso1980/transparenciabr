@@ -128,22 +128,31 @@ export default function AuroraInsightsSection({ politicoId, mode = "preview" }) 
                     Notas com Valores Redondos / Altos ({data.sacanagens.notas_suspeitas.length})
                   </p>
                   <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
-                    {data.sacanagens.notas_suspeitas.map((s, i) => (
+                    {data.sacanagens.notas_suspeitas.map((s, i) => {
+                      const docUrl = s.numero_documento && /^\d+$/.test(String(s.numero_documento))
+                        ? `https://www.camara.leg.br/cota-parlamentar/documentos/publ/${s.numero_documento}.pdf`
+                        : null;
+                      return (
                       <div key={i} className="flex items-center justify-between rounded-lg border border-[#f85149]/20 bg-[#0D1117]/80 px-3 py-2">
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-sm text-[#C9D1D9]">{s.fornecedor}</p>
                           <p className="text-[10px] text-[#484F58]">{s.tipo} · {s.data}</p>
                         </div>
-                        <div className="ml-2 text-right shrink-0">
-                          <span className="font-mono text-sm font-bold text-[#f85149]">{formatBRL(s.valor)}</span>
-                          <span className={`ml-2 text-[10px] px-1.5 py-0.5 rounded ${
+                        <div className="ml-2 text-right shrink-0 flex items-center gap-2">
+                          {docUrl ? (
+                            <a href={docUrl} target="_blank" rel="noopener noreferrer" className="font-mono text-sm font-bold text-[#f85149] hover:underline">{formatBRL(s.valor)}</a>
+                          ) : (
+                            <span className="font-mono text-sm font-bold text-[#f85149]">{formatBRL(s.valor)}</span>
+                          )}
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded ${
                             s.alerta === 'VALOR_REDONDO_MIL' ? 'bg-[#f85149]/20 text-[#f85149]' :
                             s.alerta === 'VALOR_ALTO' ? 'bg-[#FFA657]/20 text-[#FFA657]' :
                             'bg-[#FDE047]/20 text-[#FDE047]'
                           }`}>{s.alerta}</span>
                         </div>
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -194,7 +203,11 @@ export default function AuroraInsightsSection({ politicoId, mode = "preview" }) 
                 </div>
               </div>
               <div className="space-y-1.5 max-h-64 overflow-y-auto pr-1">
-                {data.emendas.lista.map((e, i) => (
+                {data.emendas.lista.map((e, i) => {
+                  const emendaLink = e.ano
+                    ? `https://portaldatransparencia.gov.br/emendas?ano=${e.ano}`
+                    : null;
+                  return (
                   <div key={i} className={`flex justify-between rounded-lg border px-3 py-2 ${
                     e.suspeita ? "border-[#f85149]/30 bg-[#f85149]/5" : "border-[#30363D] bg-[#0D1117]/80"
                   }`}>
@@ -203,13 +216,20 @@ export default function AuroraInsightsSection({ politicoId, mode = "preview" }) 
                       <p className="text-[10px] text-[#484F58]">{e.funcao} · {e.municipio}/{e.estado} · {e.ano}</p>
                     </div>
                     <div className="ml-2 text-right shrink-0">
-                      <p className={`font-mono text-sm font-bold ${e.suspeita ? "text-[#f85149]" : "text-[#58A6FF]"}`}>
-                        {formatBRL(e.valor_empenhado)}
-                      </p>
+                      {emendaLink ? (
+                        <a href={emendaLink} target="_blank" rel="noopener noreferrer" className={`font-mono text-sm font-bold hover:underline ${e.suspeita ? "text-[#f85149]" : "text-[#58A6FF]"}`}>
+                          {formatBRL(e.valor_empenhado)}
+                        </a>
+                      ) : (
+                        <p className={`font-mono text-sm font-bold ${e.suspeita ? "text-[#f85149]" : "text-[#58A6FF]"}`}>
+                          {formatBRL(e.valor_empenhado)}
+                        </p>
+                      )}
                       {e.suspeita && <span className="text-[10px] text-[#f85149]">SUSPEITA</span>}
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </CollapsibleSection>
           )}
