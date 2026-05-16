@@ -729,6 +729,47 @@ export default function PoliticoPage() {
     };
   }, [id]);
 
+  // Emendas: o roster (Firestore) costuma não incluir microdados. O mesmo endpoint
+  // de despesas CEAP já resolve o nome no BigQuery e anexa `emendas` ao JSON.
+  useEffect(() => {
+    if (!politico || !id) return;
+
+    const hasEmendas =
+      (Array.isArray(politico.emendas) && politico.emendas.length > 0) ||
+      (Array.isArray(politico.emendas_parlamentares) &&
+        politico.emendas_parlamentares.length > 0);
+    if (hasEmendas) return;
+
+    const nomeParl = String(
+      qNome || politico?.nome || politico?.nome_civil || "",
+    ).trim();
+    const qNomeParam = nomeParl ? `nome=${encodeURIComponent(nomeParl)}` : "";
+    const qIdParam = `id=${encodeURIComponent(String(id))}`;
+    const idOrNome = [qNomeParam, qIdParam].filter(Boolean).join("&");
+    if (!idOrNome) return;
+
+    const ac = new AbortController();
+    (async () => {
+      try {
+        const r = await fetch(
+          `/api/datalake/politico-despesas?${idOrNome}&mode=preview`,
+          { signal: ac.signal },
+        );
+        if (!r.ok) return;
+        const data = await r.json();
+        if (ac.signal.aborted) return;
+        const em = data?.emendas;
+        if (Array.isArray(em) && em.length > 0) {
+          setPolitico((prev) => (prev ? { ...prev, emendas: em } : prev));
+        }
+      } catch (e) {
+        if (e?.name === "AbortError") return;
+      }
+    })();
+
+    return () => ac.abort();
+  }, [politico, id, qNome]);
+
   // Fluxo da CTA principal (permanece nesta página após autenticação)
   const politicoPagePath = `/politico/${encodeURIComponent(id ?? "")}`;
   const ctaTo = isAuthenticated
