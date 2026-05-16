@@ -692,7 +692,7 @@ export default function PoliticoPage() {
           html2canvas: {
             scale: 2,
             useCORS: true,
-            backgroundColor: "#0B0F1A",
+            backgroundColor: "#ffffff",
             logging: false,
           },
           jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
@@ -1292,14 +1292,16 @@ export default function PoliticoPage() {
         </section>
       </div>
 
-      {/* Área técnica para html2pdf — fora do fluxo visual */}
+      {/* Área técnica para html2pdf: visível no DOM (sem hidden/opacity), fora da viewport.
+          html2canvas não renderiza display:none nem opacity ~0; fundo claro evita PDF “em branco” em impressão. */}
       <div
-        className="pointer-events-none fixed -left-[10000px] top-0 w-[794px] overflow-hidden opacity-[0.02]"
-        aria-hidden
+        id="pdf-content"
+        className="absolute left-[-9999px] top-0 z-0 w-[210mm] min-h-screen bg-white text-slate-900"
       >
         {displayRecord ? (
           <DossiePDFContent
             ref={pdfRef}
+            lightPaper
             politico={displayRecord}
             alertas={
               Array.isArray(politico?.alertas_anexados)
