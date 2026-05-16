@@ -4,18 +4,23 @@ Engine 28 — Classificador CEAP via Vertex AI (Gemini 2.5)
 
 ARQUITETURA CROSS-PROJECT:
   - Leitura de dados: BigQuery → projeto 'transparenciabr', dataset 'tbr_ceap', tabela 'ceap_despesas_ext'
+    + dataset 'transparenciabr', tabela 'emendas' (corte forense por autor)
+    + atividade legislativa: API pública Câmara (proposições) — não há tabela BQ canônica no repo
   - IA (Gemini 2.5): Vertex AI → projeto 'projeto-codex-br' (créditos R$ 5.952)
   - Escrita de resultados: Firestore → projeto 'transparenciabr'
     * Coleção 'transparency_reports/{deputado_id}' → campo 'classificacao_ia'
+    * Mesmo documento → 'auditoria_asmodeus_triade' (cérebro CEAP×Emendas×Mandato, JSON estrito)
     * Coleção 'alertas_bodes' → alertas individuais por nota
 
 FLUXO:
   1. Consulta BigQuery para obter todas as notas CEAP de um parlamentar (ou batch)
-  2. Agrupa notas em lotes de 10 (para otimizar tokens e custo)
-  3. Envia cada lote ao Gemini 2.5 Flash (via Vertex AI, billing em projeto-codex-br)
-  4. Gemini classifica cada nota: risco (baixo/médio/alto/crítico), justificativa, flags
-  5. Grava classificações em Firestore (transparency_reports + alertas_bodes)
-  6. Opcionalmente grava em BigQuery (tabela ceap_despesas_classificadas)
+  2. Monta envelope único: resumo CEAP + emendas (BQ) + proposições (API Câmara)
+  3. Passagem Vertex com system instruction A.S.M.O.D.E.U.S. (auditoria tripartite → JSON Firestore)
+  4. Agrupa notas em lotes de 10 (para otimizar tokens e custo)
+  5. Envia cada lote ao Gemini 2.5 Flash (via Vertex AI, billing em projeto-codex-br)
+  6. Gemini classifica cada nota: risco (baixo/médio/alto/crítico), justificativa, flags
+  7. Grava classificações em Firestore (transparency_reports + alertas_bodes)
+  8. Opcionalmente grava em BigQuery (tabela ceap_despesas_classificadas)
 
 CUSTO ESTIMADO:
   - ~10 notas por request, ~500 tokens input + ~200 tokens output por nota
@@ -51,7 +56,7 @@ _ENG = Path(__file__).resolve().parent
 if str(_ENG) not in sys.path:
     sys.path.insert(0, str(_ENG))
 
-from lib.project_config import gcp_project_id, vertex_project_id, vertex_location
+from lib.project_config import gcp_project_id, bq_dataset_id, vertex_project_id, vertex_location
 from lib.resilience import call_with_exponential_backoff
 
 logging.basicConfig(
@@ -99,6 +104,19 @@ Responda APENAS com um array JSON válido. Sem markdown, sem explicação fora d
 
 NOTAS PARA CLASSIFICAR:
 {notas_json}
+"""
+
+# Cérebro tripartite (CEAP × Emendas × Atividade) — alinhado ao callable on-demand (Caso Gilson).
+SYSTEM_INSTRUCTION_ASMODEUS = """
+Você é o braço de inteligência analítica do ecossistema A.S.M.O.D.E.U.S.
+Sua tarefa nesta varredura em lote é processar os payloads consolidados dos parlamentares.
+
+Para cada registro, você deve gerar uma classificação tripartite (ILEGAL, IMORAL, SUSPEITO) cobrindo:
+1. Irregularidades em notas fiscais e CPFs de terceiros na CEAP.
+2. Desvio de finalidade em Emendas Parlamentares, cruzando dados de empenho com execuções reais mapeadas via Diários Oficiais e PNCP.
+3. Discrepâncias graves entre a presença real (atividade) e o volume de ressarcimentos logísticos requisitados.
+
+Seu output deve ser estruturado em JSON estrito para alimentação direta do Firestore.
 """
 
 
@@ -169,6 +187,173 @@ def fetch_all_deputados_bq(bq_client=None) -> List[str]:
     ids = [row["ide_cadastro"] for row in results]
     logger.info("BigQuery: %d parlamentares distintos encontrados", len(ids))
     return ids
+
+
+def fetch_emendas_bq(nome_parlamentar: str, bq_client) -> List[Dict[str, Any]]:
+    """Emendas parlamentares (mesmo núcleo lógico do datalake Node / getDossieAurora)."""
+    nome = (nome_parlamentar or "").strip()
+    if not nome:
+        return []
+    from google.cloud import bigquery
+
+    pid = gcp_project_id()
+    ds = bq_dataset_id()
+    query = f"""
+      SELECT autor, descricao,
+             CAST(valorEmpenhado AS FLOAT64) AS valorEmpenhado,
+             CAST(valorPago AS FLOAT64) AS valorPago,
+             funcao, subfuncao, municipio, estado, ano
+      FROM `{pid}.{ds}.emendas`
+      WHERE LOWER(autor) LIKE CONCAT('%', LOWER(@nome), '%')
+      ORDER BY valorEmpenhado DESC
+      LIMIT 120
+    """
+    job_config = bigquery.QueryJobConfig(
+        query_parameters=[bigquery.ScalarQueryParameter("nome", "STRING", nome)],
+    )
+    rows = list(bq_client.query(query, job_config=job_config, location="US").result())
+    out = [dict(r) for r in rows]
+    logger.info("BigQuery emendas: %d linhas para %s", len(out), nome[:48])
+    return out
+
+
+def fetch_proposicoes_camara(deputado_id: str, timeout: float = 14.0) -> Dict[str, Any]:
+    """
+    Proposições recentes (API dados abertos Câmara).
+    Não há tabela canônica de proposições no BQ neste repositório; a API cobre o pilar legislativo.
+    """
+    import urllib.request
+
+    dep = str(deputado_id).strip()
+    if not dep.isdigit():
+        return {"fonte": "api_camara", "proposicoes": [], "nota": "id_nao_numerico"}
+    url = (
+        f"https://dadosabertos.camara.leg.br/api/v2/deputados/{dep}/proposicoes"
+        "?itens=40&ordem=DESC&ordenarPor=id"
+    )
+    try:
+        req = urllib.request.Request(
+            url,
+            headers={"Accept": "application/json", "User-Agent": "TransparenciaBR-Engine28/1.0"},
+        )
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+        dados = data.get("dados") or []
+        slim = [
+            {
+                "id": x.get("id"),
+                "siglaTipo": x.get("siglaTipo"),
+                "numero": x.get("numero"),
+                "ano": x.get("ano"),
+                "ementa": str(x.get("ementa") or "")[:500],
+            }
+            for x in dados[:40]
+        ]
+        return {"fonte": "api_camara", "proposicoes": slim}
+    except Exception as exc:  # pragma: no cover - rede
+        return {"fonte": "api_camara", "proposicoes": [], "erro": str(exc)[:240]}
+
+
+def build_consolidated_payload(
+    deputado_id: str,
+    nome: str,
+    notas: List[Dict[str, Any]],
+    bq_client,
+) -> Dict[str, Any]:
+    """Envelope único: CEAP (amostra agregada) + emendas BQ + atividade (API)."""
+    top_fn: Dict[str, float] = {}
+    for n in notas[:800]:
+        cnpj = str(n.get("txt_cnpjcpf") or "").strip()
+        fn = str(n.get("txt_fornecedor") or "").strip()[:120]
+        key = cnpj or fn
+        if not key:
+            continue
+        top_fn[key] = top_fn.get(key, 0.0) + float(n.get("vlr_documento") or 0)
+    top_pairs = sorted(top_fn.items(), key=lambda x: x[1], reverse=True)[:30]
+    emendas = fetch_emendas_bq(nome, bq_client)
+    atividade = fetch_proposicoes_camara(deputado_id)
+    total_val = sum(float(n.get("vlr_documento") or 0) for n in notas)
+    return {
+        "deputado_id": deputado_id,
+        "nome_parlamentar": nome,
+        "ceap_resumo": {
+            "total_notas": len(notas),
+            "total_valor_brl": round(total_val, 2),
+            "top_cnpj_ou_fornecedor": [
+                {"chave": k, "total_brl": round(v, 2)} for k, v in top_pairs
+            ],
+        },
+        "emendas_bq": emendas,
+        "atividade_legislativa": atividade,
+    }
+
+
+def audit_asmodeus_triade(
+    consolidated: Dict[str, Any],
+    model_tuple: Tuple[str, Any],
+) -> Optional[Dict[str, Any]]:
+    """Uma passagem Vertex com system instruction tripartite → JSON Firestore."""
+    model_type, model = model_tuple
+    payload = json.dumps(consolidated, ensure_ascii=False, default=str)[:95_000]
+    user_prompt = (
+        "Dados consolidados (um único objeto JSON — CEAP resumo, emendas BQ, atividade legislativa):\n"
+        f"{payload}\n\n"
+        "Gere APENAS JSON válido, sem markdown, exatamente neste schema:\n"
+        '{"registro":{"deputado_id":"string","nome_parlamentar":"string"},'
+        '"avaliacoes":['
+        '{"eixo":"CEAP|EMENDAS|ATIVIDADE","nivel":"ILEGAL|IMORAL|SUSPEITO",'
+        '"sintese":"string","detalhe":"string"}],'
+        '"disclaimer":"string"}\n'
+        "Inclua pelo menos uma linha em avaliacoes para cada eixo com evidência nos dados; "
+        'se faltar dado para um eixo, use nivel SUSPEITO e sintese "lacuna de dado público neste eixo".'
+    )
+
+    def _parse_model_json(text: str) -> Dict[str, Any]:
+        t = text.strip()
+        if t.startswith("```"):
+            t = t.split("\n", 1)[1].rsplit("```", 1)[0]
+        return json.loads(t)
+
+    def _call():
+        if model_type == "vertexai":
+            import vertexai
+            from vertexai.generative_models import GenerativeModel, GenerationConfig
+
+            vertexai.init(project=vertex_project_id(), location=vertex_location())
+            tri = GenerativeModel(
+                VERTEX_MODEL,
+                system_instruction=SYSTEM_INSTRUCTION_ASMODEUS,
+                generation_config=GenerationConfig(
+                    temperature=0.15,
+                    max_output_tokens=8192,
+                    response_mime_type="application/json",
+                ),
+            )
+            response = tri.generate_content(user_prompt)
+            return _parse_model_json(response.text or "{}")
+
+        combined = SYSTEM_INSTRUCTION_ASMODEUS + "\n\n" + user_prompt
+        response = model.models.generate_content(
+            model=VERTEX_MODEL,
+            contents=combined,
+        )
+        return _parse_model_json(response.text or "{}")
+
+    def _is_retriable(exc: BaseException) -> bool:
+        msg = str(exc).lower()
+        return any(s in msg for s in ("429", "500", "502", "503", "504", "timeout", "deadline", "quota"))
+
+    try:
+        return call_with_exponential_backoff(
+            _call,
+            max_attempts=3,
+            retry_on=_is_retriable,
+            base_sec=3.0,
+            max_sec=45.0,
+        )
+    except Exception as exc:
+        logger.warning("audit_asmodeus_triade falhou: %s", exc)
+        return None
 
 
 # ---------------------------------------------------------------------------
@@ -266,6 +451,7 @@ def write_classifications_firestore(
     notas: List[Dict[str, Any]],
     classifications: List[Dict[str, Any]],
     nome_parlamentar: str = "",
+    triade_report: Optional[Dict[str, Any]] = None,
 ) -> int:
     """Grava classificações em Firestore."""
     from lib.firebase_app import init_firestore
@@ -328,6 +514,14 @@ def write_classifications_firestore(
             "sincronizado_em": datetime.now(timezone.utc).isoformat(),
         },
     }
+    if triade_report and isinstance(triade_report, dict):
+        report_data["auditoria_asmodeus_triade"] = {
+            "modelo": VERTEX_MODEL,
+            "gerado_em": datetime.now(timezone.utc).isoformat(),
+            "registro": triade_report.get("registro"),
+            "avaliacoes": triade_report.get("avaliacoes"),
+            "disclaimer": triade_report.get("disclaimer", ""),
+        }
     report_ref.set(report_data, merge=True)
     logger.info("Firestore: transparency_reports/%s atualizado (score_ia=%d, %d notas classificadas)",
                 deputado_id, report_data["score_risco_ia"], len(classified_notas))
@@ -381,6 +575,9 @@ def process_parlamentar(
     """Processa um parlamentar completo: BQ → Gemini → Firestore."""
     start = time.time()
 
+    if bq_client is None:
+        bq_client = get_bq_client()
+
     # 1. Buscar notas do BigQuery
     notas = fetch_notas_bq(deputado_id, bq_client)
     if not notas:
@@ -413,6 +610,25 @@ def process_parlamentar(
         if batch_num < total_batches:
             time.sleep(1.0)
 
+    triade_report: Optional[Dict[str, Any]] = None
+    if not dry_run:
+        try:
+            consolidated = build_consolidated_payload(deputado_id, nome, notas, bq_client)
+            if all_classifications:
+                scores_ia = [
+                    c.get("score", 0)
+                    for c in all_classifications
+                    if isinstance(c.get("score"), (int, float))
+                ]
+                consolidated["pos_classificacao_ceap"] = {
+                    "notas_classificadas": len(all_classifications),
+                    "score_medio": round(sum(scores_ia) / len(scores_ia), 2) if scores_ia else 0,
+                    "notas_score_ge_70": sum(1 for s in scores_ia if s >= 70),
+                }
+            triade_report = audit_asmodeus_triade(consolidated, model_tuple)
+        except Exception as exc:
+            logger.warning("Auditoria tripartite A.S.M.O.D.E.U.S. ignorada: %s", exc)
+
     # 3. Gravar resultados
     if dry_run:
         result = {
@@ -427,7 +643,7 @@ def process_parlamentar(
         return result
 
     n_written = write_classifications_firestore(
-        deputado_id, notas, all_classifications, nome
+        deputado_id, notas, all_classifications, nome, triade_report=triade_report
     )
 
     elapsed = time.time() - start
@@ -440,6 +656,7 @@ def process_parlamentar(
         "gravadas_firestore": n_written,
         "alto_risco": sum(1 for c in all_classifications if c.get("score", 0) >= 70),
         "tempo_seg": round(elapsed, 1),
+        "asmodeus_triade": bool(triade_report),
     }
     logger.info("CONCLUÍDO %s: %d notas, %d classificadas, %d alto risco em %.1fs",
                 nome, len(notas), len(all_classifications),

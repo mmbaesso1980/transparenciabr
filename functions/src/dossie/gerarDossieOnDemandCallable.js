@@ -13,6 +13,23 @@ const VERTEX_PROJECT = "projeto-codex-br";
 const VERTEX_LOCATION = "us-central1";
 const VERTEX_MODEL = "gemini-1.5-pro";
 
+/** Cérebro forense compartilhado (Caso Gilson — rigor tripartite CEAP × Emendas × Mandato). */
+const ASMODEUS_SYSTEM_INSTRUCTION = `
+Você é o A.S.M.O.D.E.U.S., um Auditor Forense Especialista em Gastos Públicos.
+Sua missão é cruzar dados para expor anomalias estruturais em três pilares:
+
+[PILAR 1: COTA PARLAMENTAR (CEAP)]
+- Aplique o escrutínio logístico e de terceiros. Identifique desvios de finalidade e simulações de despesas (notas frias).
+
+[PILAR 2: A CAIXA PRETA DAS EMENDAS]
+- Rastreie o destino final das emendas (RP6, RP7, RP99). O dinheiro foi para prefeituras ou ONGs geridas por aliados, familiares ou doadores de campanha?
+- Cruze o CNPJ do favorecido da emenda com os fornecedores da CEAP. Identifique o fluxo de retorno financeiro e conflitos de interesse latentes.
+
+[PILAR 3: PRODUTIVIDADE VS CUSTO DO MANDATO]
+- Avalie a atividade legislativa real: presença em plenário, comissões e proposições protocoladas.
+- Conclua com o índice de eficiência: o parlamentar justifica o uso do teto da verba pública com entregas reais ou o mandato opera como um sumidouro ineficiente de recursos?
+`.trim();
+
 function sanitizeContext(raw) {
   const s = String(raw || "").trim();
   if (!s) return "";
@@ -120,6 +137,10 @@ async function runGeminiFindings(contextoInvestigativo, bundle) {
   });
   const model = vertexAI.getGenerativeModel({
     model: VERTEX_MODEL,
+    systemInstruction: {
+      role: "system",
+      parts: [{ text: ASMODEUS_SYSTEM_INSTRUCTION }],
+    },
     generationConfig: {
       maxOutputTokens: 8192,
       temperature: 0.2,
@@ -128,8 +149,8 @@ async function runGeminiFindings(contextoInvestigativo, bundle) {
 
   const payload = compactForPrompt(bundle, 100_000);
   const prompt = [
-    "Você é o Oráculo forense da Operação TransparênciaBR.",
-    "Recebeu dados públicos agregados sobre um parlamentar e um contexto investigativo opcional.",
+    "Recebeu um envelope JSON com: registros Firestore (transparency_reports, politicos) e",
+    "`datalake_context` (emendas BigQuery, cruzamento emendas×CEAP fornecedor, proposições API Câmara quando id numérico).",
     "Não invente fatos ausentes dos dados. Classifique achados como hipóteses de trabalho quando a evidência for fraca.",
     "",
     `Contexto investigativo (analista): ${contextoInvestigativo || "(não informado)"}`,
@@ -139,7 +160,8 @@ async function runGeminiFindings(contextoInvestigativo, bundle) {
     "",
     "Responda APENAS com JSON válido no formato:",
     '{"findings":[{"codigo":"F-01","tipo":"string","severidade":"ILEGAL|IRREGULAR|IMORAL|SUSPEITO","trecho":"string","fonte_primaria":"string","resumo_forense":"string"}]}',
-    "Gere entre 3 e 12 findings. Use severidade SUSPEITO salvo quando os dados sustentem gradação maior.",
+    "Gere entre 3 e 12 findings cobrindo os três pilares (CEAP, emendas/cruzamentos, produtividade legislativa) quando houver base nos dados.",
+    "Use severidade SUSPEITO salvo quando os dados sustentem gradação maior.",
   ].join("\n");
 
   const result = await model.generateContent({
@@ -155,6 +177,7 @@ async function runGeminiFindings(contextoInvestigativo, bundle) {
 function mountGerarDossieOnDemand(functionsApi, adminApp) {
   const db = adminApp.firestore();
   const FieldValue = adminApp.firestore.FieldValue;
+  const { buildParlamentarDatalakeContext } = require("./parlamentarInvestigationContext.js");
 
   return functionsApi
     .region("southamerica-east1")
@@ -179,7 +202,14 @@ function mountGerarDossieOnDemand(functionsApi, adminApp) {
 
       const contextoInvestigativo = sanitizeContext(data?.contextoInvestigativo);
 
-      const bundle = await loadRawBundle(db, politicoId);
+      const bundle0 = await loadRawBundle(db, politicoId);
+      let bundle = bundle0;
+      try {
+        const datalake_context = await buildParlamentarDatalakeContext(politicoId, bundle0);
+        bundle = { ...bundle0, datalake_context };
+      } catch (e) {
+        console.warn("gerarDossieOnDemand datalake_context:", e?.message || e);
+      }
       let findings;
       try {
         findings = await runGeminiFindings(contextoInvestigativo, bundle);
