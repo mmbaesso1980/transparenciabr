@@ -43,6 +43,7 @@ export default function DossiePage() {
               ceapKpi={d.ceapKpi}
               credits={d.credits}
               onScrollPremium={scrollPremium}
+              onInvestigationComplete={d.refetchReport}
             />
 
             <DossieHeader

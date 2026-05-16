@@ -49,12 +49,6 @@ function fmtBrl(n) {
   });
 }
 
-function fmtPct(n) {
-  const x = Number(n);
-  if (!Number.isFinite(x)) return "—";
-  return `${Math.round(x)}%`;
-}
-
 function pickPartidoSiglaPdf(politico) {
   if (!politico || typeof politico !== "object") return "—";
   const v =
@@ -103,13 +97,6 @@ function pickAsmodeusScore(politico, ceapKpi) {
   return risk != null && Number.isFinite(Number(risk)) ? Math.round(Number(risk)) : null;
 }
 
-function pickEmendasPdf(politico) {
-  const raw =
-    politico?.emendas_parlamentares ?? politico?.emendas ?? politico?.emendas_orcamento;
-  if (!Array.isArray(raw) || raw.length === 0) return [];
-  return normalizeEmendasList(raw).slice(0, 40);
-}
-
 function pickProjetosCount(politico) {
   const raw =
     politico?.proposicoes_filtradas ??
@@ -121,6 +108,19 @@ function pickProjetosCount(politico) {
   return Number.isFinite(n) ? n : null;
 }
 
+/** Contagem explícita de proposições de autoria principal (campo dedicado ou array filtrado). */
+function pickProposicoesAutoriaPrincipal(politico) {
+  const n = Number(
+    politico?.qtd_proposicoes_autoria ??
+      politico?.qtd_proposicoes_autoria_principal ??
+      politico?.proposicoes_autoria_principal_count,
+  );
+  if (Number.isFinite(n)) return n;
+  const arr = politico?.proposicoes_autoria_principal ?? politico?.proposicoes_autoria;
+  if (Array.isArray(arr)) return arr.length;
+  return null;
+}
+
 function pickPresencaPct(politico) {
   const n = Number(
     politico?.presenca_plenaria_pct ??
@@ -129,6 +129,45 @@ function pickPresencaPct(politico) {
       politico?.kpi_presenca,
   );
   return Number.isFinite(n) ? n : null;
+}
+
+function fmtPresencaExata(pct) {
+  if (pct == null || !Number.isFinite(Number(pct))) return "—";
+  const x = Number(pct);
+  const rounded = Math.round(x * 100) / 100;
+  return `${rounded.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`;
+}
+
+function pickEmendasPdfFull(politico) {
+  const raw =
+    politico?.emendas_parlamentares ?? politico?.emendas ?? politico?.emendas_orcamento;
+  if (!Array.isArray(raw) || raw.length === 0) return [];
+  return normalizeEmendasList(raw);
+}
+
+function pickValorEmpenhadoEmenda(row) {
+  const n = Number(
+    row?.valor_empenhado ??
+      row?.valorEmpenhado ??
+      row?.valor_emenda ??
+      row?.valorEmpenho ??
+      row?.valor_normalizado,
+  );
+  return Number.isFinite(n) ? n : null;
+}
+
+function pickFavorecidoDestino(row) {
+  const nome = String(
+    row?.beneficiario_nome ??
+      row?.favorecido ??
+      row?.razao_social_favorecido ??
+      row?.nome_favorecido ??
+      row?.credor_nome ??
+      "",
+  ).trim();
+  if (nome) return nome.slice(0, 120);
+  const loc = [row?.municipio_favorecido, row?.uf_favorecido].filter(Boolean).join(" / ");
+  return loc ? String(loc).slice(0, 120) : "—";
 }
 
 const DossiePDFContentInner = forwardRef(function DossiePDFContentInner(
@@ -159,7 +198,7 @@ const DossiePDFContentInner = forwardRef(function DossiePDFContentInner(
     return out;
   }, [alertas]);
 
-  const emendasRows = useMemo(() => pickEmendasPdf(politico), [politico]);
+  const emendasRows = useMemo(() => pickEmendasPdfFull(politico), [politico]);
   const top3 = useMemo(() => {
     const rows = pickContextoSocioeconomicoRows(politico);
     return rows.slice(0, 3);
@@ -167,6 +206,16 @@ const DossiePDFContentInner = forwardRef(function DossiePDFContentInner(
 
   const presenca = pickPresencaPct(politico);
   const projetosN = pickProjetosCount(politico);
+  const proposicoesAutoria = pickProposicoesAutoriaPrincipal(politico);
+
+  const chapterLabel = {
+    margin: "0 0 6px",
+    fontSize: "10px",
+    fontWeight: 800,
+    letterSpacing: "0.28em",
+    textTransform: "uppercase",
+    color: C.gold,
+  };
 
   const wrap = {
     boxSizing: "border-box",
@@ -212,12 +261,13 @@ const DossiePDFContentInner = forwardRef(function DossiePDFContentInner(
       aria-hidden="true"
     >
       <header style={{ borderBottom: `1px solid ${C.border}`, paddingBottom: "14px" }}>
+        <p style={chapterLabel}>Capítulo 1 — Cabeçalho forense</p>
         <div style={{ display: "flex", justifyContent: "space-between", gap: "12px" }}>
           <div>
             <p style={h1}>TRANSPARÊNCIABR</p>
-            <p style={subH}>ASMODEUS ENGINE v2.0 — INFERNO EDITION</p>
+            <p style={subH}>ASMODEUS ENGINE — INFERNO EDITION v3 (MODELO ERIKA HILTON)</p>
             <p style={{ margin: "6px 0 0", fontSize: "12px", color: C.muted }}>
-              DOSSIÊ FORENSE CEAP / VERBA GABINETE
+              DOSSIÊ FORENSE CEAP / VERBA GABINETE · PDF OPERACIONAL
             </p>
             <p style={{ margin: "10px 0 0", fontSize: "20px", fontWeight: 700, color: C.ink }}>
               {nome}
@@ -234,20 +284,30 @@ const DossiePDFContentInner = forwardRef(function DossiePDFContentInner(
         </div>
       </header>
 
-      <section style={{ marginTop: "16px", padding: "12px", borderRadius: "8px", backgroundColor: C.panel, border: `1px solid ${C.border}` }}>
-        <h2 style={{ margin: 0, fontSize: "11px", fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: C.muted }}>
-          Score ASMODEUS consolidado
-        </h2>
-        <p style={{ margin: "8px 0 0", fontFamily: "ui-monospace, monospace", fontSize: "28px", fontWeight: 700, color: C.cyan }}>
-          {scoreAsm != null ? `${scoreAsm} / 100` : "—"}
-        </p>
-        <p style={{ margin: "6px 0 0", fontSize: "11px", color: C.muted }}>
-          Índice agregado (Aurora / painel) quando disponível no documento.
-        </p>
-      </section>
-
       <section style={{ marginTop: "14px" }}>
-        <h2 style={{ margin: "0 0 8px", fontSize: "11px", fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: C.muted }}>
+        <p style={chapterLabel}>Capítulo 2 — Score consolidado e matriz Vertex (Ars Goetia)</p>
+        <div style={{ padding: "12px", borderRadius: "8px", backgroundColor: C.panel, border: `1px solid ${C.border}` }}>
+          <h2 style={{ margin: 0, fontSize: "11px", fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: C.muted }}>
+            Score ASMODEUS consolidado
+          </h2>
+          <p style={{ margin: "8px 0 0", fontFamily: "ui-monospace, monospace", fontSize: "28px", fontWeight: 700, color: C.cyan }}>
+            {scoreAsm != null ? `${scoreAsm} / 100` : "—"}
+          </p>
+          <p style={{ margin: "6px 0 0", fontSize: "11px", color: C.muted }}>
+            Índice agregado Aurora / datalake quando materializado no documento ou KPIs CEAP.
+          </p>
+        </div>
+
+        <h2
+          style={{
+            margin: "14px 0 8px",
+            fontSize: "11px",
+            fontWeight: 700,
+            letterSpacing: "0.14em",
+            textTransform: "uppercase",
+            color: C.muted,
+          }}
+        >
           Matriz — 12 agentes Vertex (Ars Goetia)
         </h2>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "11px", backgroundColor: C.panel, border: `1px solid ${C.border}` }}>
@@ -273,8 +333,9 @@ const DossiePDFContentInner = forwardRef(function DossiePDFContentInner(
       </section>
 
       <section style={{ marginTop: "16px", borderTop: `1px solid ${C.border}`, paddingTop: "12px" }}>
+        <p style={chapterLabel}>Capítulo 3 — Findings (F-01 … F-15) · severidade ILEGAL / IRREGULAR / IMORAL / SUSPEITO</p>
         <h2 style={{ margin: "0 0 10px", fontSize: "11px", fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: C.muted }}>
-          Findings forenses (F-01 … F-15)
+          Justificativas do Oráculo
         </h2>
         {findings.length === 0 ? (
           <p style={{ color: C.muted, fontSize: "12px" }}>Nenhum finding indexado neste PDF.</p>
@@ -329,19 +390,20 @@ const DossiePDFContentInner = forwardRef(function DossiePDFContentInner(
       </section>
 
       <section style={{ marginTop: "16px", borderTop: `1px solid ${C.border}`, paddingTop: "12px" }}>
+        <p style={chapterLabel}>Capítulo 4 — Emendas parlamentares (dados reais do relatório)</p>
         <h2 style={{ margin: "0 0 8px", fontSize: "11px", fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: C.muted }}>
-          Emendas parlamentares (ingestão recente)
+          Tabela completa (ano, tipo, empenhado, pago, favorecido / destino)
         </h2>
         {emendasRows.length === 0 ? (
           <p style={{ color: C.muted, fontSize: "12px" }}>Sem emendas materializadas neste relatório.</p>
         ) : (
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "10px", backgroundColor: C.panel, border: `1px solid ${C.border}` }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "9px", backgroundColor: C.panel, border: `1px solid ${C.border}` }}>
             <thead>
               <tr style={{ backgroundColor: "#161b22" }}>
-                {["Ano", "Tipo", "Valor pago", "Destino (município/UF)"].map((h) => (
+                {["Ano", "Tipo", "Valor empenhado", "Valor pago", "Favorecido / destino"].map((h) => (
                   <th
                     key={h}
-                    style={{ textAlign: "left", padding: "6px", borderBottom: `1px solid ${C.border}`, color: C.muted }}
+                    style={{ textAlign: "left", padding: "5px", borderBottom: `1px solid ${C.border}`, color: C.muted }}
                   >
                     {h}
                   </th>
@@ -352,19 +414,23 @@ const DossiePDFContentInner = forwardRef(function DossiePDFContentInner(
               {emendasRows.map((row, i) => {
                 const tipo =
                   row.codigo_rp ?? row.tipo_emenda ?? row.tipoEmenda ?? row.tipo_rp ?? "—";
-                const valorExib =
+                const valorPago =
                   row.valor_pago_normalizado != null && row.valor_pago_normalizado > 0
                     ? row.valor_pago_normalizado
-                    : row.valor_normalizado;
-                const destino = [row.municipio_favorecido, row.uf_favorecido].filter(Boolean).join(" / ") || "—";
+                    : row.valor_pago ?? row.valorPago;
+                const valorEmp = pickValorEmpenhadoEmenda(row);
+                const fav = pickFavorecidoDestino(row);
                 return (
-                  <tr key={row.id ?? i}>
-                    <td style={{ padding: "5px 6px", borderBottom: `1px solid ${C.border}`, color: C.ink }}>{row.ano ?? "—"}</td>
-                    <td style={{ padding: "5px 6px", borderBottom: `1px solid ${C.border}`, color: C.gold }}>{String(tipo)}</td>
-                    <td style={{ padding: "5px 6px", borderBottom: `1px solid ${C.border}`, fontFamily: "ui-monospace, monospace", color: C.cyan }}>
-                      {fmtBrl(valorExib)}
+                  <tr key={row.id ?? row.codigo_emenda ?? i}>
+                    <td style={{ padding: "4px 5px", borderBottom: `1px solid ${C.border}`, color: C.ink }}>{row.ano ?? "—"}</td>
+                    <td style={{ padding: "4px 5px", borderBottom: `1px solid ${C.border}`, color: C.gold }}>{String(tipo)}</td>
+                    <td style={{ padding: "4px 5px", borderBottom: `1px solid ${C.border}`, fontFamily: "ui-monospace, monospace", color: C.cyan }}>
+                      {fmtBrl(valorEmp)}
                     </td>
-                    <td style={{ padding: "5px 6px", borderBottom: `1px solid ${C.border}`, color: C.muted }}>{destino}</td>
+                    <td style={{ padding: "4px 5px", borderBottom: `1px solid ${C.border}`, fontFamily: "ui-monospace, monospace", color: C.cyan }}>
+                      {fmtBrl(valorPago)}
+                    </td>
+                    <td style={{ padding: "4px 5px", borderBottom: `1px solid ${C.border}`, color: C.muted }}>{fav}</td>
                   </tr>
                 );
               })}
@@ -374,15 +440,21 @@ const DossiePDFContentInner = forwardRef(function DossiePDFContentInner(
       </section>
 
       <section style={{ marginTop: "16px", borderTop: `1px solid ${C.border}`, paddingTop: "12px" }}>
+        <p style={chapterLabel}>Capítulo 5 — Atividade parlamentar (dados reais)</p>
         <h2 style={{ margin: "0 0 8px", fontSize: "11px", fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: C.muted }}>
-          Atividade legislativa
+          Presença em plenário e produção legislativa
         </h2>
         <ul style={{ margin: 0, paddingLeft: "18px", color: C.ink, fontSize: "12px" }}>
           <li style={{ marginBottom: "6px" }}>
-            Presenças em plenário (proxy KPI): <strong>{presenca != null ? fmtPct(presenca) : "—"}</strong>
+            Presença em plenário (% exato no documento):{" "}
+            <strong>{fmtPresencaExata(presenca)}</strong>
+          </li>
+          <li style={{ marginBottom: "6px" }}>
+            Proposições de autoria principal:{" "}
+            <strong>{proposicoesAutoria != null ? String(proposicoesAutoria) : "—"}</strong>
           </li>
           <li>
-            Projetos de lei (conjunto filtrado / disponível):{" "}
+            Total de proposições disponíveis no conjunto filtrado / agregado:{" "}
             <strong>{projetosN != null ? String(projetosN) : "—"}</strong>
           </li>
         </ul>
@@ -401,8 +473,9 @@ const DossiePDFContentInner = forwardRef(function DossiePDFContentInner(
           minHeight: "40mm",
         }}
       >
+        <p style={chapterLabel}>Capítulo 6 — Encerramento e contraditório</p>
         <p style={{ margin: "0 0 10px", fontSize: "11px", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: C.gold }}>
-          Direito de resposta (contraditório)
+          Direito de resposta (24h)
         </p>
         <p style={{ fontSize: "11px", lineHeight: 1.55, color: C.muted, margin: 0 }}>
           O titular dos dados públicos aqui sintetizados dispõe de até 24 (vinte e quatro) horas, contadas da

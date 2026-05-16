@@ -1441,6 +1441,10 @@ exports.generateDossieOnDemand = functions
     };
   });
 
+// ── gerarDossieOnDemand — auditoria Vertex (Gemini 1.5 Pro) + anexos ao relatório ──
+const { mountGerarDossieOnDemand } = require("./src/dossie/gerarDossieOnDemandCallable.js");
+exports.gerarDossieOnDemand = mountGerarDossieOnDemand(functions, admin);
+
 // ── Módulo Leads / Paywall ────────────────────────────────────────────────
 // Cloud Functions HTTP callable do paywall de contatos + petição automática.
 // Documentação: functions/src/leads/README.md
