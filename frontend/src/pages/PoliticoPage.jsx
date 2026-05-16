@@ -719,9 +719,15 @@ export default function PoliticoPage() {
     politico?.partido ?? politico?.siglaPartido ?? politico?.party ?? "—";
   const uf =
     politico?.uf ?? politico?.siglaUf ?? politico?.estado ?? "—";
-  // Onda 5 — prioriza dado real do Data Lake; fallback para Firestore se houver.
+  // Onda 5 — prioriza dado real do Data Lake; fallback para Aurora 360 → Firestore.
+  // Aurora 360 (getDossieAurora full) traz score_risco, total CEAP e alertas consolidados.
+  const auroraAlertas = auroraData?.alertas_consolidados ?? {};
+  const auroraCeap = auroraData?.ceap ?? {};
+  const auroraScore = auroraAlertas.score_risco ?? auroraData?.score_risco ?? null;
+
   const cota =
     heroKpis.ceap_acumulado ??
+    (auroraCeap.total_brl > 0 ? auroraCeap.total_brl : null) ??
     Number(
       politico?.cota_anual ??
         politico?.cota ??
@@ -731,6 +737,7 @@ export default function PoliticoPage() {
     );
   const score =
     heroKpis.score_aurora ??
+    (typeof auroraScore === 'number' && auroraScore > 0 ? auroraScore : null) ??
     Number(
       politico?.score_asmodeus ??
         politico?.score_risco ??
@@ -745,14 +752,21 @@ export default function PoliticoPage() {
     Number(
       politico?.presenca ?? politico?.presenca_pct ?? politico?.kpi_presenca ?? 0,
     );
-  // "Sinalizações" agora é a contagem real de notas em alto risco.
+  // "Sinalizações" agora é a contagem real de alertas consolidados.
+  const totalAlertas = Object.values(auroraAlertas).reduce(
+    (s, v) => s + (typeof v === 'number' ? v : 0), 0
+  );
   const sinalizacoes = heroKpis.qtd_notas_alto_risco ??
+    (totalAlertas > 0 ? totalAlertas : null) ??
     Number(
       politico?.sinalizacoes ??
         politico?.sinalizacoes_total ??
         politico?.kpi_sinalizacoes ??
         0,
     );
+
+  // Derive hasKpis from either source
+  const hasAuroraData = !!(auroraData && (auroraCeap.total_brl > 0 || auroraScore > 0));
   const fotoUrl =
     politico?.foto ?? politico?.urlFoto ?? politico?.url_foto ?? null;
   // Onda 14 — selo “ex-parlamentar” quando o registro veio do CEAP histórico
@@ -867,9 +881,9 @@ export default function PoliticoPage() {
             <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
               <KpiBlock
                 label="Score Aurora"
-                value={hasKpis ? `${Math.round(score)} / 100` : "—"}
+                value={(hasKpis || hasAuroraData) ? `${Math.round(score)} / 100` : "—"}
                 accent="violet"
-                hint={hasKpis ? "clique para detalhes" : "sem dado classificado"}
+                hint={(hasKpis || hasAuroraData) ? "clique para detalhes" : "sem dado classificado"}
                 onClick={() =>
                   setDrawer({
                     open: true,
@@ -885,9 +899,9 @@ export default function PoliticoPage() {
               />
               <KpiBlock
                 label="CEAP classificado"
-                value={hasKpis ? fmtBRL(cota) : "—"}
+                value={(hasKpis || hasAuroraData) ? fmtBRL(cota) : "—"}
                 accent="amber"
-                hint={hasKpis ? "clique para série anual" : "em coleta"}
+                hint={(hasKpis || hasAuroraData) ? "clique para série anual" : "em coleta"}
                 onClick={() =>
                   setDrawer({
                     open: true,
@@ -903,9 +917,9 @@ export default function PoliticoPage() {
               />
               <KpiBlock
                 label="Rastreabilidade"
-                value={hasKpis && presenca > 0 ? `${Math.round(presenca)}%` : "—"}
+                value={(hasKpis || hasAuroraData) && presenca > 0 ? `${Math.round(presenca)}%` : (hasAuroraData ? `${auroraCeap.total_notas || 0} notas` : "—")}
                 accent="emerald"
-                hint={hasKpis ? "qualidade do dossiê" : null}
+                hint={(hasKpis || hasAuroraData) ? "qualidade do dossiê" : null}
                 onClick={() =>
                   setDrawer({
                     open: true,
@@ -920,10 +934,10 @@ export default function PoliticoPage() {
                 }
               />
               <KpiBlock
-                label="Notas alto risco"
-                value={hasKpis ? fmtNum(sinalizacoes) : "—"}
+                label="Alertas forenses"
+                value={(hasKpis || hasAuroraData) ? fmtNum(sinalizacoes) : "—"}
                 accent="rose"
-                hint={hasKpis ? "clique para detalhes" : "a confirmar"}
+                hint={(hasKpis || hasAuroraData) ? "clique para detalhes" : "a confirmar"}
                 onClick={() =>
                   setDrawer({
                     open: true,
@@ -953,7 +967,7 @@ export default function PoliticoPage() {
             )}
 
             {/* Banner honesto quando o parlamentar ainda não foi classificado */}
-            {!loadingKpis && !hasKpis && (
+            {!loadingKpis && !hasKpis && !hasAuroraData && (
               <div className="mt-4 flex items-start gap-3 rounded-xl border border-amber-400/20 bg-amber-400/5 p-3 text-sm">
                 <span className="mt-0.5 size-2 shrink-0 animate-pulse rounded-full bg-amber-300" />
                 <p className="text-[#D1D5DB]">
@@ -1076,7 +1090,119 @@ export default function PoliticoPage() {
           politicoId={id}
         />
         <div className="my-6" />
-        <AuroraInsightsSection politicoId={id} mode="preview" />
+        <AuroraInsightsSection politicoId={id} mode="full" />
+        <div className="my-6" />
+
+        {/* Emendas & Alertas Forenses — resumo direto do Aurora 360 */}
+        {hasAuroraData && (
+          <section className="mb-10 space-y-4">
+            {/* Emendas Summary */}
+            {auroraData?.emendas && auroraData.emendas.total > 0 && (
+              <div className="rounded-2xl border border-violet-400/30 bg-violet-500/5 p-5">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-violet-300">
+                  Emendas Parlamentares
+                </p>
+                <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                  <div>
+                    <p className="text-2xl font-bold text-white">{auroraData.emendas.total}</p>
+                    <p className="text-[10px] uppercase text-violet-200/70">Total emendas</p>
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-white">{fmtBRL(auroraData.emendas.total_empenhado)}</p>
+                    <p className="text-[10px] uppercase text-violet-200/70">Empenhado</p>
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-white">{fmtBRL(auroraData.emendas.total_pago)}</p>
+                    <p className="text-[10px] uppercase text-violet-200/70">Pago</p>
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-rose-300">{auroraData.emendas.suspeitas}</p>
+                    <p className="text-[10px] uppercase text-rose-200/70">Suspeitas</p>
+                  </div>
+                </div>
+                {auroraData.emendas.lista?.length > 0 && (
+                  <div className="mt-4 max-h-60 overflow-y-auto rounded-xl border border-white/5 bg-black/20 p-3">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="border-b border-white/10 text-left text-[10px] uppercase text-white/50">
+                          <th className="pb-2">Função</th>
+                          <th className="pb-2">Município</th>
+                          <th className="pb-2 text-right">Empenhado</th>
+                          <th className="pb-2 text-right">Pago</th>
+                          <th className="pb-2">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {auroraData.emendas.lista.map((em, i) => (
+                          <tr key={i} className="border-b border-white/5">
+                            <td className="py-1.5 text-white/80">{em.funcao || em.descricao?.slice(0,30)}</td>
+                            <td className="py-1.5 text-white/60">{em.municipio || '—'}</td>
+                            <td className="py-1.5 text-right font-mono text-white/80">{fmtBRL(em.valor_empenhado)}</td>
+                            <td className="py-1.5 text-right font-mono text-white/80">{fmtBRL(em.valor_pago)}</td>
+                            <td className="py-1.5">
+                              {em.suspeita ? (
+                                <span className="rounded-full bg-rose-500/20 px-2 py-0.5 text-[9px] font-bold text-rose-300">SUSPEITA</span>
+                              ) : (
+                                <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[9px] font-bold text-emerald-300">OK</span>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Filtros Forenses Summary */}
+            {auroraData?.filtros_forenses && (
+              <div className="rounded-2xl border border-rose-400/30 bg-rose-500/5 p-5">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-rose-300">
+                  Filtros Forenses Ativados
+                </p>
+                <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  {Object.entries(auroraData.filtros_forenses).map(([key, val]) => {
+                    const total = val?.total ?? (Array.isArray(val?.casos) ? val.casos.length : 0);
+                    if (total === 0) return null;
+                    const labels = {
+                      f15_dupla_cobranca: 'Dupla cobrança',
+                      f15_fretamento_rota_comercial: 'Fretamento em rota comercial',
+                      f04_trecho_inconsistente: 'Trecho inconsistente',
+                      emendas_x_ceap: 'Emenda × CEAP',
+                      emendas_concentracao: 'Concentração municipal',
+                      emendas_funcao_x_ceap: 'Função × CEAP',
+                    };
+                    return (
+                      <div key={key} className="rounded-xl border border-rose-400/20 bg-rose-500/10 p-3">
+                        <p className="text-lg font-bold text-rose-200">{total}</p>
+                        <p className="text-[10px] text-rose-100/70">{labels[key] || key.replace(/_/g, ' ')}</p>
+                      </div>
+                    );
+                  })}
+                </div>
+                {/* Show top cases from F04 */}
+                {auroraData.filtros_forenses.f04_trecho_inconsistente?.casos?.length > 0 && (
+                  <div className="mt-3 rounded-xl border border-white/5 bg-black/20 p-3">
+                    <p className="mb-2 text-[10px] font-semibold uppercase text-white/50">Trechos irregulares (top 5)</p>
+                    {auroraData.filtros_forenses.f04_trecho_inconsistente.casos.slice(0, 5).map((c, i) => (
+                      <div key={i} className="flex items-center justify-between border-b border-white/5 py-1.5 text-xs">
+                        <span className="text-white/70">{c.data} — {c.fornecedor}</span>
+                        <span className="font-mono text-white/80">{fmtBRL(c.valor)}</span>
+                        {c.url && (
+                          <a href={c.url} target="_blank" rel="noopener noreferrer" className="ml-2 text-cyan-300 hover:underline text-[10px]">
+                            PDF
+                          </a>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </section>
+        )}
+
         <div className="my-10" />
 
         {/* 6 categorias canônicas — preview público */}

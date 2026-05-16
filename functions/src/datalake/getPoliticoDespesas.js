@@ -50,7 +50,7 @@ function buildDocUrl(row) {
 
 function detectAlerts(row, stats) {
   const alerts = [];
-  const val = Number(row.valor_documento || row.valor_liquido || 0);
+  const val = Number(row.valor_documento || 0);
 
   // 1. Valor redondo (múltiplo de 100 acima de R$500)
   if (val >= 500 && val % 100 === 0) {
@@ -99,13 +99,9 @@ async function queryDespesas(id, nome) {
       nome_fornecedor,
       cnpj_fornecedor,
       valor_documento,
-      valor_liquido,
-      valor_glosa,
-      numero_documento,
-      cod_documento,
-      url_documento
+      numero_documento
     FROM \`${PROJECT}.${DATASET}.${TABLE}\`
-    WHERE ${nome ? "LOWER(nome_parlamentar) = LOWER(@nome)" : "parlamentar_id = @id"}
+    WHERE ${nome ? "LOWER(nome_parlamentar) = LOWER(@nome)" : "CAST(parlamentar_id AS STRING) = @id"}
     ORDER BY data_emissao DESC
   `;
   const params = nome ? { nome } : { id: String(id) };
@@ -114,13 +110,13 @@ async function queryDespesas(id, nome) {
 }
 
 function computeStats(rows) {
-  const totalGeral = rows.reduce((s, r) => s + Number(r.valor_documento || r.valor_liquido || 0), 0);
+  const totalGeral = rows.reduce((s, r) => s + Number(r.valor_documento || 0), 0);
 
   // Fornecedor concentration
   const fornecedorTotals = {};
   for (const r of rows) {
     const f = String(r.nome_fornecedor || r.fornecedor || "").trim();
-    if (f) fornecedorTotals[f] = (fornecedorTotals[f] || 0) + Number(r.valor_documento || r.valor_liquido || 0);
+    if (f) fornecedorTotals[f] = (fornecedorTotals[f] || 0) + Number(r.valor_documento || 0);
   }
   const fornecedorPct = {};
   for (const [f, v] of Object.entries(fornecedorTotals)) {
@@ -131,7 +127,7 @@ function computeStats(rows) {
   const digitCounts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0 };
   let totalDigits = 0;
   for (const r of rows) {
-    const val = Math.abs(Number(r.valor_documento || r.valor_liquido || 0));
+    const val = Math.abs(Number(r.valor_documento || 0));
     if (val > 0) {
       const d1 = parseInt(String(val)[0]);
       if (d1 >= 1 && d1 <= 9) {
@@ -150,7 +146,7 @@ function computeStats(rows) {
   const tipoTotals = {};
   for (const r of rows) {
     const t = String(r.tipo_despesa || "Outros").trim();
-    tipoTotals[t] = (tipoTotals[t] || 0) + Number(r.valor_documento || r.valor_liquido || 0);
+    tipoTotals[t] = (tipoTotals[t] || 0) + Number(r.valor_documento || 0);
   }
 
   // Top fornecedores
@@ -179,7 +175,7 @@ function computeStats(rows) {
 
 function formatRow(r, stats, includeUrl = false) {
   const alerts = detectAlerts(r, stats);
-  const valor = Number(r.valor_documento || r.valor_liquido || 0);
+  const valor = Number(r.valor_documento || 0);
   const row = {
     data: r.data_emissao?.value || String(r.data_emissao || ""),
     data_emissao: r.data_emissao?.value || String(r.data_emissao || ""),
@@ -187,8 +183,8 @@ function formatRow(r, stats, includeUrl = false) {
     fornecedor: String(r.nome_fornecedor || r.fornecedor || ""),
     cnpj: String(r.cnpj_fornecedor || r.cnpj_cpf_fornecedor || ""),
     valor,
-    valor_liquido: Number(r.valor_liquido || valor),
-    valor_glosa: Number(r.valor_glosa || 0),
+    valor_liquido: valor,
+    valor_glosa: 0,
     num_documento: String(r.numero_documento || ""),
     alertas: alerts,
     tem_alerta: alerts.length > 0,
