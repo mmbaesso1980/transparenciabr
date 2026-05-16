@@ -725,9 +725,11 @@ export default function PoliticoPage() {
   const auroraCeap = auroraData?.ceap ?? {};
   const auroraScore = auroraAlertas.score_risco ?? auroraData?.score_risco ?? null;
 
+  // Priority: Aurora 360 (real-time forense) > getDossieCeapKPIs > Firestore politico doc
+  // Use Aurora when available (it has the richest data), fallback to KPIs only if Aurora is empty
   const cota =
-    heroKpis.ceap_acumulado ??
     (auroraCeap.total_brl > 0 ? auroraCeap.total_brl : null) ??
+    (heroKpis.ceap_acumulado > 0 ? heroKpis.ceap_acumulado : null) ??
     Number(
       politico?.cota_anual ??
         politico?.cota ??
@@ -736,8 +738,8 @@ export default function PoliticoPage() {
         0,
     );
   const score =
-    heroKpis.score_aurora ??
     (typeof auroraScore === 'number' && auroraScore > 0 ? auroraScore : null) ??
+    (heroKpis.score_aurora > 0 ? heroKpis.score_aurora : null) ??
     Number(
       politico?.score_asmodeus ??
         politico?.score_risco ??
@@ -748,7 +750,8 @@ export default function PoliticoPage() {
     );
   // "Presença" deixa de ser presença em plenário (que não temos) e vira
   // "rastreabilidade do dossiê" — KPI honesto baseado em dado real.
-  const presenca = heroKpis.rastreabilidade_pct ??
+  const presenca =
+    (heroKpis.rastreabilidade_pct > 0 ? heroKpis.rastreabilidade_pct : null) ??
     Number(
       politico?.presenca ?? politico?.presenca_pct ?? politico?.kpi_presenca ?? 0,
     );
@@ -756,8 +759,9 @@ export default function PoliticoPage() {
   const totalAlertas = Object.values(auroraAlertas).reduce(
     (s, v) => s + (typeof v === 'number' ? v : 0), 0
   );
-  const sinalizacoes = heroKpis.qtd_notas_alto_risco ??
+  const sinalizacoes =
     (totalAlertas > 0 ? totalAlertas : null) ??
+    (heroKpis.qtd_notas_alto_risco > 0 ? heroKpis.qtd_notas_alto_risco : null) ??
     Number(
       politico?.sinalizacoes ??
         politico?.sinalizacoes_total ??
