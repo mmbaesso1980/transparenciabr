@@ -1668,13 +1668,13 @@ exports.getPoliticoDespesas = functions
       }
 
       const stats = computeStats(rows);
-      const parlamentar = String(rows[0].nome_parlamentar || nome || id);
+      const parlamentar = String(rows[0].tx_nome_parlamentar || rows[0].nome_parlamentar || nome || id);
 
       if (mode === "preview") {
-        const sorted = [...rows].sort((a, b) => Number(b.valor_documento || 0) - Number(a.valor_documento || 0));
-        const preview = sorted.slice(0, 10).map(r => formatRow(r, stats, false));
+        const sorted = [...rows].sort((a, b) => Number(b.vlr_documento || b.valor_documento || 0) - Number(a.vlr_documento || a.valor_documento || 0));
+        const preview = sorted.slice(0, 10).map(r => formatRow(r, stats, true));
         const totalAlertas = rows.filter(r => {
-          const val = Number(r.valor_documento || 0);
+          const val = Number(r.vlr_documento || r.valor_documento || 0);
           return (val >= 500 && val % 100 === 0) || val >= 10000;
         }).length;
 

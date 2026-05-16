@@ -383,7 +383,7 @@ export default function DespesasSection({ nome, politicoId }) {
                         {d.fornecedor || "Fornecedor não informado"}
                       </p>
                       <span className="shrink-0 text-xs text-[#8B949E]">
-                        {d.data_emissao || "—"}
+                        {d.data_emissao ? new Date(d.data_emissao).toLocaleDateString("pt-BR") : "—"}
                       </span>
                     </div>
 
