@@ -8,7 +8,7 @@
  *   { id, nome, partido, uf, cota, frugalidade, sinalizacoes, score, presenca, ... }
  *
  * Onde `id` é SEMPRE o doc.id real do Firestore (ID Câmara ou slug canônico),
- * compatível com a rota `/dossie/:id` que o BentoModal navega.
+ * compatível com a rota `/politico/:id` que o BentoModal navega.
  */
 
 import { useQuery } from "@tanstack/react-query";
@@ -50,7 +50,7 @@ function normalizeParlamentar(p) {
   );
 
   return {
-    id: p.id, // ← doc.id real, navegável em /dossie/:id
+    id: p.id, // ← doc.id real, navegável em /politico/:id
     nome: p.nome ?? p.nome_civil ?? p.name ?? "—",
     partido,
     uf,

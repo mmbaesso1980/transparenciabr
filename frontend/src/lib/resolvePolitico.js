@@ -1,21 +1,19 @@
 /**
- * resolvePoliticoUniversal — Cadeia universal de 5 fallbacks para garantir
+ * resolvePoliticoUniversal — Cadeia universal de 4 fallbacks para garantir
  * que QUALQUER ID/slug clicável no painel ou compartilhado em link gere
  * uma hotpage utilizável, em vez de "não encontrado".
  *
  * Usado por:
- *  - /politico/:id (público, vitrine)
- *  - /dossie/:id  (autenticado, dossiê completo) via transparencyReports
+ *  - /politico/:id (público, vitrine + funil comercial)
  *
  * Cadeia:
- *  1) Firestore transparency_reports (PNCP/dossiê forense — usado só no /dossie)
- *  2) Coleção politicos (Firestore) por ID ou slug
- *  3) Hint via CEAP ranking público (id ou nome)
- *  4) Roster oficial Câmara/Senado (com fuzzy-match por nome se hint disponível)
- *  5) Ex-parlamentar histórico (CEAP só) — registro com aviso
+ *  1) Coleção politicos (Firestore) por ID ou slug
+ *  2) Hint via CEAP ranking público (id ou nome)
+ *  3) Roster oficial Câmara/Senado (com fuzzy-match por nome se hint disponível)
+ *  4) Ex-parlamentar histórico (CEAP só) — registro com aviso
  *
  * Diretiva: "Não fazemos denúncia — apresentamos fatos."
- * O caminho 5 sempre devolve um registro com `snapshot_origem='ceap_historico'`
+ * O caminho 4 sempre devolve um registro com `snapshot_origem='ceap_historico'`
  * e `aviso_historico` para o componente ressaltar a natureza do dado.
  */
 

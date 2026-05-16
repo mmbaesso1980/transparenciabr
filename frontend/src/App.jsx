@@ -1,5 +1,5 @@
 import { lazy, Suspense } from "react";
-import { BrowserRouter, Link, Navigate, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Link, Navigate, Route, Routes, useParams } from "react-router-dom";
 
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import RouteFallback from "./components/RouteFallback.jsx";
@@ -17,7 +17,6 @@ import TermosPage from "./pages/TermosPage.jsx";
 import UniversePage from "./pages/UniversePage.jsx";
 
 const DashboardLayout = lazy(() => import("./layouts/DashboardLayout.jsx"));
-const DossiePage = lazy(() => import("./pages/DossiePage.jsx"));
 const PoliticoPage = lazy(() => import("./pages/PoliticoPage.jsx"));
 const LoginPage = lazy(() => import("./pages/LoginPage.jsx"));
 const MapaPage = lazy(() => import("./pages/MapaPage.jsx"));
@@ -44,6 +43,12 @@ const rawBase = String(import.meta.env.BASE_URL || "/").trim() || "/";
 const trimmed =
   rawBase.length > 1 && rawBase.endsWith("/") ? rawBase.slice(0, -1) : rawBase;
 const routerBasename = trimmed === "/" ? undefined : trimmed;
+
+function RedirectDossieToPolitico() {
+  const { id } = useParams();
+  const target = id != null && String(id).length ? `/politico/${encodeURIComponent(String(id))}` : "/politica/busca";
+  return <Navigate to={target} replace />;
+}
 
 function NotFoundPage() {
   return (
@@ -119,9 +124,9 @@ export default function App() {
                 <Route path="/politica/busca" element={<BuscaPage />} />
                 <Route path="/busca" element={<Navigate to="/politica/busca" replace />} />
                 <Route path="/politica/dossie/:nome" element={<DossieGroundedPage />} />
-                {/* /politico/:id permanece público (landing de venda).
-                    /dossie/:id passa a exigir auth — redireciona para /login com state.from. */}
+                {/* /politico/:id — vitrine pública + funil comercial; /dossie/:id redireciona para o mesmo destino. */}
                 <Route path="/politico/:id" element={<PoliticoPage />} />
+                <Route path="/dossie/:id" element={<RedirectDossieToPolitico />} />
                 <Route path="/sucesso" element={<SuccessPage />} />
                 <Route path="/logout" element={<LogoutPage />} />
 
@@ -129,7 +134,6 @@ export default function App() {
                 <Route path="/creditos" element={<CreditosPage />} />
 
                 <Route element={<ProtectedRoute />}>
-                  <Route path="/dossie/:id" element={<DossiePage />} />
                   <Route element={<DashboardLayout />}>
                     <Route path="/mapa" element={<MapaPage />} />
                     <Route path="/alertas" element={<AlertasPage />} />

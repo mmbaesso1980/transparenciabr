@@ -3,7 +3,7 @@
  *
  * Onda 1 — pay-per-dossier. Debita créditos conforme `tipo` + `addons`
  * (a coleta real fica para Onda 4). UI usa este hook no botão "Atualizar
- * agora" do DossiePage e na CTA do PoliticoPage (quando o usuário já estiver
+ * (a coleta real fica para Onda 4). UI usa este hook no PoliticoPage (quando o utilizador já estiver
  * logado e quiser disparar uma re-coleta sem ir pelo Stripe).
  */
 

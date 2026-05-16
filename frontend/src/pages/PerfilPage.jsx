@@ -484,7 +484,7 @@ export default function PerfilPage() {
                           return (
                           <li key={polId}>
                             <Link
-                              to={`/dossie/${encodeURIComponent(polId)}`}
+                              to={`/politico/${encodeURIComponent(polId)}`}
                               className="flex items-center justify-between gap-3 rounded-xl border border-[#30363D]/80 bg-[#080B14] px-4 py-3 text-sm transition hover:border-cyan-400/40 hover:bg-cyan-500/[0.04] group"
                             >
                               <div className="min-w-0 flex-1">

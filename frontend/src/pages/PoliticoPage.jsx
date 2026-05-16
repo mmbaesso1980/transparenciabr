@@ -3,20 +3,21 @@
  *
  * Rota: /politico/:id  (PÚBLICA, sem ProtectedRoute)
  *
- * Esta é a "página de vendas" prioritária do TransparênciaBR. Visitante chega,
- * vê o esqueleto preview do dossiê (header rico, KPIs públicos, índices das 6
- * categorias canônicas) e recebe CTA para abrir o dossiê completo (200 cr).
+ * Esta é a página de vendas prioritária do TransparênciaBR. Visitante vê
+ * prévia institucional (KPIs, camadas, CEAP) e contrata aqui a Auditoria
+ * Completa Forense / Dossiê Completo (créditos on-demand).
  *
  * Fluxo:
- *   Anônimo  → "Comprar dossiê (200 cr)" → /login?redirect=/dossie/:id
- *   Logado   → "Abrir dossiê" → /dossie/:id (débito opcional via botões de ação)
+ *   Anônimo  → login com redirect para esta mesma URL
+ *   Logado   → débito via Cloud Functions na própria página + exportação PDF
  *
  * Filosofia: "Toda nota é suspeita até prova contrária." Mostramos só o que é
- * público — KPIs agregados que já vêm do Firestore. Detalhes ficam atrás do paywall.
+ * público — KPIs agregados. Detalhes sensíveis ficam atrás do paywall.
  */
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import html2pdf from "html2pdf.js";
 import { Helmet } from "react-helmet-async";
 import { motion } from "framer-motion";
 import {
@@ -31,6 +32,11 @@ import {
   Users,
 } from "lucide-react";
 
+import DossiePDFContent from "../components/dossie/DossiePDFContent.jsx";
+import AuditoriaOnDemandButton from "../components/politico/AuditoriaOnDemandButton.jsx";
+import EmendasPoliticoSection from "../components/politico/EmendasPoliticoSection.jsx";
+import PoliticoAnalytics from "../components/politico/PoliticoAnalytics.jsx";
+
 import { resolvePoliticoUniversal } from "../lib/resolvePolitico.js";
 import {
   useKPIsParlamentar,
@@ -44,10 +50,10 @@ import {
 } from "../hooks/useCamadasParlamentar.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import DespesasSection from "../components/politico/DespesasSection.jsx";
-import AuroraInsightsSection from "../components/dossie/AuroraInsightsSection.jsx";
-import { useDossieAurora } from "../hooks/useDossieAurora.js";
 import CamadaDrawer from "../components/CamadaDrawer.jsx";
 import {
+  CREDIT_ADDON_COMPARACOES_AVANCADAS,
+  CREDIT_ADDON_PDF_LAUDO,
   CREDIT_PRICE_CEAP_COMPLETO,
   CREDIT_PRICE_DOSSIE_MATADOR,
   CREDIT_PRICE_EMENDAS_COMPLETAS,
@@ -55,7 +61,9 @@ import {
 import { useDailyFreemiumCountdown } from "../hooks/useDailyFreemiumCountdown.js";
 import { useGenerateDossieOnDemand } from "../hooks/useGenerateDossieOnDemand.js";
 import { useUserCredits } from "../hooks/useUserCredits.js";
-// import ChatIA from "../components/ChatIA.jsx"; // Será integrado via Cloud Function
+import { enrichPoliticoRecord, pickNome } from "../utils/dataParsers.js";
+import { dossiePdfFilename } from "../utils/dossieWatchlist.js";
+import { normalizeEmendasList } from "../utils/emendasNormalize.js";
 
 const fmtBRL = (v) =>
   Number.isFinite(Number(v))
@@ -323,7 +331,7 @@ function buildKpiDrawerPayload(kind, { kpisRaw, heroKpis, breakdown, hasKpis, no
 /** Drawer dos 6 cards de camada — Onda 7: usa dado vivo da API Câmara. */
 function buildCamadaDrawerPayload(
   key,
-  { breakdown, hasKpis, nome, heroKpis, ceapDet, comissoes, eventos, auroraData },
+  { breakdown, hasKpis, nome, heroKpis, ceapDet, comissoes, eventos, emendasList },
 ) {
   const blocoCEAP = {
     title: "CEAP — Cota parlamentar",
@@ -548,37 +556,46 @@ function buildCamadaDrawerPayload(
         ],
       );
     case "emendas": {
-      const em = auroraData?.emendas;
-      if (!em || !em.lista || em.lista.length === 0) {
+      const list = normalizeEmendasList(Array.isArray(emendasList) ? emendasList : []);
+      if (!list.length) {
         return blocoEmBreve(
           "Emendas & PIX RP6/RP7/RP99",
           "Camada 5 · Sem dados",
-          "Este parlamentar não possui emendas individuais registradas no período analisado.",
+          "Este cadastro ainda não inclui microdados de emendas individuais. Após coleta complementar ou importação SIOP/Transferegov, a camada será preenchida automaticamente.",
           ["BigQuery · transparenciabr.emendas", "SIOP · Sistema Integrado de Planejamento e Orçamento"],
         );
       }
-      const topEmendas = em.lista.slice(0, 10).map((e) => ({
-        categoria: `${e.funcao} · ${e.municipio || 'Nacional'} (${e.ano})`,
+      const totalEmp = list.reduce(
+        (s, e) => s + Number(e.valor_empenhado ?? e.valor_normalizado ?? 0),
+        0,
+      );
+      const totalPago = list.reduce((s, e) => s + Number(e.valor_pago ?? 0), 0);
+      const suspeitas = list.filter((e) => e.suspeita).length;
+      const topEmendas = list.slice(0, 10).map((e) => ({
+        categoria: `${e.funcao ?? e.descricao_normalizada ?? "—"} · ${e.municipio ?? "Nacional"} (${e.ano ?? "—"})`,
         qtd: e.suspeita ? 1 : 0,
-        valor_brl: e.valor_empenhado,
+        valor_brl: Number(e.valor_empenhado ?? e.valor_normalizado ?? 0),
       }));
       return {
-        title: "Emendas Parlamentares",
-        kicker: `Camada 5 · DISPONÍVEL · ${em.lista.length} emendas`,
-        subtitle: `${nome} — R$ ${(em.total_empenhado / 1e6).toFixed(1)}M empenhados, R$ ${(em.total_pago / 1e6).toFixed(1)}M pagos.`,
+        title: "Emendas parlamentares",
+        kicker: `Camada 5 · DISPONÍVEL · ${list.length} registro(s)`,
+        subtitle: `${nome} — empenhos e pagamentos declarados na base integrada.`,
         bigLabel: "Total empenhado",
-        bigValue: fmtBRL(em.total_empenhado),
-        bigHint: `${em.lista.length} emendas · ${em.suspeitas} sinalizadas como suspeitas · taxa de execução ${em.total_empenhado > 0 ? ((em.total_pago / em.total_empenhado) * 100).toFixed(0) : 0}%.`,
+        bigValue: fmtBRL(totalEmp),
+        bigHint: `${list.length} emendas · ${suspeitas} sinalizações · taxa de execução ${totalEmp > 0 ? ((totalPago / totalEmp) * 100).toFixed(0) : 0}%.`,
         topCategorias: topEmendas,
-        topCategoriasLabel: "Maiores emendas por função",
+        topCategoriasLabel: "Recortes por função / localidade",
         metricas: [
-          { label: "Total empenhado", value: fmtBRL(em.total_empenhado) },
-          { label: "Total pago", value: fmtBRL(em.total_pago) },
-          { label: "Emendas suspeitas", value: `${em.suspeitas} de ${em.lista.length}` },
-          { label: "Taxa de execução", value: em.total_empenhado > 0 ? `${((em.total_pago / em.total_empenhado) * 100).toFixed(1)}%` : "—" },
+          { label: "Total empenhado", value: fmtBRL(totalEmp) },
+          { label: "Total pago", value: fmtBRL(totalPago) },
+          { label: "Emendas sinalizadas", value: `${suspeitas} de ${list.length}` },
+          {
+            label: "Taxa de execução",
+            value: totalEmp > 0 ? `${((totalPago / totalEmp) * 100).toFixed(1)}%` : "—",
+          },
         ],
         metodologia:
-          "Emendas individuais e de bancada (RP6/RP7/RP99) extraídas do BigQuery. Classificadas como suspeitas quando: valor redondo > R$ 1M, função genérica (Encargos especiais), ou concentração geográfica sem especificação de beneficiário.",
+          "Emendas individuais e de bancada (RP6/RP7/RP99) normalizadas a partir de bases públicas. Sinalização automática não configura ilícito — apenas prioriza revisão humana com trilha documental.",
         fontes: [
           "BigQuery · transparenciabr.emendas",
           "Portal de Emendas Parlamentares",
@@ -623,7 +640,7 @@ export default function PoliticoPage() {
     if (!id || purchaseBusy) return;
     try {
       await generate(id, { tipo, addons });
-      navigate(`/dossie/${encodeURIComponent(id)}`);
+      navigate({ pathname: `/politico/${encodeURIComponent(id)}`, hash: "pacote-forense" }, { replace: true });
     } catch {
       /* estado em purchaseError */
     }
@@ -645,16 +662,57 @@ export default function PoliticoPage() {
   const ceapDet = useCEAPDetalhado(id);
   const comissoes = useComissoesParlamentar(id);
   const eventos = useEventosParlamentar(id);
-  // Aurora 360 data for emendas layer
-  const { data: auroraData } = useDossieAurora(id, "full");
+
+  const pdfRef = useRef(null);
+  const [pdfBusy, setPdfBusy] = useState(false);
+  const [pdfError, setPdfError] = useState(null);
+
+  const displayRecord = useMemo(() => enrichPoliticoRecord(politico), [politico]);
+
+  const handleDownloadPDF = useCallback(async () => {
+    setPdfError(null);
+    const el = pdfRef.current;
+    if (!el) {
+      setPdfError("Conteúdo do relatório PDF não está disponível neste momento.");
+      return;
+    }
+    setPdfBusy(true);
+    try {
+      const base =
+        (displayRecord && pickNome(displayRecord)) ||
+        politico?.nome ||
+        politico?.nome_civil ||
+        "parlamentar";
+      const filename = dossiePdfFilename(base);
+      await html2pdf()
+        .set({
+          margin: 10,
+          filename,
+          image: { type: "jpeg", quality: 0.98 },
+          html2canvas: {
+            scale: 2,
+            useCORS: true,
+            backgroundColor: "#0B0F1A",
+            logging: false,
+          },
+          jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+        })
+        .from(el)
+        .save();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Erro desconhecido ao gerar o PDF.";
+      setPdfError(msg);
+    } finally {
+      setPdfBusy(false);
+    }
+  }, [displayRecord, politico]);
 
   useEffect(() => {
     let mounted = true;
     setLoading(true);
     setError(null);
     // Cadeia universal: Firestore politicos → CEAP hint → roster (fuzzy) →
-    // ex-parlamentar histórico. Mesmo lookup do /dossie/:id, garantindo
-    // que qualquer ID/slug do painel ou link compartilhado abra uma hotpage.
+    // ex-parlamentar histórico. Garante que qualquer ID/slug compartilhado abra esta página.
     resolvePoliticoUniversal(id)
       .then((p) => {
         if (!mounted) return;
@@ -671,14 +729,14 @@ export default function PoliticoPage() {
     };
   }, [id]);
 
-  // Fluxo da CTA principal (compra/abertura do dossiê)
-  const dossieRoute = `/dossie/${encodeURIComponent(id ?? "")}`;
+  // Fluxo da CTA principal (permanece nesta página após autenticação)
+  const politicoPagePath = `/politico/${encodeURIComponent(id ?? "")}`;
   const ctaTo = isAuthenticated
-    ? dossieRoute
-    : `/login?redirect=${encodeURIComponent(dossieRoute)}`;
+    ? `${politicoPagePath}#pacote-forense`
+    : `/login?redirect=${encodeURIComponent(politicoPagePath)}`;
   const ctaLabel = isAuthenticated
-    ? "Ir para o dossiê"
-    : `Entrar e abrir dossiê (${CREDIT_PRICE_DOSSIE_MATADOR} cr)`;
+    ? "Contratar auditoria / dossiê completo"
+    : `Entrar para contratar (${CREDIT_PRICE_DOSSIE_MATADOR} cr)`;
 
   if (loading) {
     return (
@@ -719,16 +777,9 @@ export default function PoliticoPage() {
     politico?.partido ?? politico?.siglaPartido ?? politico?.party ?? "—";
   const uf =
     politico?.uf ?? politico?.siglaUf ?? politico?.estado ?? "—";
-  // Onda 5 — prioriza dado real do Data Lake; fallback para Aurora 360 → Firestore.
-  // Aurora 360 (getDossieAurora full) traz score_risco, total CEAP e alertas consolidados.
-  const auroraAlertas = auroraData?.alertas_consolidados ?? {};
-  const auroraCeap = auroraData?.ceap ?? {};
-  const auroraScore = auroraAlertas.score_risco ?? auroraData?.score_risco ?? null;
+  const emendasListRaw = politico?.emendas ?? politico?.emendas_parlamentares;
 
-  // Priority: Aurora 360 (real-time forense) > getDossieCeapKPIs > Firestore politico doc
-  // Use Aurora when available (it has the richest data), fallback to KPIs only if Aurora is empty
   const cota =
-    (auroraCeap.total_brl > 0 ? auroraCeap.total_brl : null) ??
     (heroKpis.ceap_acumulado > 0 ? heroKpis.ceap_acumulado : null) ??
     Number(
       politico?.cota_anual ??
@@ -738,7 +789,6 @@ export default function PoliticoPage() {
         0,
     );
   const score =
-    (typeof auroraScore === 'number' && auroraScore > 0 ? auroraScore : null) ??
     (heroKpis.score_aurora > 0 ? heroKpis.score_aurora : null) ??
     Number(
       politico?.score_asmodeus ??
@@ -755,12 +805,7 @@ export default function PoliticoPage() {
     Number(
       politico?.presenca ?? politico?.presenca_pct ?? politico?.kpi_presenca ?? 0,
     );
-  // "Sinalizações" agora é a contagem real de alertas consolidados.
-  const totalAlertas = Object.values(auroraAlertas).reduce(
-    (s, v) => s + (typeof v === 'number' ? v : 0), 0
-  );
   const sinalizacoes =
-    (totalAlertas > 0 ? totalAlertas : null) ??
     (heroKpis.qtd_notas_alto_risco > 0 ? heroKpis.qtd_notas_alto_risco : null) ??
     Number(
       politico?.sinalizacoes ??
@@ -769,8 +814,6 @@ export default function PoliticoPage() {
         0,
     );
 
-  // Derive hasKpis from either source
-  const hasAuroraData = !!(auroraData && (auroraCeap.total_brl > 0 || auroraScore > 0));
   const fotoUrl =
     politico?.foto ?? politico?.urlFoto ?? politico?.url_foto ?? null;
   // Onda 14 — selo “ex-parlamentar” quando o registro veio do CEAP histórico
@@ -780,15 +823,18 @@ export default function PoliticoPage() {
     politico?.aviso_historico ||
     "Parlamentar registrado no CEAP histórico, mas não consta no roster atual da Câmara/Senado.";
 
+  const hasLiveCeap = !!(ceapDet && !ceapDet.loading && ceapDet.qtdNotas > 0);
+  const showForensicKpis = hasKpis || hasLiveCeap;
+
   return (
     <div className="min-h-screen bg-[#05060d] text-[#F0F4FC]">
       <Helmet>
         <title>
-          {nome} ({partido}/{uf}) · Dossiê | Transparência BR
+          {nome} ({partido}/{uf}) · Auditoria parlamentar | Transparência BR
         </title>
         <meta
           name="description"
-          content={`Dossiê completo de ${nome} (${partido}/${uf}) — CEAP, emendas, PNCP, TSE, folha do gabinete e mais. Pagamento on-demand a partir de ${CREDIT_PRICE_DOSSIE_MATADOR} créditos.`}
+          content={`Auditoria forense e dossiê completo de ${nome} (${partido}/${uf}) — CEAP, emendas, PNCP e camadas correlatas. Contratação on-demand a partir de ${CREDIT_PRICE_DOSSIE_MATADOR} créditos.`}
         />
       </Helmet>
 
@@ -875,6 +921,9 @@ export default function PoliticoPage() {
                 </span>
               )}
             </h1>
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <AuditoriaOnDemandButton politicoId={String(politico?.id ?? id ?? "")} />
+            </div>
             <p className="mt-1 text-sm text-[#8B949E]">
               <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-0.5 font-mono text-xs">
                 {partido}/{uf}
@@ -885,9 +934,9 @@ export default function PoliticoPage() {
             <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
               <KpiBlock
                 label="Score Aurora"
-                value={(hasKpis || hasAuroraData) ? `${Math.round(score)} / 100` : "—"}
+                value={showForensicKpis ? `${Math.round(score)} / 100` : "—"}
                 accent="violet"
-                hint={(hasKpis || hasAuroraData) ? "clique para detalhes" : "sem dado classificado"}
+                hint={showForensicKpis ? "clique para detalhes" : "sem dado classificado"}
                 onClick={() =>
                   setDrawer({
                     open: true,
@@ -903,9 +952,9 @@ export default function PoliticoPage() {
               />
               <KpiBlock
                 label="CEAP classificado"
-                value={(hasKpis || hasAuroraData) ? fmtBRL(cota) : "—"}
+                value={showForensicKpis ? fmtBRL(cota) : "—"}
                 accent="amber"
-                hint={(hasKpis || hasAuroraData) ? "clique para série anual" : "em coleta"}
+                hint={showForensicKpis ? "clique para série anual" : "em coleta"}
                 onClick={() =>
                   setDrawer({
                     open: true,
@@ -921,9 +970,15 @@ export default function PoliticoPage() {
               />
               <KpiBlock
                 label="Rastreabilidade"
-                value={(hasKpis || hasAuroraData) && presenca > 0 ? `${Math.round(presenca)}%` : (hasAuroraData ? `${auroraCeap.total_notas || 0} notas` : "—")}
+                value={
+                  showForensicKpis && presenca > 0
+                    ? `${Math.round(presenca)}%`
+                    : hasLiveCeap
+                      ? `${ceapDet.qtdNotas} notas`
+                      : "—"
+                }
                 accent="emerald"
-                hint={(hasKpis || hasAuroraData) ? "qualidade do dossiê" : null}
+                hint={showForensicKpis ? "qualidade do dossiê" : null}
                 onClick={() =>
                   setDrawer({
                     open: true,
@@ -939,9 +994,9 @@ export default function PoliticoPage() {
               />
               <KpiBlock
                 label="Alertas forenses"
-                value={(hasKpis || hasAuroraData) ? fmtNum(sinalizacoes) : "—"}
+                value={showForensicKpis ? fmtNum(sinalizacoes) : "—"}
                 accent="rose"
-                hint={(hasKpis || hasAuroraData) ? "clique para detalhes" : "a confirmar"}
+                hint={showForensicKpis ? "clique para detalhes" : "a confirmar"}
                 onClick={() =>
                   setDrawer({
                     open: true,
@@ -971,23 +1026,24 @@ export default function PoliticoPage() {
             )}
 
             {/* Banner honesto quando o parlamentar ainda não foi classificado */}
-            {!loadingKpis && !hasKpis && !hasAuroraData && (
+            {!loadingKpis && !showForensicKpis && (
               <div className="mt-4 flex items-start gap-3 rounded-xl border border-amber-400/20 bg-amber-400/5 p-3 text-sm">
                 <span className="mt-0.5 size-2 shrink-0 animate-pulse rounded-full bg-amber-300" />
                 <p className="text-[#D1D5DB]">
-                  Este parlamentar ainda não foi processado pelo motor Aurora.{" "}
+                  Ainda não há classificação CEAP agregada neste perfil.{" "}
                   <span className="text-amber-200">
-                    Abra o dossiê completo para disparar a coleta sob demanda
+                    Contrate o pacote de auditoria para disparar a coleta e materialização das camadas
                   </span>{" "}
-                  — cruzamos CEAP, viagens e folha em ~30 segundos.
+                  — o backend enfileira o processamento e atualiza os indicadores em seguida.
                 </p>
               </div>
             )}
           </div>
         </motion.header>
 
-        {/* CTA principal — barra fixa no topo do conteúdo */}
+        {/* CTA principal — contratação na mesma página */}
         <motion.section
+          id="pacote-forense"
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1, duration: 0.4 }}
@@ -997,14 +1053,15 @@ export default function PoliticoPage() {
             <Sparkles className="mt-0.5 size-5 shrink-0 text-cyan-300" strokeWidth={1.75} />
             <div>
               <p className="text-base font-semibold text-white">
-                Dossiê completo on-demand
+                Auditoria completa forense — Dossiê completo
               </p>
               <p className="mt-0.5 text-sm text-[#8B949E]">
-                Cruzamento das 6 camadas canônicas (CEAP, TSE, Folha, Viagens,
-                Emendas, PNCP) + Espectro político e radar OSINT.{" "}
+                Consolidação jurídica das seis camadas canônicas (CEAP, TSE, folha, viagens,
+                emendas, PNCP), espectro político e anexos auditáveis. Pacote principal:{" "}
                 <span className="text-cyan-300">
-                  {CREDIT_PRICE_DOSSIE_MATADOR} créditos no pacote dossiê matador.
+                  {CREDIT_PRICE_DOSSIE_MATADOR} créditos
                 </span>
+                .
               </p>
             </div>
           </div>
@@ -1020,7 +1077,7 @@ export default function PoliticoPage() {
         {isAuthenticated ? (
           <section className="mb-10 space-y-3">
             <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/50">
-              Débito imediato + fila de coleta
+              Débito imediato via Cloud Function + fila de coleta
             </p>
             <div className="grid gap-3 sm:grid-cols-3">
               <button
@@ -1030,14 +1087,14 @@ export default function PoliticoPage() {
                 className="flex flex-col items-start gap-1 rounded-2xl border border-rose-400/40 bg-gradient-to-br from-rose-500/20 to-orange-600/10 px-4 py-4 text-left transition hover:brightness-110 disabled:opacity-50"
               >
                 <span className="text-xs font-black uppercase tracking-widest text-rose-100">
-                  Dossiê matador
+                  Dossiê completo
                 </span>
                 <span className="text-2xl font-bold tabular-nums text-white">
                   {CREDIT_PRICE_DOSSIE_MATADOR}{" "}
                   <span className="text-sm font-semibold text-rose-200/80">cr</span>
                 </span>
                 <span className="text-[11px] leading-snug text-[#cbd5e1]">
-                  Agenda coleta completa e abre o painel forense na sequência.
+                  Auditoria forense integral e recalculo das camadas materializadas.
                 </span>
               </button>
               <button
@@ -1047,14 +1104,14 @@ export default function PoliticoPage() {
                 className="flex flex-col items-start gap-1 rounded-2xl border border-cyan-400/35 bg-cyan-500/10 px-4 py-4 text-left transition hover:bg-cyan-500/15 disabled:opacity-50"
               >
                 <span className="text-xs font-black uppercase tracking-widest text-cyan-100">
-                  Ver CEAP completo
+                  CEAP classificado — pacote
                 </span>
                 <span className="text-2xl font-bold tabular-nums text-white">
                   {CREDIT_PRICE_CEAP_COMPLETO}{" "}
                   <span className="text-sm font-semibold text-cyan-200/80">cr</span>
                 </span>
                 <span className="text-[11px] leading-snug text-[#8B949E]">
-                  Foco CEAP classificado + fornecedores.
+                  Foco em cota parlamentar, fornecedores e notas classificadas.
                 </span>
               </button>
               <button
@@ -1064,20 +1121,34 @@ export default function PoliticoPage() {
                 className="flex flex-col items-start gap-1 rounded-2xl border border-violet-400/35 bg-violet-500/10 px-4 py-4 text-left transition hover:bg-violet-500/15 disabled:opacity-50"
               >
                 <span className="text-xs font-black uppercase tracking-widest text-violet-100">
-                  Ver emendas completas
+                  Emendas — pacote
                 </span>
                 <span className="text-2xl font-bold tabular-nums text-white">
                   {CREDIT_PRICE_EMENDAS_COMPLETAS}{" "}
                   <span className="text-sm font-semibold text-violet-200/80">cr</span>
                 </span>
                 <span className="text-[11px] leading-snug text-[#8B949E]">
-                  Prioriza microdados de emendas e beneficiários.
+                  Microdados de emendas, beneficiários e rastreabilidade orçamentária.
                 </span>
               </button>
             </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                disabled={pdfBusy || !displayRecord}
+                onClick={handleDownloadPDF}
+                className="inline-flex items-center gap-2 rounded-xl border border-amber-400/40 bg-amber-500/10 px-4 py-2 text-xs font-bold uppercase tracking-wider text-amber-100 transition hover:bg-amber-500/20 disabled:opacity-50"
+              >
+                <FileText className="size-4" strokeWidth={2} />
+                {pdfBusy ? "Gerando PDF…" : "Exportar dossiê em PDF"}
+              </button>
+              {pdfError ? (
+                <p className="text-xs text-rose-300">{pdfError}</p>
+              ) : null}
+            </div>
             <p className="text-[11px] text-[#8B949E]">
-              Add-ons no checkout interno: PDF + laudo (+150 cr) · comparações avançadas
-              (+200 cr).
+              Add-ons opcionais na mesma transação: PDF + laudo (+{CREDIT_ADDON_PDF_LAUDO} cr) · comparações
+              avançadas (+{CREDIT_ADDON_COMPARACOES_AVANCADAS} cr).
             </p>
             {purchaseBusy ? (
               <p className="text-xs text-cyan-300">Processando débito…</p>
@@ -1094,118 +1165,9 @@ export default function PoliticoPage() {
           politicoId={id}
         />
         <div className="my-6" />
-        <AuroraInsightsSection politicoId={id} mode="full" />
+        <PoliticoAnalytics politico={politico} ceapDet={ceapDet} />
         <div className="my-6" />
-
-        {/* Emendas & Alertas Forenses — resumo direto do Aurora 360 */}
-        {hasAuroraData && (
-          <section className="mb-10 space-y-4">
-            {/* Emendas Summary */}
-            {auroraData?.emendas && auroraData.emendas.total > 0 && (
-              <div className="rounded-2xl border border-violet-400/30 bg-violet-500/5 p-5">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-violet-300">
-                  Emendas Parlamentares
-                </p>
-                <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                  <div>
-                    <p className="text-2xl font-bold text-white">{auroraData.emendas.total}</p>
-                    <p className="text-[10px] uppercase text-violet-200/70">Total emendas</p>
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold text-white">{fmtBRL(auroraData.emendas.total_empenhado)}</p>
-                    <p className="text-[10px] uppercase text-violet-200/70">Empenhado</p>
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold text-white">{fmtBRL(auroraData.emendas.total_pago)}</p>
-                    <p className="text-[10px] uppercase text-violet-200/70">Pago</p>
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold text-rose-300">{auroraData.emendas.suspeitas}</p>
-                    <p className="text-[10px] uppercase text-rose-200/70">Suspeitas</p>
-                  </div>
-                </div>
-                {auroraData.emendas.lista?.length > 0 && (
-                  <div className="mt-4 max-h-60 overflow-y-auto rounded-xl border border-white/5 bg-black/20 p-3">
-                    <table className="w-full text-xs">
-                      <thead>
-                        <tr className="border-b border-white/10 text-left text-[10px] uppercase text-white/50">
-                          <th className="pb-2">Função</th>
-                          <th className="pb-2">Município</th>
-                          <th className="pb-2 text-right">Empenhado</th>
-                          <th className="pb-2 text-right">Pago</th>
-                          <th className="pb-2">Status</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {auroraData.emendas.lista.map((em, i) => (
-                          <tr key={i} className="border-b border-white/5">
-                            <td className="py-1.5 text-white/80">{em.funcao || em.descricao?.slice(0,30)}</td>
-                            <td className="py-1.5 text-white/60">{em.municipio || '—'}</td>
-                            <td className="py-1.5 text-right font-mono text-white/80">{fmtBRL(em.valor_empenhado)}</td>
-                            <td className="py-1.5 text-right font-mono text-white/80">{fmtBRL(em.valor_pago)}</td>
-                            <td className="py-1.5">
-                              {em.suspeita ? (
-                                <span className="rounded-full bg-rose-500/20 px-2 py-0.5 text-[9px] font-bold text-rose-300">SUSPEITA</span>
-                              ) : (
-                                <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[9px] font-bold text-emerald-300">OK</span>
-                              )}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Filtros Forenses Summary */}
-            {auroraData?.filtros_forenses && (
-              <div className="rounded-2xl border border-rose-400/30 bg-rose-500/5 p-5">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-rose-300">
-                  Filtros Forenses Ativados
-                </p>
-                <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
-                  {Object.entries(auroraData.filtros_forenses).map(([key, val]) => {
-                    const total = val?.total ?? (Array.isArray(val?.casos) ? val.casos.length : 0);
-                    if (total === 0) return null;
-                    const labels = {
-                      f15_dupla_cobranca: 'Dupla cobrança',
-                      f15_fretamento_rota_comercial: 'Fretamento em rota comercial',
-                      f04_trecho_inconsistente: 'Trecho inconsistente',
-                      emendas_x_ceap: 'Emenda × CEAP',
-                      emendas_concentracao: 'Concentração municipal',
-                      emendas_funcao_x_ceap: 'Função × CEAP',
-                    };
-                    return (
-                      <div key={key} className="rounded-xl border border-rose-400/20 bg-rose-500/10 p-3">
-                        <p className="text-lg font-bold text-rose-200">{total}</p>
-                        <p className="text-[10px] text-rose-100/70">{labels[key] || key.replace(/_/g, ' ')}</p>
-                      </div>
-                    );
-                  })}
-                </div>
-                {/* Show top cases from F04 */}
-                {auroraData.filtros_forenses.f04_trecho_inconsistente?.casos?.length > 0 && (
-                  <div className="mt-3 rounded-xl border border-white/5 bg-black/20 p-3">
-                    <p className="mb-2 text-[10px] font-semibold uppercase text-white/50">Trechos irregulares (top 5)</p>
-                    {auroraData.filtros_forenses.f04_trecho_inconsistente.casos.slice(0, 5).map((c, i) => (
-                      <div key={i} className="flex items-center justify-between border-b border-white/5 py-1.5 text-xs">
-                        <span className="text-white/70">{c.data} — {c.fornecedor}</span>
-                        <span className="font-mono text-white/80">{fmtBRL(c.valor)}</span>
-                        {c.url && (
-                          <a href={c.url} target="_blank" rel="noopener noreferrer" className="ml-2 text-cyan-300 hover:underline text-[10px]">
-                            PDF
-                          </a>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </section>
-        )}
+        <EmendasPoliticoSection politico={politico} politicoId={String(id ?? "")} />
 
         <div className="my-10" />
 
@@ -1217,7 +1179,7 @@ export default function PoliticoPage() {
                 Plano Mestre · 6 camadas
               </p>
               <h2 className="mt-1 text-xl font-semibold tracking-tight">
-                O que você recebe ao abrir o dossiê
+                O que você recebe na auditoria completa
               </h2>
             </div>
           </header>
@@ -1229,7 +1191,14 @@ export default function PoliticoPage() {
                 type="button"
                 onClick={() => {
                   const p = buildCamadaDrawerPayload(c.key, {
-                      breakdown: ceapBreakdown, hasKpis, nome, heroKpis, ceapDet, comissoes, eventos, auroraData,
+                      breakdown: ceapBreakdown,
+                      hasKpis,
+                      nome,
+                      heroKpis,
+                      ceapDet,
+                      comissoes,
+                      eventos,
+                      emendasList: emendasListRaw,
                     });
                   setDrawer({ open: true, payload: p });
                 }}
@@ -1268,7 +1237,7 @@ export default function PoliticoPage() {
         {/* Bonus — recursos extra */}
         <section className="mb-10">
           <h2 className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-white/60">
-            Bonus inclusos no dossiê
+            Recursos incluídos no dossiê completo
           </h2>
           <div className="grid gap-3 sm:grid-cols-3">
             <FeatureBox
@@ -1309,7 +1278,7 @@ export default function PoliticoPage() {
             <p className="mt-3 text-[11px] text-white/40">
               Já tem conta?{" "}
               <Link
-                to={`/login?redirect=${encodeURIComponent(dossieRoute)}`}
+                to={`/login?redirect=${encodeURIComponent(politicoPagePath)}`}
                 className="text-cyan-300 hover:underline"
               >
                 Entrar
@@ -1321,6 +1290,27 @@ export default function PoliticoPage() {
             </p>
           )}
         </section>
+      </div>
+
+      {/* Área técnica para html2pdf — fora do fluxo visual */}
+      <div
+        className="pointer-events-none fixed -left-[10000px] top-0 w-[794px] overflow-hidden opacity-[0.02]"
+        aria-hidden
+      >
+        {displayRecord ? (
+          <DossiePDFContent
+            ref={pdfRef}
+            politico={displayRecord}
+            alertas={
+              Array.isArray(politico?.alertas_anexados)
+                ? politico.alertas_anexados
+                : Array.isArray(politico?.alertas)
+                  ? politico.alertas
+                  : []
+            }
+            ceapKpi={kpisRaw}
+          />
+        ) : null}
       </div>
 
       {/* Onda 6 — Drawer de drill-down inline */}
