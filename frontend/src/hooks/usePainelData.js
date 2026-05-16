@@ -104,52 +104,6 @@ function aggregateByUF(parlamentares) {
   }));
 }
 
-/** Junta ranking CEAP (GCS) ao roster para modais com cota, %, score e sinais. */
-function mergeRankingIntoRoster(parlamentares, ranking) {
-  if (!Array.isArray(parlamentares) || parlamentares.length === 0) return [];
-  // Match por ID E por nome normalizado (roster usa IDs Câmara, ranking usa IDs internos)
-  const byId = new Map((ranking || []).map((r) => [String(r.id ?? "").trim(), r]));
-  const byName = new Map((ranking || []).map((r) => [slugify(r.nome || ""), r]));
-  const m = { get(key) { return byId.get(key); }, getByName(key) { return byName.get(key); } };
-  return parlamentares.map((p) => {
-    const r = m.get(String(p.id ?? "").trim()) || m.getByName(slugify(p.nome || ""));
-    if (!r) {
-      return {
-        ...p,
-        cota: 0,
-        pct: 0,
-        meses_ativos: 0,
-        qtd_notas: 0,
-        score: 0,
-        sinalizacoes: 0,
-        presenca: 0,
-        is_suplente: false,
-      };
-    }
-    const pctN = Number(r.pct) || 0;
-    const cotaN = Number(r.cota) || 0;
-    const score = Math.min(
-      100,
-      Math.round(pctN * 0.65 + Math.min(35, Math.log10(1 + Math.max(cotaN, 1)) * 9)),
-    );
-    return {
-      ...p,
-      nome: r.nome || p.nome,
-      partido: String(r.partido || p.partido || "—").toUpperCase(),
-      uf: String(r.uf || p.uf || "—").toUpperCase(),
-      cota: cotaN,
-      pct: pctN,
-      meses_ativos: Number(r.meses_ativos) || 0,
-      qtd_notas: Number(r.qtd_notas) || 0,
-      is_suplente: Boolean(r.is_suplente),
-      frugalidade: pctN,
-      score,
-      sinalizacoes: Math.min(99_999, Number(r.qtd_notas) || 0),
-      presenca: Math.min(100, Math.round(pctN)),
-    };
-  });
-}
-
 /** Agrega parlamentares por partido. */
 function aggregateByPartido(parlamentares) {
   if (!Array.isArray(parlamentares) || parlamentares.length === 0) return [];
@@ -327,22 +281,35 @@ export function usePainelData() {
   // BENTOS REAIS — todos saem de fonte viva
   // ─────────────────────────────────────────────────────────────────────
 
-  // B01 — Pontuação Brasil: score composto real da API (cobertura + mediana + notas)
+  // B01 — Pontuação Brasil: `pontuacao_brasil` do getDashboardKPIs (índice composto 0–100).
   const pontuacaoBrasil = useMemo(() => {
-    const score = kpis
-      ? Math.round(Number(kpis?.pontuacao_brasil || kpis?.indicadores_forense?.rastreabilidade_pct || 0))
-      : 0;
+    const score = kpis ? Math.round(Number(kpis.pontuacao_brasil ?? 0)) : 0;
     return {
       score: Math.max(0, Math.min(100, score)),
       delta: 0,
       serie30d: [],
-      matched: Number(kpis?.parlamentares_matched || 0),
-      total: Number(kpis?.total_parlamentares || 0),
+      matched: Number(kpis?.parlamentares_matched ?? kpis?.total_deputados ?? 0),
+      total: Number(kpis?.total_parlamentares ?? 0),
     };
   }, [kpis]);
 
-  // B02 — Maiores Cotas: TOP 5 PARLAMENTARES por valor (REAL, do BigQuery export)
+  // B02 — Maiores Cotas: prioriza `maiores_cotas` do getDashboardKPIs; senão ranking GCS.
   const maioresCotas = useMemo(() => {
+    const fromKpis = Array.isArray(kpis?.maiores_cotas) ? kpis.maiores_cotas : [];
+    if (fromKpis.length > 0) {
+      return fromKpis
+        .map((r, i) => ({
+          id: String(r.id ?? slugify(r.nome || `mc-${i}`)),
+          nome: String(r.nome || "—"),
+          partido: String(r.partido || "—"),
+          cota: Number(r.cota || 0),
+          pct: Number(r.pct || 0),
+          meses_ativos: Number(r.meses_ativos ?? 0),
+          is_suplente: Boolean(r.is_suplente),
+        }))
+        .filter((p) => p.nome !== "—" && p.cota > 0)
+        .slice(0, 5);
+    }
     if (!rankingReady) return null;
     return [...ranking]
       .sort((a, b) => b.cota - a.cota)
@@ -356,42 +323,67 @@ export function usePainelData() {
         meses_ativos: p.meses_ativos,
         is_suplente: p.is_suplente,
       }));
-  }, [ranking, rankingReady]);
+  }, [kpis, ranking, rankingReady]);
 
-  // B03 — Sinalizações SOC: usa parse_errors + valor_alto_risco como pulso
+  // B03 — Sinalizações SOC: totais e textos só a partir do payload getDashboardKPIs (sem inventar incidentes).
   const sinalizacoesSOC = useMemo(() => {
     if (!kpis) {
       return {
         total: 0,
         feed: [
-          { id: "s0", texto: "Datalake CEAP: aguardando KPIs agregados (Cloud Function)." },
+          { id: "s0", texto: "A aguardar getDashboardKPIs (Cloud Function)." },
         ],
       };
     }
-    const total = Number(kpis.parse_errors || 0);
-    const cobertura = Number(kpis.cobertura_pct || 0);
+    const total = Number(kpis.parse_errors ?? 0);
+    const cobertura = Math.round(Number(kpis.cobertura_pct ?? 0));
+    const notas = Number(kpis.total_notas_classificadas ?? 0);
+    const altoBrl = Number(kpis.valor_alto_risco_brl ?? 0);
+    const cotaAgg = Number(kpis.total_cota_ceap ?? kpis.valor_total_classificado_brl ?? 0);
+    const rast = Math.round(Number(kpis.indicadores_forense?.rastreabilidade_pct ?? 0));
     return {
       total,
       feed: [
-        { id: "s1", texto: `Parse errors no pipeline: ${total} (${cobertura}% cobertura)` },
-        { id: "s2", texto: `${kpis.total_notas_classificadas || 0} notas classificadas no Data Lake` },
-        { id: "s3", texto: `Rastreabilidade ${kpis.indicadores_forense?.rastreabilidade_pct || 0}%` },
+        {
+          id: "s1",
+          texto: `Parse errors no pipeline: ${total} · cobertura deputados CEAP ${cobertura}%`,
+        },
+        {
+          id: "s2",
+          texto: `${notas.toLocaleString("pt-BR")} notas agregadas · cota nacional R$ ${Math.round(cotaAgg).toLocaleString("pt-BR")}`,
+        },
+        {
+          id: "s3",
+          texto: `Indicador alto risco (datalake) R$ ${Math.round(altoBrl).toLocaleString("pt-BR")} · rastreabilidade ${rast}%`,
+        },
       ],
     };
   }, [kpis]);
 
-  // B04 — Mapa UF: distribuição de parlamentares por UF (real)
-  const mapaUF = useMemo(
-    () => (realDataReady ? aggregateByUF(parlamentares) : []),
-    [parlamentares, realDataReady],
-  );
+  // B04 — Mapa UF: prioriza `mapa_uf` do getDashboardKPIs; senão agrega roster.
+  const mapaUF = useMemo(() => {
+    const fromKpis = Array.isArray(kpis?.mapa_uf) ? kpis.mapa_uf : [];
+    if (fromKpis.length > 0) {
+      return fromKpis
+        .map((u) => ({
+          uf: String(u.uf || "").toUpperCase(),
+          total: Number(u.total ?? u.count ?? 0),
+          intensidade: Number(u.intensidade ?? 0),
+          risco: 0,
+          cotaMedia: Number(u.cota_total ?? 0),
+        }))
+        .filter((r) => r.uf.length === 2 && r.total > 0);
+    }
+    return realDataReady ? aggregateByUF(parlamentares) : [];
+  }, [kpis, parlamentares, realDataReady]);
 
-  // B05 — Pulso CEAP: valor total classificado no Data Lake (real)
+  // B05 — Pulso CEAP: volume CEAP agregado (getDashboardKPIs) + barra = cobertura % deputados com dados.
   const pulsoCEAP = useMemo(() => {
     if (!kpis) return { queimadoHoje: 0, pctConsumido: 0 };
-    const queimadoTotal = Number(kpis.valor_total_classificado_brl || 0);
-    const quotaMensalNacional = 22_000_000;
-    const pct = Math.min(100, Math.round((queimadoTotal / (quotaMensalNacional * 36)) * 100));
+    const queimadoTotal = Number(
+      kpis.valor_total_classificado_brl ?? kpis.total_cota_ceap ?? 0,
+    );
+    const pct = Math.min(100, Math.round(Number(kpis.cobertura_pct ?? 0)));
     return {
       queimadoHoje: queimadoTotal,
       pctConsumido: pct,
@@ -563,12 +555,19 @@ export function usePainelData() {
     return null;
   }, [pncp, kpis]);
 
-  // B09 — Cobertura datalake (parlamentares cobertos no classificador vs roster público)
+  // B09 — Cobertura datalake (campos explícitos do getDashboardKPIs vs roster)
   const coberturaDatalake = useMemo(() => {
     const rosterTotal = parlamentares.length;
-    const cobertos = kpis ? Number(kpis.total_parlamentares_cobertos || 0) : 0;
+    const cobertos = kpis
+      ? Number(
+          kpis.total_parlamentares_cobertos ??
+            kpis.parlamentares_matched ??
+            kpis.total_deputados ??
+            0,
+        )
+      : 0;
     return {
-      parlamentaresCobertos: cobertos > 0 ? cobertos : rosterTotal,
+      parlamentaresCobertos: cobertos,
       rosterTotal,
     };
   }, [kpis, parlamentares]);
@@ -738,8 +737,24 @@ export function usePainelData() {
     return null;
   }, [kpis, parlamentares, realDataReady]);
 
-  // B11 — Mais Frugais: menor % de aproveitamento da cota; prioriza titulares (≥12 meses).
+  // B11 — Mais Frugais: prioriza `mais_frugais` do getDashboardKPIs; senão ranking GCS.
   const maisFrugais = useMemo(() => {
+    const fromKpis = Array.isArray(kpis?.mais_frugais) ? kpis.mais_frugais : [];
+    if (fromKpis.length > 0) {
+      return fromKpis
+        .map((r, i) => ({
+          id: String(r.id ?? slugify(r.nome || `mf-${i}`)),
+          nome: String(r.nome || "—"),
+          partido: String(r.partido || "—"),
+          cota: Number(r.cota || 0),
+          pct: Number(r.pct || 0),
+          meses_ativos: Number(r.meses_ativos ?? 0),
+          is_suplente: Boolean(r.is_suplente),
+          frugalidade: Number(r.pct || 0),
+        }))
+        .filter((p) => p.nome !== "—")
+        .slice(0, 5);
+    }
     if (!rankingReady) return null;
     const permanentes = ranking.filter((p) => !p.is_suplente);
     const fonte = permanentes.length >= 5 ? permanentes : ranking;
@@ -756,7 +771,7 @@ export function usePainelData() {
         is_suplente: p.is_suplente,
         frugalidade: p.pct,
       }));
-  }, [ranking, rankingReady]);
+  }, [kpis, ranking, rankingReady]);
 
   // B12 — Influência Setorial: Sankey UF×Partido (real)
   const influenciaSetorial = useMemo(() => {
@@ -810,15 +825,16 @@ export function usePainelData() {
     };
   }, [parlamentares, realDataReady, kpis]);
 
-  // B15 — Pulso Federal: termômetro CEAP executado vs CEAP orçado teórico
+  // B15 — Pulso Federal: cota agregada real vs teto derivado (cota máxima × deputados com CEAP).
   const pulsoFederal = useMemo(() => {
     if (!kpis) {
-      const orcado = 22_000_000 * 36;
-      return { pct: 0, executado: 0, orcado };
+      return { pct: 0, executado: 0, orcado: 0 };
     }
-    const executado = Number(kpis.valor_total_classificado_brl || 0);
-    const orcado = 22_000_000 * 36;
-    const pct = Math.min(100, Math.round((executado / orcado) * 100));
+    const executado = Number(kpis.total_cota_ceap ?? kpis.valor_total_classificado_brl ?? 0);
+    const depComCeap = Math.max(1, Number(kpis.total_deputados ?? kpis.parlamentares_matched ?? 0));
+    const cotaMax = Number(kpis.cota_maxima ?? 0);
+    const orcado = Math.max(executado, cotaMax * depComCeap);
+    const pct = orcado > 0 ? Math.min(100, Math.round((executado / orcado) * 100)) : 0;
     return {
       pct,
       executado,
@@ -898,13 +914,6 @@ export function usePainelData() {
     [user, isAuthenticated, credits, godMode, unlimited, profileDisplayName],
   );
 
-  // Para o BentoModal: ranking real preferido (cota>0); se ainda não carregou,
-  // cai para o roster completo (594) — assim sempre há tabela navegável.
-  const rankingParaModal = useMemo(
-    () => mergeRankingIntoRoster(parlamentares, rankingReady ? ranking : []),
-    [parlamentares, ranking, rankingReady],
-  );
-
   return {
     loading:
       rosterLoading ||
@@ -919,8 +928,7 @@ export function usePainelData() {
 
     // Reais (vivos)
     parlamentares,            // 594 (roster completo) — usado por mapaUF/sankey
-    rankingGastadores: ranking, // top N CEAP real — usado por modal de cotas/frugais
-    rankingParaModal,           // alias inteligente para o BentoModal
+    rankingGastadores: ranking, // top N CEAP real — GCS público / cruzamento com KPIs
     pontuacaoBrasil,
     maioresCotas,
     sinalizacoesSOC,

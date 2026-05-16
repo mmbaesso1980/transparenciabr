@@ -195,7 +195,7 @@ export function PulsoCEAP({ data }) {
         <p className="text-3xl font-semibold text-white tabular-nums leading-tight">
           {fmtBRLcompact(data.queimadoHoje)}
         </p>
-        <p className="text-xs text-white/50 mt-0.5">queimados hoje</p>
+        <p className="text-xs text-white/50 mt-0.5">cota nacional agregada (CEAP · datalake)</p>
       </div>
       <div className="mt-3">
         <div className="h-1 bg-white/5 rounded-full overflow-hidden">
@@ -204,7 +204,7 @@ export function PulsoCEAP({ data }) {
             style={{ width: `${data.pctConsumido}%` }}
           />
         </div>
-        <p className="text-[10px] text-white/40 mt-1">{data.pctConsumido}% da quota mensal consumida</p>
+        <p className="text-[10px] text-white/40 mt-1">{data.pctConsumido}% cobertura deputados no datalake</p>
       </div>
     </div>
   );
