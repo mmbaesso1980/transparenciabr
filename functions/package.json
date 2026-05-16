@@ -6,7 +6,7 @@
   },
   "main": "index.js",
   "scripts": {
-    "build": "node --check index.js && node --check src/radar/diarioScanner.js && node --check src/admin/grantRole.js && node --check src/vertex/askVertexAgent.js && node --check src/leads/index.js && node --check src/leads/openContactBigData.js && node --check src/leads/generateInitialPetition.js && node --check src/dossie/processDossieJob.js && node --check src/dossie/gerarDossieOnDemandCallable.js",
+    "build": "node --check index.js && node --check src/radar/diarioScanner.js && node --check src/admin/grantRole.js && node --check src/vertex/askVertexAgent.js && node --check src/leads/index.js && node --check src/leads/openContactBigData.js && node --check src/leads/generateInitialPetition.js && node --check src/dossie/processDossieJob.js && node --check src/dossie/parlamentarInvestigationContext.js && node --check src/dossie/gerarDossieOnDemandCallable.js",
     "serve": "firebase emulators:start --only functions",
     "deploy": "firebase deploy --only functions"
   },
