@@ -6,6 +6,7 @@ import {
   Sparkles,
 } from "lucide-react";
 
+import AuroraInsightsSection from "./AuroraInsightsSection.jsx";
 import BrazilHeatmap from "../BrazilHeatmap.jsx";
 import ExposureGauge from "../ExposureGauge.jsx";
 import DossieForensicStrip from "../forensic/DossieForensicStrip.jsx";
@@ -37,6 +38,7 @@ export default function DossieMainSections({ dossie: d }) {
   return (
     <div className="dossie-page-body mx-auto min-w-0 w-full max-w-[1600px] space-y-6 px-4 pt-6 sm:px-6 text-lg leading-relaxed text-[#C9D1D9]">
       <DossieForensicStrip kpi={d.ceapKpi} politicoId={d.politicoId} loading={d.ceapKpiLoading} />
+      <AuroraInsightsSection politicoId={d.politicoId} mode="full" />
 
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4" aria-label="Indicadores forenses em destaque">
         {d.bentoBoxes.map((b) => (

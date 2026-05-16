@@ -20,6 +20,20 @@ function fmtBrl(n) {
   });
 }
 
+/** URL explícita no documento ou fallback Portal da Transparência (detalhe emenda / API ano). */
+function portalUrlForRow(row) {
+  const direct = String(row.url_portal_transparencia || "").trim();
+  if (direct) return direct;
+  const cod = row.codigo_emenda;
+  if (cod) {
+    return `https://portaldatransparencia.gov.br/emendas/detalhe?codigoEmenda=${encodeURIComponent(String(cod))}`;
+  }
+  if (row.ano != null) {
+    return `https://api.portaldatransparencia.gov.br/api-de-dados/emendas-parlamentares?ano=${encodeURIComponent(String(row.ano))}`;
+  }
+  return "";
+}
+
 const PILLS = [
   { id: FILTROS_EMENDA.TODAS, label: "Todas" },
   { id: FILTROS_EMENDA.PIX, label: "PIX (RP99)" },
@@ -167,7 +181,7 @@ export default function EmendasSection({ politico = null, showPageHeading = fals
             </li>
           ) : (
             filtradas.map((row, idx) => {
-              const portal = String(row.url_portal_transparencia || "").trim();
+              const portal = portalUrlForRow(row);
               const valorExib =
                 row.valor_pago_normalizado != null && row.valor_pago_normalizado > 0
                   ? row.valor_pago_normalizado
@@ -180,13 +194,34 @@ export default function EmendasSection({ politico = null, showPageHeading = fals
                   row.descricao_normalizada ??
                   "",
               ).trim();
+              const locLine =
+                row.municipio || row.estado
+                  ? [row.municipio, row.estado].filter(Boolean).join(" — ")
+                  : "";
+              const funcLine =
+                row.funcao || row.subfuncao
+                  ? [row.funcao, row.subfuncao].filter(Boolean).join(" / ")
+                  : "";
               return (
                 <li key={row.id ?? row.codigo_emenda ?? idx} className="py-3">
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
-                      <span className="inline-flex rounded-md border border-[#30363D] bg-[#21262D] px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wide text-[#a371f7]">
-                        {labelRpForTipo(row.tipo_emenda)}
-                      </span>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="inline-flex rounded-md border border-[#30363D] bg-[#21262D] px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wide text-[#a371f7]">
+                          {labelRpForTipo(row.tipo_emenda)}
+                        </span>
+                        {locLine ? (
+                          <span className="text-[10px] text-[#8B949E]">{locLine}</span>
+                        ) : null}
+                        {funcLine ? (
+                          <span className="text-[10px] text-[#58A6FF]">{funcLine}</span>
+                        ) : null}
+                      </div>
+                      {row.suspeita ? (
+                        <span className="mt-1 inline-flex items-center gap-1 rounded border border-[#f85149]/50 bg-[#f85149]/10 px-2 py-0.5 text-[10px] font-semibold uppercase text-[#f85149]">
+                          Valor suspeito
+                        </span>
+                      ) : null}
                       {portal ? (
                         <a
                           href={portal}
@@ -214,7 +249,7 @@ export default function EmendasSection({ politico = null, showPageHeading = fals
                         <p className="mt-1 font-mono text-[10px] text-[#484F58]">Destino: {destino}</p>
                       ) : null}
                     </div>
-                    <div className="shrink-0 text-right">
+                    <div className="flex shrink-0 flex-col items-end gap-1">
                       {portal ? (
                         <a
                           href={portal}
@@ -229,6 +264,20 @@ export default function EmendasSection({ politico = null, showPageHeading = fals
                           {fmtBrl(valorExib)}
                         </span>
                       )}
+                      {portal ? (
+                        <a
+                          href={portal}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-[10px] font-medium text-[#58A6FF] hover:underline"
+                        >
+                          Portal Transparência
+                          <ExternalLink className="size-3" strokeWidth={2} aria-hidden />
+                        </a>
+                      ) : null}
+                      {row.valor_pago != null && Number(row.valor_pago) > 0 ? (
+                        <span className="text-[10px] text-[#8B949E]">Pago: {fmtBrl(row.valor_pago)}</span>
+                      ) : null}
                     </div>
                   </div>
                 </li>

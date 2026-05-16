@@ -8,6 +8,13 @@
     ],
     "rewrites": [
       {
+        "source": "/api/datalake/universe-roster",
+        "function": {
+          "functionId": "getUniverseRoster",
+          "region": "southamerica-east1"
+        }
+      },
+      {
         "source": "/api/sprint/status",
         "function": {
           "functionId": "getSprintStatus",
@@ -43,8 +50,92 @@
         }
       },
       {
+        "source": "/api/datalake/emendas-kpis",
+        "function": {
+          "functionId": "getEmendasKPIs",
+          "region": "southamerica-east1"
+        }
+      },
+      {
+        "source": "/api/datalake/patrimonio-kpis",
+        "function": {
+          "functionId": "getPatrimonioKPIs",
+          "region": "southamerica-east1"
+        }
+      },
+      {
+        "source": "/api/datalake/viagens-kpis",
+        "function": {
+          "functionId": "getViagensKPIs",
+          "region": "southamerica-east1"
+        }
+      },
+      {
+        "source": "/api/datalake/gabinete-kpis",
+        "function": {
+          "functionId": "getNepotismoKPIs",
+          "region": "southamerica-east1"
+        }
+      },
+      {
+        "source": "/api/datalake/nepotismo-kpis",
+        "function": {
+          "functionId": "getNepotismoKPIs",
+          "region": "southamerica-east1"
+        }
+      },
+      {
+        "source": "/api/datalake/nepotismo-cruzado-kpis",
+        "function": {
+          "functionId": "getNepotismoCruzadoKPIs",
+          "region": "southamerica-east1"
+        }
+      },
+      {
+        "source": "/api/datalake/empresas-prefeituras-kpis",
+        "function": {
+          "functionId": "getEmpresasPrefeiturasKPIs",
+          "region": "southamerica-east1"
+        }
+      },
+      {
+        "source": "/api/datalake/anomalias-kpis",
+        "function": {
+          "functionId": "getAnomaliasKPIs",
+          "region": "southamerica-east1"
+        }
+      },
+      {
+        "source": "/api/datalake/risco-kpis",
+        "function": {
+          "functionId": "getRiscoKPIs",
+          "region": "southamerica-east1"
+        }
+      },
+      {
+        "source": "/api/datalake/politico-despesas",
+        "function": {
+          "functionId": "getPoliticoDespesas",
+          "region": "southamerica-east1"
+        }
+      },
+      {
+        "source": "/api/datalake/dossie-aurora",
+        "function": {
+          "functionId": "getDossieAurora",
+          "region": "southamerica-east1"
+        }
+      },
+      {
         "source": "/sprint",
         "destination": "/sprint.html"
+      },
+      {
+        "source": "/api/datalake/sacanagens",
+        "function": {
+          "functionId": "getSacanagens",
+          "region": "southamerica-east1"
+        }
       },
       {
         "source": "**",
@@ -77,7 +168,7 @@
           },
           {
             "key": "Content-Security-Policy",
-            "value": "default-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'; script-src 'self' https://apis.google.com https://www.gstatic.com https://www.google.com https://www.gstatic.com/firebasejs; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https: blob:; connect-src 'self' https://*.googleapis.com https://storage.googleapis.com https://*.gstatic.com https://*.firebaseio.com https://*.firebasedatabase.app wss://*.firebaseio.com wss://*.firebasedatabase.app https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://www.googleapis.com https://firebasestorage.googleapis.com https://*.cloudfunctions.net https://firebase.googleapis.com https://firestore.googleapis.com https://dadosabertos.camara.leg.br https://legis.senado.leg.br https://apis.codante.io https://pncp.gov.br https://brasilapi.com.br https://*.transparenciabr.com.br; frame-src 'self' https://accounts.google.com https://*.firebaseapp.com https://*.google.com; worker-src 'self' blob:; manifest-src 'self'"
+            "value": "default-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'; script-src 'self' 'unsafe-eval' https://apis.google.com https://www.gstatic.com https://www.google.com https://www.gstatic.com/firebasejs; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https: blob:; connect-src 'self' https://*.googleapis.com https://storage.googleapis.com https://*.gstatic.com https://*.firebaseio.com https://*.firebasedatabase.app wss://*.firebaseio.com wss://*.firebasedatabase.app https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://www.googleapis.com https://firebasestorage.googleapis.com https://*.cloudfunctions.net https://firebase.googleapis.com https://firestore.googleapis.com https://dadosabertos.camara.leg.br https://legis.senado.leg.br https://apis.codante.io https://pncp.gov.br https://brasilapi.com.br https://*.transparenciabr.com.br; frame-src 'self' https://accounts.google.com https://*.firebaseapp.com https://*.google.com; worker-src 'self' blob:; manifest-src 'self'"
           }
         ]
       },

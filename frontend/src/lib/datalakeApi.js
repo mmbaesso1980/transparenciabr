@@ -38,6 +38,12 @@ export function dossieCeapKpisUrl(politicoId) {
   return `${path}?id=${encodeURIComponent(politicoId)}`;
 }
 
+export function dossieAuroraUrl(politicoId, mode = "preview") {
+  const base = getDatalakeApiBase();
+  const path = isHostingRewriteBase() ? `${base}/dossie-aurora` : `${base}/getDossieAurora`;
+  return `${path}?id=${encodeURIComponent(politicoId)}&mode=${mode}`;
+}
+
 /** POST proxy Vertex / Dialogflow CX — mesmo host que datalake em produção. */
 export function vertexAskUrl() {
   const base = getDatalakeApiBase();

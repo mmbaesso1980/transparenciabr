@@ -16,7 +16,7 @@
  */
 
 import { useEffect, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { motion } from "framer-motion";
 import {
@@ -43,6 +43,9 @@ import {
   useEventosParlamentar,
 } from "../hooks/useCamadasParlamentar.js";
 import { useAuth } from "../context/AuthContext.jsx";
+import DespesasSection from "../components/politico/DespesasSection.jsx";
+import AuroraInsightsSection from "../components/dossie/AuroraInsightsSection.jsx";
+import { useDossieAurora } from "../hooks/useDossieAurora.js";
 import CamadaDrawer from "../components/CamadaDrawer.jsx";
 import {
   CREDIT_PRICE_CEAP_COMPLETO,
@@ -52,6 +55,7 @@ import {
 import { useDailyFreemiumCountdown } from "../hooks/useDailyFreemiumCountdown.js";
 import { useGenerateDossieOnDemand } from "../hooks/useGenerateDossieOnDemand.js";
 import { useUserCredits } from "../hooks/useUserCredits.js";
+// import ChatIA from "../components/ChatIA.jsx"; // Será integrado via Cloud Function
 
 const fmtBRL = (v) =>
   Number.isFinite(Number(v))
@@ -102,8 +106,8 @@ const CATEGORIES = [
     key: "emendas",
     n: 5,
     label: "Emendas & PIX RP6/RP7/RP99",
-    teaser: "Microdados LOA, beneficiários por CNPJ, concentração temporal.",
-    status: "coming",
+    teaser: "Emendas individuais e de bancada com valores empenhados, pagos e beneficiários.",
+    status: "available",
   },
   {
     key: "pncp",
@@ -319,7 +323,7 @@ function buildKpiDrawerPayload(kind, { kpisRaw, heroKpis, breakdown, hasKpis, no
 /** Drawer dos 6 cards de camada — Onda 7: usa dado vivo da API Câmara. */
 function buildCamadaDrawerPayload(
   key,
-  { breakdown, hasKpis, nome, heroKpis, ceapDet, comissoes, eventos },
+  { breakdown, hasKpis, nome, heroKpis, ceapDet, comissoes, eventos, auroraData },
 ) {
   const blocoCEAP = {
     title: "CEAP — Cota parlamentar",
@@ -543,16 +547,45 @@ function buildCamadaDrawerPayload(
           "API Câmara · /deputados/{id}/eventos",
         ],
       );
-    case "emendas":
-      return blocoEmBreve(
-        "Emendas & PIX RP6/RP7/RP99",
-        "Camada 5 · Em breve",
-        "Microdados de execução orçamentária das emendas individuais e de bancada (RP6/RP7/RP99) com beneficiários por CNPJ e concentração temporal. BigQuery `projeto-codex-br.fiscalizapa.emendas_*` já existe; falta o agregador por parlamentar.",
-        [
-          "BigQuery · projeto-codex-br.fiscalizapa.emendas",
+    case "emendas": {
+      const em = auroraData?.emendas;
+      if (!em || !em.lista || em.lista.length === 0) {
+        return blocoEmBreve(
+          "Emendas & PIX RP6/RP7/RP99",
+          "Camada 5 · Sem dados",
+          "Este parlamentar não possui emendas individuais registradas no período analisado.",
+          ["BigQuery · transparenciabr.emendas", "SIOP · Sistema Integrado de Planejamento e Orçamento"],
+        );
+      }
+      const topEmendas = em.lista.slice(0, 10).map((e) => ({
+        categoria: `${e.funcao} · ${e.municipio || 'Nacional'} (${e.ano})`,
+        qtd: e.suspeita ? 1 : 0,
+        valor_brl: e.valor_empenhado,
+      }));
+      return {
+        title: "Emendas Parlamentares",
+        kicker: `Camada 5 · DISPONÍVEL · ${em.lista.length} emendas`,
+        subtitle: `${nome} — R$ ${(em.total_empenhado / 1e6).toFixed(1)}M empenhados, R$ ${(em.total_pago / 1e6).toFixed(1)}M pagos.`,
+        bigLabel: "Total empenhado",
+        bigValue: fmtBRL(em.total_empenhado),
+        bigHint: `${em.lista.length} emendas · ${em.suspeitas} sinalizadas como suspeitas · taxa de execução ${em.total_empenhado > 0 ? ((em.total_pago / em.total_empenhado) * 100).toFixed(0) : 0}%.`,
+        topCategorias: topEmendas,
+        topCategoriasLabel: "Maiores emendas por função",
+        metricas: [
+          { label: "Total empenhado", value: fmtBRL(em.total_empenhado) },
+          { label: "Total pago", value: fmtBRL(em.total_pago) },
+          { label: "Emendas suspeitas", value: `${em.suspeitas} de ${em.lista.length}` },
+          { label: "Taxa de execução", value: em.total_empenhado > 0 ? `${((em.total_pago / em.total_empenhado) * 100).toFixed(1)}%` : "—" },
+        ],
+        metodologia:
+          "Emendas individuais e de bancada (RP6/RP7/RP99) extraídas do BigQuery. Classificadas como suspeitas quando: valor redondo > R$ 1M, função genérica (Encargos especiais), ou concentração geográfica sem especificação de beneficiário.",
+        fontes: [
+          "BigQuery · transparenciabr.emendas",
+          "Portal de Emendas Parlamentares",
           "SIOP · Sistema Integrado de Planejamento e Orçamento",
         ],
-      );
+      };
+    }
     case "pncp":
       return blocoEmBreve(
         "Contratos PNCP",
@@ -570,6 +603,8 @@ function buildCamadaDrawerPayload(
 
 export default function PoliticoPage() {
   const { id } = useParams();
+  const [searchParams] = useSearchParams();
+  const qNome = searchParams.get("nome") || "";
   const { isAuthenticated } = useAuth();
   const [politico, setPolitico] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -598,10 +633,20 @@ export default function PoliticoPage() {
   const [drawer, setDrawer] = useState({ open: false, payload: null });
   const closeDrawer = () => setDrawer((s) => ({ ...s, open: false }));
 
+  // Onda 5 — KPIs reais do Data Lake
+  const kpisState = useKPIsParlamentar(id);
+  const heroKpis = extractHeroKPIs(kpisState.kpis);
+  const ceapBreakdown = extractCeapBreakdown(kpisState.kpis);
+  const hasKpis = kpisState.hasData;
+  const kpisRaw = kpisState.kpis ?? {};
+  const loadingKpis = kpisState.loading;
+
   // Onda 7 — dados vivos da API Câmara (CEAP detalhado, com. e eventos).
   const ceapDet = useCEAPDetalhado(id);
   const comissoes = useComissoesParlamentar(id);
   const eventos = useEventosParlamentar(id);
+  // Aurora 360 data for emendas layer
+  const { data: auroraData } = useDossieAurora(id, "full");
 
   useEffect(() => {
     let mounted = true;
@@ -674,9 +719,17 @@ export default function PoliticoPage() {
     politico?.partido ?? politico?.siglaPartido ?? politico?.party ?? "—";
   const uf =
     politico?.uf ?? politico?.siglaUf ?? politico?.estado ?? "—";
-  // Onda 5 — prioriza dado real do Data Lake; fallback para Firestore se houver.
+  // Onda 5 — prioriza dado real do Data Lake; fallback para Aurora 360 → Firestore.
+  // Aurora 360 (getDossieAurora full) traz score_risco, total CEAP e alertas consolidados.
+  const auroraAlertas = auroraData?.alertas_consolidados ?? {};
+  const auroraCeap = auroraData?.ceap ?? {};
+  const auroraScore = auroraAlertas.score_risco ?? auroraData?.score_risco ?? null;
+
+  // Priority: Aurora 360 (real-time forense) > getDossieCeapKPIs > Firestore politico doc
+  // Use Aurora when available (it has the richest data), fallback to KPIs only if Aurora is empty
   const cota =
-    heroKpis.ceap_acumulado ??
+    (auroraCeap.total_brl > 0 ? auroraCeap.total_brl : null) ??
+    (heroKpis.ceap_acumulado > 0 ? heroKpis.ceap_acumulado : null) ??
     Number(
       politico?.cota_anual ??
         politico?.cota ??
@@ -685,7 +738,8 @@ export default function PoliticoPage() {
         0,
     );
   const score =
-    heroKpis.score_aurora ??
+    (typeof auroraScore === 'number' && auroraScore > 0 ? auroraScore : null) ??
+    (heroKpis.score_aurora > 0 ? heroKpis.score_aurora : null) ??
     Number(
       politico?.score_asmodeus ??
         politico?.score_risco ??
@@ -696,18 +750,27 @@ export default function PoliticoPage() {
     );
   // "Presença" deixa de ser presença em plenário (que não temos) e vira
   // "rastreabilidade do dossiê" — KPI honesto baseado em dado real.
-  const presenca = heroKpis.rastreabilidade_pct ??
+  const presenca =
+    (heroKpis.rastreabilidade_pct > 0 ? heroKpis.rastreabilidade_pct : null) ??
     Number(
       politico?.presenca ?? politico?.presenca_pct ?? politico?.kpi_presenca ?? 0,
     );
-  // "Sinalizações" agora é a contagem real de notas em alto risco.
-  const sinalizacoes = heroKpis.qtd_notas_alto_risco ??
+  // "Sinalizações" agora é a contagem real de alertas consolidados.
+  const totalAlertas = Object.values(auroraAlertas).reduce(
+    (s, v) => s + (typeof v === 'number' ? v : 0), 0
+  );
+  const sinalizacoes =
+    (totalAlertas > 0 ? totalAlertas : null) ??
+    (heroKpis.qtd_notas_alto_risco > 0 ? heroKpis.qtd_notas_alto_risco : null) ??
     Number(
       politico?.sinalizacoes ??
         politico?.sinalizacoes_total ??
         politico?.kpi_sinalizacoes ??
         0,
     );
+
+  // Derive hasKpis from either source
+  const hasAuroraData = !!(auroraData && (auroraCeap.total_brl > 0 || auroraScore > 0));
   const fotoUrl =
     politico?.foto ?? politico?.urlFoto ?? politico?.url_foto ?? null;
   // Onda 14 — selo “ex-parlamentar” quando o registro veio do CEAP histórico
@@ -822,16 +885,16 @@ export default function PoliticoPage() {
             <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
               <KpiBlock
                 label="Score Aurora"
-                value={hasKpis ? `${Math.round(score)} / 100` : "—"}
+                value={(hasKpis || hasAuroraData) ? `${Math.round(score)} / 100` : "—"}
                 accent="violet"
-                hint={hasKpis ? "clique para detalhes" : "sem dado classificado"}
+                hint={(hasKpis || hasAuroraData) ? "clique para detalhes" : "sem dado classificado"}
                 onClick={() =>
                   setDrawer({
                     open: true,
                     payload: buildKpiDrawerPayload("score", {
                       kpisRaw,
                       heroKpis,
-                      breakdown,
+                      breakdown: ceapBreakdown,
                       hasKpis,
                       nome,
                     }),
@@ -840,16 +903,16 @@ export default function PoliticoPage() {
               />
               <KpiBlock
                 label="CEAP classificado"
-                value={hasKpis ? fmtBRL(cota) : "—"}
+                value={(hasKpis || hasAuroraData) ? fmtBRL(cota) : "—"}
                 accent="amber"
-                hint={hasKpis ? "clique para série anual" : "em coleta"}
+                hint={(hasKpis || hasAuroraData) ? "clique para série anual" : "em coleta"}
                 onClick={() =>
                   setDrawer({
                     open: true,
                     payload: buildKpiDrawerPayload("ceap", {
                       kpisRaw,
                       heroKpis,
-                      breakdown,
+                      breakdown: ceapBreakdown,
                       hasKpis,
                       nome,
                     }),
@@ -858,16 +921,16 @@ export default function PoliticoPage() {
               />
               <KpiBlock
                 label="Rastreabilidade"
-                value={hasKpis && presenca > 0 ? `${Math.round(presenca)}%` : "—"}
+                value={(hasKpis || hasAuroraData) && presenca > 0 ? `${Math.round(presenca)}%` : (hasAuroraData ? `${auroraCeap.total_notas || 0} notas` : "—")}
                 accent="emerald"
-                hint={hasKpis ? "qualidade do dossiê" : null}
+                hint={(hasKpis || hasAuroraData) ? "qualidade do dossiê" : null}
                 onClick={() =>
                   setDrawer({
                     open: true,
                     payload: buildKpiDrawerPayload("rastreabilidade", {
                       kpisRaw,
                       heroKpis,
-                      breakdown,
+                      breakdown: ceapBreakdown,
                       hasKpis,
                       nome,
                     }),
@@ -875,17 +938,17 @@ export default function PoliticoPage() {
                 }
               />
               <KpiBlock
-                label="Notas alto risco"
-                value={hasKpis ? fmtNum(sinalizacoes) : "—"}
+                label="Alertas forenses"
+                value={(hasKpis || hasAuroraData) ? fmtNum(sinalizacoes) : "—"}
                 accent="rose"
-                hint={hasKpis ? "clique para detalhes" : "a confirmar"}
+                hint={(hasKpis || hasAuroraData) ? "clique para detalhes" : "a confirmar"}
                 onClick={() =>
                   setDrawer({
                     open: true,
                     payload: buildKpiDrawerPayload("alto_risco", {
                       kpisRaw,
                       heroKpis,
-                      breakdown,
+                      breakdown: ceapBreakdown,
                       hasKpis,
                       nome,
                     }),
@@ -908,7 +971,7 @@ export default function PoliticoPage() {
             )}
 
             {/* Banner honesto quando o parlamentar ainda não foi classificado */}
-            {!loadingKpis && !hasKpis && (
+            {!loadingKpis && !hasKpis && !hasAuroraData && (
               <div className="mt-4 flex items-start gap-3 rounded-xl border border-amber-400/20 bg-amber-400/5 p-3 text-sm">
                 <span className="mt-0.5 size-2 shrink-0 animate-pulse rounded-full bg-amber-300" />
                 <p className="text-[#D1D5DB]">
@@ -1025,6 +1088,127 @@ export default function PoliticoPage() {
           </section>
         ) : null}
 
+        {/* Despesas CEAP — seção principal com preview + paywall + filtros */}
+        <DespesasSection
+          nome={qNome || nome}
+          politicoId={id}
+        />
+        <div className="my-6" />
+        <AuroraInsightsSection politicoId={id} mode="full" />
+        <div className="my-6" />
+
+        {/* Emendas & Alertas Forenses — resumo direto do Aurora 360 */}
+        {hasAuroraData && (
+          <section className="mb-10 space-y-4">
+            {/* Emendas Summary */}
+            {auroraData?.emendas && auroraData.emendas.total > 0 && (
+              <div className="rounded-2xl border border-violet-400/30 bg-violet-500/5 p-5">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-violet-300">
+                  Emendas Parlamentares
+                </p>
+                <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                  <div>
+                    <p className="text-2xl font-bold text-white">{auroraData.emendas.total}</p>
+                    <p className="text-[10px] uppercase text-violet-200/70">Total emendas</p>
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-white">{fmtBRL(auroraData.emendas.total_empenhado)}</p>
+                    <p className="text-[10px] uppercase text-violet-200/70">Empenhado</p>
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-white">{fmtBRL(auroraData.emendas.total_pago)}</p>
+                    <p className="text-[10px] uppercase text-violet-200/70">Pago</p>
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-rose-300">{auroraData.emendas.suspeitas}</p>
+                    <p className="text-[10px] uppercase text-rose-200/70">Suspeitas</p>
+                  </div>
+                </div>
+                {auroraData.emendas.lista?.length > 0 && (
+                  <div className="mt-4 max-h-60 overflow-y-auto rounded-xl border border-white/5 bg-black/20 p-3">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="border-b border-white/10 text-left text-[10px] uppercase text-white/50">
+                          <th className="pb-2">Função</th>
+                          <th className="pb-2">Município</th>
+                          <th className="pb-2 text-right">Empenhado</th>
+                          <th className="pb-2 text-right">Pago</th>
+                          <th className="pb-2">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {auroraData.emendas.lista.map((em, i) => (
+                          <tr key={i} className="border-b border-white/5">
+                            <td className="py-1.5 text-white/80">{em.funcao || em.descricao?.slice(0,30)}</td>
+                            <td className="py-1.5 text-white/60">{em.municipio || '—'}</td>
+                            <td className="py-1.5 text-right font-mono text-white/80">{fmtBRL(em.valor_empenhado)}</td>
+                            <td className="py-1.5 text-right font-mono text-white/80">{fmtBRL(em.valor_pago)}</td>
+                            <td className="py-1.5">
+                              {em.suspeita ? (
+                                <span className="rounded-full bg-rose-500/20 px-2 py-0.5 text-[9px] font-bold text-rose-300">SUSPEITA</span>
+                              ) : (
+                                <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[9px] font-bold text-emerald-300">OK</span>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Filtros Forenses Summary */}
+            {auroraData?.filtros_forenses && (
+              <div className="rounded-2xl border border-rose-400/30 bg-rose-500/5 p-5">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-rose-300">
+                  Filtros Forenses Ativados
+                </p>
+                <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  {Object.entries(auroraData.filtros_forenses).map(([key, val]) => {
+                    const total = val?.total ?? (Array.isArray(val?.casos) ? val.casos.length : 0);
+                    if (total === 0) return null;
+                    const labels = {
+                      f15_dupla_cobranca: 'Dupla cobrança',
+                      f15_fretamento_rota_comercial: 'Fretamento em rota comercial',
+                      f04_trecho_inconsistente: 'Trecho inconsistente',
+                      emendas_x_ceap: 'Emenda × CEAP',
+                      emendas_concentracao: 'Concentração municipal',
+                      emendas_funcao_x_ceap: 'Função × CEAP',
+                    };
+                    return (
+                      <div key={key} className="rounded-xl border border-rose-400/20 bg-rose-500/10 p-3">
+                        <p className="text-lg font-bold text-rose-200">{total}</p>
+                        <p className="text-[10px] text-rose-100/70">{labels[key] || key.replace(/_/g, ' ')}</p>
+                      </div>
+                    );
+                  })}
+                </div>
+                {/* Show top cases from F04 */}
+                {auroraData.filtros_forenses.f04_trecho_inconsistente?.casos?.length > 0 && (
+                  <div className="mt-3 rounded-xl border border-white/5 bg-black/20 p-3">
+                    <p className="mb-2 text-[10px] font-semibold uppercase text-white/50">Trechos irregulares (top 5)</p>
+                    {auroraData.filtros_forenses.f04_trecho_inconsistente.casos.slice(0, 5).map((c, i) => (
+                      <div key={i} className="flex items-center justify-between border-b border-white/5 py-1.5 text-xs">
+                        <span className="text-white/70">{c.data} — {c.fornecedor}</span>
+                        <span className="font-mono text-white/80">{fmtBRL(c.valor)}</span>
+                        {c.url && (
+                          <a href={c.url} target="_blank" rel="noopener noreferrer" className="ml-2 text-cyan-300 hover:underline text-[10px]">
+                            PDF
+                          </a>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </section>
+        )}
+
+        <div className="my-10" />
+
         {/* 6 categorias canônicas — preview público */}
         <section className="mb-10">
           <header className="mb-4 flex items-end justify-between">
@@ -1043,20 +1227,12 @@ export default function PoliticoPage() {
               <button
                 key={c.key}
                 type="button"
-                onClick={() =>
-                  setDrawer({
-                    open: true,
-                    payload: buildCamadaDrawerPayload(c.key, {
-                      breakdown,
-                      hasKpis,
-                      nome,
-                      heroKpis,
-                      ceapDet,
-                      comissoes,
-                      eventos,
-                    }),
-                  })
-                }
+                onClick={() => {
+                  const p = buildCamadaDrawerPayload(c.key, {
+                      breakdown: ceapBreakdown, hasKpis, nome, heroKpis, ceapDet, comissoes, eventos, auroraData,
+                    });
+                  setDrawer({ open: true, payload: p });
+                }}
                 className="group flex items-start gap-3 rounded-2xl border border-[#30363D] bg-[#0D1117]/80 p-4 text-left transition hover:-translate-y-0.5 hover:border-cyan-400/40 hover:bg-[#0D1117]"
               >
                 <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/5 font-mono text-xs text-white/70">

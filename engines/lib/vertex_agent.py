@@ -1,18 +1,21 @@
 """
 Cliente fino para Vertex AI / Gemini 2.x — usado pelos engines de sumarização.
 
+ARQUITETURA CROSS-PROJECT:
+    * Vertex AI (Gemini) → projeto 'projeto-codex-br' (créditos R$ 5.952)
+    * BigQuery/Firestore  → projeto 'transparenciabr' (dados de produção)
+
 Princípios:
     * IDs e região vêm do ambiente, nunca hardcoded.
-        - GCP_PROJECT_ID            (já usado em todo o repo)
-        - VERTEX_LOCATION           (default: us-central1)
+        - VERTEX_PROJECT / VERTEX_PROJECT_ID  (projeto com créditos IA)
+        - VERTEX_LOCATION           (default: us-east1)
         - VERTEX_MODEL              (default: gemini-2.5-pro)
         - VERTEX_AGENT_ID           (opcional — log/observabilidade apenas)
         - VERTEX_REQUEST_TIMEOUT    (segundos, default 60)
     * Backoff exponencial reaproveitando ``lib.resilience``.
     * Logging compatível com Cloud Logging (severity + payload curto).
     * Prompt-guard: prefixa toda chamada com instrução factual/neutra para
-      evitar rotulagem ideológica de pessoas reais. Não substitui revisão
-      humana, mas reduz risco de saída tendenciosa por acidente.
+      evitar rotulagem ideológica de pessoas reais.
 
 A SDK ``google-genai`` (configurada com ``vertexai=True``) é o caminho
 canônico. Caso a lib não esteja disponível, o ``summarize_neutral`` levanta
@@ -26,13 +29,13 @@ import os
 from dataclasses import dataclass
 from typing import Any, Optional
 
-from lib.project_config import gcp_project_id
+from lib.project_config import vertex_project_id, vertex_location as _vertex_location
 from lib.resilience import call_with_exponential_backoff
 
 logger = logging.getLogger(__name__)
 
 
-DEFAULT_LOCATION = "us-central1"
+DEFAULT_LOCATION = "us-east1"
 DEFAULT_MODEL = "gemini-2.5-pro"
 
 
@@ -54,15 +57,18 @@ class VertexConfig:
 
 
 def load_config() -> VertexConfig:
-    """Lê todas as configurações do ambiente. Não cacheia (testes ficam fáceis)."""
-    project = gcp_project_id()
+    """Lê todas as configurações do ambiente. Não cacheia (testes ficam fáceis).
+    
+    IMPORTANTE: Usa projeto-codex-br para billing Vertex AI (onde estão os créditos).
+    """
+    project = vertex_project_id()
     if not project:
         raise RuntimeError(
-            "GCP_PROJECT_ID não definido — Vertex AI requer projeto explícito.",
+            "VERTEX_PROJECT não definido — Vertex AI requer projeto explícito com créditos.",
         )
     return VertexConfig(
         project=project,
-        location=os.environ.get("VERTEX_LOCATION", DEFAULT_LOCATION).strip() or DEFAULT_LOCATION,
+        location=_vertex_location(),
         model=os.environ.get("VERTEX_MODEL", DEFAULT_MODEL).strip() or DEFAULT_MODEL,
         agent_id=(os.environ.get("VERTEX_AGENT_ID") or "").strip() or None,
         timeout_sec=float(os.environ.get("VERTEX_REQUEST_TIMEOUT", "60")),
@@ -113,8 +119,8 @@ def _build_client(cfg: VertexConfig) -> Any:
     genai = _import_genai()
     return genai.Client(
         vertexai=True,
-        project=cfg.project,
-        location=cfg.location,
+        project=cfg.project,   # projeto-codex-br (créditos IA)
+        location=cfg.location, # us-east1
     )
 
 

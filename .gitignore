@@ -17,3 +17,5 @@ __pycache__/
 venv/
 engines/mock_key.json
 .firebase/
+serviceAccountKey.json
+firebase-sa.json

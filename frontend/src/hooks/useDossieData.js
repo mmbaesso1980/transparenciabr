@@ -4,6 +4,7 @@ import { useParams } from "react-router-dom";
 
 import { ORACLE_LABORATORIO_CREDITS, WATCHLIST_STORAGE_KEY } from "../constants/dossieConstants.js";
 import { deductCredits, getFirebaseApp } from "../lib/firebase.js";
+import { resolvePoliticoUniversal } from "../lib/resolvePolitico.js";
 import { useTransparencyReport } from "../services/transparencyReports.js";
 import {
   absolutizeMediaUrl,
@@ -145,14 +146,55 @@ export function useDossieData() {
     }
 
     if (reportQuery.isSuccess) {
-      if (!reportQuery.data) {
+      const fsData = reportQuery.data;
+      if (!fsData) {
         setError("not_found");
         setRecord(null);
-      } else {
-        setRecord(reportQuery.data);
+        setLoading(false);
+        return;
       }
-      setLoading(false);
+      const hasUsefulData =
+        typeof fsData === "object" &&
+        Boolean(fsData.nome || fsData.nome_completo || fsData.apelido_publico);
+      if (hasUsefulData) {
+        setRecord(fsData);
+        setError(null);
+        setLoading(false);
+        return;
+      }
+
+      let cancelled = false;
+      setLoading(true);
+      resolvePoliticoUniversal(politicoId.trim())
+        .then((p) => {
+          if (cancelled) return;
+          if (p) {
+            setRecord(
+              fsData
+                ? { ...p, ...fsData, nome: p.nome, urlFoto: p.urlFoto || fsData.urlFoto }
+                : p,
+            );
+            setError(null);
+          } else {
+            setError("not_found");
+            setRecord(null);
+          }
+        })
+        .catch(() => {
+          if (!cancelled) {
+            setError("not_found");
+            setRecord(null);
+          }
+        })
+        .finally(() => {
+          if (!cancelled) setLoading(false);
+        });
+
+      return () => {
+        cancelled = true;
+      };
     }
+    return undefined;
   }, [
     politicoId,
     reportQuery.data,

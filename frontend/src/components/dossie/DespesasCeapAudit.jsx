@@ -87,20 +87,14 @@ export default function DespesasCeapAudit({
         <h2 className="text-2xl font-bold tracking-tight text-[#F0F4FC] md:text-3xl">
           Monitor CEAP — auditoria de notas
         </h2>
-        <p className="mt-3 text-lg leading-relaxed text-[#8B949E]">
-          {hasBundleSemCatalogo ? (
-            <>
-              O relatório tem metadados CEAP, mas o catálogo de notas ainda não foi materializado neste
-              documento. Aguarde o processamento forense do Dossiê Aurora ou dispare uma nova coleta sob
-              demanda.
-            </>
-          ) : (
-            <>
-              Sem catálogo CEAP neste registo. Aguarde o processamento forense do Dossiê Aurora ou utilize
-              &quot;Atualizar agora&quot; quando disponível para o seu perfil.
-            </>
-          )}
-        </p>
+        <div className="mt-4 flex items-center gap-3">
+          <div className="size-3 shrink-0 animate-pulse rounded-full bg-[#58A6FF]" aria-hidden />
+          <p className="text-lg leading-relaxed text-[#8B949E]">
+            {hasBundleSemCatalogo
+              ? "Processamento forense em andamento. O catálogo de notas será materializado no Dossiê Aurora em breve — ou dispare uma nova coleta sob demanda, se disponível."
+              : "Aguardando processamento forense do Dossiê Aurora. As notas CEAP serão exibidas após a classificação; use &quot;Atualizar agora&quot; quando liberado ao seu perfil."}
+          </p>
+        </div>
       </div>
     );
   }

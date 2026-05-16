@@ -75,6 +75,7 @@ export function normalizeEmendaRow(row, idx) {
       row.valor ??
         row.valor_aprovado ??
         row.valorEmpenhado ??
+        row.valor_empenhado ??
         row.valor_emenda ??
         row.valorRepassado,
     ) || 0;
@@ -82,6 +83,14 @@ export function normalizeEmendaRow(row, idx) {
     row.descricao ?? row.objeto ?? row.nome ?? `Emenda ${idx + 1}`,
   );
   const ano = row.ano ?? row.exercicio ?? null;
+  const valor_pago_bruto = Number(row.valorPago ?? row.valor_pago ?? 0) || 0;
+  const valor_pago_normalizado = Number(
+    row.valor_pago ??
+      row.valorPago ??
+      row.valor_empenhado ??
+      row.valorEmpenhado ??
+      valor,
+  );
   const url_portal_transparencia = String(
     row.urlPortalTransparencia ??
       row.url_portal_transparencia ??
@@ -92,34 +101,36 @@ export function normalizeEmendaRow(row, idx) {
       row.url ??
       "",
   ).trim();
+  const municipio = row.municipio ?? row.localidade ?? null;
+  const estado = row.estado ?? row.uf ?? null;
   const municipio_favorecido = String(
     row.municipio_favorecido ??
       row.municipioFavorecido ??
       row.municipio ??
+      row.localidade ??
       row.nome_municipio_favorecido ??
       "",
   ).trim();
   const uf_favorecido = String(
-    row.uf_favorecido ?? row.ufFavorecido ?? row.uf_destino ?? row.uf ?? "",
+    row.uf_favorecido ?? row.ufFavorecido ?? row.uf_destino ?? row.estado ?? row.uf ?? "",
   ).trim();
-  const valor_pago =
-    Number(
-      row.valor_pago ??
-        row.valorPago ??
-        row.valor_empenhado ??
-        row.valorEmpenhado ??
-        valor,
-    ) || 0;
   return {
     ...row,
     tipo_emenda,
     valor_normalizado: valor,
-    valor_pago_normalizado: Number.isFinite(valor_pago) ? valor_pago : valor,
+    valor_pago: valor_pago_bruto,
+    valor_pago_normalizado: Number.isFinite(valor_pago_normalizado) ? valor_pago_normalizado : valor,
     descricao_normalizada: descricao,
     ano,
     url_portal_transparencia,
     municipio_favorecido,
     uf_favorecido,
+    municipio,
+    estado,
+    funcao: row.funcao ?? null,
+    subfuncao: row.subfuncao ?? null,
+    codigo_emenda: row.codigo_emenda ?? row.codigoEmenda ?? null,
+    suspeita: row.suspeita ?? false,
   };
 }
 

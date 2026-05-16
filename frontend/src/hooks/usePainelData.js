@@ -107,9 +107,12 @@ function aggregateByUF(parlamentares) {
 /** Junta ranking CEAP (GCS) ao roster para modais com cota, %, score e sinais. */
 function mergeRankingIntoRoster(parlamentares, ranking) {
   if (!Array.isArray(parlamentares) || parlamentares.length === 0) return [];
-  const m = new Map((ranking || []).map((r) => [String(r.id ?? "").trim(), r]));
+  // Match por ID E por nome normalizado (roster usa IDs Câmara, ranking usa IDs internos)
+  const byId = new Map((ranking || []).map((r) => [String(r.id ?? "").trim(), r]));
+  const byName = new Map((ranking || []).map((r) => [slugify(r.nome || ""), r]));
+  const m = { get(key) { return byId.get(key); }, getByName(key) { return byName.get(key); } };
   return parlamentares.map((p) => {
-    const r = m.get(String(p.id ?? "").trim());
+    const r = m.get(String(p.id ?? "").trim()) || m.getByName(slugify(p.nome || ""));
     if (!r) {
       return {
         ...p,
@@ -324,15 +327,17 @@ export function usePainelData() {
   // BENTOS REAIS — todos saem de fonte viva
   // ─────────────────────────────────────────────────────────────────────
 
-  // B01 — Pontuação Brasil: rastreabilidade % do Data Lake (real; 0 se KPIs ainda não chegaram)
+  // B01 — Pontuação Brasil: score composto real da API (cobertura + mediana + notas)
   const pontuacaoBrasil = useMemo(() => {
     const score = kpis
-      ? Math.round(Number(kpis?.indicadores_forense?.rastreabilidade_pct || 0))
+      ? Math.round(Number(kpis?.pontuacao_brasil || kpis?.indicadores_forense?.rastreabilidade_pct || 0))
       : 0;
     return {
       score: Math.max(0, Math.min(100, score)),
       delta: 0,
       serie30d: [],
+      matched: Number(kpis?.parlamentares_matched || 0),
+      total: Number(kpis?.total_parlamentares || 0),
     };
   }, [kpis]);
 
