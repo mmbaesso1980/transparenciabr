@@ -261,10 +261,11 @@ export default function PrismaCeapSection({ record, politicoId = "" }) {
       ) : null}
 
       {!bundle ? (
-        <div className="rounded-xl border border-[#2d0808] bg-[#050608] p-6 flex items-center gap-3">
-          <div className="size-3 animate-pulse rounded-full bg-[#f85149]"></div>
+        <div className="flex items-center gap-3 rounded-xl border border-[#2d0808] bg-[#050608] p-6">
+          <div className="size-3 shrink-0 animate-pulse rounded-full bg-[#f85149]" aria-hidden />
           <p className="text-lg leading-relaxed text-[#8B949E]">
-            Aguardando processamento forense. Os 12 módulos de investigação serão exibidos após a classificação pelo motor Aurora.
+            Aguardando processamento forense do Dossiê Aurora. Os 12 módulos CEAP serão materializados após
+            a classificação — utilize a coleta sob demanda ou tente novamente em instantes.
           </p>
         </div>
       ) : (
