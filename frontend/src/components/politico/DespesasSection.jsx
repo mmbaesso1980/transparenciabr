@@ -196,6 +196,18 @@ export default function DespesasSection({ nome, politicoId }) {
     [data]
   );
 
+  // Build URL client-side for preview mode (backend only sends url_documento in full mode)
+  const enrichedDespesas = useMemo(() => {
+    return filteredDespesas.map(d => {
+      if (d.url_documento) return d;
+      const numDoc = String(d.num_documento || "").trim();
+      if (numDoc && /^\d+$/.test(numDoc)) {
+        return { ...d, url_documento: `https://www.camara.leg.br/cota-parlamentar/documentos/publ/${numDoc}.pdf` };
+      }
+      return d;
+    });
+  }, [filteredDespesas]);
+
   if (loading) {
     return (
       <div className="rounded-2xl border border-white/10 bg-[#0D1117]/90 p-6">
@@ -225,18 +237,6 @@ export default function DespesasSection({ nome, politicoId }) {
       </div>
     );
   }
-
-  // Build URL client-side for preview mode (backend only sends url_documento in full mode)
-  const enrichedDespesas = useMemo(() => {
-    return filteredDespesas.map(d => {
-      if (d.url_documento) return d;
-      const numDoc = String(d.num_documento || "").trim();
-      if (numDoc && /^\d+$/.test(numDoc)) {
-        return { ...d, url_documento: `https://www.camara.leg.br/cota-parlamentar/documentos/publ/${numDoc}.pdf` };
-      }
-      return d;
-    });
-  }, [filteredDespesas]);
 
   const visibleDespesas = unlocked ? enrichedDespesas : enrichedDespesas.slice(0, PREVIEW_COUNT);
   const hiddenCount = data.resumo?.total_despesas

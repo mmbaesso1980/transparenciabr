@@ -2,47 +2,48 @@
  * getPoliticoDespesas — Serve TODAS as despesas CEAP de um parlamentar na ativa.
  * 
  * Modos:
- *   ?id=204554&mode=preview  → Top 10 despesas (grátis, sem URL)
- *   ?id=204554&mode=full     → Todas as despesas com URL clicável (requer 100 cr)
+ *   ?id=204536&mode=preview  → Top 10 despesas (grátis, sem URL)
+ *   ?id=204536&mode=full     → Todas as despesas com URL clicável (requer 100 cr)
  *   ?nome=KIM KATAGUIRI&mode=full
  * 
- * Fonte: BigQuery transparenciabr.ceap_despesas (TODAS as notas, sem filtro de data)
- * URL: usa url_documento do BQ quando disponível; senão constrói a partir de numero_documento
- * Alertas: valores redondos, acima de R$10k, fornecedor concentrado, Benford digit 1
+ * Fonte: BigQuery transparenciabr.tbr_ceap.ceap_despesas_ext (5.1M registros, TEM url_documento)
+ * URL padrão: https://www.camara.leg.br/cota-parlamentar/documentos/publ/{nu_deputado_id}/{num_ano}/{ide_documento}.pdf
+ * 
+ * IMPORTANTE: ceap_despesas_ext usa nu_deputado_id (ID interno da Câmara, ex: 3354)
+ *             A API da Câmara usa id_deputado (ex: 204536)
+ *             O frontend passa o id da API → precisamos fazer lookup por nome
  */
 const { BigQuery } = require("@google-cloud/bigquery");
 
 const PROJECT = "transparenciabr";
-const DATASET = "transparenciabr";
-const TABLE = "ceap_despesas";
+const DATASET = "tbr_ceap";
+const TABLE = "ceap_despesas_ext";
 
 // Benford expected distribution for first digit
 const BENFORD = { 1: 0.301, 2: 0.176, 3: 0.125, 4: 0.097, 5: 0.079, 6: 0.067, 7: 0.058, 8: 0.051, 9: 0.046 };
 
 /**
- * Constrói URL do documento CEAP a partir dos campos disponíveis.
- * Prioridade:
- *   1. url_documento (campo direto do BigQuery — pode vir de OCR ou ingestão)
- *   2. Construção via numero_documento (padrão PDF público da Câmara)
- *   3. Construção via cod_documento
+ * Constrói URL do documento CEAP.
+ * Padrão: https://www.camara.leg.br/cota-parlamentar/documentos/publ/{nu_deputado_id}/{num_ano}/{ide_documento}.pdf
  */
 function buildDocUrl(row) {
-  // 1. URL direta do BQ (campo url_documento — inclui notas lidas por OCR)
-  const urlDireta = row.url_documento || row.urlDocumento || row.link_documento || "";
+  // 1. URL direta do BQ (já preenchida para registros recentes)
+  const urlDireta = row.url_documento || "";
   if (urlDireta && String(urlDireta).startsWith("http")) {
     return String(urlDireta).trim();
   }
 
-  // 2. Construir via numero_documento (padrão CEAP Câmara — PDF público)
-  const numDoc = String(row.numero_documento || "").trim();
-  if (numDoc && /^\d+$/.test(numDoc)) {
-    return `https://www.camara.leg.br/cota-parlamentar/documentos/publ/${numDoc}.pdf`;
+  // 2. Construir via padrão: /publ/{nu_deputado_id}/{num_ano}/{ide_documento}.pdf
+  const depId = String(row.nu_deputado_id || "").trim();
+  const ano = String(row.num_ano || "").trim();
+  const ideDoc = String(row.ide_documento || "").trim();
+  if (depId && ano && ideDoc) {
+    return `https://www.camara.leg.br/cota-parlamentar/documentos/publ/${depId}/${ano}/${ideDoc}.pdf`;
   }
 
-  // 3. Construir via cod_documento
-  const codDoc = String(row.cod_documento || "").trim();
-  if (codDoc && /^\d+$/.test(codDoc)) {
-    return `https://www.camara.leg.br/cota-parlamentar/documentos/publ/${codDoc}.pdf`;
+  // 3. Fallback: nota-fiscal-eletronica
+  if (ideDoc) {
+    return `https://www.camara.leg.br/cota-parlamentar/nota-fiscal-eletronica?ideDocumentoFiscal=${ideDoc}`;
   }
 
   return "";
@@ -50,7 +51,7 @@ function buildDocUrl(row) {
 
 function detectAlerts(row, stats) {
   const alerts = [];
-  const val = Number(row.valor_documento || 0);
+  const val = Number(row.vlr_documento || 0);
 
   // 1. Valor redondo (múltiplo de 100 acima de R$500)
   if (val >= 500 && val % 100 === 0) {
@@ -61,7 +62,7 @@ function detectAlerts(row, stats) {
     alerts.push({ tipo: "valor_alto", msg: `Despesa acima de R$ 10.000`, severidade: "alta" });
   }
   // 3. Fornecedor concentrado (>15% do total do parlamentar)
-  const fornecedor = String(row.nome_fornecedor || row.fornecedor || "").trim();
+  const fornecedor = String(row.txt_fornecedor || "").trim();
   if (fornecedor && stats.fornecedorPct[fornecedor] > 15) {
     alerts.push({
       tipo: "fornecedor_concentrado",
@@ -84,39 +85,68 @@ function detectAlerts(row, stats) {
 }
 
 /**
- * Query TODAS as despesas CEAP de um parlamentar (sem filtro de data).
- * Inclui url_documento direto do BigQuery quando disponível (OCR, ingestão).
+ * Query TODAS as despesas CEAP de um parlamentar.
+ * Usa ceap_despesas_ext que tem url_documento e ide_documento.
+ * 
+ * O frontend passa id da API (204536) mas esta tabela usa nu_deputado_id (3354).
+ * Solução: primeiro buscar por nome no dataset transparenciabr.ceap_despesas (que tem parlamentar_id),
+ * ou buscar direto por nome na ceap_despesas_ext.
  */
 async function queryDespesas(id, nome) {
   const bq = new BigQuery({ projectId: PROJECT });
 
+  // Se temos o id da API, primeiro precisamos descobrir o nome do parlamentar
+  // porque ceap_despesas_ext usa nu_deputado_id (diferente do id da API)
+  let nomeParl = nome;
+  if (!nomeParl && id) {
+    // Buscar nome na tabela transparenciabr.ceap_despesas que tem parlamentar_id
+    const lookupQuery = `
+      SELECT DISTINCT nome_parlamentar
+      FROM \`transparenciabr.transparenciabr.ceap_despesas\`
+      WHERE CAST(parlamentar_id AS STRING) = @id
+      LIMIT 1
+    `;
+    const [lookupRows] = await bq.query({ query: lookupQuery, params: { id: String(id) }, location: "US" });
+    if (lookupRows && lookupRows.length > 0) {
+      nomeParl = lookupRows[0].nome_parlamentar;
+    }
+  }
+
+  if (!nomeParl) {
+    return [];
+  }
+
   const query = `
     SELECT
-      data_emissao,
-      nome_parlamentar,
-      parlamentar_id,
-      tipo_despesa,
-      nome_fornecedor,
-      cnpj_fornecedor,
-      valor_documento,
-      numero_documento
+      dat_emissao,
+      tx_nome_parlamentar,
+      nu_deputado_id,
+      txt_descricao AS tipo_despesa,
+      txt_fornecedor,
+      txt_cnpjcpf,
+      vlr_documento,
+      vlr_liquido,
+      vlr_glosa,
+      txt_numero,
+      ide_documento,
+      num_ano,
+      url_documento
     FROM \`${PROJECT}.${DATASET}.${TABLE}\`
-    WHERE ${nome ? "LOWER(nome_parlamentar) = LOWER(@nome)" : "CAST(parlamentar_id AS STRING) = @id"}
-    ORDER BY data_emissao DESC
+    WHERE LOWER(tx_nome_parlamentar) = LOWER(@nome)
+    ORDER BY dat_emissao DESC
   `;
-  const params = nome ? { nome } : { id: String(id) };
-  const [rows] = await bq.query({ query, params, location: "US" });
+  const [rows] = await bq.query({ query, params: { nome: nomeParl }, location: "US" });
   return rows;
 }
 
 function computeStats(rows) {
-  const totalGeral = rows.reduce((s, r) => s + Number(r.valor_documento || 0), 0);
+  const totalGeral = rows.reduce((s, r) => s + Number(r.vlr_documento || 0), 0);
 
   // Fornecedor concentration
   const fornecedorTotals = {};
   for (const r of rows) {
-    const f = String(r.nome_fornecedor || r.fornecedor || "").trim();
-    if (f) fornecedorTotals[f] = (fornecedorTotals[f] || 0) + Number(r.valor_documento || 0);
+    const f = String(r.txt_fornecedor || "").trim();
+    if (f) fornecedorTotals[f] = (fornecedorTotals[f] || 0) + Number(r.vlr_documento || 0);
   }
   const fornecedorPct = {};
   for (const [f, v] of Object.entries(fornecedorTotals)) {
@@ -127,7 +157,7 @@ function computeStats(rows) {
   const digitCounts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0 };
   let totalDigits = 0;
   for (const r of rows) {
-    const val = Math.abs(Number(r.valor_documento || 0));
+    const val = Math.abs(Number(r.vlr_documento || 0));
     if (val > 0) {
       const d1 = parseInt(String(val)[0]);
       if (d1 >= 1 && d1 <= 9) {
@@ -146,7 +176,7 @@ function computeStats(rows) {
   const tipoTotals = {};
   for (const r of rows) {
     const t = String(r.tipo_despesa || "Outros").trim();
-    tipoTotals[t] = (tipoTotals[t] || 0) + Number(r.valor_documento || 0);
+    tipoTotals[t] = (tipoTotals[t] || 0) + Number(r.vlr_documento || 0);
   }
 
   // Top fornecedores
@@ -154,6 +184,17 @@ function computeStats(rows) {
     .sort((a, b) => b[1] - a[1])
     .slice(0, 10)
     .map(([nome, valor]) => ({ nome, valor: Math.round(valor * 100) / 100, pct: Math.round((valor / totalGeral) * 1000) / 10 }));
+
+  // Periodo
+  const datas = rows
+    .map(r => {
+      const d = r.dat_emissao;
+      if (!d) return null;
+      if (d.value) return d.value;
+      return String(d).slice(0, 10);
+    })
+    .filter(Boolean)
+    .sort();
 
   return {
     total_despesas: rows.length,
@@ -164,28 +205,35 @@ function computeStats(rows) {
     tipoBreakdown: Object.entries(tipoTotals)
       .sort((a, b) => b[1] - a[1])
       .map(([tipo, valor]) => ({ tipo, valor: Math.round(valor * 100) / 100 })),
-    periodo: rows.length > 0
-      ? {
-          inicio: rows[rows.length - 1].data_emissao?.value || String(rows[rows.length - 1].data_emissao || ""),
-          fim: rows[0].data_emissao?.value || String(rows[0].data_emissao || ""),
-        }
+    periodo: datas.length > 0
+      ? { inicio: datas[0], fim: datas[datas.length - 1] }
       : null,
   };
 }
 
 function formatRow(r, stats, includeUrl = false) {
   const alerts = detectAlerts(r, stats);
-  const valor = Number(r.valor_documento || 0);
+  const valor = Number(r.vlr_documento || 0);
+  const valorLiquido = Number(r.vlr_liquido || valor);
+  const valorGlosa = Number(r.vlr_glosa || 0);
+
+  // Extract date
+  let dataStr = "";
+  if (r.dat_emissao) {
+    if (r.dat_emissao.value) dataStr = r.dat_emissao.value;
+    else dataStr = String(r.dat_emissao).slice(0, 10);
+  }
+
   const row = {
-    data: r.data_emissao?.value || String(r.data_emissao || ""),
-    data_emissao: r.data_emissao?.value || String(r.data_emissao || ""),
+    data: dataStr,
+    data_emissao: dataStr,
     tipo_despesa: String(r.tipo_despesa || ""),
-    fornecedor: String(r.nome_fornecedor || r.fornecedor || ""),
-    cnpj: String(r.cnpj_fornecedor || r.cnpj_cpf_fornecedor || ""),
+    fornecedor: String(r.txt_fornecedor || ""),
+    cnpj: String(r.txt_cnpjcpf || ""),
     valor,
-    valor_liquido: valor,
-    valor_glosa: 0,
-    num_documento: String(r.numero_documento || ""),
+    valor_liquido: valorLiquido,
+    valor_glosa: valorGlosa,
+    num_documento: String(r.txt_numero || ""),
     alertas: alerts,
     tem_alerta: alerts.length > 0,
     severidade_max: alerts.length > 0
