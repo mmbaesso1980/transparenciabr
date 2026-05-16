@@ -138,6 +138,7 @@ export default function PainelPage() {
           }}
           className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 auto-rows-[140px] gap-3 md:gap-4"
         >
+          {/* Rotas táticas consolidadas: /ranking, /emendas, /anomalias, /status, /gabinete, /universo, /partido, /risco */}
           {[
             // ─── Linha 1 ───
             { key: 'b01', span: 'lg:col-span-1 lg:row-span-1', accent: 'cyan',   icon: '🏆', title: 'Pontuação Brasil',

@@ -6,7 +6,7 @@
   },
   "main": "index.js",
   "scripts": {
-    "build": "node --check index.js && node --check src/radar/diarioScanner.js && node --check src/admin/grantRole.js && node --check src/vertex/askVertexAgent.js && node --check src/leads/index.js && node --check src/leads/openContactBigData.js && node --check src/leads/generateInitialPetition.js && node --check src/dossie/processDossieJob.js",
+    "build": "node --check index.js && node --check src/radar/diarioScanner.js && node --check src/admin/grantRole.js && node --check src/vertex/askVertexAgent.js && node --check src/leads/index.js && node --check src/leads/openContactBigData.js && node --check src/leads/generateInitialPetition.js && node --check src/dossie/processDossieJob.js && node --check src/dossie/gerarDossieOnDemandCallable.js",
     "serve": "firebase emulators:start --only functions",
     "deploy": "firebase deploy --only functions"
   },
@@ -19,6 +19,7 @@
     "@google-cloud/dialogflow-cx": "^4.10.0",
     "@google-cloud/documentai": "^9.6.0",
     "@google-cloud/storage": "^7.19.0",
+    "@google-cloud/vertexai": "^1.12.0",
     "@google/generative-ai": "^0.21.0",
     "axios": "^1.7.2",
     "docxtemplater": "^3.50.0",

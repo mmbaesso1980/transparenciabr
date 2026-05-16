@@ -335,5 +335,6 @@ export function useDossieData() {
     handleDownloadPDF,
     pdfError,
     pdfBusy,
+    refetchReport: reportQuery.refetch,
   };
 }
