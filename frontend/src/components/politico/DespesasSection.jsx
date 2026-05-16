@@ -226,7 +226,19 @@ export default function DespesasSection({ nome, politicoId }) {
     );
   }
 
-  const visibleDespesas = unlocked ? filteredDespesas : filteredDespesas.slice(0, PREVIEW_COUNT);
+  // Build URL client-side for preview mode (backend only sends url_documento in full mode)
+  const enrichedDespesas = useMemo(() => {
+    return filteredDespesas.map(d => {
+      if (d.url_documento) return d;
+      const numDoc = String(d.num_documento || "").trim();
+      if (numDoc && /^\d+$/.test(numDoc)) {
+        return { ...d, url_documento: `https://www.camara.leg.br/cota-parlamentar/documentos/publ/${numDoc}.pdf` };
+      }
+      return d;
+    });
+  }, [filteredDespesas]);
+
+  const visibleDespesas = unlocked ? enrichedDespesas : enrichedDespesas.slice(0, PREVIEW_COUNT);
   const hiddenCount = data.resumo?.total_despesas
     ? Math.max(0, data.resumo.total_despesas - PREVIEW_COUNT)
     : 0;
@@ -244,7 +256,7 @@ export default function DespesasSection({ nome, politicoId }) {
           </h2>
           <p className="mt-1 text-sm text-[#8B949E]">
             {fmtNum(data.resumo?.total_despesas)} despesas ·{" "}
-            {fmtBrl(data.resumo?.valor_total)} total ·{" "}
+            {fmtBrl(data.resumo?.total_brl)} total ·{" "}
             <span className="text-red-400 font-semibold">
               {fmtNum(data.resumo?.total_com_alerta)} com alerta
             </span>

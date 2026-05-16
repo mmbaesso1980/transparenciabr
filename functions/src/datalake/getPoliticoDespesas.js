@@ -166,8 +166,8 @@ function computeStats(rows) {
       .map(([tipo, valor]) => ({ tipo, valor: Math.round(valor * 100) / 100 })),
     periodo: rows.length > 0
       ? {
-          inicio: rows[rows.length - 1].data_emissao?.value || "",
-          fim: rows[0].data_emissao?.value || "",
+          inicio: rows[rows.length - 1].data_emissao?.value || String(rows[rows.length - 1].data_emissao || ""),
+          fim: rows[0].data_emissao?.value || String(rows[0].data_emissao || ""),
         }
       : null,
   };
