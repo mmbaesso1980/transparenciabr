@@ -82,12 +82,44 @@ export function normalizeEmendaRow(row, idx) {
     row.descricao ?? row.objeto ?? row.nome ?? `Emenda ${idx + 1}`,
   );
   const ano = row.ano ?? row.exercicio ?? null;
+  const url_portal_transparencia = String(
+    row.urlPortalTransparencia ??
+      row.url_portal_transparencia ??
+      row.urlEmpenho ??
+      row.url_empenho ??
+      row.link_portal_transparencia ??
+      row.linkPortalTransparencia ??
+      row.url ??
+      "",
+  ).trim();
+  const municipio_favorecido = String(
+    row.municipio_favorecido ??
+      row.municipioFavorecido ??
+      row.municipio ??
+      row.nome_municipio_favorecido ??
+      "",
+  ).trim();
+  const uf_favorecido = String(
+    row.uf_favorecido ?? row.ufFavorecido ?? row.uf_destino ?? row.uf ?? "",
+  ).trim();
+  const valor_pago =
+    Number(
+      row.valor_pago ??
+        row.valorPago ??
+        row.valor_empenhado ??
+        row.valorEmpenhado ??
+        valor,
+    ) || 0;
   return {
     ...row,
     tipo_emenda,
     valor_normalizado: valor,
+    valor_pago_normalizado: Number.isFinite(valor_pago) ? valor_pago : valor,
     descricao_normalizada: descricao,
     ano,
+    url_portal_transparencia,
+    municipio_favorecido,
+    uf_favorecido,
   };
 }
 

@@ -262,8 +262,8 @@ export default function PrismaCeapSection({ record, politicoId = "" }) {
 
       {!bundle ? (
         <p className="rounded-xl border border-[#2d0808] bg-[#050608] p-6 text-lg leading-relaxed text-[#8B949E]">
-          Execute <span className="font-mono text-[#f85149]">node engines/ceap_motor.js</span> para
-          popular os prismas ou aguarde ingestão Firestore.
+          Aguardando processamento forense do Dossiê Aurora para materializar os prismas CEAP neste
+          relatório. Utilize a coleta sob demanda ou tente novamente em instantes.
         </p>
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
