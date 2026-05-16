@@ -1441,6 +1441,109 @@ exports.generateDossieOnDemand = functions
     };
   });
 
+/**
+ * Desbloqueio seguro (100 cr) — CEAP detalhado ou emendas completas na página do parlamentar.
+ * Débito e flags apenas no backend (Admin SDK); o cliente não grava `usuarios/{uid}` diretamente.
+ */
+const UNLOCK_POLITICO_FEATURE_COST = 100;
+exports.unlockPoliticoData = functions
+  .region("southamerica-east1")
+  .runWith({ memory: "256MB", timeoutSeconds: 30 })
+  .https.onCall(async (data, context) => {
+    if (!context.auth?.uid) {
+      throw new functions.https.HttpsError(
+        "unauthenticated",
+        "É necessário iniciar sessão para desbloquear.",
+      );
+    }
+    const uid = context.auth.uid;
+    const politicoId = String(data?.politicoId || data?.id || "").trim();
+    const feature = String(data?.feature || "ceap").trim().toLowerCase();
+    if (!politicoId) {
+      throw new functions.https.HttpsError(
+        "invalid-argument",
+        "Informe `politicoId` (string).",
+      );
+    }
+    if (feature !== "ceap" && feature !== "emendas") {
+      throw new functions.https.HttpsError(
+        "invalid-argument",
+        "`feature` deve ser `ceap` ou `emendas`.",
+      );
+    }
+
+    const userRef = db.collection("usuarios").doc(uid);
+    const unlockRef = userRef.collection("politico_unlocks").doc(politicoId);
+
+    const out = await db.runTransaction(async (tx) => {
+      const [userSnap, unlockSnap] = await Promise.all([tx.get(userRef), tx.get(unlockRef)]);
+      if (!userSnap.exists) {
+        throw new functions.https.HttpsError(
+          "failed-precondition",
+          "Perfil de utilizador não encontrado. Complete o onboarding.",
+        );
+      }
+      const userData = userSnap.data() || {};
+      const unlimited = userData.creditos_ilimitados === true;
+      const saldo = Number(userData.creditos ?? 0);
+      const prev = unlockSnap.exists ? unlockSnap.data() || {} : {};
+      const flagKey = feature === "ceap" ? "ceap_full" : "emendas_full";
+      if (prev[flagKey] === true) {
+        return {
+          ok: true,
+          alreadyUnlocked: true,
+          feature,
+          politicoId,
+          saldoApos: saldo,
+          custoCreditos: 0,
+        };
+      }
+      if (!unlimited && saldo < UNLOCK_POLITICO_FEATURE_COST) {
+        throw new functions.https.HttpsError(
+          "failed-precondition",
+          `Saldo insuficiente: ${saldo} / ${UNLOCK_POLITICO_FEATURE_COST} créditos.`,
+        );
+      }
+      const now = FieldValue.serverTimestamp();
+      if (!unlimited) {
+        tx.update(userRef, {
+          creditos: FieldValue.increment(-UNLOCK_POLITICO_FEATURE_COST),
+          updated_at: now,
+          ultima_acao: "unlockPoliticoData",
+          ultima_acao_em: now,
+        });
+      }
+      const patch =
+        feature === "ceap"
+          ? {
+              politico_id: politicoId,
+              ceap_full: true,
+              ceap_unlocked_at: now,
+              updated_at: now,
+            }
+          : {
+              politico_id: politicoId,
+              emendas_full: true,
+              emendas_unlocked_at: now,
+              updated_at: now,
+            };
+      tx.set(unlockRef, patch, { merge: true });
+      return {
+        ok: true,
+        alreadyUnlocked: false,
+        feature,
+        politicoId,
+        saldoApos: unlimited ? saldo : saldo - UNLOCK_POLITICO_FEATURE_COST,
+        custoCreditos: unlimited ? 0 : UNLOCK_POLITICO_FEATURE_COST,
+      };
+    });
+
+    console.log(
+      `unlockPoliticoData: uid=${uid} politico=${politicoId} feature=${out.feature} custo=${out.custoCreditos}`,
+    );
+    return out;
+  });
+
 // ── gerarDossieOnDemand — auditoria Vertex (Gemini 1.5 Pro) + anexos ao relatório ──
 const { mountGerarDossieOnDemand } = require("./src/dossie/gerarDossieOnDemandCallable.js");
 exports.gerarDossieOnDemand = mountGerarDossieOnDemand(functions, admin);

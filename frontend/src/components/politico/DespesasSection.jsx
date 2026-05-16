@@ -15,11 +15,12 @@ import {
   Search,
   X,
 } from "lucide-react";
-import { deductCredits } from "../../lib/firebase.js";
 import { useAuth } from "../../context/AuthContext.jsx";
+import { CREDIT_PRICE_UNLOCK_CEAP_LISTA } from "../../data/creditPricing.js";
+import { fetchPoliticoUnlockSnapshot, unlockPoliticoDataCallable } from "../../lib/politicoUnlocks.js";
 
 const PREVIEW_COUNT = 10;
-const UNLOCK_COST = 100;
+const UNLOCK_COST = CREDIT_PRICE_UNLOCK_CEAP_LISTA;
 
 const fmtBrl = (v) => {
   const n = Number(v);
@@ -70,7 +71,7 @@ function AlertBadge({ alertas }) {
 }
 
 export default function DespesasSection({ nome, politicoId }) {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -85,13 +86,36 @@ export default function DespesasSection({ nome, politicoId }) {
   const [showFilters, setShowFilters] = useState(false);
   const [sortBy, setSortBy] = useState("valor_desc");
 
+  // Sincroniza desbloqueio pago (Firestore subcoleção — escrita só no backend)
+  useEffect(() => {
+    let cancel = false;
+    (async () => {
+      if (!isAuthenticated || !user?.uid || !politicoId) {
+        if (!cancel) setUnlocked(false);
+        return;
+      }
+      try {
+        const snap = await fetchPoliticoUnlockSnapshot(user.uid, politicoId);
+        if (!cancel) setUnlocked(!!snap.ceap_full);
+      } catch {
+        if (!cancel) setUnlocked(false);
+      }
+    })();
+    return () => {
+      cancel = true;
+    };
+  }, [isAuthenticated, user?.uid, politicoId]);
+
   // Fetch data
   useEffect(() => {
-    if (!nome) return;
+    if (!nome && !politicoId) return;
     setLoading(true);
     setError(null);
     const mode = unlocked ? "full" : "preview";
-    const url = `/api/datalake/politico-despesas?nome=${encodeURIComponent(nome)}&mode=${mode}`;
+    const qNome = nome ? `nome=${encodeURIComponent(nome)}` : "";
+    const qId = politicoId ? `id=${encodeURIComponent(politicoId)}` : "";
+    const idOrNome = [qNome, qId].filter(Boolean).join("&");
+    const url = `/api/datalake/politico-despesas?${idOrNome}&mode=${mode}`;
     fetch(url)
       .then((r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
@@ -105,7 +129,7 @@ export default function DespesasSection({ nome, politicoId }) {
         setError(e.message);
         setLoading(false);
       });
-  }, [nome, unlocked]);
+  }, [nome, politicoId, unlocked]);
 
   // Unlock handler
   const handleUnlock = useCallback(async () => {
@@ -113,23 +137,26 @@ export default function DespesasSection({ nome, politicoId }) {
       setUnlockError("Faça login para desbloquear as despesas.");
       return;
     }
+    if (!String(politicoId || "").trim()) {
+      setUnlockError("Identificador do parlamentar indisponível para débito seguro.");
+      return;
+    }
     setUnlocking(true);
     setUnlockError(null);
     try {
-      await deductCredits(UNLOCK_COST);
+      await unlockPoliticoDataCallable(politicoId, "ceap");
       setUnlocked(true);
     } catch (e) {
+      const raw = e instanceof Error ? e.message : String(e);
       setUnlockError(
-        e.message === "insufficient_credits"
+        /insufficient|Saldo insuficiente|failed-precondition/i.test(raw)
           ? `Créditos insuficientes. Necessário: ${UNLOCK_COST} créditos.`
-          : e.message === "auth_required"
-          ? "Faça login para desbloquear."
-          : `Erro: ${e.message}`
+          : `Erro: ${raw}`,
       );
     } finally {
       setUnlocking(false);
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, politicoId]);
 
   // Extract filter options
   const tipoOptions = useMemo(() => {

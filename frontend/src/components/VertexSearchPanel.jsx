@@ -33,7 +33,7 @@ const TONE_CLASS = {
   primary: "border-cyan-500/40 bg-cyan-500/10 text-cyan-200",
 };
 
-/** Tenta extrair ID de parlamentar em Firestore (dossiê em `/dossie/:id`). */
+/** Tenta extrair ID de parlamentar em Firestore (perfil em `/politico/:id`). */
 function pickPoliticoIdFromEvidence(ev) {
   const d = ev?.dados || {};
   const candidates = [
@@ -178,7 +178,7 @@ export default function VertexSearchPanel() {
     (id) => {
       const clean = String(id ?? "").trim();
       if (!clean) return;
-      navigate(`/dossie/${encodeURIComponent(clean)}`);
+      navigate(`/politico/${encodeURIComponent(clean)}`);
     },
     [navigate],
   );
