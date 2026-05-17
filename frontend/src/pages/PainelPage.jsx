@@ -1,7 +1,6 @@
 /**
- * Painel Aurora — grelha 17 Bento cards (spec `painel_drop_07mai.zip`: Pontuação Brasil, Maiores Cotas,
- * Sinalizações SOC, Mapa UF, Pulso CEAP, etc.). O ZIP não está versionado no repo; este ficheiro é a
- * implementação canónica + `usePainelData` + `components/painel/*`.
+ * Painel Aurora — grelha 17 Bento cards. Cada card navega para uma rota tática (sem modal).
+ * Layout: linhas com altura mínima + auto para evitar sobreposição de miolos.
  */
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -136,7 +135,7 @@ export default function PainelPage() {
             hidden: {},
             show: { transition: { staggerChildren: 0.04 } },
           }}
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 auto-rows-[140px] gap-3 md:gap-4"
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 auto-rows-[minmax(152px,auto)] gap-3 md:gap-4 items-stretch"
         >
           {/* Rotas táticas consolidadas: /ranking, /emendas, /anomalias, /status, /gabinete, /universo, /partido, /risco */}
           {[
