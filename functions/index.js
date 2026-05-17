@@ -1777,6 +1777,14 @@ exports.getPoliticoDespesas = functions
       const stats = computeStats(rows);
       const parlamentar = String(rows[0].tx_nome_parlamentar || rows[0].nome_parlamentar || nome || id);
 
+      const { queryEmendas } = require("./src/datalake/getDossieAurora.js");
+      let emendas = [];
+      try {
+        emendas = await queryEmendas(parlamentar);
+      } catch (emErr) {
+        console.warn("getPoliticoDespesas emendas:", emErr?.message || emErr);
+      }
+
       if (mode === "preview") {
         const sorted = [...rows].sort((a, b) => Number(b.vlr_documento || b.valor_documento || 0) - Number(a.vlr_documento || a.valor_documento || 0));
         const preview = sorted.slice(0, 10).map(r => formatRow(r, stats, true));
@@ -1797,6 +1805,7 @@ exports.getPoliticoDespesas = functions
             tipoBreakdown: stats.tipoBreakdown,
           },
           despesas: preview,
+          emendas,
           paywall: {
             custo: 100,
             msg: "Desbloqueie todas as despesas com links clicáveis e alertas detalhados por 100 créditos.",
@@ -1824,6 +1833,7 @@ exports.getPoliticoDespesas = functions
           tipoBreakdown: stats.tipoBreakdown,
         },
         despesas: full,
+        emendas,
       });
     } catch (err) {
       console.error("getPoliticoDespesas error:", err);

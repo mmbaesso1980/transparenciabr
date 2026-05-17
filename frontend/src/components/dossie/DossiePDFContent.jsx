@@ -24,6 +24,22 @@ const C = {
   suspeito: "#1e3a5f",
 };
 
+/** Paleta para html2pdf/html2canvas (fundo claro, texto escuro). */
+const LIGHT_PDF = {
+  void: "#ffffff",
+  panel: "#f1f5f9",
+  ink: "#0f172a",
+  muted: "#475569",
+  border: "#94a3b8",
+  cyan: "#0369a1",
+  gold: "#92400e",
+  rose: "#be123c",
+  illegal: "#991b1b",
+  irregular: "#9a3412",
+  immoral: "#6b21a8",
+  suspeito: "#1e3a8a",
+};
+
 const ASMODEUS_VERTEX_MATRIX = [
   { id: "1", agente: "BENFORD / quantidade", goetia: "Bael" },
   { id: "2", agente: "Fornecedor / HHI", goetia: "Agares" },
@@ -66,21 +82,21 @@ function pickParlamentarId(politico) {
   return id != null && String(id).trim() ? String(id) : "—";
 }
 
-function severityBadgeStyle(severidade) {
+function severityBadgeStyle(severidade, pal = C) {
   const s = String(severidade ?? "")
     .trim()
     .toUpperCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "");
   if (s.includes("ILEGAL"))
-    return { backgroundColor: C.illegal, color: "#fecaca", border: `1px solid ${C.rose}` };
+    return { backgroundColor: pal.illegal, color: "#fecaca", border: `1px solid ${pal.rose}` };
   if (s.includes("IRREGULAR"))
-    return { backgroundColor: C.irregular, color: "#fde68a", border: "1px solid #b45309" };
+    return { backgroundColor: pal.irregular, color: "#fde68a", border: "1px solid #b45309" };
   if (s.includes("IMORAL"))
-    return { backgroundColor: C.immoral, color: "#e9d5ff", border: "1px solid #7e22ce" };
+    return { backgroundColor: pal.immoral, color: "#e9d5ff", border: "1px solid #7e22ce" };
   if (s.includes("SUSPEITO") || s.includes("SUSPEITA"))
-    return { backgroundColor: C.suspeito, color: C.cyan, border: `1px solid ${C.cyan}` };
-  return { backgroundColor: "#21262D", color: C.muted, border: `1px solid ${C.border}` };
+    return { backgroundColor: pal.suspeito, color: pal.cyan, border: `1px solid ${pal.cyan}` };
+  return { backgroundColor: pal.panel, color: pal.muted, border: `1px solid ${pal.border}` };
 }
 
 function pickAsmodeusScore(politico, ceapKpi) {
@@ -171,9 +187,10 @@ function pickFavorecidoDestino(row) {
 }
 
 const DossiePDFContentInner = forwardRef(function DossiePDFContentInner(
-  { politico, alertas, ceapKpi = null },
+  { politico, alertas, ceapKpi = null, lightPaper = false },
   ref,
 ) {
+  const col = lightPaper ? LIGHT_PDF : C;
   const nome = pickNome(politico) || "—";
   const partidoUf = [pickPartidoSiglaPdf(politico), pickUf(politico) || "—"].join(" / ");
   const parlamentarId = pickParlamentarId(politico);
@@ -214,7 +231,7 @@ const DossiePDFContentInner = forwardRef(function DossiePDFContentInner(
     fontWeight: 800,
     letterSpacing: "0.28em",
     textTransform: "uppercase",
-    color: C.gold,
+    color: col.gold,
   };
 
   const wrap = {
@@ -222,8 +239,8 @@ const DossiePDFContentInner = forwardRef(function DossiePDFContentInner(
     width: "210mm",
     minHeight: "297mm",
     padding: "12mm",
-    backgroundColor: C.void,
-    color: C.ink,
+    backgroundColor: col.void,
+    color: col.ink,
     fontFamily: '"Inter", system-ui, sans-serif',
     fontSize: "13px",
     lineHeight: 1.5,
@@ -236,7 +253,7 @@ const DossiePDFContentInner = forwardRef(function DossiePDFContentInner(
     fontWeight: 800,
     letterSpacing: "0.06em",
     textTransform: "uppercase",
-    color: C.gold,
+    color: col.gold,
   };
 
   const subH = {
@@ -245,7 +262,7 @@ const DossiePDFContentInner = forwardRef(function DossiePDFContentInner(
     fontWeight: 700,
     letterSpacing: "0.22em",
     textTransform: "uppercase",
-    color: C.cyan,
+    color: col.cyan,
   };
 
   return (
@@ -253,47 +270,47 @@ const DossiePDFContentInner = forwardRef(function DossiePDFContentInner(
       ref={ref}
       style={{
         ...wrap,
-        position: "fixed",
-        left: "-9999px",
+        position: lightPaper ? "relative" : "fixed",
+        left: lightPaper ? 0 : "-9999px",
         top: 0,
-        zIndex: -10,
+        zIndex: lightPaper ? 0 : -10,
       }}
       aria-hidden="true"
     >
-      <header style={{ borderBottom: `1px solid ${C.border}`, paddingBottom: "14px" }}>
+      <header style={{ borderBottom: `1px solid ${col.border}`, paddingBottom: "14px" }}>
         <p style={chapterLabel}>Capítulo 1 — Cabeçalho forense</p>
         <div style={{ display: "flex", justifyContent: "space-between", gap: "12px" }}>
           <div>
             <p style={h1}>TRANSPARÊNCIABR</p>
             <p style={subH}>ASMODEUS ENGINE — INFERNO EDITION v3 (MODELO ERIKA HILTON)</p>
-            <p style={{ margin: "6px 0 0", fontSize: "12px", color: C.muted }}>
+            <p style={{ margin: "6px 0 0", fontSize: "12px", color: col.muted }}>
               DOSSIÊ FORENSE CEAP / VERBA GABINETE · PDF OPERACIONAL
             </p>
-            <p style={{ margin: "10px 0 0", fontSize: "20px", fontWeight: 700, color: C.ink }}>
+            <p style={{ margin: "10px 0 0", fontSize: "20px", fontWeight: 700, color: col.ink }}>
               {nome}
             </p>
-            <p style={{ margin: "6px 0 0", fontFamily: "ui-monospace, monospace", fontSize: "12px", color: C.muted }}>
+            <p style={{ margin: "6px 0 0", fontFamily: "ui-monospace, monospace", fontSize: "12px", color: col.muted }}>
               ID {parlamentarId} · {partidoUf}
             </p>
           </div>
-          <div style={{ textAlign: "right", fontSize: "11px", color: C.muted }}>
+          <div style={{ textAlign: "right", fontSize: "11px", color: col.muted }}>
             Emissão forense
             <br />
-            <span style={{ fontFamily: "ui-monospace, monospace", color: C.ink }}>{geradoEm}</span>
+            <span style={{ fontFamily: "ui-monospace, monospace", color: col.ink }}>{geradoEm}</span>
           </div>
         </div>
       </header>
 
       <section style={{ marginTop: "14px" }}>
         <p style={chapterLabel}>Capítulo 2 — Score consolidado e matriz Vertex (Ars Goetia)</p>
-        <div style={{ padding: "12px", borderRadius: "8px", backgroundColor: C.panel, border: `1px solid ${C.border}` }}>
-          <h2 style={{ margin: 0, fontSize: "11px", fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: C.muted }}>
+        <div style={{ padding: "12px", borderRadius: "8px", backgroundColor: col.panel, border: `1px solid ${col.border}` }}>
+          <h2 style={{ margin: 0, fontSize: "11px", fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: col.muted }}>
             Score ASMODEUS consolidado
           </h2>
-          <p style={{ margin: "8px 0 0", fontFamily: "ui-monospace, monospace", fontSize: "28px", fontWeight: 700, color: C.cyan }}>
+          <p style={{ margin: "8px 0 0", fontFamily: "ui-monospace, monospace", fontSize: "28px", fontWeight: 700, color: col.cyan }}>
             {scoreAsm != null ? `${scoreAsm} / 100` : "—"}
           </p>
-          <p style={{ margin: "6px 0 0", fontSize: "11px", color: C.muted }}>
+          <p style={{ margin: "6px 0 0", fontSize: "11px", color: col.muted }}>
             Índice agregado Aurora / datalake quando materializado no documento ou KPIs CEAP.
           </p>
         </div>
@@ -305,44 +322,44 @@ const DossiePDFContentInner = forwardRef(function DossiePDFContentInner(
             fontWeight: 700,
             letterSpacing: "0.14em",
             textTransform: "uppercase",
-            color: C.muted,
+            color: col.muted,
           }}
         >
           Matriz — 12 agentes Vertex (Ars Goetia)
         </h2>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "11px", backgroundColor: C.panel, border: `1px solid ${C.border}` }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "11px", backgroundColor: col.panel, border: `1px solid ${col.border}` }}>
           <thead>
-            <tr style={{ backgroundColor: "#161b22" }}>
-              <th style={{ textAlign: "left", padding: "6px", borderBottom: `1px solid ${C.border}`, color: C.muted }}>#</th>
-              <th style={{ textAlign: "left", padding: "6px", borderBottom: `1px solid ${C.border}`, color: C.muted }}>Agente</th>
-              <th style={{ textAlign: "left", padding: "6px", borderBottom: `1px solid ${C.border}`, color: C.muted }}>Goetia</th>
+            <tr style={{ backgroundColor: col.panel }}>
+              <th style={{ textAlign: "left", padding: "6px", borderBottom: `1px solid ${col.border}`, color: col.muted }}>#</th>
+              <th style={{ textAlign: "left", padding: "6px", borderBottom: `1px solid ${col.border}`, color: col.muted }}>Agente</th>
+              <th style={{ textAlign: "left", padding: "6px", borderBottom: `1px solid ${col.border}`, color: col.muted }}>Goetia</th>
             </tr>
           </thead>
           <tbody>
             {ASMODEUS_VERTEX_MATRIX.map((row) => (
               <tr key={row.id}>
-                <td style={{ padding: "5px 6px", borderBottom: `1px solid ${C.border}`, fontFamily: "ui-monospace, monospace", color: C.cyan }}>
+                <td style={{ padding: "5px 6px", borderBottom: `1px solid ${col.border}`, fontFamily: "ui-monospace, monospace", color: col.cyan }}>
                   {row.id}
                 </td>
-                <td style={{ padding: "5px 6px", borderBottom: `1px solid ${C.border}`, color: C.ink }}>{row.agente}</td>
-                <td style={{ padding: "5px 6px", borderBottom: `1px solid ${C.border}`, color: C.gold }}>{row.goetia}</td>
+                <td style={{ padding: "5px 6px", borderBottom: `1px solid ${col.border}`, color: col.ink }}>{row.agente}</td>
+                <td style={{ padding: "5px 6px", borderBottom: `1px solid ${col.border}`, color: col.gold }}>{row.goetia}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </section>
 
-      <section style={{ marginTop: "16px", borderTop: `1px solid ${C.border}`, paddingTop: "12px" }}>
+      <section style={{ marginTop: "16px", borderTop: `1px solid ${col.border}`, paddingTop: "12px" }}>
         <p style={chapterLabel}>Capítulo 3 — Findings (F-01 … F-15) · severidade ILEGAL / IRREGULAR / IMORAL / SUSPEITO</p>
-        <h2 style={{ margin: "0 0 10px", fontSize: "11px", fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: C.muted }}>
+        <h2 style={{ margin: "0 0 10px", fontSize: "11px", fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: col.muted }}>
           Justificativas do Oráculo
         </h2>
         {findings.length === 0 ? (
-          <p style={{ color: C.muted, fontSize: "12px" }}>Nenhum finding indexado neste PDF.</p>
+          <p style={{ color: col.muted, fontSize: "12px" }}>Nenhum finding indexado neste PDF.</p>
         ) : (
           <ul style={{ margin: 0, padding: 0, listStyle: "none" }}>
             {findings.map((a, idx) => {
-              const sevStyle = severityBadgeStyle(a.severidade);
+              const sevStyle = severityBadgeStyle(a.severidade, col);
               const code = a.codigo || `F-${String(idx + 1).padStart(2, "0")}`;
               return (
                 <li
@@ -351,12 +368,12 @@ const DossiePDFContentInner = forwardRef(function DossiePDFContentInner(
                     marginBottom: "10px",
                     padding: "10px",
                     borderRadius: "6px",
-                    border: `1px solid ${C.border}`,
-                    backgroundColor: "#0d1117",
+                    border: `1px solid ${col.border}`,
+                    backgroundColor: col.panel,
                   }}
                 >
                   <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", alignItems: "center" }}>
-                    <span style={{ fontFamily: "ui-monospace, monospace", fontSize: "11px", fontWeight: 700, color: C.cyan }}>
+                    <span style={{ fontFamily: "ui-monospace, monospace", fontSize: "11px", fontWeight: 700, color: col.cyan }}>
                       {code}
                     </span>
                     <span
@@ -371,17 +388,17 @@ const DossiePDFContentInner = forwardRef(function DossiePDFContentInner(
                     >
                       {a.severidade || "—"}
                     </span>
-                    <span style={{ fontSize: "10px", color: C.muted }}>{a.tipo}</span>
+                    <span style={{ fontSize: "10px", color: col.muted }}>{a.tipo}</span>
                   </div>
                   {a.fonte_primaria ? (
-                    <p style={{ margin: "6px 0 0", fontSize: "11px", color: C.cyan }}>Fonte primária: {a.fonte_primaria}</p>
+                    <p style={{ margin: "6px 0 0", fontSize: "11px", color: col.cyan }}>Fonte primária: {a.fonte_primaria}</p>
                   ) : null}
                   {a.resumo_forense ? (
-                    <p style={{ margin: "6px 0 0", fontSize: "12px", color: "#c9d1d9", fontStyle: "italic" }}>
+                    <p style={{ margin: "6px 0 0", fontSize: "12px", color: col.muted, fontStyle: "italic" }}>
                       Resumo Oráculo: {a.resumo_forense}
                     </p>
                   ) : null}
-                  <p style={{ margin: "8px 0 0", whiteSpace: "pre-wrap", fontSize: "12px", color: C.ink }}>{a.trecho}</p>
+                  <p style={{ margin: "8px 0 0", whiteSpace: "pre-wrap", fontSize: "12px", color: col.ink }}>{a.trecho}</p>
                 </li>
               );
             })}
@@ -389,21 +406,21 @@ const DossiePDFContentInner = forwardRef(function DossiePDFContentInner(
         )}
       </section>
 
-      <section style={{ marginTop: "16px", borderTop: `1px solid ${C.border}`, paddingTop: "12px" }}>
+      <section style={{ marginTop: "16px", borderTop: `1px solid ${col.border}`, paddingTop: "12px" }}>
         <p style={chapterLabel}>Capítulo 4 — Emendas parlamentares (dados reais do relatório)</p>
-        <h2 style={{ margin: "0 0 8px", fontSize: "11px", fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: C.muted }}>
+        <h2 style={{ margin: "0 0 8px", fontSize: "11px", fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: col.muted }}>
           Tabela completa (ano, tipo, empenhado, pago, favorecido / destino)
         </h2>
         {emendasRows.length === 0 ? (
-          <p style={{ color: C.muted, fontSize: "12px" }}>Sem emendas materializadas neste relatório.</p>
+          <p style={{ color: col.muted, fontSize: "12px" }}>Sem emendas materializadas neste relatório.</p>
         ) : (
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "9px", backgroundColor: C.panel, border: `1px solid ${C.border}` }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "9px", backgroundColor: col.panel, border: `1px solid ${col.border}` }}>
             <thead>
-              <tr style={{ backgroundColor: "#161b22" }}>
+              <tr style={{ backgroundColor: col.panel }}>
                 {["Ano", "Tipo", "Valor empenhado", "Valor pago", "Favorecido / destino"].map((h) => (
                   <th
                     key={h}
-                    style={{ textAlign: "left", padding: "5px", borderBottom: `1px solid ${C.border}`, color: C.muted }}
+                    style={{ textAlign: "left", padding: "5px", borderBottom: `1px solid ${col.border}`, color: col.muted }}
                   >
                     {h}
                   </th>
@@ -422,15 +439,15 @@ const DossiePDFContentInner = forwardRef(function DossiePDFContentInner(
                 const fav = pickFavorecidoDestino(row);
                 return (
                   <tr key={row.id ?? row.codigo_emenda ?? i}>
-                    <td style={{ padding: "4px 5px", borderBottom: `1px solid ${C.border}`, color: C.ink }}>{row.ano ?? "—"}</td>
-                    <td style={{ padding: "4px 5px", borderBottom: `1px solid ${C.border}`, color: C.gold }}>{String(tipo)}</td>
-                    <td style={{ padding: "4px 5px", borderBottom: `1px solid ${C.border}`, fontFamily: "ui-monospace, monospace", color: C.cyan }}>
+                    <td style={{ padding: "4px 5px", borderBottom: `1px solid ${col.border}`, color: col.ink }}>{row.ano ?? "—"}</td>
+                    <td style={{ padding: "4px 5px", borderBottom: `1px solid ${col.border}`, color: col.gold }}>{String(tipo)}</td>
+                    <td style={{ padding: "4px 5px", borderBottom: `1px solid ${col.border}`, fontFamily: "ui-monospace, monospace", color: col.cyan }}>
                       {fmtBrl(valorEmp)}
                     </td>
-                    <td style={{ padding: "4px 5px", borderBottom: `1px solid ${C.border}`, fontFamily: "ui-monospace, monospace", color: C.cyan }}>
+                    <td style={{ padding: "4px 5px", borderBottom: `1px solid ${col.border}`, fontFamily: "ui-monospace, monospace", color: col.cyan }}>
                       {fmtBrl(valorPago)}
                     </td>
-                    <td style={{ padding: "4px 5px", borderBottom: `1px solid ${C.border}`, color: C.muted }}>{fav}</td>
+                    <td style={{ padding: "4px 5px", borderBottom: `1px solid ${col.border}`, color: col.muted }}>{fav}</td>
                   </tr>
                 );
               })}
@@ -439,12 +456,12 @@ const DossiePDFContentInner = forwardRef(function DossiePDFContentInner(
         )}
       </section>
 
-      <section style={{ marginTop: "16px", borderTop: `1px solid ${C.border}`, paddingTop: "12px" }}>
+      <section style={{ marginTop: "16px", borderTop: `1px solid ${col.border}`, paddingTop: "12px" }}>
         <p style={chapterLabel}>Capítulo 5 — Atividade parlamentar (dados reais)</p>
-        <h2 style={{ margin: "0 0 8px", fontSize: "11px", fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: C.muted }}>
+        <h2 style={{ margin: "0 0 8px", fontSize: "11px", fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: col.muted }}>
           Presença em plenário e produção legislativa
         </h2>
-        <ul style={{ margin: 0, paddingLeft: "18px", color: C.ink, fontSize: "12px" }}>
+        <ul style={{ margin: 0, paddingLeft: "18px", color: col.ink, fontSize: "12px" }}>
           <li style={{ marginBottom: "6px" }}>
             Presença em plenário (% exato no documento):{" "}
             <strong>{fmtPresencaExata(presenca)}</strong>
@@ -459,7 +476,7 @@ const DossiePDFContentInner = forwardRef(function DossiePDFContentInner(
           </li>
         </ul>
         {top3.length > 0 ? (
-          <p style={{ marginTop: "10px", fontSize: "11px", color: C.muted }}>
+          <p style={{ marginTop: "10px", fontSize: "11px", color: col.muted }}>
             Base eleitoral crítica (top 3 municípios no documento socioeconômico) mantida para contexto territorial.
           </p>
         ) : null}
@@ -469,21 +486,21 @@ const DossiePDFContentInner = forwardRef(function DossiePDFContentInner(
         style={{
           marginTop: "22mm",
           paddingTop: "12px",
-          borderTop: `1px solid ${C.border}`,
+          borderTop: `1px solid ${col.border}`,
           minHeight: "40mm",
         }}
       >
         <p style={chapterLabel}>Capítulo 6 — Encerramento e contraditório</p>
-        <p style={{ margin: "0 0 10px", fontSize: "11px", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: C.gold }}>
+        <p style={{ margin: "0 0 10px", fontSize: "11px", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: col.gold }}>
           Direito de resposta (24h)
         </p>
-        <p style={{ fontSize: "11px", lineHeight: 1.55, color: C.muted, margin: 0 }}>
+        <p style={{ fontSize: "11px", lineHeight: 1.55, color: col.muted, margin: 0 }}>
           O titular dos dados públicos aqui sintetizados dispõe de até 24 (vinte e quatro) horas, contadas da
           emissão deste PDF, para manifestação prévia por canal oficial da plataforma, anexando documentos
           idôneos que infirmem achados factuais. A ausência de manifestação tempestiva não implica confissão
           nem preclusão de direitos; trata-se de protocolo editorial-operacional da Operação TransparênciaBR.
         </p>
-        <p style={{ marginTop: "12px", fontSize: "10px", lineHeight: 1.45, color: "#6e7681" }}>
+        <p style={{ marginTop: "12px", fontSize: "10px", lineHeight: 1.45, color: col.muted }}>
           Documento gerado automaticamente a partir de dados públicos. Não substitui procedimentos jurídicos;
           síntese informativa para análise técnica.
         </p>
