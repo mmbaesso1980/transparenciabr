@@ -131,6 +131,14 @@
         "destination": "/sprint.html"
       },
       {
+        "source": "/asmodeus",
+        "destination": "/asmodeus/index.html"
+      },
+      {
+        "source": "/asmodeus/**",
+        "destination": "/asmodeus/index.html"
+      },
+      {
         "source": "/api/datalake/sacanagens",
         "function": {
           "functionId": "getSacanagens",
@@ -168,7 +176,7 @@
           },
           {
             "key": "Content-Security-Policy",
-            "value": "default-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'; script-src 'self' 'unsafe-eval' https://apis.google.com https://www.gstatic.com https://www.google.com https://www.gstatic.com/firebasejs; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https: blob:; connect-src 'self' https://*.googleapis.com https://storage.googleapis.com https://*.gstatic.com https://*.firebaseio.com https://*.firebasedatabase.app wss://*.firebaseio.com wss://*.firebasedatabase.app https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://www.googleapis.com https://firebasestorage.googleapis.com https://*.cloudfunctions.net https://firebase.googleapis.com https://firestore.googleapis.com https://dadosabertos.camara.leg.br https://legis.senado.leg.br https://apis.codante.io https://pncp.gov.br https://brasilapi.com.br https://*.transparenciabr.com.br; frame-src 'self' https://accounts.google.com https://*.firebaseapp.com https://*.google.com; worker-src 'self' blob:; manifest-src 'self'"
+            "value": "default-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'; script-src 'self' 'unsafe-eval' https://apis.google.com https://www.gstatic.com https://www.google.com https://www.gstatic.com/firebasejs; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https: blob:; connect-src 'self' https://*.googleapis.com https://storage.googleapis.com https://*.gstatic.com https://*.firebaseio.com https://*.firebasedatabase.app wss://*.firebaseio.com wss://*.firebasedatabase.app https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://www.googleapis.com https://firebasestorage.googleapis.com https://*.cloudfunctions.net https://firebase.googleapis.com https://firestore.googleapis.com https://dadosabertos.camara.leg.br https://legis.senado.leg.br https://apis.codante.io https://pncp.gov.br https://brasilapi.com.br https://*.transparenciabr.com.br https:; frame-src 'self' https://accounts.google.com https://*.firebaseapp.com https://*.google.com; worker-src 'self' blob:; manifest-src 'self'"
           }
         ]
       },
