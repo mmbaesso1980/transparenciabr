@@ -88,7 +88,7 @@
 
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
-  <!-- Lógica em ficheiro externo: CSP do Hosting não permite script inline em script-src -->
-  <script src="/asmodeus/asmodeus.js" defer></script>
+  <!-- JS fora de /asmodeus/* para não coincidir com rewrite SPA; query busta cache antigo -->
+  <script src="/assets/asmodeus/sala.js?v=2" defer></script>
 </body>
 </html>
