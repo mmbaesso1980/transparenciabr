@@ -1,0 +1,5 @@
+# Mínimo para rodar o bridge FastAPI → OpenClaw Gateway na VM (porta 8989).
+# pip install -r engines/crew_adapter_requirements.txt
+fastapi>=0.115.0
+uvicorn[standard]>=0.32.0
+httpx>=0.27.0
