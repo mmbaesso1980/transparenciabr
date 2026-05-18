@@ -222,9 +222,6 @@ def run_crew(
         backstory=MAESTRO.papel[:4000],
         llm=llm,
         tools=tools,
-        goal="Consolidar outputs dos operadores num único entregável claro, sem inventar números.",
-        backstory=MAESTRO.papel[:4000],
-        llm=llm,
         verbose=False,
     )
 
@@ -256,7 +253,6 @@ def run_crew(
     all_tasks = tasks + [final]
 
     crew_kw = dict(
-    crew = Crew(
         agents=agents + [consolidador],
         tasks=all_tasks,
         process=Process.sequential,
