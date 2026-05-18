@@ -53,7 +53,13 @@ def main() -> None:
             os.environ["GEMINI_API_KEY"] = key
         model = st.text_input("Modelo Gemini", value=os.environ.get("MANUS_GEMINI_MODEL", "gemini-2.5-pro"))
         os.environ["MANUS_GEMINI_MODEL"] = model
-        depth = st.slider("Agentes CrewAI por ativação (custo)", 1, 5, 3, help="Cada crew tem 10 registados; só N entram no kickoff.")
+        depth = st.slider(
+            "Agentes CrewAI por ativação (custo)",
+            1,
+            10,
+            3,
+            help="Cada crew tem 10 registados; só N entram no kickoff. Todos usam pesquisa web (DuckDuckGo) quando ativos.",
+        )
         st.divider()
         st.markdown(
             "**Túnel (HTTPS para browser)**  \n"

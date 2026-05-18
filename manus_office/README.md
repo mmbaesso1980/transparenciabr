@@ -1,6 +1,6 @@
 # Meu Manus — Escritório (VM)
 
-Registo **10 crews × 10 agentes** focadas em **transparência / dados públicos** (CEAP, PNCP, TSE, etc.). O **Maestro** escolhe a crew por pedido. Rostos tipo *WebForge* (100 agentes dev full-stack) são domínio separado (A.S.M.O.D.E.U.S.) e não substituem esta tabela sem migração explícita.
+Registo **10 crews × 10 agentes** (100 operadores) focados em **transparência / dados públicos**. Cada agente **pode pesquisar na internet** durante o kickoff (`DuckDuckGoSearch` via LangChain); o Maestro consolidador usa a mesma ferramenta. Ajusta o slider no app para até **10 agentes** por corrida (custo proporcional). `MANUS_INTERNET_TOOLS=false` desliga a web em ambientes fechados. Rostos *WebForge* (dev full-stack) continuam fora desta tabela até migração explícita.
 
 ## Instalação (uma vez)
 
@@ -15,6 +15,8 @@ export MANUS_GEMINI_MODEL="gemini-2.5-pro"   # opcional
 export CREWAI_TESTING=true
 export CREWAI_TRACING_ENABLED=false
 export OTEL_SDK_DISABLED=true
+# Pesquisa web nos agentes CrewAI (DuckDuckGo). VM precisa de saída HTTPS. Desliga com:
+# export MANUS_INTERNET_TOOLS=false
 ```
 
 ## Correr o dashboard

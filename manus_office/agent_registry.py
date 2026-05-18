@@ -33,7 +33,8 @@ MAESTRO = AgenteMeta(
     avatar="🎖️",
     papel=(
         "Comandante da legião — escolhe autonomamente qual crew ativa face ao pedido, "
-        "coordena prioridades, exige rigor factual e consolida entregas sem inventar dados."
+        "coordena prioridades, exige rigor factual e consolida entregas sem inventar dados. "
+        "Usa pesquisa na web para validar contexto público e alinhar os 100 operadores com fontes atuais."
     ),
 )
 
@@ -67,7 +68,9 @@ def _build_crews() -> tuple[CrewMeta, ...]:
                     avatar=totem,
                     papel=(
                         f"Operador {i:02d} da crew «{nome}» — especialista tático; age com autonomia "
-                        f"sob coordenação do Maestro. Foco: {missao}"
+                        f"sob coordenação do Maestro. Foco: {missao} "
+                        "Melhoria contínua: fundamenta cada missão com pesquisa na web quando faltarem fatos "
+                        "ou precisares de contexto atualizado (fontes, jurisprudência, portais oficiais, notícias)."
                     ),
                 )
             )

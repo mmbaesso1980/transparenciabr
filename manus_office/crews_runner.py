@@ -25,6 +25,29 @@ else:
     _IMPORT_ERR = ""
 
 
+_WEB_INSTR = (
+    "\n\n**Internet:** Usa a ferramenta de pesquisa web sempre que precisares de dados, datas, nomes ou URLs "
+    "que não estejam no teu contexto. Cita brevemente as fontes (título ou domínio). Se a web não ajudar, "
+    "diz o que falta (ex.: base interna, BigQuery) em vez de inventar."
+)
+
+
+def _internet_tools() -> tuple[list, str]:
+    """
+    Ferramentas LangChain compatíveis com CrewAI (pesquisa aberta na internet).
+    Desliga com MANUS_INTERNET_TOOLS=false em ambientes sem rede.
+    """
+    flag = os.environ.get("MANUS_INTERNET_TOOLS", "true").strip().lower()
+    if flag in ("0", "false", "no", "off"):
+        return [], "MANUS_INTERNET_TOOLS desativado — agentes sem pesquisa web."
+    try:
+        from langchain_community.tools import DuckDuckGoSearchRun
+
+        return [DuckDuckGoSearchRun()], ""
+    except ImportError as e:  # pragma: no cover
+        return [], f"Dependências web em falta (pip install -r requirements.txt): {e}"
+
+
 def _api_key() -> str:
     return (os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY") or "").strip()
 
@@ -169,6 +192,12 @@ def run_crew(
     log(f"▶ Maestro: {MAESTRO.nome}")
     log(f"▶ Crew: {crew_meta.emoji} {crew_meta.nome} ({len(crew_meta.agentes)} agentes registados; executando {max_agents})")
 
+    tools, tools_msg = _internet_tools()
+    if tools_msg:
+        log(f"▶ Ferramentas web: {tools_msg}")
+    else:
+        log("▶ Ferramentas web: DuckDuckGoSearch ativa em todos os agentes desta corrida (operadores + Maestro).")
+
     agents_meta = list(crew_meta.agentes)[:max_agents]
     agents: list = []
     for a in agents_meta:
@@ -178,15 +207,20 @@ def run_crew(
                 goal=f"Executar a missão da crew com rigor factual. {crew_meta.missao}",
                 backstory=a.papel[:4000],
                 llm=llm,
+                tools=tools,
                 verbose=False,
             )
         )
 
     consolidador = Agent(
         role=MAESTRO.nome[:80],
-        goal="Consolidar outputs dos operadores num único entregável claro, sem inventar números.",
+        goal=(
+            "Consolidar outputs dos operadores num único entregável claro, sem inventar números. "
+            "Valida afirmações factuais com pesquisa web quando necessário."
+        ),
         backstory=MAESTRO.papel[:4000],
         llm=llm,
+        tools=tools,
         verbose=False,
     )
 
@@ -198,6 +232,7 @@ def run_crew(
                     f"({i + 1}/{len(agents)}) Instrução do operador:\n{instrucao}\n\n"
                     f"Contexto crew: {crew_meta.missao}\n"
                     "Se não tiveres dados concretos, lista o que falta obter (ex.: query BigQuery) em vez de simular."
+                    + _WEB_INSTR
                 ),
                 expected_output="Relatório curto em pt-BR com bullets e próximos passos.",
                 agent=ag,
@@ -208,6 +243,7 @@ def run_crew(
         description=(
             "Consolida os relatórios anteriores num resumo executivo (máx. 12 linhas).\n"
             f"Pedido original:\n{instrucao}"
+            + _WEB_INSTR
         ),
         expected_output="Resumo executivo em pt-BR.",
         agent=consolidador,
