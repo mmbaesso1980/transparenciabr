@@ -29,9 +29,12 @@ class CrewMeta:
 
 MAESTRO = AgenteMeta(
     id="maestro-001",
-    nome="Elon Musk de Execução",
-    avatar="🎯",
-    papel="Maestro Supremo — roteia pedidos, prioriza crews e consolida entregas sem inventar dados.",
+    nome="Maestro Supremo",
+    avatar="🎖️",
+    papel=(
+        "Comandante da legião — escolhe autonomamente qual crew ativa face ao pedido, "
+        "coordena prioridades, exige rigor factual e consolida entregas sem inventar dados."
+    ),
 )
 
 _CREW_TEMPLATES: list[tuple[str, str, str, str]] = [
@@ -47,18 +50,25 @@ _CREW_TEMPLATES: list[tuple[str, str, str, str]] = [
     ("crew-deploy", "Engenharia & Entrega", "🛠️", "Especificação técnica e entrega de artefactos (sites, relatórios)."),
 ]
 
+# Tótems visuais por posição (variação SOTA leve; um avatar por operador na UI).
+_TOTENS: tuple[str, ...] = ("🐺", "🦉", "🦅", "🐉", "⚡", "🔮", "🛡️", "⚔️", "🗡️", "🏹")
+
 
 def _build_crews() -> tuple[CrewMeta, ...]:
     out: list[CrewMeta] = []
     for crew_id, nome, emoji, missao in _CREW_TEMPLATES:
         agents: list[AgenteMeta] = []
         for i in range(1, 11):
+            totem = _TOTENS[(i - 1) % len(_TOTENS)]
             agents.append(
                 AgenteMeta(
                     id=f"{crew_id}-a{i:02d}",
                     nome=f"{nome.split()[0]} · Operador {i:02d}",
-                    avatar=emoji,
-                    papel=f"Unidade {i} da crew {nome} — executa tarefas delegadas pelo Maestro.",
+                    avatar=totem,
+                    papel=(
+                        f"Operador {i:02d} da crew «{nome}» — especialista tático; age com autonomia "
+                        f"sob coordenação do Maestro. Foco: {missao}"
+                    ),
                 )
             )
         out.append(CrewMeta(id=crew_id, nome=nome, emoji=emoji, missao=missao, agentes=tuple(agents)))

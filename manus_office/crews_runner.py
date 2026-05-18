@@ -5,11 +5,13 @@ Execução CrewAI + Gemini por crew (subconjunto de agentes para custo/latência
 from __future__ import annotations
 
 import io
+import json
 import os
+import re
 from contextlib import redirect_stderr, redirect_stdout
 from typing import Callable
 
-from agent_registry import MAESTRO, crew_por_id
+from agent_registry import CREWS, MAESTRO, crew_por_id
 
 # CrewAI / LangChain — import lazy para falhar com mensagem clara
 try:
@@ -58,6 +60,83 @@ def build_llm():
         temperature=float(os.environ.get("MANUS_GEMINI_TEMP", "0.2")),
         google_api_key=key,
     )
+
+
+def _catalogo_crews() -> str:
+    return "\n".join(f'- "{c.id}": {c.emoji} {c.nome} — {c.missao}' for c in CREWS)
+
+
+def _parse_json_crew(text: str) -> dict | None:
+    raw = text.strip()
+    raw = re.sub(r"^```(?:json)?\s*", "", raw, flags=re.IGNORECASE | re.MULTILINE)
+    raw = re.sub(r"\s*```\s*$", "", raw)
+    start, end = raw.find("{"), raw.rfind("}")
+    if start < 0 or end <= start:
+        return None
+    try:
+        return json.loads(raw[start : end + 1])
+    except json.JSONDecodeError:
+        return None
+
+
+def _fallback_crew_id(instrucao: str) -> tuple[str, str]:
+    s = instrucao.lower()
+    rules: list[tuple[str, tuple[str, ...]]] = [
+        ("crew-forense", ("ceap", "benford", "forense", "nota fiscal", "fornecedor", "despesa parlamentar")),
+        ("crew-emendas", ("emenda", "pix", "beneficiário", "beneficiario", "repasse")),
+        ("crew-pncp", ("pncp", "contrato", "dispensa", "licitação", "licitacao", "vencedor")),
+        ("crew-patrimonio", ("patrimônio", "patrimonio", "tse", "declaração", "declaracao", "bens")),
+        ("crew-gabinete", ("gabinete", "assessor", "parentesco", "sócio", "socio", "vínculo", "vinculo")),
+        ("crew-viagens", ("viagem", "pedágio", "pedagio", "passagem", "rodovia")),
+        ("crew-osint", ("osint", "mídia", "midia", "redes sociais", "notícia", "noticia")),
+        ("crew-risco", ("risco", "score", "priorização", "priorizacao", "modelo")),
+        ("crew-dossie", ("dossiê", "dossie", "relatório executivo", "relatorio executivo", "síntese", "sintese")),
+        ("crew-deploy", ("deploy", "streamlit", "site", "código", "codigo", "api", "infra", "cloud run")),
+    ]
+    for crew_id, kws in rules:
+        if any(k in s for k in kws):
+            return crew_id, "roteamento por palavra-chave (fallback)"
+    return "crew-dossie", "fallback genérico — consolidação / narrativa"
+
+
+def maestro_escolher_crew(
+    instrucao: str,
+    *,
+    log_cb: Callable[[str], None] | None = None,
+) -> tuple[str, str]:
+    """
+    O Maestro (Gemini) escolhe uma crew registada; se o JSON falhar, usa heurística local.
+    Devolve (crew_id, motivo).
+    """
+    if ChatGoogleGenerativeAI is None:
+        raise RuntimeError(f"CrewAI / langchain_google_genai não instalados: {_IMPORT_ERR}")
+
+    allowed = {c.id for c in CREWS}
+    llm = build_llm()
+    prompt = (
+        f"És o {MAESTRO.nome}. {MAESTRO.papel}\n\n"
+        f"Pedido do utilizador:\n\"\"\"\n{instrucao.strip()}\n\"\"\"\n\n"
+        "Crews disponíveis (tens de devolver exatamente um crew_id desta lista):\n"
+        f"{_catalogo_crews()}\n\n"
+        'Responde APENAS com JSON válido, sem markdown nem texto extra, no formato:\n'
+        '{"crew_id":"<id>","motivo":"<uma frase curta em português>"}'
+    )
+    resp = llm.invoke(prompt)
+    text = (getattr(resp, "content", None) or str(resp)).strip()
+    data = _parse_json_crew(text)
+    if isinstance(data, dict):
+        cid = str(data.get("crew_id", "")).strip()
+        motivo = str(data.get("motivo", "")).strip() or "(sem motivo)"
+        if cid in allowed:
+            if log_cb:
+                log_cb(f"▶ Maestro escolheu: {cid} — {motivo}")
+            return cid, motivo
+    if log_cb:
+        log_cb("▶ Maestro: JSON inválido ou id desconhecido; a usar fallback heurístico.")
+    cid_fb, why = _fallback_crew_id(instrucao)
+    if log_cb:
+        log_cb(f"▶ Crew por fallback: {cid_fb} ({why})")
+    return cid_fb, why
 
 
 def run_crew(

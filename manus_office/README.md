@@ -1,5 +1,7 @@
 # Meu Manus — Escritório (VM)
 
+Registo **10 crews × 10 agentes** focadas em **transparência / dados públicos** (CEAP, PNCP, TSE, etc.). O **Maestro** escolhe a crew por pedido. Rostos tipo *WebForge* (100 agentes dev full-stack) são domínio separado (A.S.M.O.D.E.U.S.) e não substituem esta tabela sem migração explícita.
+
 ## Instalação (uma vez)
 
 ```bash
@@ -34,10 +36,11 @@ cloudflared tunnel --url http://127.0.0.1:8501
 
 Usa a URL `https://….trycloudflare.com` gerada.
 
-## Ativar crew
+## Ativar missão
 
 1. Abre o Streamlit.
-2. Escolhe a crew.
-3. Escreve a missão.
-4. Clica **Ativar crew (CrewAI)**.
-5. Lê o painel de logs (kickoff real na VM).
+2. Escreve a missão (o **Maestro** escolhe automaticamente a crew mais adequada via Gemini; há fallback por palavras-chave se o JSON falhar).
+3. Clica **Ativar missão (Maestro + CrewAI)**.
+4. Lê o painel de logs (escolha da crew + kickoff na VM).
+
+Opcional: em **Avançado**, podes forçar uma crew manualmente.
