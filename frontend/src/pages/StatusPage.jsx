@@ -111,7 +111,9 @@ export default function StatusPage() {
               <p className="text-[10px] font-semibold uppercase tracking-wider text-[#8B949E]">
                 {STAT_LABELS[id]}
               </p>
-              <p className="mt-2 font-mono text-lg font-semibold text-[#58A6FF]">{headlines[id]}</p>
+              <p className="mt-2 font-mono text-lg font-semibold text-[#58A6FF]">
+                {headlines[id] ?? "—"}
+              </p>
             </div>
           ))}
         </section>
