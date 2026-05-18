@@ -6,112 +6,21 @@ const BORDER = "#1a1a1a";
 const COBALT = "#2563eb";
 const EMERALD = "#10b981";
 
-const MOCK_ROWS = [
-  {
-    nome: "MARIA S. ***",
-    cidade: "Pirassununga",
-    beneficio: "BPC-LOAS",
-    status: "INDEFERIDO",
-    score: "94%",
-    detalhe: "Falta de laudo",
-  },
-  {
-    nome: "JOSE R. ***",
-    cidade: "Valinhos",
-    beneficio: "Aposentadoria rural",
-    status: "NEGADO",
-    score: "88%",
-    detalhe: "Carência documental",
-  },
-  {
-    nome: "ANA P. ***",
-    cidade: "Pirassununga",
-    beneficio: "Auxílio-doença",
-    status: "CASSADO",
-    score: "91%",
-    detalhe: "Perícia divergente",
-  },
-  {
-    nome: "CARLOS M. ***",
-    cidade: "Valinhos",
-    beneficio: "BPC-LOAS",
-    status: "INDEFERIDO",
-    score: "79%",
-    detalhe: "Renda familiar limite",
-  },
-];
+/** Zero mocks: linhas só após ligação a fonte real (API / BigQuery / Firestore). */
+const INSS_ROWS = [];
 
 const WELCOME =
-  "Terminal Aurora pronto. Base de dados 2025/2026 mapeada. Qual o alvo da sua consulta?";
+  "Terminal sem backend de dados reais ligado nesta rota. Conecte export INSS ou função datalake; até lá, nenhuma resposta inventada.";
 
-function useCountUp(target, durationMs = 1400) {
-  const [v, setV] = useState(0);
-  const started = useRef(false);
-
-  useEffect(() => {
-    if (started.current) {
-      setV(target);
-      return;
-    }
-    started.current = true;
-    const t0 = performance.now();
-
-    function easeOutCubic(t) {
-      return 1 - (1 - t) ** 3;
-    }
-
-    let frame;
-    function tick(now) {
-      const u = Math.min(1, (now - t0) / durationMs);
-      setV(Math.round(easeOutCubic(u) * target));
-      if (u < 1) frame = requestAnimationFrame(tick);
-    }
-    frame = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(frame);
-  }, [target, durationMs]);
-
-  return v;
-}
-
-function simulateTerminalReply(text) {
-  const q = String(text || "")
-    .trim()
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "");
-
-  if (
-    q.includes("pirassununga") &&
-    (q.includes("rural") || q.includes("rurais")) &&
-    (q.includes("negativ") || q.includes("negada"))
-  ) {
-    return [
-      "> Analisando Datalake…",
-      "> Encontrados 142 registros rurais.",
-      "> 45 possuem histórico de dupla negativa.",
-      "Deseja exportar o dossiê? [S/N]",
-    ].join("\n");
-  }
-
-  if (q.includes("valinhos") || q.includes("pirassununga")) {
-    return [
-      "> Escopo regional reconhecido (Valinhos / Pirassununga).",
-      "> Camada INSS 2025/2026 indexada.",
-      "Especifique benefício ou tipo de indeferimento para filtro estreito.",
-    ].join("\n");
-  }
-
+function terminalReplyHonest() {
   return [
-    "> Consulta enfileirada no nó L4 (simulação).",
-    "> Nenhum padrão de alto risco associado à pergunta literal.",
-    "Reformule com cidade, tipo rural/urbano ou benefício (BPC, rural, auxílio).",
+    "> Nenhum motor INSS ativo nesta build.",
+    "> Configure endpoint ou query BigQuery e substitua esta página por dados reais.",
+    "Regra: campo vazio ou mensagem honesta — sem simulação de contagens.",
   ].join("\n");
 }
 
 export default function RadarINSS() {
-  const universe = useCountUp(9_642_108, 1600);
-  const hotLeads = useCountUp(2_147, 900);
-
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState([{ role: "sys", text: WELCOME }]);
   const bottomRef = useRef(null);
@@ -133,7 +42,7 @@ export default function RadarINSS() {
     if (!trimmed) return;
     setMessages((m) => [...m, { role: "user", text: trimmed }]);
     setInput("");
-    const reply = simulateTerminalReply(trimmed);
+    const reply = terminalReplyHonest();
     window.setTimeout(() => {
       setMessages((m) => [...m, { role: "aurora", text: reply }]);
     }, 450);
@@ -190,7 +99,7 @@ export default function RadarINSS() {
                 backgroundColor: "#0a0a0a",
               }}
             >
-              Conexão BigQuery OK
+              Fonte não verificada nesta página
             </span>
           </div>
         </header>
@@ -199,21 +108,21 @@ export default function RadarINSS() {
         <section className="mb-6 grid gap-3 sm:grid-cols-3">
           <KpiCard
             label="Universo de dados"
-            value={universe.toLocaleString("pt-BR")}
-            sub="Leads indexados (simulação operacional)"
+            value="—"
+            sub="Sem total agregado — ligue fonte INSS/datalake"
             style={panelStyle}
           />
           <KpiCard
-            label="Filtro regional ativo"
-            value="Valinhos & Pirassununga"
-            sub="Geofence INSS · malha 2025/2026"
+            label="Filtro regional"
+            value="—"
+            sub="Nenhuma geofence ativa até haver dataset real"
             style={panelStyle}
             monoValue={false}
           />
           <KpiCard
             label="Hot leads (24h)"
-            value={`${hotLeads.toLocaleString("pt-BR")} identificados`}
-            sub="Pipeline Aurora · triagem contínua"
+            value="—"
+            sub="Sem pipeline até ingestão real"
             style={panelStyle}
             monoValue={false}
           />
@@ -233,7 +142,7 @@ export default function RadarINSS() {
                 Tabela de interrogatório
               </h2>
               <p className="mt-1 font-mono text-[10px] text-[#737373] sm:text-[11px]">
-                Dados mascarados · uso interno · sem vínculo de culpa
+                Zero mocks — tabela vazia até existir fonte indexada
               </p>
             </div>
             <div className="overflow-x-auto">
@@ -257,28 +166,40 @@ export default function RadarINSS() {
                   </tr>
                 </thead>
                 <tbody>
-                  {MOCK_ROWS.map((row) => (
-                    <tr
-                      key={row.nome + row.cidade}
-                      className="border-b transition-colors hover:bg-white/[0.02]"
-                      style={{ borderColor: BORDER }}
-                    >
-                      <td className="px-3 py-3 text-[#e5e5e5] sm:px-4">{row.nome}</td>
-                      <td className="px-3 py-3 text-[#a3a3a3] sm:px-4">{row.cidade}</td>
-                      <td className="px-3 py-3 text-[#a3a3a3] sm:px-4">{row.beneficio}</td>
-                      <td className="px-3 py-3 font-semibold text-amber-500/90 sm:px-4">
-                        {row.status}
-                      </td>
-                      <td className="px-3 py-3 sm:px-4">
-                        <span className="font-semibold" style={{ color: EMERALD }}>
-                          {row.score}
-                        </span>
-                        <span className="mt-0.5 block text-[10px] text-[#737373]">
-                          ({row.detalhe})
-                        </span>
+                  {INSS_ROWS.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan={5}
+                        className="px-3 py-10 text-center font-mono text-xs text-[#737373] sm:px-4"
+                      >
+                        Nenhum registro — conecte a fonte INSS ou export BigQuery. Processamento
+                        pendente até primeira carga real.
                       </td>
                     </tr>
-                  ))}
+                  ) : (
+                    INSS_ROWS.map((row) => (
+                      <tr
+                        key={row.nome + row.cidade}
+                        className="border-b transition-colors hover:bg-white/[0.02]"
+                        style={{ borderColor: BORDER }}
+                      >
+                        <td className="px-3 py-3 text-[#e5e5e5] sm:px-4">{row.nome}</td>
+                        <td className="px-3 py-3 text-[#a3a3a3] sm:px-4">{row.cidade}</td>
+                        <td className="px-3 py-3 text-[#a3a3a3] sm:px-4">{row.beneficio}</td>
+                        <td className="px-3 py-3 font-semibold text-amber-500/90 sm:px-4">
+                          {row.status}
+                        </td>
+                        <td className="px-3 py-3 sm:px-4">
+                          <span className="font-semibold" style={{ color: EMERALD }}>
+                            {row.score}
+                          </span>
+                          <span className="mt-0.5 block text-[10px] text-[#737373]">
+                            ({row.detalhe})
+                          </span>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
@@ -297,7 +218,9 @@ export default function RadarINSS() {
               <h2 className="font-mono text-xs font-bold uppercase tracking-[0.2em]" style={{ color: COBALT }}>
                 L4 Terminal // Aurora
               </h2>
-              <p className="mt-0.5 font-mono text-[10px] text-[#525252]">NVIDIA L4 · simulação de sessão</p>
+              <p className="mt-0.5 font-mono text-[10px] text-[#525252]">
+                NVIDIA L4 · sem respostas simuladas
+              </p>
             </div>
             <div
               className="flex-1 space-y-3 overflow-y-auto p-3 font-mono text-[11px] leading-relaxed sm:p-4 sm:text-xs"
@@ -367,7 +290,7 @@ export default function RadarINSS() {
         </div>
 
         <footer className="mt-8 border-t pt-4 font-mono text-[10px] text-[#525252]" style={{ borderColor: BORDER }}>
-          OPERAÇÃO TRILHO 1 · URL direta · sem indexação pública · dados ilustrativos para exercício de interface
+          OPERAÇÃO TRILHO 1 · sem indexação pública · dados reais ou campo vazio (zero mocks)
         </footer>
       </div>
     </div>

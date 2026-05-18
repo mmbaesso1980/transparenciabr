@@ -2,10 +2,8 @@
  * useLandingKPIs — alimenta os 6 cards de frentes de auditoria da landing
  * com números reais vindos de `getDashboardKPIs` (Cloud Function · Data Lake).
  *
- * Estratégia:
- *  1. Lê cache local (1h) para evitar flicker em re-renders.
- *  2. Faz fetch da CF; se falhar, mantém o fallback hardcoded.
- *  3. Formata cada métrica em string curta (ex: "R$ 4 bi", "+1.200%").
+ * Regra: **ZERO mocks** — se a CF não devolve o campo, o headline fica null
+ * (UI mostra "—"). Cache local (1h) só guarda leituras reais anteriores.
  *
  * Mapeamento das 6 frentes (id → fonte na CF):
  *  - ceap        → total_ceap_brl (soma) ou total_notas_classificadas (contagem)
@@ -14,9 +12,6 @@
  *  - viagens     → passagens_anomalas (contagem)
  *  - emendas     → total_emendas_brl
  *  - contratos   → total_licitacoes (contagem PNCP)
- *
- * Quando a CF não retorna o campo, usa o fallback definido aqui.
- * ZERO Firestore — fonte única é o Data Lake via CF.
  */
 
 import { useEffect, useState } from "react";
@@ -26,15 +21,14 @@ import { dashboardKpisUrl } from "../lib/datalakeApi.js";
 const CACHE_KEY = "tbr.landing_kpis.v1";
 const CACHE_TTL_MS = 60 * 60 * 1000; // 1h
 
-// Fallback hardcoded — exibido quando a CF está indisponível ou ainda não
-// preencheu a métrica. Mesmos valores do produto v1 da landing.
-export const LANDING_KPIS_FALLBACK = {
-  ceap: "R$ 4 bi/ano",
-  patrimonio: "+1.200%",
-  gabinete: "21 secretários",
-  viagens: "48 passagens",
-  emendas: "R$ 50 bi",
-  contratos: "3,7 mi licitações",
+/** Placeholder explícito: sem dado da CF = campo vazio (UI → "—"). */
+export const LANDING_KPIS_EMPTY = {
+  ceap: null,
+  patrimonio: null,
+  gabinete: null,
+  viagens: null,
+  emendas: null,
+  contratos: null,
 };
 
 function formatBrl(n) {
@@ -128,9 +122,12 @@ function writeCache(headlines, lastUpdated) {
 
 export function useLandingKPIs() {
   const cached = typeof window !== "undefined" ? readCache() : null;
-  const [headlines, setHeadlines] = useState(
-    cached?.headlines || LANDING_KPIS_FALLBACK,
-  );
+  const [headlines, setHeadlines] = useState(() => {
+    if (cached?.headlines && typeof cached.headlines === "object") {
+      return { ...LANDING_KPIS_EMPTY, ...cached.headlines };
+    }
+    return { ...LANDING_KPIS_EMPTY };
+  });
   const [lastUpdated, setLastUpdated] = useState(cached?.lastUpdated || null);
   const [isFresh, setIsFresh] = useState(Boolean(cached));
   const [error, setError] = useState(null);
@@ -146,7 +143,7 @@ export function useLandingKPIs() {
         const payload = await res.json();
         const mapped = mapPayloadToHeadlines(payload);
         if (cancelled) return;
-        const merged = { ...LANDING_KPIS_FALLBACK, ...mapped };
+        const merged = { ...LANDING_KPIS_EMPTY, ...mapped };
         const updatedAt =
           payload?.last_updated || payload?.updated_at || new Date().toISOString();
         setHeadlines(merged);
