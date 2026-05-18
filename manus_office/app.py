@@ -1,6 +1,7 @@
 """
 Escritório virtual Meu Manus — Streamlit na VM.
 CrewAI + Gemini. Lista 100 agentes (10×10) + Maestro; o Maestro escolhe a crew e ativa um subconjunto de agentes.
+CrewAI + Gemini. Lista 100 agentes (10×10) + Maestro; ativa crew com subconjunto de agentes.
 """
 
 from __future__ import annotations
@@ -45,6 +46,7 @@ def _append_log(line: str) -> None:
 def main() -> None:
     st.title("🎯 Meu Manus — Escritório virtual")
     st.caption("VM only · CrewAI + Gemini · Maestro Supremo escolhe a crew automaticamente")
+    st.caption("VM only · CrewAI + Gemini · Maestro = Elon Musk de Execução")
 
     with st.sidebar:
         st.subheader("Configuração")
@@ -60,6 +62,7 @@ def main() -> None:
             3,
             help="Cada crew tem 10 registados; só N entram no kickoff. Todos usam pesquisa web (DuckDuckGo) quando ativos.",
         )
+        depth = st.slider("Agentes CrewAI por ativação (custo)", 1, 5, 3, help="Cada crew tem 10 registados; só N entram no kickoff.")
         st.divider()
         st.markdown(
             "**Túnel (HTTPS para browser)**  \n"
@@ -90,6 +93,13 @@ def main() -> None:
                 format_func=lambda x: crew_labels[x],
                 disabled=not force,
             )
+        crew_labels = {c.id: f"{c.emoji} {c.nome}" for c in CREWS}
+        crew_id = st.selectbox("Escolhe a crew", options=list(crew_labels.keys()), format_func=lambda x: crew_labels[x])
+        crew = next(c for c in CREWS if c.id == crew_id)
+        st.caption(crew.missao)
+        with st.expander("Agentes desta crew", expanded=False):
+            for a in crew.agentes:
+                st.write(f"{a.avatar} `{a.id}` — **{a.nome}**")
 
     with col_b:
         st.subheader("Missão")
@@ -99,6 +109,11 @@ def main() -> None:
             placeholder="Ex.: Auditar CEAP 2025 com Benford e fornecedores; ou descrever deploy Cloud Run do painel.",
         )
         run = st.button("▶ Ativar missão (Maestro + CrewAI)", type="primary", use_container_width=True)
+            "Instrução para a crew",
+            height=160,
+            placeholder="Ex.: Esboçar checklist forense para auditar CEAP 2025 sem inventar números.",
+        )
+        run = st.button("▶ Ativar crew (CrewAI)", type="primary", use_container_width=True)
 
     st.subheader("Logs / status")
     log_box = st.empty()
@@ -123,6 +138,13 @@ def main() -> None:
                     out = run_crew(crew_id, instr.strip(), max_agents=depth, log_cb=_append_log)
                 _append_log(out)
                 st.success("Missão concluída. Vê o log abaixo.")
+                from crews_runner import run_crew
+
+                _append_log("— início kickoff —")
+                with st.spinner("Crew a correr na VM…"):
+                    out = run_crew(crew_id, instr.strip(), max_agents=depth, log_cb=_append_log)
+                _append_log(out)
+                st.success("Crew concluída. Vê o log abaixo.")
             except Exception as e:  # noqa: BLE001
                 _append_log(f"ERRO: {e!r}")
                 st.exception(e)

@@ -46,3 +46,10 @@ Usa a URL `https://….trycloudflare.com` gerada.
 4. Lê o painel de logs (escolha da crew + kickoff na VM).
 
 Opcional: em **Avançado**, podes forçar uma crew manualmente.
+## Ativar crew
+
+1. Abre o Streamlit.
+2. Escolhe a crew.
+3. Escreve a missão.
+4. Clica **Ativar crew (CrewAI)**.
+5. Lê o painel de logs (kickoff real na VM).

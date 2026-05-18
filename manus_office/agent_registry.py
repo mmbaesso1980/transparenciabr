@@ -36,6 +36,9 @@ MAESTRO = AgenteMeta(
         "coordena prioridades, exige rigor factual e consolida entregas sem inventar dados. "
         "Usa pesquisa na web para validar contexto público e alinhar os 100 operadores com fontes atuais."
     ),
+    nome="Elon Musk de Execução",
+    avatar="🎯",
+    papel="Maestro Supremo — roteia pedidos, prioriza crews e consolida entregas sem inventar dados.",
 )
 
 _CREW_TEMPLATES: list[tuple[str, str, str, str]] = [
@@ -72,6 +75,8 @@ def _build_crews() -> tuple[CrewMeta, ...]:
                         "Melhoria contínua: fundamenta cada missão com pesquisa na web quando faltarem fatos "
                         "ou precisares de contexto atualizado (fontes, jurisprudência, portais oficiais, notícias)."
                     ),
+                    avatar=emoji,
+                    papel=f"Unidade {i} da crew {nome} — executa tarefas delegadas pelo Maestro.",
                 )
             )
         out.append(CrewMeta(id=crew_id, nome=nome, emoji=emoji, missao=missao, agentes=tuple(agents)))
