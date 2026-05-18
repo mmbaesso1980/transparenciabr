@@ -41,15 +41,10 @@ Usa a URL `https://….trycloudflare.com` gerada.
 ## Ativar missão
 
 1. Abre o Streamlit.
-2. Escreve a missão (o **Maestro** escolhe automaticamente a crew mais adequada via Gemini; há fallback por palavras-chave se o JSON falhar).
-3. Clica **Ativar missão (Maestro + CrewAI)**.
-4. Lê o painel de logs (escolha da crew + kickoff na VM).
+2. Escreve a **instrução global** (todas as crews interpretam na sua área).
+3. **LEGIÃO 100** (botão principal): corre as **10 crews em sequência**, cada uma com **10 agentes** (100 no total), com pesquisa web quando `MANUS_INTERNET_TOOLS` está ativo; no fim o **Maestro** (Gemini) gera um **script operacional unificado** (runbook + tendências SOTA + matriz de lacunas). **Custo e tempo muito altos.**
+4. **Missão rápida**: uma só crew — o Maestro escolhe (ou forças crew em **Avançado**); o slider define quantos operadores entram (1–10).
 
-Opcional: em **Avançado**, podes forçar uma crew manualmente.
-## Ativar crew
+Lê o painel de logs (até ~3000 linhas guardadas em sessão para corridas longas).
 
-1. Abre o Streamlit.
-2. Escolhe a crew.
-3. Escreve a missão.
-4. Clica **Ativar crew (CrewAI)**.
-5. Lê o painel de logs (kickoff real na VM).
+Opcional: em **Avançado**, podes forçar uma crew na missão rápida.
