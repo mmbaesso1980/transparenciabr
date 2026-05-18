@@ -1,0 +1,4 @@
+# Escritório virtual Meu Manus — VM (Streamlit + CrewAI + Gemini)
+streamlit>=1.39.0,<2
+crewai>=0.76.0,<1
+langchain-google-genai>=2.0.0
