@@ -9,6 +9,10 @@ source .venv/bin/activate
 pip install -r requirements.txt
 export GEMINI_API_KEY="…"
 export MANUS_GEMINI_MODEL="gemini-2.5-pro"   # opcional
+# CrewAI: evita prompt interativo de traces (Streamlit / nohup)
+export CREWAI_TESTING=true
+export CREWAI_TRACING_ENABLED=false
+export OTEL_SDK_DISABLED=true
 ```
 
 ## Correr o dashboard

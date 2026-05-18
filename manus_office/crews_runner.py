@@ -9,7 +9,7 @@ import os
 from contextlib import redirect_stderr, redirect_stdout
 from typing import Callable
 
-from agent_registry import CREWS, MAESTRO, crew_por_id
+from agent_registry import MAESTRO, crew_por_id
 
 # CrewAI / LangChain — import lazy para falhar com mensagem clara
 try:
@@ -29,6 +29,22 @@ def _api_key() -> str:
 
 def _model() -> str:
     return (os.environ.get("MANUS_GEMINI_MODEL") or "gemini-2.5-pro").strip()
+
+
+def _silence_crewai_tracing() -> None:
+    """CrewAI >=0.76 pede confirmação de traces com input(); em Streamlit/nohup isso quebra (Bad file descriptor)."""
+    os.environ.setdefault("CREWAI_TESTING", "true")
+    os.environ.setdefault("CREWAI_TRACING_ENABLED", "false")
+    os.environ.setdefault("OTEL_SDK_DISABLED", "true")
+    os.environ.setdefault("CREWAI_DISABLE_TELEMETRY", "true")
+    os.environ.setdefault("CREWAI_DISABLE_TRACING", "true")
+    os.environ.setdefault("CREWAI_TELEMETRY", "false")
+    try:
+        from crewai.events.listeners.tracing.utils import set_suppress_tracing_messages
+
+        set_suppress_tracing_messages(True)
+    except ImportError:
+        pass
 
 
 def build_llm():
@@ -56,6 +72,8 @@ def run_crew(
     """
     if Agent is None:
         raise RuntimeError(f"Dependências em falta: {_IMPORT_ERR}")
+
+    _silence_crewai_tracing()
 
     crew_meta = crew_por_id(crew_id)
     if crew_meta is None:
@@ -118,12 +136,16 @@ def run_crew(
     )
     all_tasks = tasks + [final]
 
-    crew = Crew(
+    crew_kw = dict(
         agents=agents + [consolidador],
         tasks=all_tasks,
         process=Process.sequential,
         verbose=False,
     )
+    try:
+        crew = Crew(**crew_kw, tracing=False)
+    except TypeError:
+        crew = Crew(**crew_kw)
 
     log("▶ kickoff()…")
     try:
