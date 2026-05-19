@@ -225,6 +225,7 @@ def run_crew(
         goal="Consolidar outputs dos operadores num único entregável claro, sem inventar números.",
         backstory=MAESTRO.papel[:4000],
         llm=llm,
+        tools=tools,
         verbose=False,
     )
 
@@ -277,3 +278,65 @@ def run_crew(
     out = str(result).strip()
     log("▶ concluído.")
     return buf.getvalue() + "\n---\nRESULTADO:\n" + out
+
+
+def _extract_resultado(bloco: str) -> str:
+    marker = "---\nRESULTADO:\n"
+    if marker in bloco:
+        return bloco.split(marker, 1)[-1].strip()
+    return bloco.strip()[-8000:]
+
+
+def run_legiao_100(
+    instrucao: str,
+    *,
+    log_cb: Callable[[str], None] | None = None,
+    synthesis_context_chars: int = 32000,
+) -> str:
+    """
+    Corre as 10 crews em sequência, cada uma com os 10 agentes registados (100 no total),
+    depois gera uma síntese única: script operacional melhorado + lacunas (Maestro via Gemini).
+    Custo e tempo elevados — usar com consciência.
+    """
+    if Agent is None:
+        raise RuntimeError(f"Dependências em falta: {_IMPORT_ERR}")
+
+    if log_cb:
+        log_cb("▶ LEGIÃO 100 — início (10 crews × 10 agentes, sequencial)")
+        log_cb("▶ Cada crew corre com pesquisa web nos agentes quando MANUS_INTERNET_TOOLS≠false.")
+
+    trechos: list[str] = []
+    for idx, c in enumerate(CREWS, start=1):
+        if log_cb:
+            log_cb(f"\n{'='*20} [{idx}/10] {c.emoji} {c.nome} (`{c.id}`) {'='*20}")
+        bloco = run_crew(c.id, instrucao, max_agents=10, log_cb=log_cb)
+        res = _extract_resultado(bloco)
+        trechos.append(f"### {c.emoji} {c.nome} (`{c.id}`)\n{res}")
+        if log_cb:
+            log_cb(f"▶ [{idx}/10] crew `{c.id}` concluída ({len(res)} chars de resultado).")
+
+    corpus = "\n\n".join(trechos)
+    if len(corpus) > synthesis_context_chars:
+        corpus = corpus[:synthesis_context_chars] + "\n\n…[corpus truncado para síntese; ver logs por crew acima]…"
+
+    llm = build_llm()
+    prompt = (
+        f"És o {MAESTRO.nome}. {MAESTRO.papel}\n\n"
+        f"**Pedido original do utilizador:**\n\"\"\"\n{instrucao.strip()}\n\"\"\"\n\n"
+        "Recebeste os entregáveis finais das **10 crews** abaixo (cada uma atuou na sua área: CEAP, emendas, "
+        "PNCP, TSE, gabinete, viagens, OSINT, risco, dossiê, deploy). Os agentes já puderam usar pesquisa web "
+        "durante as corridas.\n\n"
+        "Produz **um único documento em markdown (pt-BR)** com:\n"
+        "1. **Script operacional melhorado** — checklist ou runbook numerado, executável por equipa, sem fluff;\n"
+        "2. **Tendências e SOTA** — onde fizer sentido, alinha com práticas de ponta (dados abertos governamentais, "
+        "auditoria forense, OSINT, engenharia de entrega); não inventes URLs — indica *tipos* de fonte a validar;\n"
+        "3. **Matriz lacunas × crew** — tabela curta: o que ainda falta obter (ex.: BigQuery, LAI, bases oficiais).\n\n"
+        "Máximo ~100 linhas. Sê concreto.\n\n---\n## Entradas das crews\n\n"
+        f"{corpus}"
+    )
+    resp = llm.invoke(prompt)
+    sintese = (getattr(resp, "content", None) or str(resp)).strip()
+    if log_cb:
+        log_cb("\n" + "=" * 24 + " SÍNTESE LEGIÃO (Maestro) " + "=" * 24 + "\n" + sintese)
+    return sintese
+

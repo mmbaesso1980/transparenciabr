@@ -1,5 +1,6 @@
 """
 Escritório virtual Meu Manus — Streamlit na VM.
+CrewAI + Gemini. **Legião 100** = 10 crews × 10 agentes + síntese Maestro; missão rápida = 1 crew (Maestro ou manual).
 CrewAI + Gemini. Lista 100 agentes (10×10) + Maestro; o Maestro escolhe a crew e ativa um subconjunto de agentes.
 CrewAI + Gemini. Lista 100 agentes (10×10) + Maestro; ativa crew com subconjunto de agentes.
 """
@@ -39,12 +40,16 @@ st.markdown(
 def _append_log(line: str) -> None:
     st.session_state.setdefault("log_lines", [])
     st.session_state["log_lines"].append(line)
-    if len(st.session_state["log_lines"]) > 400:
-        st.session_state["log_lines"] = st.session_state["log_lines"][-400:]
+    if len(st.session_state["log_lines"]) > 3000:
+        st.session_state["log_lines"] = st.session_state["log_lines"][-3000:]
 
 
 def main() -> None:
     st.title("🎯 Meu Manus — Escritório virtual")
+    st.caption(
+        "VM only · **Legião 100** = 10 crews × 10 agentes na sua área + síntese Maestro · "
+        "pesquisa web (DuckDuckGo) em cada corrida"
+    )
     st.caption("VM only · CrewAI + Gemini · Maestro Supremo escolhe a crew automaticamente")
     st.caption("VM only · CrewAI + Gemini · Maestro = Elon Musk de Execução")
 
@@ -56,6 +61,12 @@ def main() -> None:
         model = st.text_input("Modelo Gemini", value=os.environ.get("MANUS_GEMINI_MODEL", "gemini-2.5-pro"))
         os.environ["MANUS_GEMINI_MODEL"] = model
         depth = st.slider(
+            "Agentes por crew (só missão rápida)",
+            1,
+            10,
+            3,
+            help="Legião 100 ignora isto (sempre 10×10). Na missão rápida, só N operadores entram no kickoff.",
+        )
             "Agentes CrewAI por ativação (custo)",
             1,
             10,
@@ -79,6 +90,13 @@ def main() -> None:
         st.caption(MAESTRO.papel)
 
         st.subheader(f"Crews ({len(CREWS)}) · {total_agentes_crews()} agentes")
+        st.caption(
+            "**Sem escolher crew:** usa **Legião 100** — todas as crews correm em sequência, "
+            "10 agentes cada, e o Maestro gera o script operacional unificado (SOTA + lacunas)."
+        )
+        with st.expander("Crews disponíveis", expanded=False):
+            for c in CREWS:
+                st.markdown(f"**{c.emoji} `{c.id}`** — {c.nome}  \n{c.missao}")
         st.caption("O Maestro analisa o teu pedido e escolhe a crew mais adequada (Gemini + fallback por palavras-chave).")
         with st.expander("Crews disponíveis", expanded=False):
             for c in CREWS:
@@ -94,16 +112,20 @@ def main() -> None:
                 disabled=not force,
             )
         crew_labels = {c.id: f"{c.emoji} {c.nome}" for c in CREWS}
-        crew_id = st.selectbox("Escolhe a crew", options=list(crew_labels.keys()), format_func=lambda x: crew_labels[x])
-        crew = next(c for c in CREWS if c.id == crew_id)
-        st.caption(crew.missao)
-        with st.expander("Agentes desta crew", expanded=False):
-            for a in crew.agentes:
-                st.write(f"{a.avatar} `{a.id}` — **{a.nome}**")
+        manual = st.expander("Avançado: forçar crew (só missão rápida)", expanded=False)
+        with manual:
+            force = st.checkbox("Usar crew fixa em vez do Maestro", value=False)
+            forced_id = st.selectbox(
+                "Crew",
+                options=list(crew_labels.keys()),
+                format_func=lambda x: crew_labels[x],
+                disabled=not force,
+            )
 
     with col_b:
         st.subheader("Missão")
         instr = st.text_area(
+            "Instrução global (todas as crews interpretam na sua área)",
             "Instrução (o Maestro roteia para a crew certa)",
             height=160,
             placeholder="Ex.: Auditar CEAP 2025 com Benford e fornecedores; ou descrever deploy Cloud Run do painel.",
@@ -111,20 +133,44 @@ def main() -> None:
         run = st.button("▶ Ativar missão (Maestro + CrewAI)", type="primary", use_container_width=True)
             "Instrução para a crew",
             height=160,
-            placeholder="Ex.: Esboçar checklist forense para auditar CEAP 2025 sem inventar números.",
+            placeholder=(
+                "Ex.: Plano de auditoria CEAP 2025 — quero script operacional com forense, PNCP, TSE, risco e dossiê, "
+                "alinhado a boas práticas internacionais."
+            ),
         )
-        run = st.button("▶ Ativar crew (CrewAI)", type="primary", use_container_width=True)
+        run_legiao = st.button(
+            "▶ LEGIÃO 100 — todas as crews (10×10) + script Maestro",
+            type="primary",
+            use_container_width=True,
+            help="Custo alto: 10 kickoffs CrewAI completos + 1 síntese Gemini.",
+        )
+        run_rapido = st.button(
+            "Missão rápida (Maestro escolhe só 1 crew)",
+            use_container_width=True,
+            help="Mais barato: uma crew, N agentes (slider).",
+        )
 
     st.subheader("Logs / status")
     log_box = st.empty()
 
-    if run:
+    if run_legiao:
         if not instr.strip():
             st.warning("Escreve uma instrução.")
         elif not (os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")):
             st.error("Falta GEMINI_API_KEY (sidebar ou export na VM).")
         else:
             try:
+                from crews_runner import run_legiao_100
+
+                _append_log("— início LEGIÃO 100 —")
+                with st.spinner("Legião a correr (vários minutos a horas, conforme modelo e rede)…"):
+                    sintese = run_legiao_100(instr.strip(), log_cb=_append_log)
+                st.success("Legião concluída. Síntese no log; excerto abaixo.")
+                with st.expander("Síntese Maestro (excerto)", expanded=True):
+                    st.markdown(sintese[:12000] + ("…" if len(sintese) > 12000 else ""))
+            except Exception as e:  # noqa: BLE001
+                _append_log(f"ERRO: {e!r}")
+                st.exception(e)
                 from crews_runner import maestro_escolher_crew, run_crew
 
                 _append_log("— início kickoff —")
@@ -140,11 +186,26 @@ def main() -> None:
                 st.success("Missão concluída. Vê o log abaixo.")
                 from crews_runner import run_crew
 
-                _append_log("— início kickoff —")
+    if run_rapido:
+        if not instr.strip():
+            st.warning("Escreve uma instrução.")
+        elif not (os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")):
+            st.error("Falta GEMINI_API_KEY (sidebar ou export na VM).")
+        else:
+            try:
+                from crews_runner import maestro_escolher_crew, run_crew
+
+                _append_log("— início kickoff (rápido) —")
+                if force:
+                    crew_id = forced_id
+                    _append_log(f"▶ Modo manual: crew fixa `{crew_id}`")
+                else:
+                    with st.spinner("Maestro a escolher a crew…"):
+                        crew_id, _mot = maestro_escolher_crew(instr.strip(), log_cb=_append_log)
                 with st.spinner("Crew a correr na VM…"):
                     out = run_crew(crew_id, instr.strip(), max_agents=depth, log_cb=_append_log)
                 _append_log(out)
-                st.success("Crew concluída. Vê o log abaixo.")
+                st.success("Missão rápida concluída. Vê o log abaixo.")
             except Exception as e:  # noqa: BLE001
                 _append_log(f"ERRO: {e!r}")
                 st.exception(e)
