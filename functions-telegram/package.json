@@ -1,0 +1,26 @@
+{
+  "name": "transparenciabr-telegram-bot",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "index.js",
+  "engines": {
+    "node": "20"
+  },
+  "scripts": {
+    "deploy": "firebase deploy --only \"functions:telegram-bot:telegramWebhook,functions:telegram-bot:pipelineWorker\"",
+    "logs": "firebase functions:log",
+    "lint": "npm run check",
+    "check": "node --check index.js && node --check src/telegramWebhook.js && node --check src/pipelineWorker.js"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.6.0",
+    "firebase-functions": "^5.1.1",
+    "@google-cloud/bigquery": "^7.9.4",
+    "@google-cloud/pubsub": "^4.11.0",
+    "@google-cloud/storage": "^7.17.0",
+    "@google-cloud/secret-manager": "^5.6.0",
+    "axios": "^1.7.9",
+    "csv-stringify": "^6.5.2"
+  },
+  "private": true
+}
