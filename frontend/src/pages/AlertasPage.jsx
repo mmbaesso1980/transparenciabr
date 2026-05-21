@@ -199,7 +199,7 @@ export default function AlertasPage() {
                           {pid ? (
                             <Link
                               className="text-[#58A6FF] hover:underline"
-                              to={`/dossie/${encodeURIComponent(pid)}`}
+                              to={`/politico/${encodeURIComponent(pid)}`}
                             >
                               {pid}
                             </Link>

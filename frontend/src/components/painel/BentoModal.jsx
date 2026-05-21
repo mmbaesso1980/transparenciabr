@@ -2,8 +2,8 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// `/dossie/:id` — hotpage alvo pós-clique no ranking (rota protegida; login se necessário).
-const HOTPAGE_BASE = '/dossie';
+// `/politico/:id` — hotpage público com preview de despesas + paywall.
+const HOTPAGE_BASE = '/politico';
 
 /**
  * BentoModal — Overlay full-screen ao clicar num card.
@@ -190,7 +190,7 @@ export default function BentoModal({
                       onClick={() => {
                         if (!p.id) return;
                         onClose?.();
-                        navigate(`${HOTPAGE_BASE}/${encodeURIComponent(p.id)}`);
+                        navigate(`${HOTPAGE_BASE}/${encodeURIComponent(p.id)}?nome=${encodeURIComponent(p.nome || '')}&partido=${encodeURIComponent(p.partido || '')}&uf=${encodeURIComponent(p.uf || '')}`);
                       }}
                       className="border-b border-white/[0.03] hover:bg-white/[0.04] transition-colors cursor-pointer"
                     >

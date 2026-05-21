@@ -1,13 +1,11 @@
 /**
- * Painel Aurora — grelha 17 Bento cards (spec `painel_drop_07mai.zip`: Pontuação Brasil, Maiores Cotas,
- * Sinalizações SOC, Mapa UF, Pulso CEAP, etc.). O ZIP não está versionado no repo; este ficheiro é a
- * implementação canónica + `usePainelData` + `components/painel/*`.
+ * Painel Aurora — grelha 17 Bento cards. Cada card navega para uma rota tática (sem modal).
+ * Layout: linhas com altura mínima + auto para evitar sobreposição de miolos.
  */
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import BentoCard from '../components/painel/BentoCard';
-import BentoModal from '../components/painel/BentoModal';
 import GlobalSearch from '../components/GlobalSearch.jsx';
 import { usePainelData } from '../hooks/usePainelData';
 import {
@@ -44,44 +42,7 @@ const TRANSPARENCIA_LOGO = (
 
 export default function PainelPage() {
   const data = usePainelData();
-  const [modalConfig, setModalConfig] = useState(null);
-
-  const openModal = (cfg) => setModalConfig(cfg);
-  const closeModal = () => setModalConfig(null);
-
-  // Configurações de modal por bento (qual sortKey/valueLabel usar no ranking)
-  const M = {
-    cotas: {
-      title: 'Maiores Cotas — ranking CEAP',
-      sortKey: 'cota',
-      valueLabel: 'Cota R$',
-      defaultSortOrder: 'desc',
-    },
-    frugais: {
-      title: 'Mais Frugais — % de aproveitamento da cota',
-      sortKey: 'pct',
-      valueLabel: 'Cota R$',
-      defaultSortOrder: 'asc',
-    },
-    score: {
-      title: 'Pontuação Aurora — ranking',
-      sortKey: 'score',
-      valueLabel: 'Score',
-      defaultSortOrder: 'desc',
-    },
-    sinaliz: {
-      title: 'Em Observação — ranking',
-      sortKey: 'sinalizacoes',
-      valueLabel: 'Sinalizações',
-      defaultSortOrder: 'desc',
-    },
-    presenca: {
-      title: 'Atividade legislativa — ranking',
-      sortKey: 'presenca',
-      valueLabel: 'Presença %',
-      defaultSortOrder: 'desc',
-    },
-  };
+  const navigate = useNavigate();
 
   return (
     <div className="min-h-screen bg-[#05060d] text-white">
@@ -174,50 +135,51 @@ export default function PainelPage() {
             hidden: {},
             show: { transition: { staggerChildren: 0.04 } },
           }}
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 auto-rows-[140px] gap-3 md:gap-4"
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 auto-rows-[minmax(152px,auto)] gap-3 md:gap-4 items-stretch"
         >
+          {/* Rotas táticas consolidadas: /ranking, /emendas, /anomalias, /status, /gabinete, /universo, /partido, /risco */}
           {[
             // ─── Linha 1 ───
             { key: 'b01', span: 'lg:col-span-1 lg:row-span-1', accent: 'cyan',   icon: '🏆', title: 'Pontuação Brasil',
-              child: <PontuacaoBrasil data={data.pontuacaoBrasil} />, modal: M.score },
+              child: <PontuacaoBrasil data={data.pontuacaoBrasil} />, href: '/risco' },
             { key: 'b02', span: 'lg:col-span-1 lg:row-span-1', accent: 'violet', icon: '⚠️', title: 'Maiores Cotas',
-              child: <MaioresCotas data={data.maioresCotas} />, modal: M.cotas },
+              child: <MaioresCotas data={data.maioresCotas} />, href: '/ranking' },
             { key: 'b03', span: 'lg:col-span-1 lg:row-span-1', accent: 'red',    icon: '⚡', title: 'Sinalizações SOC',
-              child: <SinalizacoesSOC data={data.sinalizacoesSOC} />, modal: M.sinaliz },
+              child: <SinalizacoesSOC data={data.sinalizacoesSOC} />, href: '/anomalias' },
             { key: 'b04', span: 'lg:col-span-1 lg:row-span-1', accent: 'cyan',   icon: '🇧🇷', title: 'Mapa UF Brasil',
-              child: <MapaUFBrasil data={data.mapaUF} />, modal: M.cotas },
+              child: <MapaUFBrasil data={data.mapaUF} />, href: '/universo' },
             { key: 'b05', span: 'lg:col-span-1 lg:row-span-1', accent: 'amber',  icon: '📈', title: 'Pulso CEAP',
-              child: <PulsoCEAP data={data.pulsoCEAP} />, modal: M.cotas },
+              child: <PulsoCEAP data={data.pulsoCEAP} />, href: '/ranking' },
 
             // ─── Linha 2 ───
             { key: 'b06', span: 'lg:col-span-1 lg:row-span-1', accent: 'red',    icon: '🌑', title: 'Mata UF Brasil',
-              child: <MataUFBrasil data={data.mataUF} />, modal: M.sinaliz },
+              child: <MataUFBrasil data={data.mataUF} />, href: '/risco' },
             { key: 'b07', span: 'lg:col-span-1 lg:row-span-1', accent: 'amber',  icon: '⚠️', title: 'Emendas Críticas',
-              child: <EmendasCriticas data={data.emendasCriticas} />, modal: M.cotas },
+              child: <EmendasCriticas data={data.emendasCriticas} />, href: '/emendas' },
             { key: 'b08', span: 'lg:col-span-1 lg:row-span-1', accent: 'cyan',   icon: '📊', title: 'Contratos PNCP',
-              child: <ContratosPNCP data={data.contratosPNCP} />, modal: M.cotas },
+              child: <ContratosPNCP data={data.contratosPNCP} />, href: '/gabinete' },
             { key: 'b09', span: 'lg:col-span-1 lg:row-span-1', accent: 'green',  icon: '📡', title: 'Cobertura datalake',
-              child: <CoberturaDatalake data={data.coberturaDatalake} />, modal: M.sinaliz },
+              child: <CoberturaDatalake data={data.coberturaDatalake} />, href: '/status' },
             { key: 'b10', span: 'lg:col-span-1 lg:row-span-2', accent: 'violet', icon: '🪐', title: 'Meu Universo',
-              child: <MeuUniverso data={data.meuUniverso} />, modal: null },
+              child: <MeuUniverso data={data.meuUniverso} />, href: '/universo' },
 
             // ─── Linha 3 ───
             { key: 'b11', span: 'lg:col-span-1 lg:row-span-1', accent: 'green',  icon: '🌱', title: 'Mais Frugais',
-              child: <MaisFrugais data={data.maisFrugais} />, modal: M.frugais },
+              child: <MaisFrugais data={data.maisFrugais} />, href: '/ranking' },
             { key: 'b12', span: 'lg:col-span-2 lg:row-span-1', accent: 'cyan',   icon: '🔀', title: 'Influência Setorial',
-              child: <InfluenciaSetorial data={data.influenciaSetorial} />, modal: M.score },
+              child: <InfluenciaSetorial data={data.influenciaSetorial} />, href: '/partido' },
             { key: 'b13', span: 'lg:col-span-1 lg:row-span-1', accent: 'cyan',   icon: '📋', title: 'Atividade Legislativa',
-              child: <AtividadeLegislativa data={data.atividadeLegislativa} />, modal: M.presenca },
+              child: <AtividadeLegislativa data={data.atividadeLegislativa} />, href: '/universo' },
 
             // ─── Linha 4 ───
             { key: 'b14', span: 'lg:col-span-1 lg:row-span-1', accent: 'amber',  icon: '🎯', title: 'Promessa × Entrega',
-              child: <PromessaEntrega data={data.promessaEntrega} />, modal: M.score },
+              child: <PromessaEntrega data={data.promessaEntrega} />, href: '/emendas' },
             { key: 'b15', span: 'lg:col-span-1 lg:row-span-1', accent: 'cyan',   icon: '🌡️', title: 'Pulso Federal',
-              child: <PulsoFederal data={data.pulsoFederal} />, modal: M.cotas },
+              child: <PulsoFederal data={data.pulsoFederal} />, href: '/status' },
             { key: 'b16', span: 'lg:col-span-1 lg:row-span-1', accent: 'violet', icon: '🕸️', title: 'Rede Empresarial',
-              child: <RedeEmpresarial data={data.redeEmpresarial} />, modal: M.cotas },
+              child: <RedeEmpresarial data={data.redeEmpresarial} />, href: '/anomalias' },
             { key: 'b17', span: 'lg:col-span-1 lg:row-span-1', accent: 'cyan',   icon: '🔓', title: 'Abertura por Órgão',
-              child: <AberturaOrgao data={data.aberturaOrgao} />, modal: M.score },
+              child: <AberturaOrgao data={data.aberturaOrgao} />, href: '/gabinete' },
           ].map((b) => (
             <motion.div
               key={b.key}
@@ -231,7 +193,7 @@ export default function PainelPage() {
                 title={b.title}
                 icon={b.icon}
                 accent={b.accent}
-                onClick={() => b.modal && openModal(b.modal)}
+                onClick={() => navigate(b.href)}
               >
                 {b.child}
               </BentoCard>
@@ -243,19 +205,6 @@ export default function PainelPage() {
           Aurora · TransparênciaBR · dados públicos (Câmara, Senado, CEAP classificado, PNCP)
         </p>
       </main>
-
-      <BentoModal
-        open={!!modalConfig}
-        onClose={closeModal}
-        title={modalConfig?.title}
-        subtitle={data.rankingGastadores?.length
-          ? `Toda nota é suspeita até prova contrária · ${data.rankingGastadores.length} parlamentares com gasto registrado`
-          : 'Toda nota é suspeita até prova contrária · 594 parlamentares'}
-        data={data.rankingParaModal || data.parlamentares}
-        sortKey={modalConfig?.sortKey || 'cota'}
-        defaultSortOrder={modalConfig?.defaultSortOrder || 'desc'}
-        valueLabel={modalConfig?.valueLabel || 'Valor'}
-      />
     </div>
   );
 }

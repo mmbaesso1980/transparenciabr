@@ -120,6 +120,15 @@ service cloud.firestore {
             .hasAny(['isAdmin', 'role', 'creditos_ilimitados', 'email']);
 
       allow delete: if false;
+
+      /**
+       * Desbloqueios pagos por parlamentar (CEAP completo, emendas, etc.).
+       * Escrita apenas via Admin SDK (Cloud Function unlockPoliticoData).
+       */
+      match /politico_unlocks/{politicoId} {
+        allow read: if request.auth != null && request.auth.uid == userId;
+        allow write: if false;
+      }
     }
 
     match /politicos/{pid} {

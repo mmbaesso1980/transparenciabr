@@ -5,6 +5,10 @@ export const CREDIT_PRICE_EMENDAS_COMPLETAS = 300;
 export const CREDIT_ADDON_PDF_LAUDO = 150;
 export const CREDIT_ADDON_COMPARACOES_AVANCADAS = 200;
 
+/** Desbloqueio parcial na página do parlamentar (callable `unlockPoliticoData`). */
+export const CREDIT_PRICE_UNLOCK_CEAP_LISTA = 100;
+export const CREDIT_PRICE_UNLOCK_EMENDAS_LISTA = 100;
+
 export const ON_DEMAND_TIPOS = Object.freeze({
   dossie_matador: CREDIT_PRICE_DOSSIE_MATADOR,
   ceap_completo: CREDIT_PRICE_CEAP_COMPLETO,

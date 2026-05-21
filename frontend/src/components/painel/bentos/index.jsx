@@ -9,10 +9,10 @@ import React from 'react';
 /** Estado neutro quando ainda não há dados agregados (roster / ranking / KPIs a sincronizar). */
 function PainelAwaitingData({ titulo = 'Sincronização', subtitulo = 'A aguardar dados do datalake ou do ranking público.' }) {
   return (
-    <div className="flex h-full items-center justify-center">
-      <div className="text-center px-2">
-        <p className="text-[9px] font-semibold uppercase tracking-[0.22em] text-cyan-200/85">{titulo}</p>
-        <p className="mt-1 text-[10px] leading-tight text-white/45">{subtitulo}</p>
+    <div className="relative flex h-full min-h-0 flex-col items-center justify-center overflow-hidden px-1">
+      <div className="text-center">
+        <p className="text-[9px] font-semibold uppercase tracking-[0.22em] text-cyan-200/85 truncate">{titulo}</p>
+        <p className="mt-1 text-[10px] leading-snug text-white/45 line-clamp-3">{subtitulo}</p>
       </div>
     </div>
   );
@@ -45,41 +45,44 @@ export function PontuacaoBrasil({ data }) {
   const angle = (score / 100) * 180; // semi-circle
 
   return (
-    <div className="flex flex-col items-center justify-between h-full">
-      <div className="relative w-32 h-16">
-        <svg viewBox="0 0 100 50" className="w-full h-full">
-          <path d="M 5 50 A 45 45 0 0 1 95 50" stroke="#1f2937" strokeWidth="6" fill="none" strokeLinecap="round" />
-          <path
-            d="M 5 50 A 45 45 0 0 1 95 50"
-            stroke="url(#scoreGrad)"
-            strokeWidth="6"
-            fill="none"
-            strokeDasharray={`${(angle / 180) * 141.37} 141.37`}
-            strokeLinecap="round"
-          />
-          <defs>
-            <linearGradient id="scoreGrad" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%" stopColor="#22d3ee" />
-              <stop offset="100%" stopColor="#a78bfa" />
-            </linearGradient>
-          </defs>
-        </svg>
-        <div className="absolute inset-0 flex items-end justify-center pb-1">
-          <span className="text-2xl font-semibold text-white tabular-nums">
-            {score}<span className="text-sm text-white/40"> / 100</span>
-          </span>
+    <div className="flex h-full min-h-0 flex-col items-center justify-between gap-1 overflow-hidden">
+      <div className="flex w-full shrink-0 flex-col items-center">
+        <div className="h-14 w-28 shrink-0">
+          <svg viewBox="0 0 100 50" className="h-full w-full">
+            <path d="M 5 50 A 45 45 0 0 1 95 50" stroke="#1f2937" strokeWidth="6" fill="none" strokeLinecap="round" />
+            <path
+              d="M 5 50 A 45 45 0 0 1 95 50"
+              stroke="url(#scoreGrad)"
+              strokeWidth="6"
+              fill="none"
+              strokeDasharray={`${(angle / 180) * 141.37} 141.37`}
+              strokeLinecap="round"
+            />
+            <defs>
+              <linearGradient id="scoreGrad" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stopColor="#22d3ee" />
+                <stop offset="100%" stopColor="#a78bfa" />
+              </linearGradient>
+            </defs>
+          </svg>
         </div>
+        <p className="mt-0.5 text-center text-xl font-semibold tabular-nums text-white">
+          {score}
+          <span className="text-sm text-white/40"> / 100</span>
+        </p>
       </div>
       {hasSerie ? (
-        <svg viewBox="0 0 100 30" className="w-full h-8 mt-1" preserveAspectRatio="none">
+        <svg viewBox="0 0 100 30" className="mt-1 h-7 w-full shrink-0" preserveAspectRatio="none">
           <polyline points={pts} fill="none" stroke="#fbbf24" strokeWidth="1.5" />
         </svg>
       ) : (
-        <div className="h-8 mt-1 flex items-center justify-center text-[9px] text-white/35">
+        <div className="mt-1 flex h-7 shrink-0 items-center justify-center text-[9px] text-white/35">
           série 30d · indisponível nesta carga
         </div>
       )}
-      <p className="text-[11px] text-white/40 mt-1">Indicador Aurora · média 513 parlamentares</p>
+      <p className="mt-auto shrink-0 text-center text-[10px] leading-tight text-white/40 line-clamp-2">
+        Indicador Aurora · média 513 parlamentares
+      </p>
     </div>
   );
 }
@@ -153,26 +156,17 @@ export function MapaUFBrasil({ data }) {
       <div className="grid grid-cols-4 gap-1">
         {top.map((d) => {
           const pct = (d.total / max) * 100;
-          // Cor cyan->amber pela intensidade relativa
-          const hue = 180 - (pct / 100) * 130; // 180 cyan -> 50 amber
+          const hue = 180 - (pct / 100) * 130;
+          const bg = `hsla(${hue}, 70%, 36%, ${0.32 + (pct / 100) * 0.38})`;
           return (
             <div
               key={d.uf}
-              className="relative aspect-square rounded border border-white/10 overflow-hidden flex flex-col items-center justify-center"
+              className="flex aspect-square flex-col items-center justify-center rounded border border-white/10 p-0.5"
+              style={{ background: bg }}
               title={`${d.uf}: ${d.total} parlamentares`}
             >
-              <div
-                className="absolute inset-0"
-                style={{
-                  background: `hsla(${hue}, 70%, 50%, ${0.15 + (pct / 100) * 0.4})`,
-                }}
-              />
-              <span className="relative text-[10px] font-bold text-white tabular-nums">
-                {d.uf}
-              </span>
-              <span className="relative text-[9px] text-white/70 tabular-nums">
-                {d.total}
-              </span>
+              <span className="text-[10px] font-bold tabular-nums leading-none text-white">{d.uf}</span>
+              <span className="mt-0.5 text-[9px] tabular-nums text-white/80">{d.total}</span>
             </div>
           );
         })}
@@ -195,7 +189,7 @@ export function PulsoCEAP({ data }) {
         <p className="text-3xl font-semibold text-white tabular-nums leading-tight">
           {fmtBRLcompact(data.queimadoHoje)}
         </p>
-        <p className="text-xs text-white/50 mt-0.5">queimados hoje</p>
+        <p className="text-xs text-white/50 mt-0.5">cota nacional agregada (CEAP · datalake)</p>
       </div>
       <div className="mt-3">
         <div className="h-1 bg-white/5 rounded-full overflow-hidden">
@@ -204,7 +198,7 @@ export function PulsoCEAP({ data }) {
             style={{ width: `${data.pctConsumido}%` }}
           />
         </div>
-        <p className="text-[10px] text-white/40 mt-1">{data.pctConsumido}% da quota mensal consumida</p>
+        <p className="text-[10px] text-white/40 mt-1">{data.pctConsumido}% cobertura deputados no datalake</p>
       </div>
     </div>
   );
@@ -275,38 +269,16 @@ export function EmendasCriticas({ data }) {
   const tagBg = isRisco
     ? "bg-red-500/15 text-red-300 border border-red-400/20"
     : "bg-cyan-500/15 text-cyan-300 border border-cyan-400/20";
-  const barGradient = isRisco
-    ? "bg-gradient-to-r from-red-400 to-amber-400"
-    : "bg-gradient-to-r from-cyan-400 to-violet-400";
   return (
-    <div className="flex h-full justify-between gap-3">
-      <div className="flex flex-col justify-between flex-1 min-w-0">
-        <div>
-          <p className="text-3xl font-semibold text-white tabular-nums leading-tight">
-            {fmtBRLcompact(data.queimadoHoje)}
-          </p>
-          <p className="text-xs text-white/50 mt-0.5">
-            {isRisco ? "alto risco classificado" : "valor classificado no lake"}
-          </p>
-        </div>
-        <div className="mt-2">
-          {isRisco ? (
-            <>
-              <div className="h-1 bg-white/5 rounded-full overflow-hidden">
-                <div className={`h-full ${barGradient}`} style={{ width: `${data.pctConsumido}%` }} />
-              </div>
-              <p className="text-[10px] text-white/40 mt-1">{data.pctConsumido}% da quota mensal consumida</p>
-            </>
-          ) : (
-            <p className="text-[10px] text-white/40">categorização em refinamento</p>
-          )}
-        </div>
-      </div>
-      <ul className="space-y-1 text-[11px] flex-shrink-0">
+    <div className="flex h-full min-h-0 flex-col gap-2 overflow-hidden">
+      <p className="shrink-0 text-[10px] text-white/50 truncate">
+        {isRisco ? "Indicadores de alto risco (lake)" : "Indicadores classificados (lake)"}
+      </p>
+      <ul className="min-h-0 flex-1 space-y-1.5 overflow-y-auto text-[11px] pr-0.5">
         {data.topCnpj.map((c, i) => (
-          <li key={`${c.cnpj}-${i}`} className="flex items-center gap-2">
-            <span className="text-white/60 truncate max-w-[120px]">{c.cnpj}</span>
-            <span className={`px-1.5 py-0.5 rounded text-[9px] ${tagBg}`}>{c.risco}</span>
+          <li key={`${c.cnpj}-${i}`} className="flex min-w-0 items-center justify-between gap-2">
+            <span className="min-w-0 truncate text-white/75">{c.cnpj}</span>
+            <span className={`shrink-0 rounded px-1.5 py-0.5 text-[9px] ${tagBg}`}>{c.risco}</span>
           </li>
         ))}
       </ul>
@@ -364,20 +336,9 @@ export function ContratosPNCP({ data }) {
 export function CoberturaDatalake({ data }) {
   if (!data) return <PainelAwaitingData subtitulo="KPIs de cobertura a sincronizar." />;
   return (
-    <div className="flex flex-col items-center justify-center h-full gap-2">
-      <div className="relative text-center">
-        <p className="text-[10px] uppercase tracking-wider text-white/45">Parlamentares no lake</p>
-        <div className="mt-1 px-3 py-2 bg-cyan-400/10 border border-cyan-400/30 rounded text-cyan-200 text-lg font-semibold tabular-nums">
-          {data.parlamentaresCobertos.toLocaleString("pt-BR")}
-        </div>
-        <p className="mt-1 text-[9px] text-white/40">
-          Roster público: {data.rosterTotal.toLocaleString("pt-BR")}
-        </p>
-        <svg viewBox="0 0 60 30" className="w-16 h-8 mx-auto mt-1" fill="none" aria-hidden>
-          <path d="M 5 5 L 55 5 L 40 25 L 20 25 Z" stroke="#22d3ee" strokeWidth="1" opacity="0.6" />
-          <path d="M 15 12 L 45 12 L 35 22 L 25 22 Z" stroke="#22d3ee" strokeWidth="1" opacity="0.4" />
-        </svg>
-      </div>
+    <div className="flex h-full min-h-0 flex-col items-center justify-center gap-1 overflow-hidden px-1">
+      <p className="text-3xl font-bold tabular-nums text-white">{data.parlamentaresCobertos.toLocaleString("pt-BR")}</p>
+      <p className="max-w-full truncate text-center text-[10px] text-white/45">Parlamentares no classificador CEAP</p>
     </div>
   );
 }
@@ -451,33 +412,43 @@ export function InfluenciaSetorial({ data }) {
   if (!data) return <PainelAwaitingData subtitulo="Roster + links UF×partido a sincronizar." />;
   const colors = ['#22d3ee', '#a78bfa', '#fbbf24', '#34d399', '#f87171'];
   return (
-    <div className="relative w-full h-full min-h-[100px]">
-      <div className="absolute left-0 top-0 bottom-0 flex flex-col justify-around text-[10px] text-white/60">
-        {data.esquerda.map(s => <span key={s}>{s}</span>)}
+    <div className="grid h-full min-h-0 min-w-0 grid-cols-[minmax(0,0.9fr)_minmax(0,2.2fr)_minmax(0,0.9fr)] gap-1 overflow-hidden">
+      <div className="flex min-h-0 min-w-0 flex-col justify-around text-[10px] text-white/60">
+        {data.esquerda.map((s) => (
+          <span key={s} className="truncate">
+            {s}
+          </span>
+        ))}
       </div>
-      <div className="absolute right-0 top-0 bottom-0 flex flex-col justify-around text-[10px] text-white/60">
-        {data.direita.map(p => <span key={p}>{p}</span>)}
+      <div className="min-h-0 min-w-0">
+        <svg viewBox="0 0 100 100" className="h-full w-full" preserveAspectRatio="none">
+          {data.links.map((l, i) => {
+            const fromIdx = data.esquerda.indexOf(l.from);
+            const toIdx = data.direita.indexOf(l.to);
+            const denomL = Math.max(1, data.esquerda.length - 1);
+            const denomR = Math.max(1, data.direita.length - 1);
+            const y1 = 12 + fromIdx * (76 / denomL);
+            const y2 = 12 + toIdx * (76 / denomR);
+            return (
+              <path
+                key={i}
+                d={`M 18 ${y1} C 50 ${y1}, 50 ${y2}, 82 ${y2}`}
+                stroke={colors[i % colors.length]}
+                strokeWidth={Math.max(0.6, l.valor / 18)}
+                fill="none"
+                opacity="0.55"
+              />
+            );
+          })}
+        </svg>
       </div>
-      <svg viewBox="0 0 100 100" className="w-full h-full" preserveAspectRatio="none">
-        {data.links.map((l, i) => {
-          const fromIdx = data.esquerda.indexOf(l.from);
-          const toIdx = data.direita.indexOf(l.to);
-          const denomL = Math.max(1, data.esquerda.length - 1);
-          const denomR = Math.max(1, data.direita.length - 1);
-          const y1 = 12 + fromIdx * (76 / denomL);
-          const y2 = 12 + toIdx * (76 / denomR);
-          return (
-            <path
-              key={i}
-              d={`M 18 ${y1} C 50 ${y1}, 50 ${y2}, 82 ${y2}`}
-              stroke={colors[i % colors.length]}
-              strokeWidth={Math.max(0.6, l.valor / 18)}
-              fill="none"
-              opacity="0.55"
-            />
-          );
-        })}
-      </svg>
+      <div className="flex min-h-0 min-w-0 flex-col justify-around text-right text-[10px] text-white/60">
+        {data.direita.map((p) => (
+          <span key={p} className="truncate">
+            {p}
+          </span>
+        ))}
+      </div>
     </div>
   );
 }
@@ -487,27 +458,33 @@ export function InfluenciaSetorial({ data }) {
 // =============================================================================
 export function AtividadeLegislativa({ data }) {
   if (!data) return <PainelAwaitingData subtitulo="Roster legislativo a sincronizar." />;
-  const fmt = (v) => (v == null ? '—' : (typeof v === 'number' ? v.toLocaleString('pt-BR') : v));
+  const fmt = (v) => (v == null ? "—" : typeof v === "number" ? v.toLocaleString("pt-BR") : v);
   const items = [
-    { label: 'Parlamentares', value: fmt(data.total),                                          color: 'cyan' },
-    { label: 'Cobertura',     value: data.cobertura != null ? `${data.cobertura}%` : '—',     color: 'emerald' },
-    { label: 'Notas no lake', value: fmt(data.notasLake),                                      color: 'violet' },
-    { label: 'Alto risco',    value: fmt(data.altoRisco),                                      color: 'red' },
+    { label: "Parlamentares", value: fmt(data.total), color: "cyan" },
+    { label: "Cobertura", value: data.cobertura != null ? `${data.cobertura}%` : "—", color: "emerald" },
+    { label: "Notas no lake", value: fmt(data.notasLake), color: "violet" },
   ];
   const colorMap = {
-    emerald: 'bg-emerald-500/10 border-emerald-400/30 text-emerald-300',
-    cyan:    'bg-cyan-500/10 border-cyan-400/30 text-cyan-300',
-    violet:  'bg-violet-500/10 border-violet-400/30 text-violet-300',
-    red:     'bg-red-500/10 border-red-400/30 text-red-300',
+    emerald: "bg-emerald-500/10 border-emerald-400/30 text-emerald-200",
+    cyan: "bg-cyan-500/10 border-cyan-400/30 text-cyan-200",
+    violet: "bg-violet-500/10 border-violet-400/30 text-violet-200",
   };
   return (
-    <div className="grid grid-cols-4 gap-1.5 h-full content-center">
-      {items.map(it => (
-        <div key={it.label} className={`rounded-lg border px-2 py-2 text-center ${colorMap[it.color]}`}>
-          <p className="text-[14px] font-semibold tabular-nums leading-tight">{it.value}</p>
-          <p className="text-[9px] opacity-70 mt-0.5">{it.label}</p>
-        </div>
-      ))}
+    <div className="flex h-full min-h-0 flex-col gap-2 overflow-hidden">
+      <div className="grid min-h-0 grid-cols-1 gap-2 md:grid-cols-3">
+        {items.map((it) => (
+          <div
+            key={it.label}
+            className={`min-w-0 rounded-lg border px-2 py-2 text-center ${colorMap[it.color]}`}
+          >
+            <p className="truncate text-sm font-semibold tabular-nums leading-tight">{it.value}</p>
+            <p className="mt-1 truncate text-[10px] text-white/55">{it.label}</p>
+          </div>
+        ))}
+      </div>
+      <p className="shrink-0 truncate text-center text-[10px] text-white/40">
+        Alto risco: <span className="tabular-nums text-white/70">{fmt(data.altoRisco)}</span> notas
+      </p>
     </div>
   );
 }
@@ -517,26 +494,34 @@ export function AtividadeLegislativa({ data }) {
 // =============================================================================
 export function PromessaEntrega({ data }) {
   if (!data) return <PainelAwaitingData subtitulo="Categorias CEAP a sincronizar." />;
+  const rosterMatch = String(data.entrega?.metrica || "").match(/(\d[\d.]*)\s*mandatos/i);
+  const nMandatos = rosterMatch ? rosterMatch[1] : null;
+  const titulo = nMandatos
+    ? `Distribuição de ${nMandatos} mandatos`
+    : "Distribuição proporcional (dados públicos)";
   return (
-    <div className="flex h-full gap-3">
-      <div className="flex-1 flex flex-wrap gap-1.5 items-center content-center">
-        {data.campanha.map((w, idx) => (
-          <span
-            key={`${w.palavra}-${idx}`}
-            className="text-white/80 leading-none"
-            style={{ fontSize: `${Math.min(28, w.tamanho * 0.6)}px`, fontWeight: w.tamanho > 35 ? 600 : 400 }}
-          >
-            {w.palavra}
-          </span>
-        ))}
+    <div className="flex h-full min-h-0 flex-col justify-center gap-2 overflow-hidden">
+      <p className="shrink-0 truncate text-center text-[11px] font-medium text-white/80">{titulo}</p>
+      <div className="flex h-2.5 w-full shrink-0 overflow-hidden rounded-full bg-white/10">
+        {data.campanha.slice(0, 8).map((w, idx) => {
+          const flex = Math.max(1, Number(w.tamanho) || 1);
+          const hue = 190 + (idx % 5) * 24;
+          return (
+            <div
+              key={`${w.palavra}-${idx}`}
+              className="h-full min-w-[2px] transition-[flex] duration-300"
+              style={{
+                flex: `${flex} 1 0%`,
+                background: `hsla(${hue}, 65%, 48%, 0.88)`,
+              }}
+              title={w.palavra}
+            />
+          );
+        })}
       </div>
-      <div className="flex flex-col justify-center text-right flex-shrink-0">
-        <p className="text-[9px] text-white/40 uppercase">atualizou</p>
-        <p className="text-base font-semibold text-white tabular-nums leading-tight">
-          {data.entrega.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-        </p>
-        <p className="text-[10px] text-white/50">{data.entrega.metrica}</p>
-      </div>
+      <p className="truncate text-center text-[10px] text-white/45">
+        {data.entrega?.metrica ? String(data.entrega.metrica).slice(0, 120) : "Aguardando série consolidada"}
+      </p>
     </div>
   );
 }
@@ -549,10 +534,10 @@ export function PulsoFederal({ data }) {
   return (
     <div className="flex flex-col justify-center h-full gap-2">
       <p className="text-[10px] text-white/50">Real-time termômetro · R$ executed vs budgeted</p>
-      <div className="relative h-3 bg-white/5 rounded-full overflow-hidden">
+      <div className="h-3 w-full overflow-hidden rounded-full bg-white/10">
         <div
-          className="absolute inset-y-0 left-0 bg-gradient-to-r from-cyan-400 via-violet-400 to-amber-400"
-          style={{ width: `${data.pct}%` }}
+          className="h-full rounded-full bg-gradient-to-r from-cyan-400 via-violet-400 to-amber-400"
+          style={{ width: `${Math.min(100, Math.max(0, data.pct))}%` }}
         />
       </div>
       <div className="flex items-center justify-between text-[10px] text-white/50 tabular-nums">

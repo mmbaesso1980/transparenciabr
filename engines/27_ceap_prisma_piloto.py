@@ -2,6 +2,11 @@
 """
 Engine 27 — Piloto CEAP × 12 Prismas Investigativos (camada factual + encaminhamento ao Oráculo).
 
+ARQUITETURA CROSS-PROJECT:
+  - Firestore (alertas_bodes, transparency_reports) → projeto 'transparenciabr'
+  - Vertex AI (se necessário) → projeto 'projeto-codex-br' (créditos)
+  - API Câmara → dados públicos (sem autenticação)
+
 Ingestão paginada da API pública CEAP da Câmara:
   GET https://dadosabertos.camara.leg.br/api/v2/deputados/{id}/despesas
 
@@ -263,18 +268,24 @@ def gravar_alertas_resumo(
     return n
 
 
-def merge_transparency_report(fs: firestore.Client, deputado_id: str, bundle: Dict[str, Any]) -> None:
+def merge_transparency_report(fs: firestore.Client, deputado_id: str, bundle: Dict[str, Any], rows: List[Dict[str, Any]]) -> None:
     ref = fs.collection("transparency_reports").document(deputado_id.strip())
-    ref.set(
-        {
-            "investigacao_prisma_ceap": bundle,
-            "metadados": {
-                "prisma_engine": "27_ceap_prisma_piloto",
-                "sincronizado_em": datetime.now(timezone.utc).isoformat(),
-            },
+    
+    # Incluir catálogo de despesas para o frontend (DespesasCeapAudit.jsx)
+    catalogo = rows[:300]  # Top 300 notas para persistir no Firestore
+    
+    report_data = {
+        "investigacao_prisma_ceap": {
+            **bundle,
+            "despesas_ceap_catalogo": catalogo,
+            "total_notas_analisadas": len(rows),
         },
-        merge=True,
-    )
+        "metadados": {
+            "prisma_engine": "27_ceap_prisma_piloto",
+            "sincronizado_em": datetime.now(timezone.utc).isoformat(),
+        },
+    }
+    ref.set(report_data, merge=True)
 
 
 def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
@@ -326,14 +337,49 @@ def main(argv: Optional[List[str]] = None) -> int:
         print(json.dumps(bundle, ensure_ascii=False, indent=2, default=str))
         return 0
 
-    fs = init_firestore()
+    try:
+        fs = init_firestore()
+    except Exception as exc:
+        logger.error(
+            "Falha ao inicializar Firestore: %s\n"
+            "Verifique se a service account tem role 'roles/datastore.user' no projeto transparenciabr.\n"
+            "Fix: gcloud projects add-iam-policy-binding transparenciabr "
+            "--member='serviceAccount:<SA>@transparenciabr.iam.gserviceaccount.com' "
+            "--role='roles/datastore.user'",
+            exc,
+        )
+        # Salva JSON local como fallback
+        fallback_path = f"/tmp/prisma_bundle_{dep_id}.json"
+        Path(fallback_path).write_text(
+            json.dumps(bundle, ensure_ascii=False, indent=2, default=str),
+            encoding="utf-8",
+        )
+        logger.info("Bundle salvo localmente em %s (Firestore indispon\u00edvel).", fallback_path)
+        return 4
+
     if args.merge_report:
-        merge_transparency_report(fs, dep_id, bundle)
-        logger.info("transparency_reports/%s atualizado (investigacao_prisma_ceap).", dep_id)
+        try:
+            merge_transparency_report(fs, dep_id, bundle, rows)
+            logger.info("transparency_reports/%s atualizado (investigacao_prisma_ceap + catalogo %d notas).", dep_id, len(rows))
+        except Exception as exc:
+            logger.error(
+                "Erro ao gravar em transparency_reports: %s\n"
+                "Provavel falta de role 'roles/datastore.user'. Continuando...",
+                exc,
+            )
 
     if args.gravar_alertas:
-        n = gravar_alertas_resumo(fs, deputado_id=dep_id, bundle=bundle)
-        logger.info("alertas_bodes: %s documentos gravados.", n)
+        try:
+            n = gravar_alertas_resumo(fs, deputado_id=dep_id, bundle=bundle)
+            logger.info("alertas_bodes: %s documentos gravados.", n)
+        except Exception as exc:
+            logger.error(
+                "Erro ao gravar alertas_bodes: %s\n"
+                "Fix IAM: gcloud projects add-iam-policy-binding transparenciabr "
+                "--member='serviceAccount:tbr-ingestor@transparenciabr.iam.gserviceaccount.com' "
+                "--role='roles/datastore.user'",
+                exc,
+            )
 
     return 0
 

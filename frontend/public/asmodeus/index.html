@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#05060d" />
+  <title>Sala de Guerra · A.S.M.O.D.E.U.S. | TransparênciaBR</title>
+  <link rel="icon" href="/favicon.svg" />
+  <style>
+    *,*::before,*::after{box-sizing:border-box}
+    :root{
+      --bg:#05060d;--panel:#0d1117;--line:#30363d;--txt:#e6edf3;--muted:#8b949e;
+      --cyan:#22d3ee;--bad:#f85149;
+    }
+    html,body{margin:0;background:var(--bg);color:var(--txt);
+      font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+      min-height:100vh;min-height:100dvh}
+    .shell{max-width:1100px;margin:0 auto;padding:20px 16px 48px}
+    header{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin-bottom:20px}
+    h1{font-size:1.1rem;font-weight:700;margin:0;letter-spacing:.04em}
+    h1 span{color:var(--cyan)}
+    .badge{font-size:10px;text-transform:uppercase;letter-spacing:.14em;color:var(--muted);border:1px solid var(--line);padding:4px 10px;border-radius:999px}
+    .grid{display:grid;gap:14px;grid-template-columns:1fr}
+    @media(min-width:900px){.grid{grid-template-columns:280px 1fr}}
+    .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px}
+    .card h2{font-size:11px;margin:0 0 10px;color:var(--muted);text-transform:uppercase;letter-spacing:.12em}
+    label{display:block;font-size:11px;color:var(--muted);margin-bottom:4px}
+    input[type="url"],textarea{width:100%;border:1px solid var(--line);border-radius:8px;background:#010409;color:var(--txt);padding:8px 10px;font-size:13px}
+    textarea{min-height:120px;resize:vertical;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px}
+    .row{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+    button{cursor:pointer;border:none;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:600}
+    .btn-cyan{background:linear-gradient(90deg,#0891b2,#6366f1);color:#fff}
+    .btn-ghost{background:transparent;border:1px solid var(--line);color:var(--txt)}
+    .log{font-family:ui-monospace,Menlo,monospace;font-size:11px;line-height:1.45;color:var(--muted);white-space:pre-wrap;word-break:break-word;max-height:360px;overflow-y:auto;border:1px solid var(--line);border-radius:8px;padding:10px;background:#010409}
+    .muted{color:var(--muted);font-size:11px;line-height:1.5;margin-top:10px}
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header>
+      <h1><span>A.S.M.O.D.E.U.S.</span> · Sala de Guerra</h1>
+      <span class="badge">Firebase Hosting · transparenciabr · sem auth (temporário)</span>
+    </header>
+
+    <div class="grid">
+      <div class="card">
+        <h2>Crew adapter</h2>
+        <label for="adapter">URL base (túnel HTTPS ou proxy até à VM :8989)</label>
+        <input id="adapter" type="url" placeholder="https://…" autocomplete="off" />
+        <div class="row">
+          <button type="button" class="btn-cyan" id="btn-save-adapter">Guardar</button>
+          <button type="button" class="btn-ghost" id="btn-health">GET /health</button>
+          <button type="button" class="btn-ghost" id="btn-agents">GET /v1/agents</button>
+        </div>
+        <p class="muted">Opcional: <code>?adapter=https%3A%2F%2F…</code> na URL define a base no primeiro carregamento (gravada em <code>localStorage</code>).</p>
+      </div>
+      <div class="card">
+        <h2>Console</h2>
+        <textarea id="prompt" placeholder="Instrução ou pergunta para o crew…"></textarea>
+        <div class="row">
+          <button type="button" class="btn-cyan" id="btn-send">POST /v1/responses</button>
+        </div>
+        <pre id="log" class="log" style="margin-top:12px"></pre>
+      </div>
+    </div>
+  </div>
+
+  <script src="/assets/asmodeus/sala.js?v=3" defer></script>
+</body>
+</html>

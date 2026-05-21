@@ -2,12 +2,11 @@ import React from 'react';
 import { motion } from 'framer-motion';
 
 /**
- * BentoCard — wrapper visual de cada card do Painel.
+ * BentoCard — wrapper visual de cada card do Painel (navegação por rota; sem modal).
  * Props:
  *  - title: string (título do card)
  *  - icon: string ou ReactNode (emoji/ícone na esquerda do título)
- *  - onClick: () => void (abre modal full-screen com ranking 513)
- *  - colSpan / rowSpan: classes Tailwind extras pra grid
+ *  - onClick: () => void (ex.: navigate('/ranking'))
  *  - children: conteúdo do card
  *  - accent: cor de hover ('cyan' | 'violet' | 'red' | 'green' | 'amber')
  */
@@ -31,30 +30,24 @@ export default function BentoCard({
     <motion.button
       type="button"
       onClick={onClick}
-      whileHover={{ y: -2 }}
       whileTap={{ scale: 0.995 }}
       className={[
-        'group relative text-left w-full h-full',
-        'bg-[#0d0f1a]/80 backdrop-blur-sm',
-        'border border-white/[0.06] rounded-2xl',
-        'p-4 md:p-5 transition-all duration-300',
-        'flex flex-col gap-3 overflow-hidden',
-        'cursor-pointer',
+        'group text-left w-full h-full min-h-0',
+        'relative overflow-hidden bg-slate-900 border border-slate-800 rounded-xl p-4',
+        'flex flex-col gap-2 transition-all duration-200',
+        'cursor-pointer hover:ring-1 hover:ring-slate-500',
         ACCENT_MAP[accent] || ACCENT_MAP.cyan,
         className,
       ].join(' ')}
     >
-      {/* gradient highlight no hover */}
-      <span className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-gradient-to-br from-white/[0.02] to-transparent" />
+      <span className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-br from-white/[0.03] to-transparent" />
 
-      {/* header */}
-      <div className="flex items-center gap-2 text-[13px] font-medium text-white/70 relative z-10">
-        {icon && <span className="text-base leading-none">{icon}</span>}
-        <span className="tracking-wide">{title}</span>
+      <div className="flex items-center gap-2 text-[13px] font-medium text-white/80 shrink-0 relative z-10 min-w-0">
+        {icon && <span className="text-base leading-none shrink-0">{icon}</span>}
+        <span className="tracking-wide truncate">{title}</span>
       </div>
 
-      {/* body */}
-      <div className="flex-1 min-h-0 relative z-10">
+      <div className="flex-1 min-h-0 overflow-hidden flex flex-col relative z-10">
         {children}
       </div>
     </motion.button>

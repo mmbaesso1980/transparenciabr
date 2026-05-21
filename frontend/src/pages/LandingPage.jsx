@@ -145,7 +145,7 @@ export default function LandingPage() {
 
   const emptyGraph = !loading && (!graphData.nodes?.length || error === "firebase_unavailable");
 
-  // Pesquisa com match: ficha pública `/politico/:id` (dossiê completo continua em /dossie/:id após login).
+  // Pesquisa com match: ficha pública `/politico/:id` (contratação e desbloqueios na mesma página).
   const openGate = useCallback(
     (_nome, politicoId) => {
       const id = String(politicoId || "").trim();

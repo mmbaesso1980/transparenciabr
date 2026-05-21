@@ -575,7 +575,11 @@ export function pickContextoSocioeconomicoRows(record) {
   return rows.slice(0, 40);
 }
 
-export function normalizeAlertRow(row) {
+/**
+ * @param {Record<string, unknown>} row
+ * @param {number} [index=0] Índice para código F-NN quando o documento não traz `codigo`.
+ */
+export function normalizeAlertRow(row, index = 0) {
   if (!row || typeof row !== "object") return null;
   const tipo = row.tipo ?? row.tipo_risco ?? row.categoria ?? "Classificação";
   const trechoRaw =
@@ -586,9 +590,32 @@ export function normalizeAlertRow(row) {
     row.trecho ??
     "—";
   const severidade = row.severidade ?? row.nivel ?? row.gravidade ?? "";
+  const idx = Number.isFinite(Number(index)) ? Math.max(0, Math.floor(Number(index))) : 0;
+  const codigoRaw =
+    row.codigo ??
+    row.finding_code ??
+    row.id_finding ??
+    row.codigo_finding ??
+    `F-${String(idx + 1).padStart(2, "0")}`;
+  const fonteRaw =
+    row.fonte_primaria ??
+    row.fontePrimaria ??
+    row.fonte ??
+    row.fonte_oficial ??
+    row.url_fonte ??
+    "";
+  const resumoOraculoRaw =
+    row.resumo_forense ??
+    row.explicacao_oraculo ??
+    row.narrativa_oraculo ??
+    row.resumo_oraculo ??
+    "";
   return {
+    codigo: scalarToDisplay(codigoRaw, `F-${String(idx + 1).padStart(2, "0")}`),
     tipo: scalarToDisplay(tipo, "Classificação"),
     trecho: scalarToDisplay(trechoRaw, "—"),
     severidade: scalarToDisplay(severidade, ""),
+    fonte_primaria: scalarToDisplay(fonteRaw, ""),
+    resumo_forense: scalarToDisplay(resumoOraculoRaw, ""),
   };
 }

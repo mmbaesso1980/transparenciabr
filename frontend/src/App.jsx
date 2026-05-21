@@ -1,5 +1,5 @@
 import { lazy, Suspense } from "react";
-import { BrowserRouter, Link, Navigate, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Link, Navigate, Route, Routes, useParams } from "react-router-dom";
 
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import RouteFallback from "./components/RouteFallback.jsx";
@@ -17,7 +17,6 @@ import TermosPage from "./pages/TermosPage.jsx";
 import UniversePage from "./pages/UniversePage.jsx";
 
 const DashboardLayout = lazy(() => import("./layouts/DashboardLayout.jsx"));
-const DossiePage = lazy(() => import("./pages/DossiePage.jsx"));
 const PoliticoPage = lazy(() => import("./pages/PoliticoPage.jsx"));
 const LoginPage = lazy(() => import("./pages/LoginPage.jsx"));
 const MapaPage = lazy(() => import("./pages/MapaPage.jsx"));
@@ -28,6 +27,15 @@ const SuccessPage = lazy(() => import("./pages/SuccessPage.jsx"));
 const LogoutPage = lazy(() => import("./pages/LogoutPage.jsx"));
 const BuscaPage = lazy(() => import("./pages/BuscaPage.jsx"));
 const DossieGroundedPage = lazy(() => import("./pages/DossieGroundedPage.jsx"));
+const GabinetePage = lazy(() => import("./pages/GabinetePage.jsx"));
+const EmendasPage = lazy(() => import("./pages/EmendasPage.jsx"));
+const PatrimonioPage = lazy(() => import("./pages/PatrimonioPage.jsx"));
+const ViagensPage = lazy(() => import("./pages/ViagensPage.jsx"));
+const NepotismoPage = lazy(() => import("./pages/NepotismoPage.jsx"));
+const NepotismoCruzadoPage = lazy(() => import("./pages/NepotismoCruzadoPage.jsx"));
+const EmpresasPrefeiturasPage = lazy(() => import("./pages/EmpresasPrefeiturasPage.jsx"));
+const AnomaliesPage = lazy(() => import("./pages/AnomaliesPage.jsx"));
+const RiscoPage = lazy(() => import("./pages/RiscoPage.jsx"));
 
 // Vite: BASE_URL costuma ser "/" ou "/subpath/" (com barra final). React Router: basename sem barra final;
 // na raiz omitimos a prop.
@@ -35,6 +43,12 @@ const rawBase = String(import.meta.env.BASE_URL || "/").trim() || "/";
 const trimmed =
   rawBase.length > 1 && rawBase.endsWith("/") ? rawBase.slice(0, -1) : rawBase;
 const routerBasename = trimmed === "/" ? undefined : trimmed;
+
+function RedirectDossieToPolitico() {
+  const { id } = useParams();
+  const target = id != null && String(id).length ? `/politico/${encodeURIComponent(String(id))}` : "/politica/busca";
+  return <Navigate to={target} replace />;
+}
 
 function NotFoundPage() {
   return (
@@ -86,6 +100,17 @@ export default function App() {
                 <Route path="/ranking" element={<Navigate to="/universo" replace />} />
                 <Route path="/radar/dossiers" element={<Navigate to="/painel" replace />} />
                 <Route path="/radar" element={<Navigate to="/painel" replace />} />
+                
+                {/* Análises especializadas */}
+                <Route path="/gabinete" element={<GabinetePage />} />
+                <Route path="/emendas" element={<EmendasPage />} />
+                <Route path="/patrimonio" element={<PatrimonioPage />} />
+                <Route path="/viagens" element={<ViagensPage />} />
+                <Route path="/nepotismo" element={<NepotismoPage />} />
+                <Route path="/nepotismo-cruzado" element={<NepotismoCruzadoPage />} />
+                <Route path="/empresas-prefeituras" element={<EmpresasPrefeiturasPage />} />
+                <Route path="/anomalias" element={<AnomaliesPage />} />
+                <Route path="/risco" element={<RiscoPage />} />
 
                 <Route path="/sobre" element={<SobrePage />} />
                 <Route path="/metodologia" element={<MetodologiaPage />} />
@@ -99,9 +124,9 @@ export default function App() {
                 <Route path="/politica/busca" element={<BuscaPage />} />
                 <Route path="/busca" element={<Navigate to="/politica/busca" replace />} />
                 <Route path="/politica/dossie/:nome" element={<DossieGroundedPage />} />
-                {/* /politico/:id permanece público (landing de venda).
-                    /dossie/:id passa a exigir auth — redireciona para /login com state.from. */}
+                {/* /politico/:id — vitrine pública + funil comercial; /dossie/:id redireciona para o mesmo destino. */}
                 <Route path="/politico/:id" element={<PoliticoPage />} />
+                <Route path="/dossie/:id" element={<RedirectDossieToPolitico />} />
                 <Route path="/sucesso" element={<SuccessPage />} />
                 <Route path="/logout" element={<LogoutPage />} />
 
@@ -109,7 +134,6 @@ export default function App() {
                 <Route path="/creditos" element={<CreditosPage />} />
 
                 <Route element={<ProtectedRoute />}>
-                  <Route path="/dossie/:id" element={<DossiePage />} />
                   <Route element={<DashboardLayout />}>
                     <Route path="/mapa" element={<MapaPage />} />
                     <Route path="/alertas" element={<AlertasPage />} />
