@@ -3,6 +3,7 @@
 const { BigQuery } = require('@google-cloud/bigquery');
 const { mascaraCpf } = require('../utils/cpf.js');
 const { hashCpfDigits } = require('../utils/cryptoHash.js');
+const { bqLocation } = require('../utils/bqLocation.js');
 
 let _bq;
 function getBq() {
@@ -95,7 +96,7 @@ async function mergeLeadFinalizado(row) {
       _enrichment_path: row._enrichment_path ?? null,
       _cpf_hash: row._cpf_hash ?? hashCpfDigits(cpfDigits),
     },
-    location: 'US',
+    location: bqLocation(),
   });
   return { lead_id };
 }

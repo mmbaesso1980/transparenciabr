@@ -46,3 +46,9 @@ Variáveis principais: `DATALAKE_BUCKET_RAW`, `DATALAKE_BUCKET_STATE`, `GOOGLE_C
 - `npm run test` (cobertura nos módulos `ingestors/core` e `ingestors/strategies`)
 
 Docker / Cloud Build: `engines/Dockerfile`, `engines/cloudbuild.yaml`.
+
+## BigQuery — indeferimentos INSS (motor AURORA, Python)
+
+- Carga massiva a partir de **dados.gov.br** (XLSX mensais): `engines/26_inss_indeferimentos_bq_load.py`.
+- Plano operacional (URL, schema, `bq load`, região `southamerica-east1`): `PLANO_CARGA_6M.md` (raiz do repo).
+- Wrappers shell: `scripts/carga_indef_real.sh`, `scripts/leads_por_cidade.sh`, `scripts/export_leads_cidades.sh`, `scripts/telegram_aurora_resumo_carga.sh`.

@@ -2,6 +2,7 @@
 
 const { BigQuery } = require('@google-cloud/bigquery');
 const { sha256Hex } = require('../utils/cryptoHash.js');
+const { bqLocation } = require('../utils/bqLocation.js');
 
 let _bq;
 function getBq() {
@@ -10,8 +11,10 @@ function getBq() {
 }
 
 /**
- * MERGE idempotente alinhado ao schema usado em `bqLeadFetcher.js`.
- * `_row_hash` = SHA256(cpf|dt_indeferimento|source) — ver `sql/schema_extensions.sql`.
+ * MERGE idempotente — chave `_row_hash`.
+ * Atenção: a carga massiva oficial (`engines/26_inss_indeferimentos_bq_load.py`) usa o schema
+ * INSS/dados.gov (sem `nome`, com `mes_referencia`, etc.). Este MERGE segue o contrato legado
+ * de `bqLeadFetcher` (`id_hash`, `nome`, …). Garanta compatibilidade de schema antes de usar.
  */
 async function mergeIndeferimentoRow(row) {
   const cpfDigits = String(row.cpf || '').replace(/\D/g, '');
@@ -66,7 +69,7 @@ async function mergeIndeferimentoRow(row) {
       municipio: row.municipio ?? '',
       status_lead: row.status_lead ?? null,
     },
-    location: 'US',
+    location: bqLocation(),
   });
   return { _row_hash: row_hash, id_hash };
 }

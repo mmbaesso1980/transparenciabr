@@ -19,3 +19,9 @@ engines/mock_key.json
 .firebase/
 serviceAccountKey.json
 firebase-sa.json
+
+# Export local triagem INSS (dados reais; não versionar)
+/leads_vitoria.csv
+/leads_valinhos.csv
+/leads_campinas.csv
+/leads_belem.csv
