@@ -16,12 +16,15 @@ const { logger } = require('firebase-functions');
 /** Projeto GCP */
 const GCP_PROJECT = process.env.GCLOUD_PROJECT || 'transparenciabr';
 
+/** Região do dataset `tbr_leads_prev` (jobs de query). */
+const BQ_QUERY_LOCATION = process.env.BQ_LOCATION || 'southamerica-east1';
+
 /** BigQuery client — carregado só na primeira consulta (deploy/analisador não puxa o SDK). */
 let _bq = null;
 function getBigQuery() {
   if (!_bq) {
     const { BigQuery } = require('@google-cloud/bigquery');
-    _bq = new BigQuery({ projectId: GCP_PROJECT });
+    _bq = new BigQuery({ projectId: GCP_PROJECT, location: BQ_QUERY_LOCATION });
   }
   return _bq;
 }
@@ -82,7 +85,7 @@ async function fetchLeadByHash(leadId) {
   const options = {
     query,
     params: { leadId },
-    location: 'US', // Ajustar se dataset estiver em outra região
+    location: BQ_QUERY_LOCATION, // Dataset tbr_leads_prev em southamerica-east1
   };
 
   try {
@@ -144,7 +147,7 @@ async function marcarDesqualificado(leadId, motivoDq) {
   const options = {
     query,
     params: { leadId, motivoDq },
-    location: 'US',
+    location: BQ_QUERY_LOCATION,
   };
 
   try {

@@ -28,6 +28,7 @@ import argparse
 import hashlib
 import io
 import logging
+import os
 import re
 import sys
 import unicodedata
@@ -47,6 +48,7 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_PROJECT = "transparenciabr"
 DEFAULT_TABLE = "transparenciabr.tbr_leads_prev.indeferimentos_brasil_raw"
+BQ_LOCATION = os.environ.get("BQ_LOCATION", "southamerica-east1")
 DOWNLOAD_BASE = (
     "https://dados.gov.br/api/publico/conjuntos-dados/beneficios-indeferidos/"
     "recursos/download?recurso=beneficios-indeferidos-{ym}"
@@ -326,7 +328,7 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = parse_args()
-    client = bigquery.Client(project=args.project)
+    client = bigquery.Client(project=args.project, location=BQ_LOCATION)
 
     sess = session()
     grand_total = 0

@@ -5,6 +5,7 @@ const { BigQuery } = require('@google-cloud/bigquery');
 const { AuroraEnricherBase } = require('./_base.js');
 const { hashCpfDigits } = require('../utils/cryptoHash.js');
 const { getSecret } = require('../utils/secrets.js');
+const { bqLocation } = require('../utils/bqLocation.js');
 
 let _bq;
 function getBq() {
@@ -20,7 +21,7 @@ async function getSpendTodayBrl() {
     FROM \`transparenciabr.tbr_leads_prev.enrichment_costs\`
     WHERE DATE(timestamp, 'America/Sao_Paulo') = CURRENT_DATE('America/Sao_Paulo')
   `;
-  const [rows] = await getBq().query({ query: q, location: 'US' });
+  const [rows] = await getBq().query({ query: q, location: bqLocation() });
   return Number(rows?.[0]?.total ?? 0);
 }
 
@@ -46,7 +47,7 @@ async function getCache({ cpf_hash, produto }) {
   const [rows] = await getBq().query({
     query: q,
     params: { cpf_hash, produto },
-    location: 'US',
+    location: bqLocation(),
   });
   if (!rows?.length) return null;
   try {
