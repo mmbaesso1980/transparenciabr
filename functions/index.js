@@ -2158,3 +2158,17 @@ exports.getSacanagens = functions
       res.status(503).json({ error: "datalake unavailable", detail: String(err.message || err) });
     }
   });
+
+// ══ enrichment — Pipeline PII multi-fonte (motor AURORA, LGPD audit) ══
+const { onRequest: onRequestEnrichment } = require("firebase-functions/v2/https");
+const enrichmentHttp = require("./enrichment/index.js");
+exports.enrichment = onRequestEnrichment(
+  {
+    region: "us-central1",
+    cors: false,
+    invoker: "public",
+    memory: "1GiB",
+    timeoutSeconds: 120,
+  },
+  enrichmentHttp
+);

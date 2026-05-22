@@ -36,6 +36,7 @@ const NepotismoCruzadoPage = lazy(() => import("./pages/NepotismoCruzadoPage.jsx
 const EmpresasPrefeiturasPage = lazy(() => import("./pages/EmpresasPrefeiturasPage.jsx"));
 const AnomaliesPage = lazy(() => import("./pages/AnomaliesPage.jsx"));
 const RiscoPage = lazy(() => import("./pages/RiscoPage.jsx"));
+const ConsentFormPage = lazy(() => import("./pages/ConsentForm/ConsentForm.tsx"));
 
 // Vite: BASE_URL costuma ser "/" ou "/subpath/" (com barra final). React Router: basename sem barra final;
 // na raiz omitimos a prop.
@@ -116,6 +117,7 @@ export default function App() {
                 <Route path="/metodologia" element={<MetodologiaPage />} />
                 <Route path="/termos" element={<TermosPage />} />
                 <Route path="/privacidade" element={<PrivacidadePage />} />
+                <Route path="/sou-indeferido" element={<ConsentFormPage />} />
                 {/* Radar jurídico (INSS / leads): oculto no lançamento — URLs antigas vão ao painel. */}
                 <Route path="/radar-legal" element={<Navigate to="/painel" replace />} />
                 <Route path="/radar-inss" element={<Navigate to="/painel" replace />} />
