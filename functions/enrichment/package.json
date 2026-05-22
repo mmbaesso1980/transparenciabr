@@ -1,0 +1,8 @@
+{
+  "name": "transparenciabr-enrichment",
+  "private": true,
+  "description": "Módulo interno — dependências na raiz `functions/package.json`.",
+  "scripts": {
+    "test": "node --test ./tests/orchestrator.test.js ./tests/lgpd.test.js ./tests/idempotency.test.js"
+  }
+}

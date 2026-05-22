@@ -1,0 +1,141 @@
+.page {
+  min-height: 100dvh;
+  background: linear-gradient(165deg, #014f54 0%, #01696f 42%, #0a3d42 100%);
+  color: #f4fafb;
+  font-family: "DM Sans", "Inter", system-ui, sans-serif;
+  padding: 2rem 1rem 4rem;
+}
+
+.inner {
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.9;
+  margin-bottom: 0.75rem;
+}
+
+.title {
+  font-size: 1.65rem;
+  font-weight: 700;
+  line-height: 1.25;
+  margin: 0 0 1rem;
+}
+
+.lead {
+  font-size: 1rem;
+  line-height: 1.55;
+  opacity: 0.95;
+  margin-bottom: 1.75rem;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
+  padding: 1.5rem;
+  backdrop-filter: blur(8px);
+}
+
+.label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.9rem;
+}
+
+.label span {
+  font-weight: 600;
+}
+
+.input,
+.select,
+.textarea {
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 0.65rem 0.75rem;
+  font-size: 1rem;
+  background: rgba(0, 0, 0, 0.2);
+  color: #f4fafb;
+}
+
+.textarea {
+  min-height: 88px;
+  resize: vertical;
+}
+
+.checkboxRow {
+  display: flex;
+  gap: 0.65rem;
+  align-items: flex-start;
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.checkboxRow input {
+  margin-top: 0.25rem;
+}
+
+.actions {
+  margin-top: 0.5rem;
+}
+
+.submit {
+  width: 100%;
+  border: none;
+  border-radius: 12px;
+  padding: 0.85rem 1rem;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  background: #e8f6f7;
+  color: #01404a;
+  transition: transform 0.12s ease, filter 0.12s ease;
+}
+
+.submit:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  filter: grayscale(0.2);
+}
+
+.submit:not(:disabled):hover {
+  filter: brightness(1.05);
+  transform: translateY(-1px);
+}
+
+.error {
+  color: #ffc9c9;
+  font-size: 0.9rem;
+}
+
+.success {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.success h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1.25rem;
+}
+
+.muted {
+  opacity: 0.85;
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.link {
+  color: #b8f0f4;
+  font-weight: 600;
+}
