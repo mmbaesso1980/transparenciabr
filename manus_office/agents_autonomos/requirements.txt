@@ -1,0 +1,8 @@
+google-cloud-firestore>=2.16.0
+google-cloud-pubsub>=2.21.0
+google-cloud-storage>=2.16.0
+google-cloud-run>=0.10.0
+google-cloud-aiplatform>=1.49.0
+reportlab>=4.0.0
+requests>=2.31.0
+numpy>=1.26.0
