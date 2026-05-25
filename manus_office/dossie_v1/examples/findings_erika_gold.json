@@ -1,0 +1,779 @@
+{
+  "alvo": {
+    "nome_completo": "ERIKA SANTOS SILVA",
+    "nome_publico": "Erika Hilton",
+    "marca": "Primeira deputada federal negra e trans do Brasil · Líder PSOL 2024",
+    "id_camara": "220645",
+    "dob": "09/12/1992",
+    "naturalidade": "Franco da Rocha-SP",
+    "partido": "PSOL-SP · Federação PSOL-REDE",
+    "cargo": "Deputada Federal — Presidente da Comissão de Defesa dos Direitos da Mulher (desde 11/03/2026)",
+    "mandato": "01/02/2023 a 31/01/2027 (57ª Legislatura)",
+    "votacao_2022": 256903,
+    "tipo_eleicao": "Eleita por Quociente Próprio · 10ª mais votada de SP",
+    "email": "dep.erikahilton@camara.leg.br",
+    "gabinete": "636 · Anexo IV",
+    "telefone": "(61) 3215-5636",
+    "profissao": "Pedagoga (UFSCar)",
+    "mandato_anterior": "Vereadora de São Paulo (2021-2023) — mulher mais votada do Brasil para vereança em 2020",
+    "instagram_handle": "@hilton_erika",
+    "twitter_handle": "@erikakhilton"
+  },
+  "kpis": {
+    "versao": "3.5",
+    "findings_total": 50,
+    "criticos": 13,
+    "altos": 16,
+    "medios": 13,
+    "informativos": 8,
+    "verificados_url_primaria": 50,
+    "universo_financeiro_total": 18480392.75,
+    "cnpjs_exclusivos": 12,
+    "score_aurora_nivel": "MEDIO",
+    "processos_judiciais_impacto": 150,
+    "emendas_individuais_bq": 14,
+    "executado_emendas_bq": 17163805.11,
+    "ceap_total_3a_anos": 1489968.42,
+    "rank_ceap_nacional": "363ª de 834 (metade superior frugal)",
+    "agentes_tecnicos_total": 16,
+    "proposicoes": 1409,
+    "projetos_lei_autor": 88,
+    "frentes_parlamentares": 143,
+    "pessoal_gabinete_2025": 15,
+    "custo_por_voto_2022": 5.76,
+    "governismo_radar": "86%",
+    "presenca_plenario": "81%",
+    "intencao_voto_gov_sp_2026": "8-10,8% (Quaest/Paraná)"
+  },
+  "metodologia": {
+    "fontes_primarias": [
+      "Câmara dos Deputados · API Dados Abertos (dadosabertos.camara.leg.br) — perfil 220645, despesas CEAP, proposições, frentes, órgãos",
+      "Câmara dos Deputados · Portal institucional (camara.leg.br/deputados/220645) — biografia, votações nominais, pessoal de gabinete",
+      "Portal da Transparência do Governo Federal (portaldatransparencia.gov.br/emendas) — Autor 4368, dados até 21/05/2026",
+      "TSE — DivulgaCandContas 2022",
+      "Conselho de Ética da Câmara (camara.leg.br/a-camara/estruturaadm/eticaedecoro)",
+      "Diário da Justiça · STF (Rcl 80671-SP) e PGR",
+      "Veículos de imprensa (CNN Brasil, Correio Braziliense, Congresso em Foco, Brasil de Fato, Poder360, Claudio Dantas, Adiadorim)",
+      "Frente Parlamentar Mista LGBT+ · Conselho Diretivo",
+      "OSINT: Instagram, Threads, X/Twitter, Wayback Machine",
+      "Direct Data (apiv3.directd.com.br) — Receita Federal PJ, BeneficiárioFinal, CadastroPessoaFísicaPlus, ProcessosJudiciaisSimplificada",
+      "BigQuery AURORA (transparenciabr.transparenciabr) — views: vw_score_risco_completo, vw_benford_ceap_audit, vw_ceap_zscore_roll, vw_empresa_eventos_multi_parlamentar, fato_emenda_pagamento, ceap_despesas_ext"
+    ],
+    "agentes_tecnicos": [
+      "agent_dossier_compiler",
+      "agent_normative_compliance",
+      "agent_vendor_intelligence",
+      "agent_benford_anomaly",
+      "agent_geo_movement",
+      "agent_fuel_transport",
+      "agent_food_lodging",
+      "agent_media_propaganda",
+      "agent_consulting_office",
+      "agent_telecom_aviation",
+      "agent_payroll_kickback",
+      "agent_behavioral_correlate",
+      "agent_socios_directdata",
+      "agent_rede_societaria_bf",
+      "agent_processos_judiciais",
+      "agent_cbo_perfil_laranja"
+    ],
+    "disclaimer": "Este documento NÃO constitui denúncia, acusação formal ou imputação criminal. Apresenta fatos públicos auditáveis, cruzamentos de dados oficiais e observações analíticas sobre o exercício parlamentar da Deputada Federal Erika Hilton (PSOL-SP). Toda informação possui URL primária verificável. Estimativas e indícios estão devidamente marcados. Direito de resposta integralmente garantido em transparenciabr.org/dossie/erika-hilton/contestacao."
+  },
+  "findings": [
+    {
+      "id": "F-01",
+      "titulo": "Ação Popular TRF1 — processo 1070736-69.2025.4.01.3400 · Erika Hilton, MAPI e Amanda Paschoal como rés",
+      "classificacao": "AÇÃO JUDICIAL ATIVA",
+      "severidade": "CRÍTICA",
+      "fato": "O sistema de pesquisa processual do TRF1 registra a Ação Popular nº 1070736-69.2025.4.01.3400 (1º grau, 20ª Vara Federal Cível — SJDF, valor R$ 192.600,00), ajuizada pelo vereador Guilherme Ferreira Kilter Lira (Novo-Curitiba), tendo como rés a Deputada Federal ERIKA SANTOS SILVA, a vereadora AMANDA MARQUES PASCHOAL e a empresa MAPI CONSULTORIA EM SISTEMAS DE SEGURANÇA E PROTEÇÃO COMUNITÁRIA LTDA (CNPJ 45.930.204/0001-60). A tese central: ausência de autorização da Polícia Federal para a MAPI prestar serviços de segurança privada nos termos da Lei 14.967/2024. Liminar indeferida em 02/07/2025. Última movimentação registrada em Direct Data: 22/09/2025. Processo ativo.",
+      "analise": "O processo judicial é o vetor central do Dossiê v3.5: vincula diretamente a deputada a uma empresa contratada exclusivamente por seu gabinete (100% dos pagamentos CEAP à MAPI partem de Erika Hilton, segundo a view ceap_despesas_ext). A consulta ao GESP (Gestão Eletrônica de Segurança Privada da PF) retornou 'Não Existe Empresa' para o CNPJ 45.930.204/0001-60 — elemento central do processo. O montante envolvido (R$ 192.600 em 22 notas de R$ 8.700 cada, mais o Agravo de Instrumento no valor idêntico) sugere que o valor da causa reflete o contrato de segurança questionado. A ação popular não é peça criminal: questiona a legalidade do contrato administrativo e busca sua anulação.",
+      "contraditorio": "A parlamentar tem direito de demonstrar: (i) que a MAPI possuía habilitação suficiente para prestação dos serviços; (ii) que a contratação seguiu rito regular; (iii) que os serviços prestados não se enquadravam na definição de segurança privada regulamentada pela Lei 14.967/2024. A presunção de inocência e o contraditório são integralmente garantidos no processo judicial.",
+      "fontes": [
+        "https://pje1g.trf1.jus.br/pje/ConsultaPublica/listView.seam — processo 1070736-69.2025.4.01.3400",
+        "Direct Data ProcessosJudiciaisSimplificada — pj_MAPI (2 processos TRF1)",
+        "https://brasilapi.com.br/api/cnpj/v1/45930204000160",
+        "https://www.cnnbrasil.com.br/politica/justica-da-20-dias-para-erika-hilton-esclarecer-contrato-de-seguranca/"
+      ]
+    },
+    {
+      "id": "F-02",
+      "titulo": "Agravo de Instrumento TRF1 — processo 1028873-51.2025.4.01.0000 · 2º grau ativo",
+      "classificacao": "AÇÃO JUDICIAL ATIVA",
+      "severidade": "CRÍTICA",
+      "fato": "O sistema Direct Data registra, também via MAPI CNPJ 45.930.204/0001-60, um segundo processo ativo no TRF1: Agravo de Instrumento nº 1028873-51.2025.4.01.0000, 2º grau, valor R$ 192.600,00, assunto 'Prestação de Serviços', partes: MUNICIPIO DE SAO PAULO — CAMARA MUNICIPAL, UNIAO FEDERAL, MAPI, AMANDA MARQUES PASCHOAL, ERIKA SANTOS SILVA e GUILHERME FERREIRA KILTER LIRA. Última movimentação registrada: 24/09/2025 13:02:54.",
+      "analise": "A existência de dois processos ativos (F-01 em 1º grau + F-02 em 2º grau) sobre o mesmo contrato demonstra que a controvérsia jurídica persiste em múltiplos graus de jurisdição. A inclusão do Município de São Paulo — Câmara Municipal como parte sugere que o questionamento alcança também os contratos de segurança da vereadora Amanda Paschoal. O valor idêntico (R$ 192.600) nas duas ações reforça que tratam do mesmo universo contratual. O Motor AURORA (BigQuery vw_score_risco_completo) classifica os circuitos CEAP-MAPI como ponto de atenção máxima no score de risco.",
+      "contraditorio": "A parlamentar e a MAPI podem demonstrar a regularidade dos serviços em ambas as instâncias judiciais. A tramitação em 2º grau assegura apreciação colegiada da matéria.",
+      "fontes": [
+        "https://pje1g.trf1.jus.br/pje/ConsultaPublica/listView.seam — processo 1028873-51.2025.4.01.0000",
+        "Direct Data ProcessosJudiciaisSimplificada — nucleares_erika, via pj_MAPI",
+        "https://brasilapi.com.br/api/cnpj/v1/45930204000160"
+      ]
+    },
+    {
+      "id": "F-03",
+      "titulo": "MAPI — 12 CNPJs exclusivos de Erika totalizando R$ 405.265 · Três empresas de segurança emitem R$ 8.700 idênticos",
+      "classificacao": "CIRCUITO FINANCEIRO",
+      "severidade": "CRÍTICA",
+      "fato": "O BigQuery (ceap_despesas_ext JOIN agregado) identifica 12 CNPJs que têm 100% de seus pagamentos CEAP originados do gabinete da Deputada Erika Hilton — nenhum outro parlamentar os utiliza. Os três CNPJs de segurança do grupo emitem notas com valor unitário matematicamente idêntico de R$ 8.700,00: MAPI (CNPJ 45.930.204/0001-60) — 22 notas × R$ 8.700 = R$ 191.400; IMPACTO SEGURANÇA (CNPJ 68.000.538/0001-30) — 6 notas × R$ 8.700 = R$ 52.200; TOBIAS BARRETO SEGURANÇA (CNPJ 45.918.458/0001-62) — 1 nota × R$ 8.700 = R$ 8.700. Total padrão R$ 8.700: 29 notas, R$ 252.300.",
+      "analise": "BigQuery (vw_score_risco_completo, campo observacao_forense): 'TRÊS empresas distintas de segurança, todas EXCLUSIVAS de Erika, todas emitindo o MESMO VALOR de R$ 8.700,00. Padrão matematicamente improvável em concorrência real.' A probabilidade de três empresas independentes cobrarem exactamente R$ 8.700/mês por serviços de segurança sem qualquer combinação de preço é estatisticamente baixíssima. A MAPI foi criada em 06/04/2022 (um mês antes da campanha para deputada federal) e tem CNAE principal 7490199 (consultoria técnica genérica), não o CNAE 80.11-1 de segurança privada. A Tobias Barreto (email: saibot.serv@gmail.com — vide F-05) tem CNAE principal 81.11-7 (apoio a edifícios), e o CBO do único sócio ('Ajudante de obras') diverge da atividade contratada.",
+      "contraditorio": "A parlamentar pode demonstrar que o valor de R$ 8.700/mês reflete precificação de mercado para o tipo de serviço contratado e que as três empresas foram selecionadas por critérios objetivos. Os contratos e notas fiscais são auditáveis pela Mesa Diretora da Câmara.",
+      "fontes": [
+        "BigQuery: transparenciabr.transparenciabr.ceap_despesas_ext — 12 CNPJs exclusivos",
+        "BigQuery: transparenciabr.transparenciabr.vw_score_risco_completo — padrão_3_seguranca_exclusivas_r8700",
+        "https://brasilapi.com.br/api/cnpj/v1/45930204000160",
+        "https://brasilapi.com.br/api/cnpj/v1/68000538000130",
+        "https://brasilapi.com.br/api/cnpj/v1/45918458000162"
+      ]
+    },
+    {
+      "id": "F-04",
+      "titulo": "MAPINGUARI — empresa-clone da MAPI criada em 14/12/2021 · Mesmo sócio (Marcelo Marquesini), CNPJ ativo 44.581.542/0001-70",
+      "classificacao": "INCONSISTÊNCIA CADASTRAL",
+      "severidade": "CRÍTICA",
+      "fato": "O Direct Data (beneficiário final de Marcelo Marquesini Pereira da Silva, CPF ***.828.198-**) revela que o mesmo sócio controla duas empresas com nomes quase idênticos: MAPI CONSULTORIA EM SISTEMAS DE SEGURANÇA E PROTEÇÃO COMUNITÁRIA LTDA (CNPJ 45.930.204/0001-60, abertura 06/04/2022) E MAPINGUARI CONSULTORIA EM SISTEMAS DE SEGURANÇA E PROTEÇÃO COMUNITÁRIA LTDA (CNPJ 44.581.542/0001-70, abertura 14/12/2021 — três meses e meio antes da MAPI). Ambas ativas. A MAPI usa como nome fantasia exatamente 'MAPINGUARI SEGURANÇA E PROTEÇÃO COMUNITÁRIA' — mesmo nome comercial da empresa-irmã.",
+      "analise": "O modelo MAPI/MAPINGUARI constitui um padrão societário que o agent_cbo_perfil_laranja classifica como 'clone': duas pessoas jurídicas com nomes idênticos, mesmo sócio-administrador, criadas em sequência (dez/2021 e abr/2022), uma operando como razão social e a outra como nome fantasia da concorrente. Esta estrutura é compatível com os perfis de empresas utilizadas para maximizar capacidade de faturamento sem cruzar limites do Simples Nacional (teto de R$ 4,8 mi/ano para ME) ou para criar aparência de pluralidade de fornecedores onde há unicidade de controle. O sócio Marcelo Marquesini tem CBO registrado na Direct Data como 'Oficial mecânico de veículos' (CBO 914405), dissociado das atividades de segurança e proteção contratadas pelo gabinete.",
+      "contraditorio": "A existência de duas empresas com nomes similares pode refletir estratégia comercial legítima de registro de marca. O sócio pode esclarecer a separação operacional entre as entidades e demonstrar que o CBO registrado não representa a atividade profissional atual.",
+      "fontes": [
+        "Direct Data BeneficiárioFinal — MARCELO_MARQUESINI_MAPI (documentoConsultado ***.828.198-**)",
+        "https://brasilapi.com.br/api/cnpj/v1/44581542000170",
+        "https://brasilapi.com.br/api/cnpj/v1/45930204000160",
+        "Direct Data CadastroPessoaFísicaPlus — MARCELO_MARQUESINI (CBO 914405 — Oficial mecânico de veículos)"
+      ]
+    },
+    {
+      "id": "F-05",
+      "titulo": "TOBIAS BARRETO — email 'saibot.serv@gmail.com': anagrama reverso de 'TOBIAS' como indicador de perfil alternativo",
+      "classificacao": "INDÍCIO DOCUMENTAL",
+      "severidade": "CRÍTICA",
+      "fato": "O Direct Data (QSA da TOBIAS BARRETO SEGURANÇA E SERVIÇOS LTDA, CNPJ 45.918.458/0001-62) registra como e-mail de contato da empresa 'saibot.serv@gmail.com'. A sílaba 'SAIBOT' é o anagrama reverso exato de 'TOBIAS'. O Direct Data BeneficiárioFinal para Erica Barreto Tobias (CPF ***.888.398-**, sócia-administradora) identifica que ela também controla a SAIBOT SEGURANÇA ELETRÔNICA E SERVIÇOS LTDA (CNPJ 26.465.650/0001-04, ativa desde 01/11/2016). O CBO registrado para Erica Barreto Tobias na Direct Data é 'Ajudante de obras' (CBO 717020) — incompatível com a direção de empresa de segurança.",
+      "analise": "A coexistência de TOBIAS BARRETO e SAIBOT sob o mesmo CPF controlador, com o e-mail oficial da TOBIAS BARRETO usando o nome codificado SAIBOT, configura indício de uso de nomenclatura alternativa para gestão de identidade empresarial. O agent_cbo_perfil_laranja sinaliza o CBO 'Ajudante de obras' como padrão típico de sócio-fronteiriço: pessoa física sem qualificação profissional compatível com a atividade empresarial declarada. A TOBIAS BARRETO foi criada em 05/04/2022 — um dia antes da MAPI (06/04/2022), ambas no mesmo período pré-campanha eleitoral de Erika Hilton.",
+      "contraditorio": "O e-mail SAIBOT pode ser uma referência à empresa anterior legítima. A sócia Erica Barreto Tobias pode esclarecer a gestão operacional e demonstrar qualificação profissional na área de segurança distinta do CBO registrado na base.",
+      "fontes": [
+        "Direct Data BeneficiárioFinal — ERICA_BARRETO_TOBIAS (documentoConsultado ***.888.398-**)",
+        "Direct Data CadastroPessoaFísicaPlus — ERICA_BARRETO_TOBIAS (CBO 717020 — Ajudante de obras)",
+        "https://brasilapi.com.br/api/cnpj/v1/45918458000162",
+        "https://brasilapi.com.br/api/cnpj/v1/26465650000104"
+      ]
+    },
+    {
+      "id": "F-06",
+      "titulo": "Marcelo Marquesini (MAPI) — CBO 'Oficial mecânico de veículos' · Sócio de 6 empresas · 2 encerradas em 10/11/2024",
+      "classificacao": "PADRÃO LARANJA",
+      "severidade": "CRÍTICA",
+      "fato": "A Direct Data CadastroPessoaFísicaPlus para Marcelo Marquesini Pereira da Silva (CPF ***.828.198-**, único sócio da MAPI, R$ 191.400 recebidos via CEAP) registra: CBO 914405 — 'Oficial mecânico de veículos'. O beneficiário final aponta que o mesmo CPF controla 6 empresas ativas/inativas: ORIBA NOVAS IDEIAS & SERVIÇOS LTDA (ativa desde 2011), MARQUESINI CONSULTORIA FLORESTAL S/C LTDA (ativa desde 1997), MAPINGUARI CONSULTORIA... (ativa desde 2021), MAPI CONSULTORIA... (ativa desde 2022), PAULO & BERNHARDT LTDA (encerrada em 10/11/2024) e RUI & ROCHA CONSTRUÇÕES LTDA (encerrada em 10/11/2024). As duas últimas foram encerradas na mesma data exata: 10/11/2024.",
+      "analise": "O agent_cbo_perfil_laranja classifica este perfil como 'divergência severa': sócio de empresa de segurança + consultoria comunitária com CBO de mecânico automotivo. O encerramento simultâneo de PAULO & BERNHARDT e RUI & ROCHA em 10/11/2024 (dias após as eleições municipais de outubro/2024 — mesmo período em que Amanda Paschoal foi eleita vereadora de São Paulo) é um padrão temporalmente suspeito. Empresas de construção e consultoria encerradas em massa ao final do ciclo eleitoral enquanto a MAPI (segurança) permanece ativa configura indício de reestruturação societária de conveniência.",
+      "contraditorio": "O sócio pode demonstrar que o CBO não representa a atividade atual e que o encerramento das empresas em 10/11/2024 se deveu a razões comerciais independentes do calendário eleitoral.",
+      "fontes": [
+        "Direct Data BeneficiárioFinal — MARCELO_MARQUESINI_MAPI (6 sociedades listadas)",
+        "Direct Data CadastroPessoaFísicaPlus — MARCELO_MARQUESINI (CBO 914405)",
+        "https://brasilapi.com.br/api/cnpj/v1/45930204000160"
+      ]
+    },
+    {
+      "id": "F-07",
+      "titulo": "IMPACTO SEGURANÇA — 150 processos judiciais · R$ 30,8 milhões em litígios trabalhistas · CEAP Erika R$ 52.200",
+      "classificacao": "REGISTRO JUDICIAL",
+      "severidade": "CRÍTICA",
+      "fato": "O Direct Data ProcessosJudiciaisSimplificada para IMPACTO SEGURANÇA LTDA (CNPJ 68.000.538/0001-30) registra 150 processos judiciais ativos: 130 na Justiça do Trabalho, 17 na Justiça Estadual e 3 na Justiça Federal. Classes predominantes: 67 Ações Trabalhistas Rito Ordinário, 29 Recursos Ordinários Trabalhistas, 13 Ações Trabalhistas Rito Sumaríssimo, 11 Procedimentos Comuns Cíveis, 8 Agravos de Instrumento em Recurso de Revista. Valor total: R$ 30.863.272,59. Valor máximo de uma ação: R$ 4.675.000,00. A IMPACTO recebeu R$ 52.200,00 em 6 notas CEAP idênticas de R$ 8.700 — todos exclusivos de Erika Hilton.",
+      "analise": "O volume de 150 processos trabalhistas ativos é compatível com o porte de empresa de vigilância com histórico de irregularidades laborais. A contratação de fornecedor com passivo judicial trabalhista desta magnitude para serviços de segurança parlamentar configura ponto de governança relevante. O padrão de 6 notas idênticas de R$ 8.700 (mesmo valor exato da MAPI e da Tobias Barreto) reforça a hipótese de precificação coordenada entre fornecedores que operam em circuito exclusivo.",
+      "contraditorio": "O passivo trabalhista da IMPACTO não é, por si só, impeditivo de contratação via CEAP. A parlamentar pode demonstrar que a seleção da empresa seguiu critérios regulamentares. Os 150 processos são histórico judicial da PJ, não necessariamente passivos correntes.",
+      "fontes": [
+        "Direct Data ProcessosJudiciaisSimplificada — pj_IMPACTO (150 processos, valor total R$ 30.863.272,59)",
+        "https://brasilapi.com.br/api/cnpj/v1/68000538000130",
+        "BigQuery: transparenciabr.transparenciabr.ceap_despesas_ext — IMPACTO 6 notas × R$ 8.700"
+      ]
+    },
+    {
+      "id": "F-08",
+      "titulo": "REDENÇAO Comercio — duplo circuito CEAP + Emenda: único fornecedor na rede PSOL que recebe pelos dois canais simultaneamente",
+      "classificacao": "CIRCUITO FINANCEIRO",
+      "severidade": "CRÍTICA",
+      "fato": "O BigQuery (vw_empresa_eventos_multi_parlamentar + fato_emenda_pagamento) identifica a REDENÇÃO COMÉRCIO DE INSTRUMENTOS MUSICAIS LTDA (CNPJ 02.338.391/0001-84) como o único fornecedor da rede PSOL que aparece simultaneamente em dois circuitos financeiros do gabinete: (i) CEAP — R$ 64.187 pagos via CEAP compartilhada com PEDRO UCZAI, VICENTINHO e AUREA CAROLINA; (ii) EMENDA — R$ 45.000 recebidos via emenda individual 43680002, beneficiário INSTITUTO CULTURAL E ESPORTIVO HAND MARIA (CNPJ 34.731.245/0001-00). BigQuery alerta: 'Esta empresa também recebeu R$ 45.000 em EMENDA Erika — duplo circuito'.",
+      "analise": "O circuito duplo (receber via CEAP direto do gabinete E via emenda através de OSC conveniada) é o padrão que o BigQuery view vw_circuito_ceap_emenda foi desenhado para detectar. O fato de a empresa ter CNAE principal de comércio varejista de instrumentos musicais e aparecer em pagamentos de emendas de Direitos da Cidadania — além da CEAP de 4 parlamentares da esquerda — configura anomalia de categorização. O Instituto Hand Maria (beneficiário formal da emenda) tem sede em São Paulo (CEP 08021-480) e presidência de Andreia Santana de Almeida Campos.",
+      "contraditorio": "A REDENÇÃO pode ter prestado serviços distintos via os dois canais (produção cultural via CEAP; fornecimento via convênio de OSC). A parlamentar pode demonstrar que não há conflito de interesses entre os dois circuitos e que a seleção da OSC beneficiária da emenda foi feita pelo órgão executor, não diretamente pelo gabinete.",
+      "fontes": [
+        "BigQuery: transparenciabr.transparenciabr.vw_empresa_eventos_multi_parlamentar — REDENCAO MUSICAL",
+        "BigQuery: transparenciabr.transparenciabr.fato_emenda_pagamento — emenda 43680002",
+        "https://brasilapi.com.br/api/cnpj/v1/02338391000184",
+        "https://brasilapi.com.br/api/cnpj/v1/34731245000100"
+      ]
+    },
+    {
+      "id": "F-09",
+      "titulo": "Benford — 6 de 9 dígitos com gap > 30% · Dígito 1: 47,7% observado vs 30,1% teórico (desvio +58,5%)",
+      "classificacao": "INDÍCIO DOCUMENTAL",
+      "severidade": "CRÍTICA",
+      "fato": "O BigQuery (vw_benford_ceap_audit, parlamentar_id 220645) apura, sobre as 1.885 notas CEAP, desvios da Lei de Benford em 6 dos 9 dígitos possíveis: Dígito 1 — 47,72% observado vs 30,10% teórico (gap +58,53%, flag=true); Dígito 4 — 6,07% vs 9,69% (gap -37,32%, flag=true); Dígito 5 — 4,44% vs 7,92% (gap -43,94%, flag=true); Dígito 6 — 3,15% vs 6,69% (gap -52,88%, flag=true); Dígito 7 — 3,91% vs 5,80% (gap -32,52%, flag=true); Dígito 9 — 2,28% vs 4,58% (gap -50,22%, flag=true). O campo anomalia_severa retorna true.",
+      "analise": "A BigQuery vw_benford_ceap_audit classifica a distribuição como anomalia_severa=true. A hiper-concentração no dígito 1 (47,7% vs 30,1% esperado) é consistente com dois fenômenos simultâneos: (a) pagamentos padronizados de valor fixo iniciados por 1 (ex: R$ 191.400 = 22 × R$ 8.700 — o dígito 8 seria esperado para R$ 8.700, mas o total R$ 191.400 inicia por 1); (b) notas de serviços pequenos (transporte urbano, Uber) que naturalmente iniciam por valores como R$ 10-15. A combinação de desvios em 6/9 dígitos, não apenas no dígito 1, indica que a anomalia vai além do padrão trivial de transportes. O motor AURORA classifica o score geral como MÉDIO — compatível com múltiplos sinais de alerta sem prova conclusiva isolada.",
+      "contraditorio": "Análises de Benford em amostras mistas de despesas parlamentares são tecnicamente suscetíveis a falsos positivos quando a tipologia dominante (passagens aéreas de valor padronizado) distorce a distribuição natural. A divergência pode refletir a estrutura de preços regulados, não manipulação.",
+      "fontes": [
+        "BigQuery: transparenciabr.transparenciabr.vw_benford_ceap_audit — parlamentar_id 220645",
+        "Hill, T. P. (1995) 'A Statistical Derivation of the Significant-Digit Law' — Statistical Science",
+        "https://dadosabertos.camara.leg.br/api/v2/deputados/220645/despesas"
+      ]
+    },
+    {
+      "id": "F-10",
+      "titulo": "Outliers Z-score — 12 eventos com Z > 3,0 · Máximo Z=6,18 em 18/09/2023 (R$ 24.640,56)",
+      "classificacao": "INDÍCIO DOCUMENTAL",
+      "severidade": "CRÍTICA",
+      "fato": "O BigQuery (vw_ceap_zscore_roll, base de μ=R$ 2.132,59/dia e σ=R$ 3.641,04) identifica 12 datas com Z-score > 3,0 para a CEAP de Erika Hilton, indicando gasto diário a mais de 3 desvios-padrão da média histórica: 18/09/2023 — R$ 24.640,56 (Z=6,18, composição: MAPI R$ 8.700 + 7 passagens aéreas + Plug Brasília R$ 2.500); 01/04/2024 — R$ 24.296,83 (Z=5,29, composição: MAPI R$ 8.700 + Movida R$ 5.810 + Mark Vales R$ 5.000 + 3 passagens); 19/05/2023 — R$ 17.209,54 (Z=4,39, Rafael Canoba R$ 10.802 + 4 passagens TAM); 02/10/2023 — R$ 20.016,09 (Z=4,35). Também notável: 11/12/2023 — estorno em massa de R$ 25.581,38 negativo (Z=-6,16): 14 cancelamentos de passagens GOL em um único dia.",
+      "analise": "12 eventos Z>3 em ~39 meses equivalem a uma frequência de anomalias diárias de 1,3% — acima do esperado estatisticamente (0,3% para distribuição normal). Os outliers não são aleatórios: 6 dos 12 eventos com Z>3 envolvem o pagamento à MAPI como componente, o que concentra as anomalias em torno do fornecedor contestado judicialmente. O estorno em massa de 14 passagens GOL em 11/12/2023 (R$ 25.581,38) é particularmente atípico: ou reflete cancelamento de viagens não realizadas (possível uso indevido anterior do SIGEPA) ou troca abrupta de companhia aérea.",
+      "contraditorio": "Os outliers Z>3 são eventos estatísticos que indicam concentração atípica de gastos em datas específicas, não necessariamente irregularidade. A parlamentar pode demonstrar que os gastos refletem agenda parlamentar intensa (ex: semanas de votações importantes) e que o estorno de passagens é procedimento regular.",
+      "fontes": [
+        "BigQuery: transparenciabr.transparenciabr.vw_ceap_zscore_roll — 12 eventos Z>3",
+        "https://dadosabertos.camara.leg.br/api/v2/deputados/220645/despesas",
+        "https://www.camara.leg.br/cota-parlamentar/?nuDeputadoId=3563"
+      ]
+    },
+    {
+      "id": "F-11",
+      "titulo": "CRIATIVAMENTE / E de Lei — emenda 43680012 paga 3× R$ 166.500 em datas consecutivas (R$ 618.000 total)",
+      "classificacao": "CIRCUITO FINANCEIRO",
+      "severidade": "CRÍTICA",
+      "fato": "O BigQuery (fato_emenda_pagamento, emenda 43680012) registra o beneficiário CENTRO DE CONVIVÊNCIA E DE LEI (CNPJ 04.893.583/0001-88) como receptor de R$ 618.000 via a emenda, com os pagamentos executados pelo fornecedor CRIATIVAMENTE ASSESSORIA E CRIAÇÃO LTDA (CNPJ 47.568.660/0001-37): 3 pagamentos de R$ 166.500 em datas consecutivas + R$ 118.500 = R$ 618.000 total. A CRIATIVAMENTE foi fundada em 15/08/2022, capital social R$ 5.000, CNAE principal 'Ensino de artes cênicas', sócio-administrador: Cesar Aparecido Ribeiro Guimaraes (CPF ***.442.398-**), incorporado ao quadro em 14/12/2023.",
+      "analise": "O padrão de 3 pagamentos idênticos de R$ 166.500 em datas consecutivas é o sinal clássico de fracionamento de despesa, procedimento vedado pela Lei 8.666/1993 e pela Lei 14.133/2021 (que a sucedeu) em contratos públicos. O Direct Data (CadastroPessoaFísicaPlus para Cesar Guimaraes) identifica o sócio como classe A2 com renda estimada de R$ 31.260,91/mês — perfil financeiro robusto — e CBO 'Dirigente de clube e associação esportiva' (114405). A combinação de empresa fundada em 2022 com capital de R$ 5.000, CNAE artístico e sócio de alta renda executando contratos de R$ 618.000 via OSC conveniada merece investigação aprofundada.",
+      "contraditorio": "O fracionamento aparente pode decorrer do cronograma de execução do plano de trabalho do convênio, com parcelas trimestrais ou mensais previstas em edital. A parlamentar pode demonstrar que o ritmo de pagamentos obedeceu ao cronograma contratual aprovado pelo órgão executor.",
+      "fontes": [
+        "BigQuery: transparenciabr.transparenciabr.fato_emenda_pagamento — emenda 43680012",
+        "https://brasilapi.com.br/api/cnpj/v1/47568660000137",
+        "https://brasilapi.com.br/api/cnpj/v1/04893583000188",
+        "Direct Data CadastroPessoaFísicaPlus — CESAR_GUIMARAES (renda R$ 31.260,91/mês, CBO 114405)"
+      ]
+    },
+    {
+      "id": "F-12",
+      "titulo": "Cesar Guimaraes — CBO 'Dirigente de clube' · Classe A2 · R$ 31.260/mês · Presidente do CEDEARTE (executora de emendas)",
+      "classificacao": "PADRÃO LARANJA",
+      "severidade": "CRÍTICA",
+      "fato": "O Direct Data CadastroPessoaFísicaPlus para Cesar Aparecido Ribeiro Guimaraes (CPF ***.442.398-**, sócio-administrador da CRIATIVAMENTE e executora de R$ 618.000 via emenda) registra: CBO 114405 — 'Dirigente de clube e associação esportiva'; Classe Social A2; Renda estimada R$ 31.260,91/mês. O beneficiário final revela que o mesmo CPF preside o CENTRO DE DESENVOLVIMENTO ARTÍSTICO E SOCIAL — CEDEARTE (CNPJ 06.150.516/0001-07, ativo desde 12/09/2005) — uma OSC com potencial para figurar como beneficiária adicional de emendas.",
+      "analise": "A estrutura identificada: Cesar Guimaraes é (i) sócio-administrador da CRIATIVAMENTE (executora comercial) e (ii) presidente do CEDEARTE (possível OSC receptora). Este modelo — pessoa física que controla tanto a entidade executora quanto a associação beneficiária — é o padrão que o agent_rede_societaria_bf foi desenvolvido para detectar em 10 graus de separação. A renda A2 (R$ 31k/mês) declarada na base Direct Data enquanto a empresa-veículo tem capital de R$ 5.000 configura dissociação entre o perfil financeiro pessoal e a estrutura jurídica instrumental.",
+      "contraditorio": "A presidência de uma OSC e a propriedade de uma empresa prestadora de serviços são atividades legalmente distintas. O CEDEARTE e a CRIATIVAMENTE podem ter objeto social e bases de atuação completamente separadas. A parlamentar pode demonstrar que a seleção do Centro de Lei (F-11) como beneficiário não envolveu Cesar Guimaraes na cadeia de decisão.",
+      "fontes": [
+        "Direct Data CadastroPessoaFísicaPlus — CESAR_GUIMARAES (CBO 114405, classe A2, renda R$ 31.260,91)",
+        "Direct Data BeneficiárioFinal — CESAR_GUIMARAES_CRIATIVAMENTE (CEDEARTE como sociedade nível 1)",
+        "https://brasilapi.com.br/api/cnpj/v1/47568660000137",
+        "https://brasilapi.com.br/api/cnpj/v1/06150516000107"
+      ]
+    },
+    {
+      "id": "F-13",
+      "titulo": "Talita Gonsales + Julise Ribeiro — R$ 60.426,67 idênticos, mesmas datas · Duplicidade estrutural em 14 interações",
+      "classificacao": "CIRCUITO FINANCEIRO",
+      "severidade": "CRÍTICA",
+      "fato": "O BigQuery (vw_universo_pessoal_emendas) registra dois fornecedores MEI com valores e padrões de pagamento matematicamente idênticos: TALITA ANZEI GONSALES (MEI, CNPJ 53.955.011/0001-91, fundada 18/02/2024, capital R$ 100, CNAE 8599699 — Outras atividades de ensino) — R$ 60.426,67 em 14 interações; JULISE DO NASCIMENTO RIBEIRO (MEI, CNPJ 45.004.468/0001-92, fundada 25/01/2022, capital R$ 1, CNAE 5813100 — Edição de revistas) — R$ 60.426,67 em 14 interações. Observação BigQuery: 'MESMO VALOR EXATO de Julise Nascimento, mesmas datas — DUPLICIDADE'.",
+      "analise": "A duplicidade estrutural — dois MEIs com CNAEs distintos recebendo valor exatamente idêntico (R$ 60.426,67, precisão de centavos) em 14 interações paralelas — é anomalia de probabilidade estatística extremamente baixa em regime de mercado. O agent_payroll_kickback classifica este padrão como 'multiplicação de fornecedor único': dois CNPJs distintos operando como se fossem um único prestador de serviços fracionado para evitar limites regulatórios. Talita Anzei Gonsales fundou o MEI em fevereiro/2024 com capital de R$ 100 — criação posterior ao início dos pagamentos, o que implica que a empresa pode ter sido formalizada para retroativamente regularizar prestações já iniciadas.",
+      "contraditorio": "A parlamentar pode demonstrar que as atividades de Talita (ensino) e Julise (edição) são distintas e complementares, e que o valor idêntico resulta de contratos independentes negociados em condições de mercado. O timing de fundação da MEI de Talita pode ter justificativa logística.",
+      "fontes": [
+        "BigQuery: transparenciabr.transparenciabr.vw_universo_pessoal_emendas — TALITA_GONSALES e JULISE_RIBEIRO",
+        "https://brasilapi.com.br/api/cnpj/v1/53955011000191",
+        "https://brasilapi.com.br/api/cnpj/v1/45004468000192",
+        "https://www.camara.leg.br/cota-parlamentar/?nuDeputadoId=3563"
+      ]
+    },
+    {
+      "id": "F-14",
+      "titulo": "COLAMAX — empresa criada em 30/12/2024 · R$ 14.200 em 2 notas CEAP em 03/07/2025 (Z=3,81)",
+      "classificacao": "INCONSISTÊNCIA CADASTRAL",
+      "severidade": "ALTA",
+      "fato": "O BigQuery (ceap_despesas_ext) e a BrasilAPI registram que COLAMAX PRODUTOS AUTOADESIVOS LTDA (CNPJ 58.582.968/0001-53) foi fundada em 30/12/2024 — apenas 6 meses antes de aparecer como fornecedora exclusiva da CEAP de Erika Hilton com R$ 14.200 em 2 notas em 03/07/2025. O BigQuery (vw_ceap_zscore_roll) identifica o dia 03/07/2025 como outlier com Z=3,81 (R$ 14.690 total no dia, composição: COLAMAX R$ 9.200 + Embalagem Certa R$ 5.490). A COLAMAX tem CNAE de impressão de material e sede em Bom Jesus dos Perdões-SP. O Direct Data BeneficiárioFinal para o sócio Gustavo Ferreira de Paula (CPF ***.871.968-**) revela histórico societário em 5 outras empresas do setor de adesivos.",
+      "analise": "A criação de uma empresa em 30/12/2024 seguida de sua entrada exclusiva no circuito de fornecedores CEAP de Erika Hilton em julho/2025 (apenas 7 meses depois) é temporalmente suspeito. O padrão de empresa nova + exclusividade 100% + outlier no mesmo dia é combinação de três flags simultâneos que o motor AURORA pondera com peso elevado na classificação de risco.",
+      "contraditorio": "A COLAMAX pode ter sido indicada por terceiros ou selecionada por critério de qualidade de produto. O curto intervalo entre fundação e contratação pode refletir apenas que o gabinete tomou conhecimento da empresa pouco após sua abertura.",
+      "fontes": [
+        "BigQuery: transparenciabr.transparenciabr.ceap_despesas_ext — COLAMAX exclusiva",
+        "BigQuery: transparenciabr.transparenciabr.vw_ceap_zscore_roll — 03/07/2025 Z=3,81",
+        "https://brasilapi.com.br/api/cnpj/v1/58582968000153",
+        "Direct Data BeneficiárioFinal — GUSTAVO_FERREIRA_COLAMAX"
+      ]
+    },
+    {
+      "id": "F-15",
+      "titulo": "Matheus William Alves Silva — secretário parlamentar ativo e fornecedor CEAP simultâneo · R$ 60.000 em 8 notas · CNPJ BAIXADO",
+      "classificacao": "LACUNA DE TRANSPARÊNCIA",
+      "severidade": "ALTA",
+      "fato": "A consolidação das notas CEAP registra R$ 60.000,00 em 8 emissões à pessoa jurídica '55.819.196 MATHEUS WILLIAM ALVES SILVA' (CNPJ 55.819.196/0001-32). A BrasilAPI informa situação BAIXADA (encerrado em 2024). O Portal da Câmara (pessoal-gabinete?ano=2025) registra como secretário parlamentar ativo do gabinete 636 desde 13/02/2025 'MATHEUS WILLIAM ALVES SILVA' (cargo SP25). O BigQuery marca este CNPJ como 100% exclusivo de Erika Hilton.",
+      "analise": "A sobreposição de papéis — mesmo indivíduo como secretário parlamentar remunerado pelo erário (cargo SP25) e como fornecedor pessoa jurídica recebendo via CEAP — configura potencial conflito de papéis que o Ato da Mesa 43/2009 não veda expressamente, mas que desequilibra o princípio de segregação de funções em contratos públicos. O fato de o CNPJ estar BAIXADO enquanto os pagamentos ocorreram cria dúvida sobre a regularidade fiscal das notas emitidas. O valor acumulado (R$ 60.000) é expressivo para um MEI de atividade fotográfica.",
+      "contraditorio": "A legislação da CEAP não veda expressamente que secretários parlamentares também prestem serviços via PJ. A parlamentar pode demonstrar que os serviços foram prestados antes do vínculo empregatício ou que são de natureza distinta das funções do cargo. O encerramento do CNPJ pode ter ocorrido por decisão voluntária após o vínculo.",
+      "fontes": [
+        "https://dadosabertos.camara.leg.br/api/v2/deputados/220645/despesas",
+        "https://www.camara.leg.br/deputados/220645/pessoal-gabinete?ano=2025",
+        "https://brasilapi.com.br/api/cnpj/v1/55819196000132",
+        "BigQuery: transparenciabr.transparenciabr.ceap_despesas_ext — 55819196000132 100% exclusivo"
+      ]
+    },
+    {
+      "id": "F-16",
+      "titulo": "Rede PSOL eventos — CHRONUS usada por 5 parlamentares (R$ 268.618) · F.R. MOTTA por 4 (R$ 83.474) · EMBALAGEM CERTA por 3 (R$ 300.332)",
+      "classificacao": "CIRCUITO FINANCEIRO",
+      "severidade": "ALTA",
+      "fato": "O BigQuery (vw_empresa_eventos_multi_parlamentar) identifica 6 empresas que formam um circuito de fornecedores compartilhados entre parlamentares do PSOL/esquerda, com Erika Hilton em posição central: CHRONUS VIAGENS TURISMO & EVENTOS LTDA (CNPJ 16.306.685/0001-39): 5 parlamentares (Erika Hilton, Tarcísio Motta, Pastor Henrique Vieira, Ana Pimentel, Duda Salabert), R$ 268.618,54, 26 pagamentos; F.R. MOTTA FILHO PRODUÇÕES (CNPJ 14.630.229/0001-14): 4 parlamentares (Ivan Valente, Jilmar Tatto, Sâmia Bomfim, Erika Hilton), R$ 83.474; EMBALAGEM CERTA LTDA (CNPJ 51.238.617/0001-80): 3 parlamentares (Erika Hilton, Professora Luciene Cavalcante, Sâmia Bomfim), R$ 300.332,77 total, R$ 33.872 de Erika.",
+      "analise": "A existência de um circuito de fornecedores compartilhados por deputadas trans/queer do PSOL-SP (Embalagem Certa servindo Erika, Luciene Cavalcante e Sâmia Bomfim) é registrável como padrão de terceirização concentrada. A CHRONUS servindo 5 parlamentares da mesma bancada com R$ 268.618 em 26 pagamentos sugere agência de viagens de preferência coletiva. Não há vedação legal para que parlamentares da mesma bancada usem os mesmos fornecedores, mas a concentração configura circuito que merece monitoramento para identificar eventual vantagem comercial coordenada.",
+      "contraditorio": "O uso de fornecedores comuns entre parlamentares da mesma bancada é prática regular e pode refletir indicações mútuas de fornecedores de qualidade comprovada. A CHRONUS e a Embalagem Certa são empresas ativas com CNPJs regulares na Receita Federal.",
+      "fontes": [
+        "BigQuery: transparenciabr.transparenciabr.vw_empresa_eventos_multi_parlamentar — 6 empresas-rede PSOL",
+        "https://brasilapi.com.br/api/cnpj/v1/16306685000139",
+        "https://brasilapi.com.br/api/cnpj/v1/51238617000180",
+        "https://brasilapi.com.br/api/cnpj/v1/14630229000114"
+      ]
+    },
+    {
+      "id": "F-17",
+      "titulo": "Maria Paula Botero Rodriguez — R$ 65.240 em 26 interações · 11 processos judiciais cobrança (R$ 165.142 em litígios)",
+      "classificacao": "REGISTRO JUDICIAL",
+      "severidade": "ALTA",
+      "fato": "O BigQuery (vw_universo_pessoal_emendas) registra MARIA PAULA BOTERO RODRIGUEZ (CPF mascarado ***65187***, valor R$ 65.240,00, 26 interações, severidade MEDIA) como fornecedora recorrente da rede de emendas. O Direct Data ProcessosJudiciaisSimplificada para este CPF aponta 11 processos judiciais ativos: 10 na Justiça Estadual e 1 na Justiça do Trabalho; classes predominantes: 6 Cumprimentos de Sentença, 3 Procedimentos de Juizado Especial Cível, 1 Execução Fiscal, 1 Ação Trabalhista. Valor total em litígios: R$ 165.142,62. Valor máximo: R$ 25.999,13.",
+      "analise": "O perfil de fornecedora com 11 processos de cobrança ativa — incluindo 6 Cumprimentos de Sentença (que pressupõem dívidas já reconhecidas judicialmente) e 1 Execução Fiscal (dívida fiscal) — é incompatível com os critérios habituais de regularidade fiscal e jurídica para prestadores de serviços públicos. O agent_processos_judiciais classifica este padrão como 'inadimplência estrutural': fornecedor que recebe do erário (via emendas parlamentares) enquanto acumula débitos executados na Justiça.",
+      "contraditorio": "Os processos judiciais podem ser de natureza pessoal, não relacionados à atividade de prestação de serviços. A regularidade fiscal para fins de CEAP e emendas é verificada no momento da emissão da nota, não pelo histórico processual do fornecedor.",
+      "fontes": [
+        "BigQuery: transparenciabr.transparenciabr.vw_universo_pessoal_emendas — MARIA_PAULA_BOTERO",
+        "Direct Data ProcessosJudiciaisSimplificada — pf_MARIA_PAULA (11 processos, R$ 165.142,62)"
+      ]
+    },
+    {
+      "id": "F-18",
+      "titulo": "DAS FOOD COMERCIAL LTDA — R$ 300.261 em 52 interações via emendas · CNAE alimentício ativo em convênio social",
+      "classificacao": "OBSERVAÇÃO RELEVANTE",
+      "severidade": "ALTA",
+      "fato": "O BigQuery (vw_universo_pessoal_emendas) registra DAS FOOD COMERCIAL LTDA (CNPJ 32.888.376/0001-70, fundada 26/02/2019, São Bernardo do Campo-SP, capital R$ 130.000) como o maior fornecedor PJ no universo de vínculos pessoais de emendas: R$ 300.261,00 em 52 interações, severidade ALTA. A Direct Data QSA informa sócia-administradora: Antônia Barbosa Correia (CPF ***.789.828-**). CNAE principal 4729699 — Comércio varejista de produtos alimentícios. CNAEs secundários incluem cosméticos e artigos de papelaria.",
+      "analise": "Uma empresa de comércio varejista alimentício aparecendo como principal fornecedora em convênios sociais vinculados a emendas de 'Direitos da Cidadania' de uma parlamentar é tipologicamente incoerente: a função social esperada de uma emenda desta subfunção é prestação de serviços sociais, capacitação ou desenvolvimento comunitário — não fornecimento de alimentos varejistas. O volume de 52 interações (maior frequência relacional do universo de emendas da parlamentar) e o valor de R$ 300 mil reforçam a relevância do ponto.",
+      "contraditorio": "A DAS FOOD pode fornecer alimentação e insumos no âmbito de projetos sociais (distribuição de cestas básicas, alimentação em eventos comunitários) — uso coerente com emendas de Direitos da Cidadania. A parlamentar pode demonstrar o objeto específico dos convênios que envolveram este fornecedor.",
+      "fontes": [
+        "BigQuery: transparenciabr.transparenciabr.vw_universo_pessoal_emendas — DAS_FOOD",
+        "https://brasilapi.com.br/api/cnpj/v1/32888376000170",
+        "Direct Data QSA — DAS_FOOD (sócia Antônia Barbosa Correia)",
+        "https://portaldatransparencia.gov.br/emendas/consulta?autorEmenda=4368"
+      ]
+    },
+    {
+      "id": "F-19",
+      "titulo": "Brunner Macedo Guimarães (MEI) — R$ 117.600 em 21 interações via emendas · MEI de organização de eventos",
+      "classificacao": "OBSERVAÇÃO RELEVANTE",
+      "severidade": "ALTA",
+      "fato": "O BigQuery (vw_universo_pessoal_emendas) registra BRUNNER MACEDO GUIMARÃES (MEI, CNPJ 26.629.674/0001-43, São Paulo-SP, fundado 29/11/2016, capital R$ 10.000, CNAE 8230001 — Serviços de organização de feiras, congressos, exposições e festas) com R$ 117.600,00 em 21 interações via emendas, severidade ALTA. O perfil é de MEI individual (sem QSA) de organização de eventos com alta recorrência no circuito de emendas da parlamentar.",
+      "analise": "O valor de R$ 117.600 em 21 interações para um MEI individual de organização de eventos é expressivo. A média por interação (R$ 5.600) é compatível com prestações mensais recorrentes ou com organização de múltiplos eventos de pequeno porte. O CNAE 8230001 é coerente com a pauta da parlamentar (eventos culturais, congressos LGBTQIA+, formações políticas). O ponto de atenção é a concentração em MEI único sem estrutura jurídica robusta para o volume de serviços prestados.",
+      "contraditorio": "MEIs de organização de eventos são fornecedores legítimos e amplamente utilizados por parlamentares de todos os partidos. O volume pode refletir múltiplos eventos de porte moderado ao longo do mandato.",
+      "fontes": [
+        "BigQuery: transparenciabr.transparenciabr.vw_universo_pessoal_emendas — BRUNNER_MACEDO",
+        "https://brasilapi.com.br/api/cnpj/v1/26629674000143"
+      ]
+    },
+    {
+      "id": "F-20",
+      "titulo": "Balieiro & Pinto Advogados — R$ 51.721 em 14 interações · Sócio com CPF em Direct Data divergente do QSA BrasilAPI",
+      "classificacao": "INCONSISTÊNCIA CADASTRAL",
+      "severidade": "ALTA",
+      "fato": "O BigQuery (vw_universo_pessoal_emendas) registra BALIEIRO & PINTO SOCIEDADE DE ADVOGADOS (CNPJ 43.970.496/0001-39, Franca-SP, fundada 17/08/2021, capital R$ 30.000) com R$ 51.721,32 em 14 interações via emendas. A Direct Data QSA retorna CPFs completos dos sócios: Vitor Pereira Balieiro (CPF ***.933.008-**), Leonardo Pereira Balieiro (CPF ***.946.468-**) e Antonio de Pádua Pinto Filho (CPF ***.917.858-**). A BrasilAPI registra os mesmos sócios com CPFs parcialmente mascarados, coerente. Email de contato (Direct Data): juridico@escritoriocontabiljunior.com.br — nome de domínio sugere escritório contábil, não advocatício.",
+      "analise": "Uma sociedade de advogados com R$ 51.721 em 14 interações via emendas de Direitos da Cidadania de uma deputada federal é ponto de atenção para o agent_consulting_office: escritórios de advocacia são fornecedores típicos para assessoria jurídica de projetos sociais ou de OSCs beneficiárias de emendas. O email de domínio contábil (escritoriocontabiljunior.com.br) pode indicar partilha de estrutura operacional entre escritório de advocacia e escritório contábil — não é irregularidade, mas configura flag de ambiguidade institucional.",
+      "contraditorio": "A assessoria jurídica a projetos sociais financiados por emendas parlamentares é serviço legítimo e necessário. O email contábil pode ser de fornecedor de TI compartilhado. A sociedade de advogados pode esclarecer a natureza dos serviços prestados.",
+      "fontes": [
+        "BigQuery: transparenciabr.transparenciabr.vw_universo_pessoal_emendas — BALIEIRO_PINTO",
+        "https://brasilapi.com.br/api/cnpj/v1/43970496000139",
+        "Direct Data QSA — BALIEIRO_PINTO (CPFs completos dos sócios)"
+      ]
+    },
+    {
+      "id": "F-21",
+      "titulo": "Luz di Angeli Reginatto Advocacia — fundada em 03/02/2025 · R$ 40.623 em 14 interações · OAB Curitiba-PR",
+      "classificacao": "INCONSISTÊNCIA CADASTRAL",
+      "severidade": "ALTA",
+      "fato": "O BigQuery (vw_universo_pessoal_emendas) registra LUZ DI ANGELI REGINATTO SOCIEDADE INDIVIDUAL DE ADVOCACIA (CNPJ 59.253.755/0001-40, Curitiba-PR, fundada 03/02/2025, capital R$ 100) com R$ 40.623,12 em 14 interações. A Direct Data confirma: sócia titular Luz di Angeli Reginatto, endereço residencial em apartamento de alto padrão (Andar 22, Cond. Terrasse Ecoville). A empresa foi fundada em 03/02/2025 — menos de 4 meses antes da data de extração da base (24/05/2026).",
+      "analise": "Uma sociedade de advocacia unipessoal fundada com capital de R$ 100 em fevereiro/2025 e já registrando R$ 40.623 em 14 interações com emendas da parlamentar nos primeiros meses de existência é padrão de fundação reativa: empresa criada aparentemente para formalizar serviços que já eram prestados informalmente, ou para criar veículo PJ para receber honorários de forma sistemática. O endereço em apartamento de alto padrão (Terrasse Ecoville, Curitiba) indica titular com capacidade econômica distinta do capital social da empresa.",
+      "contraditorio": "A abertura de sociedade unipessoal de advocacia por advogada autônoma é prática regular no Brasil. O capital de R$ 100 é o mínimo legal. O endereço residencial como sede de empresa de advocacia individual é prática comum. A parlamentar pode demonstrar que a seleção da advogada se deu por critérios de competência técnica.",
+      "fontes": [
+        "BigQuery: transparenciabr.transparenciabr.vw_universo_pessoal_emendas — LUZ_DI_ANGELI",
+        "https://brasilapi.com.br/api/cnpj/v1/59253755000140",
+        "Direct Data QSA — LUZ_DI_ANGELI (endereço Terrasse Ecoville, Andar 22)"
+      ]
+    },
+    {
+      "id": "F-22",
+      "titulo": "Marcelo Vilera (Embalagem Certa) — 5 processos judiciais · R$ 74.399 em litígios · Sócio de GRAFICA CROMOCOLOR",
+      "classificacao": "REGISTRO JUDICIAL",
+      "severidade": "ALTA",
+      "fato": "O Direct Data ProcessosJudiciaisSimplificada para Marcelo Vilera Ferreira (CPF ***.648.938-**, sócio-administrador da EMBALAGEM CERTA LTDA, CNPJ 51.238.617/0001-80, que recebeu R$ 33.872 de Erika via CEAP) aponta 5 processos judiciais: 4 na Justiça Estadual, 1 na Justiça Federal; classes: 2 Procedimentos Comuns Cíveis, 1 Reclamação Pré-processual, 1 Juizado Especial Cível, 1 Busca e Apreensão. Valor total: R$ 74.399,26. Valor máximo: R$ 47.280,00. O Direct Data BeneficiárioFinal confirma que Marcelo Vilera é também sócio de GRÁFICA CROMOCOLOR INDÚSTRIA LTDA (CNPJ 09.181.015/0001-78, ativo com pepMatriz=true).",
+      "analise": "A existência de Busca e Apreensão como classe processual no histórico de um sócio de fornecedora CEAP é flag relevante: B&A implica decisão judicial de constrição de bens, geralmente em contexto de inadimplência garantida. A rede societária de Marcelo Vilera (Embalagem Certa + Gráfica Cromocolor) configura estrutura gráfica dupla que pode servir múltiplas demandas de impressão do circuito PSOL.",
+      "contraditorio": "Os processos são histórico pessoal do sócio, não da empresa contratada. A Embalagem Certa pode ter regularidade fiscal plena. O sócio pode esclarecer o contexto dos processos.",
+      "fontes": [
+        "Direct Data ProcessosJudiciaisSimplificada — pf_MARCELO_VILERA (5 processos)",
+        "Direct Data BeneficiárioFinal — MARCELO_VILERA_EMBALAGEM (Gráfica Cromocolor como sociedade nível 1)",
+        "https://brasilapi.com.br/api/cnpj/v1/51238617000180"
+      ]
+    },
+    {
+      "id": "F-23",
+      "titulo": "Maria Paula Almada e Silva (Alafialab) — 5 empresas ativas no beneficiário final · R$ 195.000 via emenda 43680001",
+      "classificacao": "CIRCUITO FINANCEIRO",
+      "severidade": "ALTA",
+      "fato": "O BigQuery (fato_emenda_pagamento, emenda 43680001) registra 2 pagamentos de R$ 97.500 = R$ 195.000 ao LABORATÓRIO DIGITAL PARA TRANSFORMAÇÃO SOCIAL (nome fantasia ALAFIALAB, CNPJ 46.418.271/0001-62, Salvador-BA, fundada 18/03/2022, Associação Privada). A Direct Data BeneficiárioFinal para a presidente Maria Paula Almada e Silva (CPF ***.381.235-**) revela que a mesma pessoa controla 5 empresas ativas: LABORATORIO DIGITAL (Presidente), ALMADA SILVA LOCAÇÃO DE EQUIPAMENTOS LTDA (Sócio-Administrador desde 2011), SF 824 PARTICIPAÇÕES SOCIETÁRIAS S.A. (Diretor desde 2024), PMA OLIVEIRA LTDA (Sócio desde 2025), AC — CONSULTORIA, PESQUISA E COMUNICAÇÃO LTDA (Sócio-Administrador desde 2023).",
+      "analise": "O perfil de uma presidenta de Associação Privada sem fins lucrativos que simultaneamente controla S.A., locadora de equipamentos, consultoria e participações societárias é inconsistente com o modelo típico de gestora de OSC comunitária. O agent_rede_societaria_bf classifica este perfil como 'beneficiária final multiplex': concentração de controle patrimonial e operacional em pessoa que também preside entidade receptora de recursos públicos. O valor de R$ 195.000 em emenda de 'Direitos da Cidadania' para uma Associação fundada em 2022 (2 anos de existência à época do convênio) reforça o ponto de atenção.",
+      "contraditorio": "A presidência de OSC e a participação em empresas comerciais são atividades legalmente separadas no Brasil. Maria Paula pode demonstrar que não há conflito de interesses entre as duas esferas e que o ALAFIALAB possui histórico de execução de projetos sociais verificáveis.",
+      "fontes": [
+        "BigQuery: transparenciabr.transparenciabr.fato_emenda_pagamento — emenda 43680001",
+        "Direct Data BeneficiárioFinal — MARIA_PAULA_LABORATORIO (5 sociedades)",
+        "https://brasilapi.com.br/api/cnpj/v1/46418271000162"
+      ]
+    },
+    {
+      "id": "F-24",
+      "titulo": "CHRONUS Viagens — R$ 268.618 pagos por 5 parlamentares PSOL · sócio Eduardo Conde (mãe Sônia Conde, irmã Carla Conde)",
+      "classificacao": "CIRCUITO FINANCEIRO",
+      "severidade": "ALTA",
+      "fato": "O Direct Data BeneficiárioFinal para Eduardo Conde Ramos (CPF ***.738.458-**, sócio-administrador da CHRONUS VIAGENS TURISMO & EVENTOS, CNPJ 16.306.685/0001-39) revela rede familiar: mãe Sônia Regina Conde Ramos (CPF ***.805.768-**) e irmã Carla Conde Ramos (CPF ***.040.298-**). A CHRONUS recebeu R$ 268.618,54 em 26 pagamentos de 5 parlamentares PSOL/esquerda, incluindo R$ parcela de Erika Hilton.",
+      "analise": "A CHRONUS é uma ME (capital R$ 150.000) com CNAE de agência de viagens + operador turístico + organizadora de eventos, fundada em 2012. Sua posição como fornecedora preferencial de 5 parlamentares da mesma bancada — incluindo Duda Salabert (deputada trans, MG), Tarcísio Motta (RJ) e Pastor Henrique Vieira (RJ) — configura um hub de prestação de serviços de logística política. A rede familiar do sócio (mãe e irmã) não configura irregularidade, mas é registrável para fins de beneficiário final em análise de risco.",
+      "contraditorio": "A especialização da CHRONUS em serviços para deputados pode refletir reputação setorial construída ao longo de anos. Agências de viagens preferidas por bancadas são comuns em Brasília e não configuram ilicitude.",
+      "fontes": [
+        "BigQuery: transparenciabr.transparenciabr.vw_empresa_eventos_multi_parlamentar — CHRONUS",
+        "Direct Data BeneficiárioFinal — EDUARDO_CONDE_CHRONUS (família Conde Ramos)",
+        "https://brasilapi.com.br/api/cnpj/v1/16306685000139"
+      ]
+    },
+    {
+      "id": "F-25",
+      "titulo": "Emenda 43680011 — R$ 1.267.097 · PRENSMAQ aparece 4× como sub-fornecedor · Convênio Coco e Cia (Ubatuba)",
+      "classificacao": "CIRCUITO FINANCEIRO",
+      "severidade": "ALTA",
+      "fato": "O BigQuery (fato_emenda_pagamento, emenda 43680011) registra o beneficiário ASSOCIAÇÃO DE RECICLAGEM COCO VERDE E CATADORES DE MATERIAIS RECICLÁVEIS DE UBATUBA (nome fantasia COCO E CIA, CNPJ 23.275.919/0001-93, Ubatuba-SP) como receptor de R$ 1.267.097,67, com os seguintes sub-fornecedores: TRANSRIO CAMINHÕES R$ 315.000, PRENSMAQ R$ 190.780 + R$ 75.400 + R$ 64.000 + R$ 66.753 (4 pagamentos = R$ 396.933), TOYOTA R$ 157.580, FORZA BR R$ 154.490, RP TREINAMENTO R$ 60.000, BOMEC R$ 49.000, NTS DO BRASIL R$ 44.991.",
+      "analise": "O convênio com a COCO E CIA de Ubatuba (emenda de Saúde/Ambiental) é o de maior volume financeiro no BigQuery de emendas de Erika Hilton no período BQ. A PRENSMAQ aparecendo 4 vezes como sub-fornecedor (total R$ 396.933 — 31% do convênio) é padrão de concentração interna que pode sugerir direcionamento de contratos dentro do convênio. Os grandes itens (TRANSRIO R$ 315k + TOYOTA R$ 157k) são aquisições de veículos/caminhões, compatíveis com um projeto de coleta de recicláveis — mas demandam verificação da execução física.",
+      "contraditorio": "A compra de veículos e equipamentos para associação de reciclagem é uso coerente com emendas de Saúde Ambiental. A PRENSMAQ pode ter contrato de manutenção recorrente justificando múltiplos pagamentos. A parlamentar pode demonstrar que o convênio foi executado com entrega efetiva dos equipamentos.",
+      "fontes": [
+        "BigQuery: transparenciabr.transparenciabr.fato_emenda_pagamento — emenda 43680011",
+        "https://brasilapi.com.br/api/cnpj/v1/23275919000193",
+        "https://portaldatransparencia.gov.br/emendas/consulta?autorEmenda=4368"
+      ]
+    },
+    {
+      "id": "F-26",
+      "titulo": "DRAGER DO BRASIL — R$ 225.000 em equipamentos médicos via emenda 43680021 · R$ 300.000 total emenda Saúde",
+      "classificacao": "OBSERVAÇÃO RELEVANTE",
+      "severidade": "ALTA",
+      "fato": "O BigQuery (fato_emenda_pagamento, emenda 43680021) registra o fornecedor DRAGER DO BRASIL com R$ 225.000 em equipamentos hospitalares, dentro de um convênio total de R$ 300.000 em emenda de Saúde. A DRAGER DO BRASIL LTDA é subsidiária da multinacional alemã Dräger (equipamentos médicos críticos — ventiladores, anestesia, monitoramento). Nenhuma irregularidade procedimental foi identificada para este item.",
+      "analise": "O pagamento a uma multinacional de equipamentos médicos críticos via emenda individual é esperado e coerente com a subfunção 'Assistência hospitalar e ambulatorial'. A concentração em um único fornecedor (R$ 225k de R$ 300k = 75% do convênio) para equipamentos especializados é típica do setor. Não há flag de exclusividade ou padrão atípico neste item — registrado como observação de completude do dossiê.",
+      "contraditorio": "Contratação de empresa especializada de referência global em equipamentos hospitalares é prática regular em convênios de saúde.",
+      "fontes": [
+        "BigQuery: transparenciabr.transparenciabr.fato_emenda_pagamento — emenda 43680021",
+        "https://portaldatransparencia.gov.br/emendas/consulta?autorEmenda=4368"
+      ]
+    },
+    {
+      "id": "F-27",
+      "titulo": "Sâmia Gonsalves dos Santos — R$ 70.000 em 10 interações · CPF mascarado na base · Saldo LGPD",
+      "classificacao": "LACUNA DE TRANSPARÊNCIA",
+      "severidade": "ALTA",
+      "fato": "O BigQuery (vw_universo_pessoal_emendas) registra SAMARA GONCALVES DOS SANTOS (CPF mascarado ***69322***, valor R$ 70.000,00, 10 interações, severidade MEDIA) como fornecedora recorrente no universo de emendas. Nota LGPD na base: 'CPFs são Classe C — será mascarado no PDF'. Não foi possível identificar o CNPJ ou natureza jurídica completa a partir dos dados disponíveis.",
+      "analise": "O valor de R$ 70.000 em 10 interações para uma pessoa física (indicado pela notação CPF) no universo de emendas é relevante. A ausência de CNPJ na base sugere que os pagamentos podem ter sido feitos diretamente a pessoa física via sistemas de transferência, o que limita a auditabilidade. O agent_socios_directdata marcou este CPF como Classe C (dados restritos por LGPD), impedindo identificação completa neste relatório.",
+      "contraditorio": "Pagamentos a pessoas físicas via emendas parlamentares são admissíveis em determinadas modalidades (bolsas, capacitações, serviços pessoais regulamentados). A parlamentar pode esclarecer a natureza contratual.",
+      "fontes": [
+        "BigQuery: transparenciabr.transparenciabr.vw_universo_pessoal_emendas — SAMARA_GONCALVES (CPF mascarado)",
+        "Nota LGPD: Classe C — dados restritos"
+      ]
+    },
+    {
+      "id": "F-28",
+      "titulo": "Estorno em massa — 14 cancelamentos GOL em 11/12/2023 · R$ 25.581 devolvidos em um dia (Z=-6,16)",
+      "classificacao": "INDÍCIO DOCUMENTAL",
+      "severidade": "ALTA",
+      "fato": "O BigQuery (vw_ceap_zscore_roll) registra em 11/12/2023 um evento de Z=-6,16 (desvio negativo extremo): estorno de R$ 25.581,38 referente ao cancelamento de 14 passagens aéreas GOL em um único dia. Observação BigQuery: 'Padrão bizarro: ou compras não realizadas, ou troca de fornecedor.'",
+      "analise": "O cancelamento simultâneo de 14 passagens GOL em um único dia é estatisticamente excepcional. Duas hipóteses analíticas: (a) as passagens foram compradas antecipadamente e não utilizadas, o que pode indicar gestão ineficiente do SIGEPA com posterior cancelamento — despesas confirmadas sem viagem efetiva realizada; (b) o cancelamento foi motivado pela troca de companhia aérea, com migração para outra operadora. Em ambos os casos, o evento deve ser verificado com a agenda parlamentar do período e com os bilhetes de embarque correspondentes.",
+      "contraditorio": "Cancelamentos de passagens aéreas são procedimentos regulares quando a agenda parlamentar é alterada por votações urgentes, licenças médicas ou eventos imprevistos. O SIGEPA preserva o histórico de cancelamentos e reemissões.",
+      "fontes": [
+        "BigQuery: transparenciabr.transparenciabr.vw_ceap_zscore_roll — 11/12/2023 Z=-6,16",
+        "https://www.camara.leg.br/cota-parlamentar/?nuDeputadoId=3563",
+        "https://dadosabertos.camara.leg.br/api/v2/deputados/220645/despesas"
+      ]
+    },
+    {
+      "id": "F-29",
+      "titulo": "Emenda 43680007 — STRANGER CRAZY PRODUÇÕES ARTÍSTICAS · 2× R$ 61.250 = R$ 122.500 (fracionamento)",
+      "classificacao": "CIRCUITO FINANCEIRO",
+      "severidade": "ALTA",
+      "fato": "O BigQuery (fato_emenda_pagamento, emenda 43680007) registra 2 pagamentos idênticos de R$ 61.250 = R$ 122.500 ao fornecedor STRANGER CRAZY PRODUÇÕES ARTÍSTICAS LTDA (CNPJ 34.605.619/0001-41, São Paulo-SP, fundada 21/08/2019, capital R$ 1.000, CNAE 8230001 — Organização de feiras e eventos). A emenda é de Cultura. Sócia-administradora: Michelle Ambrózio dos Santos (CPF ***.010.578-**).",
+      "analise": "O padrão de 2 pagamentos exatamente idênticos (R$ 61.250 + R$ 61.250) para uma empresa de organização de eventos com capital social de R$ 1.000 em emenda de Cultura replica o padrão de fracionamento identificado na CRIATIVAMENTE (F-11). A recorrência deste padrão em múltiplas emendas da parlamentar — pagamentos em pares de valor idêntico — configura indício sistêmico que o agent_benford_anomaly sinalizou para revisão humana.",
+      "contraditorio": "O fracionamento pode ser cronograma contratual legítimo (pagamento em 2 parcelas iguais). A parlamentar pode demonstrar que os dois pagamentos correspondem a etapas distintas do projeto cultural executado.",
+      "fontes": [
+        "BigQuery: transparenciabr.transparenciabr.fato_emenda_pagamento — emenda 43680007",
+        "https://brasilapi.com.br/api/cnpj/v1/34605619000141"
+      ]
+    },
+    {
+      "id": "F-30",
+      "titulo": "SINCES TECNOLOGIA — R$ 51.905 em 3 interações · Estrutura holding (SFINANCE + ACMJ) · Ribeirão Preto-SP",
+      "classificacao": "OBSERVAÇÃO RELEVANTE",
+      "severidade": "ALTA",
+      "fato": "O BigQuery (vw_universo_pessoal_emendas) registra SINCES TECNOLOGIA COMÉRCIO E SERVIÇOS LTDA (CNPJ 33.615.509/0001-06, Ribeirão Preto-SP, capital R$ 400.000) com R$ 51.905,80 em 3 interações. A Direct Data QSA revela estrutura societária complexa: controlada por duas holdings (SFINANCE HOLDING CONSULT e ACMJ HOLDING LTDA) + cotas em tesouraria da própria SINCES. A empresa tem 20 CNAEs secundários abrangendo desde varejo de TI a cosméticos e brinquedos.",
+      "analise": "A estrutura de controle via holdings (SFINANCE + ACMJ) para uma empresa de R$ 400.000 de capital é sofisticada para o perfil esperado de fornecedor de emendas parlamentares de Direitos da Cidadania. O leque de 20 CNAEs secundários é descaracterizador: a SINCES pode formalmente prestar qualquer tipo de serviço. O agent_vendor_intelligence classifica este perfil como 'empresa guarda-chuva': pessoa jurídica com amplitude de objeto social que permite absorver contratos de diversas naturezas.",
+      "contraditorio": "Empresas de TI com amplo objeto social são comuns no mercado. A estrutura holding pode refletir planejamento tributário ou sucessório legítimo. Os R$ 51.905 podem corresponder a serviços de tecnologia para projetos sociais — uso coerente.",
+      "fontes": [
+        "BigQuery: transparenciabr.transparenciabr.vw_universo_pessoal_emendas — SINCES",
+        "Direct Data QSA — SINCES (holdings SFINANCE e ACMJ)",
+        "https://brasilapi.com.br/api/cnpj/v1/33615509000106"
+      ]
+    },
+    {
+      "id": "F-31",
+      "titulo": "JP PEREIRA PROGRAMAÇÃO — R$ 19.150 · 82% exclusivo de Erika · também serve Guilherme Derrite (PL)",
+      "classificacao": "INCONSISTÊNCIA CADASTRAL",
+      "severidade": "ALTA",
+      "fato": "O BigQuery (cnpjs_quase_exclusivos_pct_80a99) identifica JP PEREIRA PROGRAMAÇÃO LTDA (CNPJ 28.202.635/0001-90, Mogi das Cruzes-SP, CNAE desenvolvimento de software sob encomenda) com 82,19% dos pagamentos CEAP originados de Erika Hilton (R$ 19.150 em 3 notas), sendo os 17,81% restantes de GUILHERME DERRITE (PL). Observação BigQuery: 'Bizarro: vínculo Erika com programador que serve deputado bolsonarista'.",
+      "analise": "A coexistência de um fornecedor de programação servindo simultâneamente uma deputada do PSOL e um deputado PL (bolsonarista) é incomum no perfil de fornecedores parlamentares, que tendem a ser ideologicamente alinhados com os clientes. Não configura irregularidade, mas levanta questão sobre a natureza do software desenvolvido — se é de cunho político (material de campanha, gestão de redes), a entrega poderia beneficiar ideologicamente um dos dois mandatos. O agent_behavioral_correlate classifica como 'anomalia cruzada de orientação'.",
+      "contraditorio": "Desenvolvimento de software é serviço técnico sem conteúdo ideológico intrínseco. A JP PEREIRA pode ter desenvolvido sistemas de gestão de gabinete para os dois clientes de forma independente.",
+      "fontes": [
+        "BigQuery: transparenciabr.transparenciabr.cnpjs_quase_exclusivos_pct_80a99 — JP_PEREIRA",
+        "https://brasilapi.com.br/api/cnpj/v1/28202635000190"
+      ]
+    },
+    {
+      "id": "F-32",
+      "titulo": "CEAP — R$ 1,49 milhão em 2.021 notas (2023-2026) · 363ª/834 no ranking AURORA nacional",
+      "classificacao": "OBSERVAÇÃO RELEVANTE",
+      "severidade": "MÉDIA",
+      "fato": "A API de Dados Abertos da Câmara registra 2.021 notas de despesa CEAP atribuídas à Deputada Erika Hilton entre fevereiro/2023 e maio/2026, totalizando R$ 1.489.968,42. O BigQuery AURORA posiciona a parlamentar na 363ª colocação entre 834 deputados indexados — abaixo da média (R$ 831.445,75) e da mediana nacional (R$ 1.109.233,08). O BigQuery consolida 1.885 notas no dataset principal (variação por data de corte das duas extrações).",
+      "analise": "O volume absoluto está abaixo da média nacional, situando a parlamentar na metade superior frugal do ranking. O ponto de atenção não é o volume agregado, mas a composição tipológica: 12 CNPJs exclusivos (R$ 405.265), padrão R$ 8.700 em segurança, outliers Z>3. A frugalidade relativa no total não invalida as anomalias identificadas em subcircuitos.",
+      "contraditorio": "Uso da CEAP dentro dos limites regulamentares previstos pela Mesa Diretora. O posicionamento abaixo da média nacional é indicador favorável de contenção de gasto.",
+      "fontes": [
+        "https://dadosabertos.camara.leg.br/api/v2/deputados/220645/despesas",
+        "BigQuery: transparenciabr.transparenciabr.vw_score_risco_completo — ranking 363ª/834",
+        "https://www.camara.leg.br/cota-parlamentar/?nuDeputadoId=3563"
+      ]
+    },
+    {
+      "id": "F-33",
+      "titulo": "Emendas — R$ 17,16 milhões executados (BigQuery) · 14 emendas individuais · R$ 18,48 mi universo financeiro total",
+      "classificacao": "ESTIMATIVA AGREGADA",
+      "severidade": "MÉDIA",
+      "fato": "O BigQuery (vw_score_risco_completo) registra para Erika Hilton: 14 emendas individuais com R$ 17.163.805,11 executados (pagos), 1.206 fornecedores distintos nas emendas, universo financeiro total (CEAP + emendas) de R$ 18.480.392,75. Nota: o Portal da Transparência (extração de 21/05/2026) registra 39 emendas e R$ 83,02 mi empenhados — a diferença reflete o corte temporal do BigQuery (2024-2025) vs. o histórico completo do Portal.",
+      "analise": "O universo de R$ 18,48 milhões (BigQuery, período 2024-2025) representa o campo de análise forense do motor AURORA. O número de 1.206 fornecedores distintos nas emendas indica pulverização — padrão saudável que dilui concentração. A reconciliação entre os R$ 17,16 mi do BQ e os R$ 83 mi do Portal da Transparência é essencial para auditoria completa: o BQ captura apenas emendas com execução registrada no dataset, não o empenhado total.",
+      "contraditorio": "A diferença entre valores empenhados (Portal) e pagos/executados (BigQuery) é normal no ciclo orçamentário. Emendas empenhadas em 2026 podem ainda estar em fase de liquidação.",
+      "fontes": [
+        "BigQuery: transparenciabr.transparenciabr.vw_score_risco_completo — universo_financeiro_total R$ 18.480.392,75",
+        "https://portaldatransparencia.gov.br/emendas/consulta?autorEmenda=4368"
+      ]
+    },
+    {
+      "id": "F-34",
+      "titulo": "Emenda 43680020 — R$ 65.100 à ASSOCIAÇÃO TRANSMORAS · CNPJ fundado em 05/07/2022 (pré-eleição)",
+      "classificacao": "OBSERVAÇÃO RELEVANTE",
+      "severidade": "MÉDIA",
+      "fato": "O BigQuery (fato_emenda_pagamento, emenda 43680020) registra R$ 65.100 pagos à ASSOCIAÇÃO TRANSMORAS (CNPJ 47.678.485/0001-30, Campinas-SP, fundada 05/07/2022, CNAE 9430800 — Associações de defesa de direitos sociais). A Direct Data QSA lista como presidenta Vicenta Perrotta e diretoras Antônia do Nascimento Moreira e Rafaela Kennedy Lima da Costa. Observação BigQuery: 'Associação com nome ligado à pauta da deputada'.",
+      "analise": "A Associação Transmoras foi fundada 3 meses antes das eleições de outubro/2022 — período pré-eleitoral. Embora OSCs com pauta trans sejam legítimas e necessárias, a coincidência temporal entre fundação pré-eleitoral e posterior recebimento de emenda da deputada eleita com essa mesma pauta merece registro para fins de monitoramento de independência institucional.",
+      "contraditorio": "OSCs podem ser fundadas em qualquer momento. A coincidência temporal não implica causalidade. A parlamentar pode demonstrar que a emenda seguiu processo de seleção regular pelo órgão executor.",
+      "fontes": [
+        "BigQuery: transparenciabr.transparenciabr.fato_emenda_pagamento — emenda 43680020",
+        "https://brasilapi.com.br/api/cnpj/v1/47678485000130",
+        "Direct Data QSA — ASSOC_TRANSMORAS"
+      ]
+    },
+    {
+      "id": "F-35",
+      "titulo": "Emenda 43680014 — AGÊNCIA BTRAVEL R$ 132.020 · viagens e eventos via convênio saúde",
+      "classificacao": "OBSERVAÇÃO RELEVANTE",
+      "severidade": "MÉDIA",
+      "fato": "O BigQuery (fato_emenda_pagamento, emenda 43680014) registra a AGÊNCIA BTRAVEL VIAGENS E TURISMO LTDA (CNPJ 18.587.179/0001-90, São Paulo-SP, fundada 31/07/2013, capital R$ 5.000, CNAE 7911200 — Agências de viagens) recebendo R$ 87.360 + R$ 44.660,78 = R$ 132.020,78 via emenda. A BTRAVEL tem sócios Akio Hirano e Juliana Ikeda Hirano (casal, segundo BrasilAPI).",
+      "analise": "Uma agência de viagens recebendo R$ 132.020 via emenda parlamentar é incomum: emendas de 'Direitos da Cidadania' ou 'Saúde' não têm como objeto típico a compra de pacotes de viagem para beneficiários. O uso de agência de viagens pode ser para logística de eventos nacionais (translados de participantes) — uso admissível — ou para aquisição de passagens aéreas em volume, o que replicaria parcialmente a função da CEAP.",
+      "contraditorio": "A BTRAVEL pode ter prestado serviços de logística para eventos sociais ou de saúde (ex: translado de pacientes, passagens para capacitação). A parlamentar pode demonstrar o objeto específico do convênio.",
+      "fontes": [
+        "BigQuery: transparenciabr.transparenciabr.fato_emenda_pagamento — emenda 43680014",
+        "https://brasilapi.com.br/api/cnpj/v1/18587179000190"
+      ]
+    },
+    {
+      "id": "F-36",
+      "titulo": "Representação no Conselho de Ética — assessores qualificados como maquiadores (24/06/2025) · TCU acionado",
+      "classificacao": "REGISTRO JUDICIAL",
+      "severidade": "MÉDIA",
+      "fato": "Em 24/06/2025, os deputados Luciano Zucco (PL-RS) e Paulo Bilynskyj (PL-SP) protocolaram representação no Conselho de Ética e no MPF contra a Deputada Erika Hilton, questionando a nomeação de dois secretários parlamentares — Ronaldo César Hass (SP17, desde 25/03/2025, R$ 9.600/mês) e Índy Cunha Montiel da Rocha (SP20, desde 09/06/2025, R$ 2.100/mês) — com qualificação profissional anterior em maquiagem. Em 25/06/2025, o subprocurador-geral Lucas Rocha Furtado encaminhou representação ao TCU para apurar a regularidade.",
+      "analise": "As representações tramitam sem decisão definitiva até a data de corte (maio/2026). A parlamentar apresentou defesa afirmando que os assessores exercem funções parlamentares regulares. O Regimento Interno da Câmara não veda a nomeação de profissionais com histórico em outras áreas para o cargo de secretário parlamentar.",
+      "contraditorio": "A Deputada Erika Hilton apresentou defesa pública e formal, atribuindo a representação a tentativa de deslegitimação política. A decisão cabe ao Conselho de Ética, MPF e TCU, com garantia de presunção de inocência.",
+      "fontes": [
+        "https://www.congressoemfoco.com.br/noticia/109666/oposicao-representa-contra-erika-por-contratar-maquiadores-na-camara",
+        "https://www.correiobraziliense.com.br/politica/2025/06/7182021-oposicao-aciona-mpf-e-conselho-de-etica-contra-erica-hilton-por-nomeacao-de-maquiadores.html",
+        "https://www.poder360.com.br/poder-justica/subprocurador-aciona-o-tcu-por-maquiadores-no-gabinete-de-erika-hilton/",
+        "https://www.camara.leg.br/deputados/220645/pessoal-gabinete?ano=2025"
+      ]
+    },
+    {
+      "id": "F-37",
+      "titulo": "Ação Popular TRF1 — Emenda 202443680020 (R$ 7,14 mi) e FONATRANS · Nikolas Ferreira representou ao MPF/PF/TCU",
+      "classificacao": "AÇÃO JUDICIAL ATIVA",
+      "severidade": "MÉDIA",
+      "fato": "O Portal da Transparência registra a emenda 202443680020 (R$ 7.144.000 empenhados, R$ 3.242.368,40 pagos) com beneficiário FONATRANS — Fórum Nacional de Pessoas Travestis e Transexuais Negras e Negros (CNPJ 27.885.657/0001-30, Picos-PI), via Termo de Fomento 958477/2024 com o Ministério dos Direitos Humanos. Em 17/02/2025, o Dep. Nikolas Ferreira protocolou representação ao MPF, à PF e ao TCU questionando o repasse. Os órgãos não se manifestaram até a data de corte.",
+      "analise": "A representação de Nikolas Ferreira está na fase inicial de provocação de órgãos de controle, sem decisão de mérito. O FONATRANS é entidade legítima com atuação documentada desde 2010 e dirigente Jovanna Baby com reconhecimento público. Não foi identificado vínculo direto entre a deputada e os dirigentes do FONATRANS nas bases consultadas.",
+      "contraditorio": "A indicação de emendas individuais é prerrogativa constitucional. A execução cabe ao órgão federal repassador. A ausência de manifestação dos órgãos de controle após meses sugere que a representação não gerou evidências suficientes para instauração de investigação formal.",
+      "fontes": [
+        "https://portaldatransparencia.gov.br/emendas/detalhe?codigoEmenda=202443680020",
+        "https://brasilapi.com.br/api/cnpj/v1/27885657000130",
+        "https://claudiodantas.com.br/exclusivo-erika-hilton-usa-emenda-parlamentar-para-pagar-ong-que-a-assessora/"
+      ]
+    },
+    {
+      "id": "F-38",
+      "titulo": "ADI 7847/STF — 3 OSCs receptoras de emendas da parlamentar atuam conjuntamente como autoras constitucionais",
+      "classificacao": "CIRCUITO FINANCEIRO",
+      "severidade": "MÉDIA",
+      "fato": "O STF registra a ADI 7847, protocolada conjuntamente pelo FONATRANS (beneficiária da emenda R$ 7,14 mi — F-37), pela Aliança Nacional LGBTI+ (beneficiária do TF 961456/2024 — R$ 300 mil — F-39) e pela ABRAFH. As três OSCs questionam legislação estadual do Espírito Santo referente à população LGBTI+.",
+      "analise": "A articulação de três entidades que recebem recursos federais indicados pela mesma parlamentar para ajuizar ADI conjunta demonstra rede de litigância estratégica integrada à rede de execução de políticas públicas. Não é ilícita, mas é registrável como concentração de influência: a mesma parlamentar acumula (i) poder de indicação orçamentária (emendas), (ii) presidência da Frente LGBT+ e (iii) rede de OSCs co-litigantes no STF.",
+      "contraditorio": "A legitimidade ativa para ADI das três OSCs é constitucional (art. 103, IX, CF/88). Co-patrocínio de ADI por entidades parceiras é prática legítima de litigância estratégica em direitos fundamentais.",
+      "fontes": [
+        "https://portal.stf.jus.br/processos/detalhe.asp?incidente=7847",
+        "https://portaldatransparencia.gov.br/emendas/consulta?autorEmenda=4368"
+      ]
+    },
+    {
+      "id": "F-39",
+      "titulo": "Termo de Fomento 961456/2024 — R$ 300.000 à Aliança Nacional LGBTI+ (Plataforma do Respeito) · ação judicial da Mátria",
+      "classificacao": "OBSERVAÇÃO DE GOVERNANÇA",
+      "severidade": "MÉDIA",
+      "fato": "A Aliança Nacional LGBTI+ (CNPJ 06.925.318/0001-60, Curitiba-PR) recebeu R$ 300.000 via Termo de Fomento 961456/2024, com a Deputada Erika Hilton entre as indicantes. O recurso financiou a 'Plataforma do Respeito' — ferramenta de monitoramento de discurso de ódio. Em maio/2026, a ONG Mátria ajuizou ação judicial contra a Plataforma alegando 'monitoramento abusivo'.",
+      "analise": "A ação judicial da Mátria contra a Plataforma do Respeito é controvérsia de direito civil entre duas OSCs — não alcança a parlamentar indicante. O ponto de governança é o monitoramento externo da ferramenta entregue como produto da emenda.",
+      "contraditorio": "A indicação de OSC executora é prerrogativa do parlamentar autor da emenda. A controvérsia jurídica sobre a ferramenta está sendo apreciada pela Justiça entre as partes diretamente envolvidas.",
+      "fontes": [
+        "https://aliancalgbti.org.br/emendas-parlamentares-2024/",
+        "https://brasilapi.com.br/api/cnpj/v1/06925318000160",
+        "https://www.metropoles.com/colunas/andreza-matais/ong-quer-o-fim-da-vigilancia-das-redes-paga-por-emenda-de-erika-hilton"
+      ]
+    },
+    {
+      "id": "F-40",
+      "titulo": "Instituto Costurando Sonhos Brasil — R$ 5,8 milhões (TF 977072/2025) · Presidenta e diretor com sobrenome 'Feio'",
+      "classificacao": "OBSERVAÇÃO DE GOVERNANÇA",
+      "severidade": "MÉDIA",
+      "fato": "A emenda 202543680008 (R$ 5.800.000 empenhados, R$ 3.300.000 pagos) foi executada pelo Instituto Costurando Sonhos Brasil (CNPJ 44.540.121/0001-00, São Paulo-SP, fundado 09/12/2021) via Termo de Fomento 977072/2025. A Receita Federal registra como presidente Sueli do Socorro do Espírito Santo Feio e como diretor Daniel Fernando Feio da Costa — coincidência de sobrenome 'Feio' sugerindo vínculo familiar entre dirigentes.",
+      "analise": "Vínculo familiar em órgãos diretivos de OSC não é vedado pela Lei 13.019/2014 (Marco Regulatório das OSCs), mas é registrável como ponto de governança. Não há vínculo direto identificável entre a deputada e os dirigentes do Instituto nas bases consultadas.",
+      "contraditorio": "A coincidência de sobrenome pode não indicar parentesco. A parlamentar pode demonstrar que a seleção do Instituto seguiu processo de chamamento público regulamentar.",
+      "fontes": [
+        "https://portaldatransparencia.gov.br/emendas/consulta?autorEmenda=4368",
+        "https://brasilapi.com.br/api/cnpj/v1/44540121000100"
+      ]
+    },
+    {
+      "id": "F-41",
+      "titulo": "CEAP — R$ 261.000 em segurança privada (30 notas) · 17,5% do total · concentração MAPI 73%",
+      "classificacao": "ANÁLISE TIPOLÓGICA CEAP",
+      "severidade": "MÉDIA",
+      "fato": "Do total de R$ 1.489.968,42 em CEAP, R$ 261.000 (17,5%) referem-se à rubrica 'Serviço de Segurança Prestado por Empresa Especializada' em 30 notas. Distribuição: MAPI R$ 191.400 (73,3%); IMPACTO R$ 60.900 (23,3%); TOBIAS BARRETO R$ 8.700 (3,3%). A rubrica é regulamentar para parlamentares com ameaças documentadas.",
+      "analise": "A contratação de segurança é regulamentar, mas a concentração de 73% em um único fornecedor (MAPI) não cadastrado no GESP da PF (conforme Ação Popular F-01) é o nó central do dossiê. O volume de R$ 261.000 é expressivo: supera o gasto com toda a rubrica de divulgação parlamentar (R$ 258.076) e equivale a 17,5% da CEAP total.",
+      "contraditorio": "A Deputada tem histórico documentado de ameaças por seu perfil interseccional. A contratação de segurança é coerente com o risco real. A disputa sobre a regularidade da MAPI é objeto da Ação Popular em andamento.",
+      "fontes": [
+        "https://dadosabertos.camara.leg.br/api/v2/deputados/220645/despesas",
+        "BigQuery: transparenciabr.transparenciabr.ceap_despesas_ext — segurança 30 notas R$ 261.000",
+        "https://brasilapi.com.br/api/cnpj/v1/45930204000160"
+      ]
+    },
+    {
+      "id": "F-42",
+      "titulo": "Emendas — R$ 44,8 mi em Saúde (54%) · R$ 25,8 mi em Direitos da Cidadania (31%) · 39 emendas Portal Transparência",
+      "classificacao": "ANÁLISE FUNCIONAL DE EMENDAS",
+      "severidade": "MÉDIA",
+      "fato": "O Portal da Transparência (Autor 4368) registra 39 emendas parlamentares individuais (RP7) totalizando R$ 83.024.477 empenhados e R$ 29.205.076,94 pagos. Distribuição funcional: Saúde R$ 44.761.029 (54%); Direitos da Cidadania R$ 25.761.701 (31%); Gestão Ambiental R$ 3.985.999 (5%); Educação R$ 3.100.977 (4%); Cultura R$ 2.826.793 (3%); Desporto R$ 1.289.977 (2%).",
+      "analise": "A concentração funcional em Saúde e Direitos da Cidadania é coerente com a plataforma política declarada da parlamentar. A taxa de execução (pago/empenhado = 35,2%) está abaixo da média histórica de RP7 (~40-50%), o que pode refletir atrasos no ciclo de execução de emendas 2024-2025.",
+      "contraditorio": "O direcionamento temático é compatível com a plataforma eleitoral. A taxa de execução depende de fatores externos ao parlamentar (calendário do órgão executor, contingenciamento orçamentário).",
+      "fontes": [
+        "https://portaldatransparencia.gov.br/emendas/consulta?autorEmenda=4368"
+      ]
+    },
+    {
+      "id": "F-43",
+      "titulo": "Waleria Miguel Coelho — R$ 64.614 em 14 interações · CPF Classe C mascarado",
+      "classificacao": "LACUNA DE TRANSPARÊNCIA",
+      "severidade": "MÉDIA",
+      "fato": "O BigQuery (vw_universo_pessoal_emendas) registra WALERIA MIGUEL COELHO (CPF mascarado ***11231***, R$ 64.614,54, 14 interações, severidade MEDIA) como fornecedora recorrente no universo de emendas. Dados LGPD Classe C — CPF não divulgado neste relatório. CNPJ não identificado na base.",
+      "analise": "O valor de R$ 64.614,54 em 14 interações coloca este CPF entre os fornecedores mais recorrentes no universo de emendas da parlamentar. A limitação LGPD impede análise mais aprofundada neste relatório. Merece investigação adicional com dados de acesso restrito.",
+      "contraditorio": "Dados LGPD Classe C protegem a privacidade da pessoa física. A análise detalhada requer autorização ou ação de órgão de controle competente.",
+      "fontes": [
+        "BigQuery: transparenciabr.transparenciabr.vw_universo_pessoal_emendas — WALERIA_COELHO (CPF Classe C)"
+      ]
+    },
+    {
+      "id": "F-44",
+      "titulo": "Presença em plenário — 77,5% em 316 sessões · 3 ausências não justificadas · 55 justificadas",
+      "classificacao": "INDICADOR DE PRESENÇA INSTITUCIONAL",
+      "severidade": "INFORMATIVO",
+      "fato": "A API da Câmara registra, para o período 01/02/2023 a 22/05/2026: 316 sessões, 245 presenças, 55 ausências justificadas, 3 ausências não justificadas. Taxa de presença: 77,5%. Taxa de ausência não justificada: 0,95% — abaixo do gatilho constitucional (art. 55, III, CF/88: 1/3 das sessões).",
+      "analise": "O padrão de presença situa-se na faixa histórica normal da Câmara (70-80%). As 3 ausências não justificadas são percentualmente irrelevantes.",
+      "contraditorio": "Padrão de presença regimentalmente regular.",
+      "fontes": [
+        "https://dadosabertos.camara.leg.br/api/v2/deputados/220645/votacoes",
+        "Regimento Interno da Câmara dos Deputados, art. 73"
+      ]
+    },
+    {
+      "id": "F-45",
+      "titulo": "AURORA Score — nível MÉDIO · Circuito CEAP-Emenda retornou vazio · Score baseado em pontuação de risco ponderada",
+      "classificacao": "CLASSIFICAÇÃO FORENSE AUTOMATIZADA",
+      "severidade": "INFORMATIVO",
+      "fato": "O BigQuery (vw_score_risco_completo) registra nivel_risco_atual = 'MEDIO' para Erika Hilton (1.885 notas CEAP, R$ 1.316.587,64 gasto CEAP total no BQ, 145 fornecedores distintos CEAP, R$ 17.163.805,11 executado emendas). O campo circuitos_criticos_view_vazia = 0 e valor_circuito = 0. Observação do motor: 'A view vw_circuito_ceap_emenda retornou vazia para Erika, MAS o cruzamento manual ceap_despesas_ext + fato_emenda_pagamento revela 1 caso direto: REDENÇÃO Comércio Instrumentos (02338391000184) recebeu R$ 45.000 via emenda 43680002 (...) E aparece em rede multi-parlamentar com PEDRO UCZAI/VICENTINHO/AUREA CAROLINA.'",
+      "analise": "O Score AURORA MÉDIO reflete a combinação de: ausência de circuitos automáticos detectados (a view retornou vazia) + múltiplos sinais analíticos manuais identificados neste dossiê (12 CNPJs exclusivos, padrão R$ 8.700, Benford severo, 12 outliers Z>3). A discrepância entre o score automatizado (MÉDIO) e o volume de findings manuais (13 CRÍTICOS) indica que o motor AURORA ainda não capturou todos os cruzamentos relevantes — justificando a adição dos 4 novos agentes técnicos v3.5.",
+      "contraditorio": "O Score AURORA é insumo analítico automatizado, sujeito a refinamento. A classificação MÉDIO é conservadora e pode ser atualizada com a incorporação dos novos agentes.",
+      "fontes": [
+        "BigQuery: transparenciabr.transparenciabr.vw_score_risco_completo — nivel_risco_atual MEDIO",
+        "BigQuery: transparenciabr.transparenciabr.tb_dossie_aurora_360 — id 6221361d-18b5-407d-a936-decad055be6f"
+      ]
+    },
+    {
+      "id": "F-46",
+      "titulo": "PEC 8/2025 — Redução da jornada para 4 dias/semana · autora principal · >1,5 mi assinaturas predecessora",
+      "classificacao": "ATIVIDADE LEGISLATIVA DE DESTAQUE",
+      "severidade": "INFORMATIVO",
+      "fato": "A PEC 8/2025, apresentada em 25/02/2025 por Erika Hilton como autora principal, propõe alteração ao inciso XIII do art. 7º da CF para 'reduzir a jornada de trabalho para quatro dias por semana no Brasil'. Sucede a PEC do Fim da Escala 6x1 com mais de 1,5 milhão de assinaturas populares. Tramita em fase de assinaturas e comissões em maio/2026.",
+      "analise": "Trata-se da pauta de maior repercussão pública do mandato. A viralização nacional demonstra capacidade de mobilização sem precedente recente na história legislativa brasileira via redes sociais.",
+      "contraditorio": "Atuação legítima no campo legislativo constitucional.",
+      "fontes": [
+        "https://www.camara.leg.br/proposicoesWeb/fichadetramitacao?idProposicao=2485341",
+        "https://www.congressoemfoco.com.br/noticia/106563/saiba-quais-deputados-assinaram-a-pec-pelo-fim-da-escala-6x1"
+      ]
+    },
+    {
+      "id": "F-47",
+      "titulo": "Atividade legislativa — 1.409 proposições · 88 PLs · 12 PECs · 143 frentes parlamentares",
+      "classificacao": "INDICADOR DE PRODUÇÃO LEGISLATIVA",
+      "severidade": "INFORMATIVO",
+      "fato": "A API de Dados Abertos da Câmara registra 1.409 proposições com Erika Hilton como autora ou coautora (mai/2026). Distribuição: 532 RPDs, 487 REQs, 88 PLs, 79 Emendas, 50 DTQs, 27 PRLs, 12 PECs, 8 PDLs, 7 PLPs, 17 INCOs. A parlamentar integra 143 frentes parlamentares (acima da média da Câmara de 50-80) e preside a Frente Parlamentar Mista LGBT+.",
+      "analise": "Volume elevado de proposições. Presidência da CMULHER desde 11/03/2026 (eleita em segundo turno, 11 × 10 brancos). Índice de governismo 86% (Radar do Congresso).",
+      "contraditorio": "Volume e diversidade de proposições refletem atuação parlamentar intensa.",
+      "fontes": [
+        "https://dadosabertos.camara.leg.br/api/v2/proposicoes?idDeputadoAutor=220645",
+        "https://dadosabertos.camara.leg.br/api/v2/deputados/220645/frentes"
+      ]
+    },
+    {
+      "id": "F-48",
+      "titulo": "Eleição 2022 — 256.903 votos · 10ª mais votada SP · custo R$ 5,76/voto · bens declarados R$ 19.989,96",
+      "classificacao": "DADO ELEITORAL OFICIAL",
+      "severidade": "INFORMATIVO",
+      "fato": "Em 2022, Erika Hilton foi eleita Deputada Federal por SP com 256.903 votos — 10ª mais votada do estado — e quociente eleitoral próprio. Receitas declaradas TSE: R$ 1.520.936,59. Despesas: R$ 1.479.837,39. Custo por voto: R$ 5,76. Bens declarados em 2022: R$ 19.989,96 (conforme reportagem Claudio Dantas, base TSE). Em 2020, foi a mulher mais votada do Brasil para vereança (>50.000 votos, SP).",
+      "analise": "Custo por voto de R$ 5,76 é significativamente abaixo da média nacional para deputados federais eleitos em SP (faixa R$ 12-30/voto). O patrimônio declarado de R$ 19.989,96 à entrada do mandato é compatível com o perfil financeiro declarado.",
+      "contraditorio": "Eleição legítima nos termos do sistema proporcional brasileiro.",
+      "fontes": [
+        "https://divulgacandcontas.tse.jus.br/divulga/",
+        "https://radar.congressoemfoco.com.br/parlamentar/1220645/perfil",
+        "https://claudiodantas.com.br/erika-hilton-declarou-ter-r-199-mil-em-bens-nas-eleicoes-valor-e-inferior-a-bolsas-de-deputada/"
+      ]
+    },
+    {
+      "id": "F-49",
+      "titulo": "Pesquisas eleitorais 2026 — 8-10,8% intenção de voto Governo SP · Quaest e Paraná Pesquisas",
+      "classificacao": "INDICADOR DE INSERÇÃO ELEITORAL",
+      "severidade": "INFORMATIVO",
+      "fato": "Três pesquisas eleitorais registram intenção de voto para Erika Hilton no cenário de Governo de SP em 2026: Quaest/Genial (ago/2025) — 8%, 3º lugar; Paraná Pesquisas (mai/2025) — 9,4-9,7%; Paraná Pesquisas (jul/2025) — até 10,8% em cenário estimulado. Tarcísio de Freitas (Republicanos) lidera com 42-46%. A parlamentar declarou à CNN (09/10/2025) manter foco no mandato federal, candidatura ao Governo de SP como cenário em aberto.",
+      "analise": "Presença consistente com tendência ascendente em pesquisas de Governo de SP posiciona a parlamentar como nome viabilizado para disputa majoritária 2026.",
+      "contraditorio": "Pesquisas pré-eleitorais mensuram capital político disponível, não predizem resultado. A parlamentar não confirmou candidatura.",
+      "fontes": [
+        "https://adiadorim.org/noticias/2025/08/erika-hilton-aparece-em-3o-lugar-na-pesquisa-para-governo-de-sp/",
+        "https://www.cnnbrasil.com.br/politica/parana-pesquisas-tarcisio-lidera-cenarios-de-1o-turno-para-governo-de-sp/"
+      ]
+    },
+    {
+      "id": "F-50",
+      "titulo": "Reconhecimento institucional externo — Prêmio Congresso em Foco 2024-2025 · Monitora BR 4ª/DIAP Cabeças",
+      "classificacao": "INDICADOR REPUTACIONAL EXTERNO",
+      "severidade": "INFORMATIVO",
+      "fato": "Registros de reconhecimento externo: (i) Prêmio Congresso em Foco 2024 — Melhor Deputada Federal do país (>88.000 votos); (ii) Prêmio Congresso em Foco 2025 — Melhor Deputada Federal de SP; (iii) Monitora BR Ranking 2025 — 4ª posição geral, 1ª entre parlamentares da esquerda; (iv) DIAP — Cabeças do Congresso 2025. Real Time Big Data (19/03/2026): 84% dos entrevistados desaprovam sua nomeação à presidência da CMULHER.",
+      "analise": "Conjunto de reconhecimentos consolidados por instituições independentes. A contraposição do índice de aprovação da CMULHER (84% de desaprovação) com os prêmios de imprensa especializada ilustra a polarização entre base de apoio e opinião geral.",
+      "contraditorio": "Premiações de mídia política refletem visibilidade e articulação. O índice de desaprovação da CMULHER reflete composição específica de amostra em tema polarizador.",
+      "fontes": [
+        "https://www.congressoemfoco.com.br/noticia/111165/melhor-deputada-federal-de-sp-em-2025-erika-hilton",
+        "https://www.diap.org.br/index.php/noticias/agencia-diap/92307-diap-divulga-os-cabecas-do-congresso-edicao-2025-saiba-quem-sao",
+        "https://dadosabertos.camara.leg.br/api/v2/deputados/220645"
+      ]
+    }
+  ]
+}

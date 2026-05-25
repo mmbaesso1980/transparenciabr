@@ -1,0 +1,77 @@
+# cloudbuild.yaml — Deploy do Cloud Run Service `dossie-v1-pipeline`
+# Acionado por push subscription do tópico Pub/Sub `dossie-v1-pipeline`.
+#
+# Trigger sugerido:
+#   gcloud builds triggers create github \
+#     --name=dossie-v1-pipeline-deploy \
+#     --repo-name=transparenciabr --repo-owner=mmbaesso1980 \
+#     --branch-pattern='^main$' \
+#     --included-files='cloudrun/dossieV1Pipeline/**,manus_office/**' \
+#     --build-config=cloudrun/dossieV1Pipeline/cloudbuild.yaml
+#
+# Vars necessárias no projeto:
+#   _REGION=southamerica-east1  (default)
+#   _SERVICE=dossie-v1-pipeline (default)
+#   _GEMINI_SECRET=GEMINI_API_KEY:latest
+
+substitutions:
+  _REGION: southamerica-east1
+  _SERVICE: dossie-v1-pipeline
+  _GCS_BUCKET: datalake-tbr-clean
+  _GCS_PREFIX: dossies_v1
+  _FIRESTORE_COLLECTION: dossies_v1
+  _MEMORY: 4Gi
+  _CPU: '2'
+  _TIMEOUT: 3600s
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+
+steps:
+  - id: build
+    name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -f
+      - cloudrun/dossieV1Pipeline/Dockerfile
+      - -t
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/transparenciabr/${_SERVICE}:$SHORT_SHA
+      - -t
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/transparenciabr/${_SERVICE}:latest
+      - .
+
+  - id: push-sha
+    name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/transparenciabr/${_SERVICE}:$SHORT_SHA
+
+  - id: push-latest
+    name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/transparenciabr/${_SERVICE}:latest
+
+  - id: deploy
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        gcloud run deploy ${_SERVICE} \
+          --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/transparenciabr/${_SERVICE}:$SHORT_SHA \
+          --region=${_REGION} \
+          --platform=managed \
+          --no-allow-unauthenticated \
+          --memory=${_MEMORY} \
+          --cpu=${_CPU} \
+          --timeout=${_TIMEOUT} \
+          --concurrency=1 \
+          --max-instances=4 \
+          --service-account=dossie-v1-pipeline@$PROJECT_ID.iam.gserviceaccount.com \
+          --set-env-vars=GCS_BUCKET=${_GCS_BUCKET},GCS_PREFIX=${_GCS_PREFIX},FIRESTORE_COLLECTION=${_FIRESTORE_COLLECTION},MANUS_GEMINI_MODEL=gemini-2.5-pro \
+          --set-secrets=GEMINI_API_KEY=GEMINI_API_KEY:latest
+
+images:
+  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/transparenciabr/${_SERVICE}:$SHORT_SHA
+  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/transparenciabr/${_SERVICE}:latest
