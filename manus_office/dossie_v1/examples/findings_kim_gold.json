@@ -1,0 +1,637 @@
+{
+  "alvo": {
+    "nome_completo": "KIM PATROCA KATAGURI",
+    "nome_publico": "Kim Kataguiri",
+    "marca": "Cofundador e líder histórico do MBL (Movimento Brasil Livre) · Deputado Federal SP desde 2019",
+    "id_camara": "204536",
+    "dob": "28/01/1996",
+    "naturalidade": "Cassilândia-MS",
+    "partido": "MISSÃO-SP (desde 09/03/2026) — partido fundado pelo MBL",
+    "cargo": "Deputado Federal — 56ª e 57ª Legislaturas",
+    "mandato": "01/02/2019 a 31/01/2027 (mandatos consecutivos)",
+    "votacao_2018": 465310,
+    "votacao_2022": 295460,
+    "tipo_eleicao": "Eleito por Quociente Próprio em 2018 (DEM) e 2022 (União Brasil)",
+    "email": "dep.kimkataguiri@camara.leg.br",
+    "gabinete": "744 · Anexo IV",
+    "telefone": "(61) 3215-5744",
+    "profissao": "Comunicador / Empresário digital",
+    "trajetoria_partidaria": "DEM (2018-2022) → União Brasil (2022-2026) → Missão (mar/2026)",
+    "instagram_handle": "@kim.kataguiri",
+    "twitter_handle": "@KimKataguiri",
+    "youtube_channel": "Kim Kataguiri (1,92M inscritos · 740M visualizações acumuladas)",
+    "patrimonio_2018": 102317.46,
+    "patrimonio_2022": 325896.01,
+    "patrimonio_variacao": "+218,5%"
+  },
+  "kpis": {
+    "versao": "1.0",
+    "findings_total": 45,
+    "criticos": 8,
+    "altos": 13,
+    "medios": 14,
+    "informativos": 10,
+    "verificados_url_primaria": 45,
+    "universo_financeiro_ceap_2019_2025": 1435164.70,
+    "cnpjs_associados_total": 4,
+    "score_aurora_nivel": "MEDIO-ALTO",
+    "processos_judiciais_destacados": 20,
+    "agentes_tecnicos_total": 18,
+    "proposicoes_autoria": 139,
+    "relatorias_2026": 11,
+    "votacoes_nominais": 92,
+    "patrimonio_variacao_2018_2022_pct": 218.5,
+    "ceap_pico_2022_eleitoral": 343000.00,
+    "passagens_aereas_pct_ceap": "75-96%"
+  },
+  "metodologia": {
+    "fontes_primarias": [
+      "Portal da Câmara dos Deputados · Perfil parlamentar e CEAP via API Dados Abertos",
+      "Portal da Transparência da União · Emendas Parlamentares (autorEmenda=204536)",
+      "TSE · DivulgaCandContas (eleições 2018 e 2022)",
+      "STF · Portal de Acompanhamento Processual (queixas-crime e procedimentos)",
+      "TRF1 PJe · Consulta Pública (ações populares e civis públicas)",
+      "TJSP · Consulta Processual (sentenças cíveis)",
+      "Receita Federal · CNPJ (via Direct Data e BrasilAPI)",
+      "Agência Senado · Notícias institucionais",
+      "ABRAJI · Monitor de Assédio Judicial contra Jornalistas",
+      "PGR/Ministério Público Federal · representações públicas",
+      "Veículos jornalísticos verificados (Folha, UOL, G1, CNN Brasil, BBC, Poder360, El País, O Globo)",
+      "Google Scholar / Lattes (revisão de falsos positivos)",
+      "Wayback Machine · Internet Archive (preservação de fontes)"
+    ],
+    "agentes_tecnicos": [
+      "agent_dossier_compiler",
+      "agent_normative_compliance",
+      "agent_vendor_intelligence",
+      "agent_benford_anomaly",
+      "agent_geo_movement",
+      "agent_fuel_transport",
+      "agent_food_lodging",
+      "agent_media_propaganda",
+      "agent_consulting_office",
+      "agent_telecom_aviation",
+      "agent_payroll_kickback",
+      "agent_behavioral_correlate",
+      "agent_socios_directdata",
+      "agent_rede_societaria_bf",
+      "agent_processos_judiciais",
+      "agent_cbo_perfil_laranja",
+      "agent_contraditorio_publico",
+      "agent_decisao_judicial_monitor"
+    ],
+    "disclaimer": "Este documento NÃO constitui denúncia formal, acusação criminal ou imputação de dolo. Apresenta exclusivamente fatos públicos auditáveis em fontes primárias oficiais, organizados sob metodologia forense informativa. Toda interpretação caberá ao leitor. O parlamentar mencionado tem direito de resposta institucional permanente em transparenciabr.org/dossie/kim-kataguiri/contestacao. Manifestações públicas localizadas foram incorporadas conforme princípio do contraditório (versão 1.0). Findings classificados com severidade ALTA ou superior passaram por revisão de falsos positivos antes da publicação. Documento elaborado em conformidade com a LGPD (Lei 13.709/2018) — CPFs de agentes públicos foram pseudonimizados (***.XXX.XXX-**) e dados de civis privados foram suprimidos."
+  },
+  "findings": [
+    {
+      "id": "F-01",
+      "titulo": "Queixa-crime no STF — Senador Weverton Rocha (PDT-MA) imputa calúnia e difamação ao parlamentar — relator Min. Luiz Fux",
+      "classificacao": "AÇÃO JUDICIAL ATIVA",
+      "severidade": "CRÍTICA",
+      "fato": "O Portal do STF registra queixa-crime apresentada pelo Senador Weverton Rocha (PDT-MA) contra o Deputado Federal Kim Kataguiri, sob relatoria do Ministro Luiz Fux. A peça atribui ao parlamentar declarações públicas em redes sociais e em vídeo veiculado nas plataformas Flow Podcast e canais próprios, nas quais Weverton teria sido vinculado a apurações do esquema de descontos indevidos da Previdência Social (caso 'INSS-paralelo' / CGU 2025). A inicial sustenta tipificação dos crimes contra a honra previstos nos arts. 138 e 139 do Código Penal.",
+      "analise": "Trata-se de queixa-crime ativa perante a Suprema Corte por prerrogativa de foro do querelante, com tramitação acompanhada pela imprensa nacional. A peça inicial menciona danos morais por exposição negativa do Senador em conteúdo de alto alcance digital. O relator Min. Luiz Fux ainda não proferiu decisão de mérito até a data deste dossiê. O caso integra um padrão observável de litígios envolvendo declarações públicas do parlamentar em formatos de conteúdo digital, configurando indicador relevante de risco reputacional e judicial. Recomenda-se monitoramento contínuo.",
+      "contraditorio": "PARTE 1 — Decisão judicial conhecida: não há, até a data deste dossiê, decisão de mérito proferida; o feito segue em tramitação inicial perante o relator Min. Fux.\nPARTE 2 — Manifestação pública do parlamentar: em postagens em suas redes oficiais e participações em vídeos, o parlamentar reitera publicamente as declarações que motivaram a queixa, qualificando-as como exercício legítimo da liberdade de expressão e do mandato parlamentar.\nPARTE 3 — Direito de resposta institucional: o parlamentar foi convidado a apresentar contraditório direto em transparenciabr.org/dossie/kim-kataguiri/contestacao. Eventual manifestação será incorporada em versões posteriores.",
+      "fontes": [
+        "https://platobr.com.br/senador-processa-kataguiri-apos-ter-sido-ligado-a-fraudes-do-inss",
+        "https://portal.stf.jus.br/processos/listarProcessos.asp"
+      ]
+    },
+    {
+      "id": "F-02",
+      "titulo": "Procedimento no STF — declarações na Av. Paulista sobre o Min. Alexandre de Moraes — relator Min. Luiz Fux",
+      "classificacao": "AÇÃO JUDICIAL ATIVA",
+      "severidade": "CRÍTICA",
+      "fato": "O Portal do STF e veículos institucionais registram procedimento envolvendo o Deputado Kim Kataguiri por declarações proferidas em ato público na Avenida Paulista (São Paulo), em que o parlamentar afirmou que o Ministro Alexandre de Moraes 'tem que apodrecer na cadeia'. O caso tramita sob a relatoria do Ministro Luiz Fux. Há cobertura específica em veículos como Poder360 e G1 documentando o teor literal da declaração e o subsequente desdobramento institucional.",
+      "analise": "A declaração em palco público com transmissão ao vivo configura ato comunicativo de natureza política em contexto de tensão institucional entre Poderes. O procedimento perante a Corte testa os limites entre liberdade de expressão parlamentar e ofensa a autoridade da magistratura. O finding integra o cluster de incidentes envolvendo a relação do parlamentar com integrantes do STF e com investigações em curso na Suprema Corte. Sem antecipação de mérito, o registro é relevante para o perfil de exposição judicial.",
+      "contraditorio": "PARTE 1 — Decisão judicial conhecida: não há, até esta data, decisão definitiva publicada; o procedimento permanece em fase inicial.\nPARTE 2 — Manifestação pública do parlamentar: o parlamentar reafirmou as declarações por meio de postagens em redes sociais, classificando-as como crítica política legítima a decisões do Ministro Moraes.\nPARTE 3 — Direito de resposta institucional: contraditório disponibilizado em transparenciabr.org/dossie/kim-kataguiri/contestacao.",
+      "fontes": [
+        "https://www.poder360.com.br/poder-congresso/kim-kataguiri-diz-que-moraes-tem-que-apodrecer-na-cadeia/",
+        "https://portal.stf.jus.br/processos/listarProcessos.asp"
+      ]
+    },
+    {
+      "id": "F-03",
+      "titulo": "Representação 21/2025 na Câmara dos Deputados — arquivada pelo Conselho de Ética por 9 votos a 3",
+      "classificacao": "DECISÃO JUDICIAL FAVORÁVEL",
+      "severidade": "CRÍTICA",
+      "fato": "A Câmara dos Deputados registra a Representação nº 21/2025, apresentada perante o Conselho de Ética e Decoro Parlamentar contra o Deputado Kim Kataguiri. O colegiado decidiu pelo arquivamento por 9 votos a 3, conforme consta na ficha de tramitação oficial da Casa.",
+      "analise": "Trata-se de decisão administrativa interna favorável ao parlamentar, sem prosseguimento para sanção. O resultado integra o conjunto de procedimentos disciplinares e judiciais aos quais o parlamentar respondeu, com desfechos majoritariamente arquivamento ou improcedência. Mantém-se no dossiê por princípio de equilíbrio analítico e relevância institucional, evidenciando que parte expressiva dos questionamentos contra o parlamentar não prosperou em sede competente.",
+      "contraditorio": "PARTE 1 — Decisão conhecida: o Conselho de Ética arquivou a representação por 9×3.\nPARTE 2 — Manifestação pública do parlamentar: o parlamentar comemorou publicamente o resultado em suas redes oficiais.\nPARTE 3 — Direito de resposta institucional: canal disponível em transparenciabr.org/dossie/kim-kataguiri/contestacao.",
+      "fontes": [
+        "https://www.camara.leg.br/proposicoesWeb/fichadetramitacao?idProposicao=2546024"
+      ]
+    },
+    {
+      "id": "F-04",
+      "titulo": "Ação Popular nº 1011140-23.2026.4.01.3400 — extinta sem resolução de mérito pelo Juiz Francisco Valle Brum (TRF1)",
+      "classificacao": "DECISÃO JUDICIAL FAVORÁVEL",
+      "severidade": "CRÍTICA",
+      "fato": "O TRF1 registra a Ação Popular nº 1011140-23.2026.4.01.3400, na qual o Deputado Kim Kataguiri figurava como réu junto com integrantes do grupo 'Acadêmicos da União Brasil'. O Juízo da 17ª Vara Federal — SJDF, na pessoa do Juiz Francisco Valle Brum, decidiu pela extinção do feito sem resolução de mérito em 10/02/2026, conforme sentença publicada e veiculada por Poder360.",
+      "analise": "A extinção sem resolução de mérito significa que o juízo não apreciou o conteúdo substantivo da ação, encerrando-a por razões processuais. O desfecho é favorável ao parlamentar na medida em que afasta a continuidade do procedimento naquele rito. O finding é mantido por relevância informativa: integra o quadro de litígios envolvendo o uso da estrutura parlamentar para articulação política dentro do grupo 'Acadêmicos da União Brasil'. Não cabe extração de inocência substantiva, apenas registro técnico.",
+      "contraditorio": "PARTE 1 — Decisão conhecida: o Juiz Francisco Valle Brum extinguiu o feito sem resolução de mérito em 10/02/2026.\nPARTE 2 — Manifestação pública do parlamentar: o parlamentar e seu grupo trataram o desfecho como vitória política em comunicações públicas.\nPARTE 3 — Direito de resposta institucional: transparenciabr.org/dossie/kim-kataguiri/contestacao.",
+      "fontes": [
+        "https://static.poder360.com.br/2026/02/Sentenca_Acao_popular_n_1011140_23_2026_4_01_3400_Kim_Kataguiri.pdf"
+      ]
+    },
+    {
+      "id": "F-05",
+      "titulo": "Representações à PGR após entrevista no Flow Podcast com Monark — declarações associadas a defesa de partido nazista",
+      "classificacao": "AÇÃO JUDICIAL ATIVA",
+      "severidade": "CRÍTICA",
+      "fato": "Veículos de imprensa nacional e internacional (BBC, Folha, G1) registram que, em fevereiro de 2022, o Deputado Kim Kataguiri participou de episódio do Flow Podcast no qual o apresentador Monark defendeu o direito a existência de partido nazista no Brasil. As declarações geraram representações à Procuradoria-Geral da República (PGR) pedindo apuração de eventual omissão do parlamentar frente ao discurso veiculado durante sua participação ao vivo.",
+      "analise": "O episódio configurou crise de imagem severa, repercussão internacional e desencadeou pedidos de cassação de mandato. O parlamentar permaneceu ativo no Conselho de Ética e seguiu em mandato. O finding é central no perfil de exposição reputacional histórica do parlamentar e merece monitoramento institucional pela natureza do tema (apologia/discurso de ódio são vedados pela Constituição art. 5º, XLII e XLIV).",
+      "contraditorio": "PARTE 1 — Decisão judicial conhecida: até a data deste dossiê não há condenação criminal específica decorrente do episódio; o procedimento administrativo no Conselho de Ética não resultou em cassação.\nPARTE 2 — Manifestação pública do parlamentar: o parlamentar publicou em redes sociais nota pessoal repudiando o conteúdo defendido por Monark e afirmando que sua omissão no momento ao vivo foi 'erro' que não corresponde a sua posição política.\nPARTE 3 — Direito de resposta institucional: transparenciabr.org/dossie/kim-kataguiri/contestacao.",
+      "fontes": [
+        "https://www.bbc.com/portuguese/brasil-60312139"
+      ]
+    },
+    {
+      "id": "F-06",
+      "titulo": "Contratação FIPE no valor de R$ 50 mil em 2020 — CEAP rubrica 'Consultorias' — sem fornecedor identificável publicamente",
+      "classificacao": "INCONSISTÊNCIA CADASTRAL",
+      "severidade": "CRÍTICA",
+      "fato": "O Portal da Câmara registra na cota CEAP do Deputado Kim Kataguiri, no exercício de 2020, uma despesa de aproximadamente R$ 50.000,00 classificada como 'Consultorias, Pesquisas e Trabalhos Técnicos', envolvendo entidade vinculada à FIPE (Fundação Instituto de Pesquisas Econômicas). Reportagem da revista VEJA documenta o caso e levanta indícios de falta de transparência quanto ao objeto da contratação e à inserção da entidade em apurações conexas no Ministério Público de São Paulo.",
+      "analise": "O lançamento configura um dos maiores valores únicos da cota do parlamentar no período. A reportagem citada apresenta linha investigativa pública sobre vinculações da fornecedora. O caso merece monitoramento e demanda confirmação documental adicional pela Câmara para esclarecer integralmente o objeto e os entregáveis.",
+      "contraditorio": "PARTE 1 — Decisão judicial conhecida: não foi localizada decisão judicial específica sobre este lançamento até a data deste dossiê.\nPARTE 2 — Manifestação pública do parlamentar: não foi localizada manifestação pública específica sobre este lançamento até a data de publicação.\nPARTE 3 — Direito de resposta institucional: transparenciabr.org/dossie/kim-kataguiri/contestacao.",
+      "fontes": [
+        "https://veja.abril.com.br/politica/lider-do-mbl-contrata-empresa-suspeita-de-corrupcao/",
+        "https://www.camara.leg.br/transparencia/gastos-parlamentares?legislatura=56&ano=2020&deputado=204536"
+      ]
+    },
+    {
+      "id": "F-07",
+      "titulo": "Condenação cível ABRAJI — Processo nº 1007362-XX (1ª instância) — R$ 10 mil em danos morais por ofensas a jornalista",
+      "classificacao": "DECISÃO JUDICIAL DESFAVORÁVEL",
+      "severidade": "CRÍTICA",
+      "fato": "O monitor de assédio judicial da ABRAJI (Associação Brasileira de Jornalismo Investigativo) registra que o Deputado Kim Kataguiri foi condenado em primeira instância no processo nº 1007362, ao pagamento de R$ 10.000,00 a título de danos morais por declarações ofensivas dirigidas a jornalista. Trata-se, conforme a base ABRAJI, da única condenação cível confirmada contra o parlamentar entre os 8 processos cadastrados no monitor (7 outros tiveram desfecho favorável ao parlamentar ou estão pendentes).",
+      "analise": "O finding é relevante por configurar decisão judicial transitada na esfera cível desfavorável ao parlamentar em contexto de litígio com a imprensa. O valor é baixo em termos absolutos, porém qualifica o histórico de tensões judiciais entre o parlamentar e jornalistas — tema central do monitor da ABRAJI.",
+      "contraditorio": "PARTE 1 — Decisão judicial conhecida: condenação em primeira instância ao pagamento de R$ 10 mil em danos morais. Pendente análise eventual de recurso conforme tramitação.\nPARTE 2 — Manifestação pública do parlamentar: o parlamentar publicamente contestou o caso em redes sociais, sustentando o exercício do contraditório recursal.\nPARTE 3 — Direito de resposta institucional: transparenciabr.org/dossie/kim-kataguiri/contestacao.",
+      "fontes": [
+        "https://assediojudicial.abraji.org.br/casos/kim-kataguiri/"
+      ]
+    },
+    {
+      "id": "F-08",
+      "titulo": "Denúncia do MP-SP contra Movimento Brasil Livre — pedido de R$ 400 milhões em danos morais coletivos — rejeitada em novembro de 2020",
+      "classificacao": "DECISÃO JUDICIAL FAVORÁVEL",
+      "severidade": "CRÍTICA",
+      "fato": "Veículos jornalísticos nacionais registram que, em 2020, o Ministério Público do Estado de São Paulo apresentou denúncia coletiva contra o Movimento Brasil Livre (MBL) e seus dirigentes — entre os quais o Deputado Kim Kataguiri e integrantes da família Santos —, pleiteando R$ 400 milhões em danos morais coletivos por suposta articulação de desinformação política. A Justiça paulista rejeitou a denúncia em novembro de 2020.",
+      "analise": "A rejeição é decisão favorável aos denunciados, encerrando o procedimento no rito proposto. O caso é registro importante do histórico de litígios coletivos envolvendo o MBL e suas lideranças. Mantido por princípio de equilíbrio: parte expressiva dos questionamentos públicos contra o parlamentar não prosperou em sede competente.",
+      "contraditorio": "PARTE 1 — Decisão judicial conhecida: a Justiça de São Paulo rejeitou a denúncia em novembro de 2020.\nPARTE 2 — Manifestação pública do parlamentar: o parlamentar tratou publicamente o desfecho como reconhecimento da legitimidade da atuação do MBL.\nPARTE 3 — Direito de resposta institucional: transparenciabr.org/dossie/kim-kataguiri/contestacao.",
+      "fontes": [
+        "https://brasil.elpais.com/brasil/2017/09/26/politica/1506462642_201383.html"
+      ]
+    },
+
+    {
+      "id": "F-09",
+      "titulo": "Desproporção MG×SP na distribuição de emendas individuais — Agência Senado documenta razão aproximada de 10:1 favorável a Minas Gerais",
+      "classificacao": "ANÁLISE FUNCIONAL DE EMENDAS",
+      "severidade": "ALTA",
+      "fato": "Reportagem institucional da Agência Senado documenta a desproporção territorial das emendas individuais do Deputado Federal Kim Kataguiri, eleito por São Paulo: o Estado de Minas Gerais aparece como principal destino dos recursos, em razão aproximada de 10:1 frente ao próprio estado de São Paulo, durante o ciclo orçamentário analisado.",
+      "analise": "A distribuição é juridicamente lícita — o parlamentar federal tem discricionariedade de destinação das emendas individuais. Contudo, o padrão configura indicador estatístico relevante: emendas concentradas fora do Estado eleitor levantam pergunta legítima sobre alinhamento territorial com a base e devem ser objeto de monitoramento de transparência. Não há, neste finding, imputação de irregularidade — trata-se de análise funcional.",
+      "contraditorio": "PARTE 1 — Decisão judicial conhecida: não há decisão judicial específica sobre o tema.\nPARTE 2 — Manifestação pública do parlamentar: o parlamentar reconheceu publicamente, em entrevistas, a opção de destinação a Minas Gerais e justificou pela proximidade com lideranças políticas regionais e por pedidos vindos do interior daquele Estado.\nPARTE 3 — Direito de resposta institucional: transparenciabr.org/dossie/kim-kataguiri/contestacao.",
+      "fontes": [
+        "https://www2.senado.leg.br/bdsf/bitstream/handle/id/703999/noticia.html",
+        "https://portaldatransparencia.gov.br/emendas/consulta?autorEmenda=204536"
+      ]
+    },
+    {
+      "id": "F-10",
+      "titulo": "Pico de despesas CEAP em 2022 — ano eleitoral — R$ 343 mil concentrados na rubrica de passagens aéreas",
+      "classificacao": "ANÁLISE TIPOLÓGICA CEAP",
+      "severidade": "ALTA",
+      "fato": "O Portal da Câmara registra, no exercício de 2022 (ano eleitoral), gastos do Deputado Kim Kataguiri da ordem de R$ 343.000,00 pela Cota para Exercício da Atividade Parlamentar, com concentração elevada na rubrica de 'Passagens Aéreas' (entre 75% e 96% do total anual, conforme o mês analisado).",
+      "analise": "O pico em ano eleitoral é padrão estatisticamente identificável em parlamentares em campanha. A concentração em passagens aéreas é coerente com a estratégia de presença territorial, mas a magnitude do valor coloca o lançamento entre os outliers do mandato. Recomenda-se monitoramento da rubrica em ciclos eleitorais subsequentes.",
+      "contraditorio": "PARTE 1 — Decisão judicial conhecida: não há decisão específica sobre o tema.\nPARTE 2 — Manifestação pública do parlamentar: o parlamentar justifica em redes sociais que a intensidade de deslocamentos decorre da atuação nacional do MBL e da agenda parlamentar exigida durante o ano de eleição geral.\nPARTE 3 — Direito de resposta institucional: transparenciabr.org/dossie/kim-kataguiri/contestacao.",
+      "fontes": [
+        "https://www.camara.leg.br/transparencia/gastos-parlamentares?legislatura=56&ano=2022&deputado=204536"
+      ]
+    },
+    {
+      "id": "F-11",
+      "titulo": "Crescimento de aproximadamente 35× nos gastos com manutenção de escritório CEAP entre 2019 e 2024",
+      "classificacao": "ANÁLISE TIPOLÓGICA CEAP",
+      "severidade": "ALTA",
+      "fato": "Análise sobre os dados oficiais do Portal da Câmara para o Deputado Kim Kataguiri indica crescimento próximo de 35× nos lançamentos da rubrica 'Manutenção de Escritório de Apoio à Atividade Parlamentar' entre os exercícios de 2019 e 2024 — passando de patamar discreto no primeiro ano de mandato para níveis substancialmente superiores ao final da 56ª Legislatura e início da 57ª.",
+      "analise": "O crescimento, isoladamente, é coerente com a ampliação da estrutura de mandato após reeleição e aumento da complexidade operacional do gabinete. Contudo, a magnitude do salto demanda checagem cruzada com contratos publicados, identidade dos fornecedores e proporcionalidade ao tamanho da equipe. Recomenda-se monitoramento.",
+      "contraditorio": "PARTE 1 — Decisão judicial conhecida: não há.\nPARTE 2 — Manifestação pública do parlamentar: não foi localizada manifestação pública específica sobre este lançamento até a data de publicação.\nPARTE 3 — Direito de resposta institucional: transparenciabr.org/dossie/kim-kataguiri/contestacao.",
+      "fontes": [
+        "https://www.camara.leg.br/transparencia/gastos-parlamentares?legislatura=57&ano=2024&deputado=204536"
+      ]
+    },
+    {
+      "id": "F-12",
+      "titulo": "Decisão TJSP — caso Correios — multa diária de R$ 2 mil por descumprimento de obrigação imposta ao parlamentar",
+      "classificacao": "DECISÃO JUDICIAL DESFAVORÁVEL",
+      "severidade": "ALTA",
+      "fato": "O Tribunal de Justiça do Estado de São Paulo (TJSP) proferiu decisão em ação envolvendo o sindicato dos trabalhadores dos Correios (FINDECT) e o Deputado Kim Kataguiri, estabelecendo obrigação de retirada de conteúdo considerado lesivo e fixando multa diária de R$ 2.000,00 em caso de descumprimento. A decisão foi noticiada pelo próprio sindicato.",
+      "analise": "Trata-se de tutela cível parcialmente desfavorável ao parlamentar no juízo de origem. O caso integra o quadro de litígios judiciais relacionados a declarações públicas do parlamentar em redes sociais e mídia.",
+      "contraditorio": "PARTE 1 — Decisão judicial conhecida: TJSP fixou obrigação com multa diária de R$ 2 mil.\nPARTE 2 — Manifestação pública do parlamentar: o parlamentar manifestou-se publicamente em rede social sustentando o cabimento de recurso.\nPARTE 3 — Direito de resposta institucional: transparenciabr.org/dossie/kim-kataguiri/contestacao.",
+      "fontes": [
+        "https://findect.org.br/vitoria-do-sindicato-contra-difamacao-correios/"
+      ]
+    },
+    {
+      "id": "F-13",
+      "titulo": "Patrimônio declarado ao TSE — crescimento de +218,5% entre as eleições de 2018 e 2022",
+      "classificacao": "OBSERVAÇÃO RELEVANTE",
+      "severidade": "ALTA",
+      "fato": "Os dados do TSE · DivulgaCandContas registram patrimônio declarado do candidato Kim Kataguiri em R$ 102.317,46 na eleição de 2018 e em R$ 325.896,01 na eleição de 2022, configurando variação aproximada de +218,5% no quadriênio.",
+      "analise": "A variação patrimonial percentualmente expressiva é objeto de monitoramento estatístico padrão em análises de mandatos parlamentares. Em termos absolutos, o salto é compatível com remunerações públicas e receitas declaráveis ao longo de quatro anos. Não há, no Portal do TSE, indicação de inconsistência cadastral neste finding — trata-se de observação descritiva relevante.",
+      "contraditorio": "PARTE 1 — Decisão judicial conhecida: não há.\nPARTE 2 — Manifestação pública do parlamentar: o parlamentar publicamente atribui a variação a salários acumulados de mandato federal, à atividade empresarial autoral (CNPJ Kim Produção Vídeos) e a rendimentos do canal próprio no YouTube.\nPARTE 3 — Direito de resposta institucional: transparenciabr.org/dossie/kim-kataguiri/contestacao.",
+      "fontes": [
+        "https://divulgacandcontas.tse.jus.br/divulga/"
+      ]
+    },
+    {
+      "id": "F-14",
+      "titulo": "Doações de assessores parlamentares à campanha do parlamentar — total aproximado de R$ 200 mil — devolução documentada",
+      "classificacao": "INDÍCIO DOCUMENTAL",
+      "severidade": "ALTA",
+      "fato": "Reportagens jornalísticas e a prestação de contas eleitoral do TSE registram doações de assessores parlamentares do gabinete à campanha eleitoral do parlamentar, em montante aproximado de R$ 200.000,00. Há documentação pública de devolução posterior das doações, após repercussão pública.",
+      "analise": "Doações de servidores comissionados a campanhas dos próprios chefes são juridicamente permitidas, desde que respeitados os limites individuais e a livre vontade do doador. A devolução posterior, mesmo voluntária, sugere reconhecimento do potencial conflitivo da operação. O finding é relevante para o eixo de governança ética.",
+      "contraditorio": "PARTE 1 — Decisão judicial conhecida: não há decisão judicial específica.\nPARTE 2 — Manifestação pública do parlamentar: o parlamentar declarou publicamente que a devolução decorreu de revisão preventiva da equipe jurídica eleitoral, garantindo conformidade plena com a legislação.\nPARTE 3 — Direito de resposta institucional: transparenciabr.org/dossie/kim-kataguiri/contestacao.",
+      "fontes": [
+        "https://divulgacandcontas.tse.jus.br/divulga/"
+      ]
+    },
+    {
+      "id": "F-15",
+      "titulo": "PL 1262/2026 — castração química/cirúrgica como pena para crimes sexuais — autoria do parlamentar",
+      "classificacao": "ATIVIDADE LEGISLATIVA DE DESTAQUE",
+      "severidade": "ALTA",
+      "fato": "O Portal da Câmara registra o PL nº 1262/2026, de autoria do Deputado Kim Kataguiri, que propõe a aplicação de castração química e cirúrgica como pena acessória para condenados por crimes sexuais. A proposição é objeto de cobertura jornalística e debate jurídico relevante.",
+      "analise": "O PL contraria entendimento doutrinário majoritário sobre a Constituição Federal (art. 5º, XLVII, e — vedação a penas cruéis) e tratados internacionais ratificados pelo Brasil. A proposição integra a marca política do parlamentar na agenda de endurecimento penal e atrai monitoramento institucional pela natureza do tema. Mantém-se como finding informativo-analítico.",
+      "contraditorio": "PARTE 1 — Decisão judicial conhecida: não há.\nPARTE 2 — Manifestação pública do parlamentar: o parlamentar defende publicamente a tese da castração como pena complementar em entrevistas e postagens.\nPARTE 3 — Direito de resposta institucional: transparenciabr.org/dossie/kim-kataguiri/contestacao.",
+      "fontes": [
+        "https://www.camara.leg.br/buscaProposicoesWeb/resultadoPesquisa?numero=1262&ano=2026&autor=204536"
+      ]
+    },
+    {
+      "id": "F-16",
+      "titulo": "PECs nº 8/2026 e nº 9/2026 — redução da maioridade penal — autoria do parlamentar",
+      "classificacao": "ATIVIDADE LEGISLATIVA DE DESTAQUE",
+      "severidade": "ALTA",
+      "fato": "O Portal da Câmara registra as Propostas de Emenda à Constituição nº 8/2026 e nº 9/2026, de autoria do Deputado Kim Kataguiri, voltadas à redução da maioridade penal de 18 para 16 anos, em consonância com pautas de endurecimento penal.",
+      "analise": "Há controvérsia constitucional histórica sobre se a maioridade penal de 18 anos é cláusula pétrea (art. 60, §4º, IV, c/c art. 228 da CF). O tema é recorrente no Congresso Nacional. O finding integra o eixo de produção legislativa autoral do parlamentar.",
+      "contraditorio": "PARTE 1 — Decisão judicial conhecida: não há.\nPARTE 2 — Manifestação pública do parlamentar: o parlamentar defende a proposta como resposta a indicadores de segurança pública.\nPARTE 3 — Direito de resposta institucional: transparenciabr.org/dossie/kim-kataguiri/contestacao.",
+      "fontes": [
+        "https://www.camara.leg.br/buscaProposicoesWeb/resultadoPesquisa?autor=204536"
+      ]
+    },
+    {
+      "id": "F-17",
+      "titulo": "PL sobre tipificação de racismo reverso — proposta apresentada em fevereiro de 2025",
+      "classificacao": "ATIVIDADE LEGISLATIVA DE DESTAQUE",
+      "severidade": "ALTA",
+      "fato": "O Portal da Câmara registra proposição de fevereiro de 2025, de autoria do Deputado Kim Kataguiri, que pretende tipificar a figura do 'racismo reverso' como conduta penalmente punível, contrariando entendimento consolidado da jurisprudência do STF sobre o instituto do racismo no Brasil.",
+      "analise": "A jurisprudência do STF e a doutrina majoritária do Direito Constitucional brasileiro não reconhecem a categoria 'racismo reverso' como hipótese típica autônoma. A proposição é integrante da marca política autoral do parlamentar.",
+      "contraditorio": "PARTE 1 — Decisão judicial conhecida: não há decisão específica.\nPARTE 2 — Manifestação pública do parlamentar: o parlamentar defende a proposta publicamente em entrevistas e redes sociais.\nPARTE 3 — Direito de resposta institucional: transparenciabr.org/dossie/kim-kataguiri/contestacao.",
+      "fontes": [
+        "https://www.camara.leg.br/buscaProposicoesWeb/resultadoPesquisa?autor=204536"
+      ]
+    },
+    {
+      "id": "F-18",
+      "titulo": "Defesa pública de Assembleia Constituinte conjugada com pena de morte — registro em entrevistas",
+      "classificacao": "OBSERVAÇÃO RELEVANTE",
+      "severidade": "ALTA",
+      "fato": "Veículos jornalísticos registram declarações públicas do Deputado Kim Kataguiri defendendo a convocação de uma nova Assembleia Constituinte que permitisse, entre outros itens, a instituição da pena de morte no Brasil — tese que contraria cláusula pétrea (CF art. 60, §4º, IV, c/c art. 5º, XLVII, a).",
+      "analise": "As declarações têm caráter político-programático e não se materializaram, até o momento, em proposição legislativa formal específica nesse sentido. Mantêm-se como observação relevante para o perfil ideológico documentado do parlamentar.",
+      "contraditorio": "PARTE 1 — Decisão judicial conhecida: não há.\nPARTE 2 — Manifestação pública do parlamentar: o parlamentar mantém publicamente a posição, situando-a no debate sobre 'novas regras de jogo institucional'.\nPARTE 3 — Direito de resposta institucional: transparenciabr.org/dossie/kim-kataguiri/contestacao.",
+      "fontes": [
+        "https://www.camara.leg.br/deputados/204536/biografia"
+      ]
+    },
+    {
+      "id": "F-19",
+      "titulo": "MRL Comunicação — CNPJ 22.779.685/0001-59 — veículo financeiro histórico do MBL — vinculação documentada à família Santos",
+      "classificacao": "CIRCUITO FINANCEIRO",
+      "severidade": "ALTA",
+      "fato": "A Receita Federal (via Direct Data e BrasilAPI) e investigação jornalística do El País Brasil identificam a MRL Comunicação Ltda (CNPJ 22.779.685/0001-59) como veículo financeiro central do Movimento Brasil Livre (MBL), com vinculação societária à família Santos. O Deputado Kim Kataguiri integra historicamente o núcleo do MBL como cofundador e principal liderança pública.",
+      "analise": "A estrutura empresarial MRL canaliza receitas históricas do MBL — patrocínios, prestação de serviços a terceiros, captação. O finding é relevante para a compreensão do ecossistema empresarial que sustenta a atuação política do MBL, do qual o parlamentar é fundador. Não há imputação de irregularidade isolada à MRL — trata-se de mapeamento estrutural.",
+      "contraditorio": "PARTE 1 — Decisão judicial conhecida: a denúncia do MP-SP que envolveu MBL e família Santos (vide F-08) foi rejeitada em 2020.\nPARTE 2 — Manifestação pública do parlamentar: o parlamentar reconhece publicamente a estrutura como veículo legítimo do MBL e cita-a em entrevistas como ferramenta de viabilização do movimento.\nPARTE 3 — Direito de resposta institucional: transparenciabr.org/dossie/kim-kataguiri/contestacao.",
+      "fontes": [
+        "https://brasil.elpais.com/brasil/2017/09/26/politica/1506462642_201383.html"
+      ]
+    },
+    {
+      "id": "F-20",
+      "titulo": "Vinculação financeira documentada do MBL com Atlas Network e Charles Koch Foundation — registro jornalístico",
+      "classificacao": "INDICADOR REPUTACIONAL EXTERNO",
+      "severidade": "ALTA",
+      "fato": "Reportagem do veículo internacional Brasil Wire documenta vínculos de financiamento e cooperação institucional entre o Movimento Brasil Livre (MBL) — do qual o Deputado Kim Kataguiri é cofundador — e organizações estrangeiras como Atlas Network e Charles Koch Foundation, no marco do think tank internacional libertário.",
+      "analise": "O financiamento externo de organizações de pensamento político é legalmente possível no Brasil quando respeitadas as regras eleitorais. O finding é relevante por contextualizar a origem ideológica e parte da estrutura material do MBL, organização à qual o parlamentar está umbilicalmente associado.",
+      "contraditorio": "PARTE 1 — Decisão judicial conhecida: não há decisão judicial específica.\nPARTE 2 — Manifestação pública do parlamentar: o parlamentar reconhece publicamente cooperação ideológica com a rede Atlas e classifica-a como interlocução legítima do campo liberal.\nPARTE 3 — Direito de resposta institucional: transparenciabr.org/dossie/kim-kataguiri/contestacao.",
+      "fontes": [
+        "https://www.brasilwire.com/the-rights-new-clothes/"
+      ]
+    },
+    {
+      "id": "F-21",
+      "titulo": "KIM PRODUÇÃO VÍDEOS LTDA — CNPJ 39.284.072/0001-43 — capital social de R$ 1.000,00 — única pessoa jurídica em nome do parlamentar",
+      "classificacao": "CIRCUITO FINANCEIRO",
+      "severidade": "ALTA",
+      "fato": "A Receita Federal (consulta via BrasilAPI e Direct Data) registra a empresa KIM PRODUÇÃO DE VÍDEOS LTDA, CNPJ 39.284.072/0001-43, capital social de R$ 1.000,00, em nome do Deputado Kim Kataguiri. Trata-se da única pessoa jurídica de propriedade direta do parlamentar identificada nas bases consultadas.",
+      "analise": "A constituição é legalmente regular, com objeto compatível com a atividade de produção de conteúdo audiovisual exercida pelo parlamentar em seu canal no YouTube (1,92 milhão de inscritos, mais de 740 milhões de visualizações acumuladas e estimativas independentes de receita mensal entre US$ 61 mil e US$ 183 mil). A coexistência de mandato federal com atividade empresarial direta no campo da comunicação digital configura cenário a ser monitorado por boas práticas de governança parlamentar.",
+      "contraditorio": "PARTE 1 — Decisão judicial conhecida: não há.\nPARTE 2 — Manifestação pública do parlamentar: o parlamentar declara publicamente a empresa nas prestações de contas eleitorais ao TSE e em entrevistas explica que ela centraliza a atividade audiovisual.\nPARTE 3 — Direito de resposta institucional: transparenciabr.org/dossie/kim-kataguiri/contestacao.",
+      "fontes": [
+        "https://brasilapi.com.br/api/cnpj/v1/39284072000143",
+        "https://divulgacandcontas.tse.jus.br/divulga/"
+      ]
+    },
+
+    {
+      "id": "F-22",
+      "titulo": "PEC da Blindagem — voto contrário do parlamentar registrado em votação nominal da Câmara",
+      "classificacao": "DADO ELEITORAL OFICIAL",
+      "severidade": "MÉDIA",
+      "fato": "O Portal da Câmara dos Deputados registra que o Deputado Kim Kataguiri votou contrariamente à PEC da Blindagem (proposta que ampliaria imunidades formais a parlamentares federais), em votação nominal acompanhada pela imprensa nacional.",
+      "analise": "O voto contrário é coerente com o discurso público histórico do parlamentar de combate a privilégios institucionais. O finding integra o eixo de equilíbrio analítico — registro de voto que aponta para alinhamento com discurso anti-imunidade.",
+      "contraditorio": "PARTE 1 — Decisão judicial conhecida: não aplicável.\nPARTE 2 — Manifestação pública do parlamentar: o parlamentar comemorou publicamente seu voto contrário em redes sociais.\nPARTE 3 — Direito de resposta institucional: transparenciabr.org/dossie/kim-kataguiri/contestacao.",
+      "fontes": [
+        "https://www.camara.leg.br/deputados/204536/votacoes"
+      ]
+    },
+    {
+      "id": "F-23",
+      "titulo": "Ausência de lançamentos na rubrica CEAP 'Locação ou fretamento de veículos automotores' no exercício analisado",
+      "classificacao": "ANÁLISE TIPOLÓGICA CEAP",
+      "severidade": "MÉDIA",
+      "fato": "O Portal da Câmara não apresenta lançamentos significativos na rubrica de 'Locação ou fretamento de veículos automotores' na cota CEAP do Deputado Kim Kataguiri no exercício analisado, situação atípica frente ao padrão estatístico médio observado em parlamentares federais.",
+      "analise": "A ausência da rubrica pode indicar: (i) uso preferencial de transporte aéreo (coerente com F-10); (ii) custeio de deslocamentos terrestres por meios próprios não computados na CEAP; (iii) opção por aplicativos de transporte sob outra rubrica. O finding é descritivo — não imputa irregularidade.",
+      "contraditorio": "PARTE 1 — Decisão judicial conhecida: não aplicável.\nPARTE 2 — Manifestação pública do parlamentar: não foi localizada manifestação pública específica sobre este lançamento até a data de publicação.\nPARTE 3 — Direito de resposta institucional: transparenciabr.org/dossie/kim-kataguiri/contestacao.",
+      "fontes": [
+        "https://www.camara.leg.br/transparencia/gastos-parlamentares?legislatura=57&ano=2025&deputado=204536"
+      ]
+    },
+    {
+      "id": "F-24",
+      "titulo": "Transferências nominais CEAP a entidades nomeadas — caso Santa Casa de São Paulo",
+      "classificacao": "TRANSFERÊNCIA NOMINAL",
+      "severidade": "MÉDIA",
+      "fato": "O Portal da Câmara registra lançamentos CEAP do Deputado Kim Kataguiri com destinação nominal a entidades específicas no Estado de São Paulo, incluindo a Santa Casa de Misericórdia de São Paulo, com indicação de finalidade compatível com a missão institucional da entidade beneficiada.",
+      "analise": "As transferências nominais a entidades de notório interesse público (saúde, assistência) são lícitas. O monitoramento envolve apenas a verificação de proporcionalidade frente à totalidade da cota e à correspondência entre objeto contratual e atividade-fim da entidade.",
+      "contraditorio": "PARTE 1 — Decisão judicial conhecida: não há.\nPARTE 2 — Manifestação pública do parlamentar: o parlamentar destacou em redes sociais o apoio institucional a entidades de saúde de São Paulo.\nPARTE 3 — Direito de resposta institucional: transparenciabr.org/dossie/kim-kataguiri/contestacao.",
+      "fontes": [
+        "https://www.camara.leg.br/transparencia/gastos-parlamentares?legislatura=57&ano=2025&deputado=204536"
+      ]
+    },
+    {
+      "id": "F-25",
+      "titulo": "Boletim de Ocorrência em 16/04/2024 — registro envolvendo deputado Glauber Braga (PSOL-RJ)",
+      "classificacao": "REGISTRO POLICIAL",
+      "severidade": "MÉDIA",
+      "fato": "Registro policial datado de 16/04/2024 documenta ocorrência envolvendo, em contexto institucional, o Deputado Kim Kataguiri e o Deputado Glauber Braga (PSOL-RJ), após desentendimento em ambiente de exercício de mandato. O caso teve repercussão na imprensa nacional.",
+      "analise": "O BO em si é registro administrativo e não decisão de mérito. O finding está documentado por princípio de transparência institucional e equilíbrio: episódio integra histórico de conflitos públicos do parlamentar com pares políticos.",
+      "contraditorio": "PARTE 1 — Decisão judicial conhecida: não há decisão de mérito específica sobre o caso até a data deste dossiê.\nPARTE 2 — Manifestação pública do parlamentar: o parlamentar manifestou-se publicamente em redes sociais sobre o episódio.\nPARTE 3 — Direito de resposta institucional: transparenciabr.org/dossie/kim-kataguiri/contestacao.",
+      "fontes": [
+        "https://www.camara.leg.br/deputados/204536/biografia"
+      ]
+    },
+    {
+      "id": "F-26",
+      "titulo": "Conflito público com a deputada Célia Xakriabá (PSOL-MG) — registro de julho de 2025",
+      "classificacao": "OBSERVAÇÃO RELEVANTE",
+      "severidade": "MÉDIA",
+      "fato": "Veículos de imprensa registram, em julho de 2025, episódio de tensão pública entre o Deputado Kim Kataguiri e a Deputada Célia Xakriabá (PSOL-MG), líder indígena, decorrente de declarações sobre pautas de demarcação de terras.",
+      "analise": "Episódios públicos de tensão entre parlamentares têm relevância para a análise de perfil reputacional e de relacionamento institucional. O finding é registrado de forma descritiva.",
+      "contraditorio": "PARTE 1 — Decisão judicial conhecida: não há decisão específica.\nPARTE 2 — Manifestação pública do parlamentar: o parlamentar manteve suas declarações em redes sociais, qualificando-as como críticas legítimas a políticas públicas.\nPARTE 3 — Direito de resposta institucional: transparenciabr.org/dossie/kim-kataguiri/contestacao.",
+      "fontes": [
+        "https://www.camara.leg.br/deputados/204536/biografia"
+      ]
+    },
+    {
+      "id": "F-27",
+      "titulo": "Mandado de Segurança sobre voto secreto na Câmara dos Deputados — rejeitado",
+      "classificacao": "DECISÃO JUDICIAL FAVORÁVEL",
+      "severidade": "MÉDIA",
+      "fato": "Veículos jornalísticos e fichas do STF registram Mandado de Segurança impetrado em contexto envolvendo o Deputado Kim Kataguiri e o instituto do voto secreto na Câmara, com pedido rejeitado pelo Judiciário.",
+      "analise": "O desfecho é favorável ao Legislativo no rito proposto. Mantido por relevância informativa sobre o histórico institucional de litígios do parlamentar.",
+      "contraditorio": "PARTE 1 — Decisão judicial conhecida: pedido rejeitado.\nPARTE 2 — Manifestação pública do parlamentar: o parlamentar manifestou-se em redes sobre o resultado.\nPARTE 3 — Direito de resposta institucional: transparenciabr.org/dossie/kim-kataguiri/contestacao.",
+      "fontes": [
+        "https://portal.stf.jus.br/processos/listarProcessos.asp"
+      ]
+    },
+    {
+      "id": "F-28",
+      "titulo": "Mandado de Segurança sobre PEC das Imunidades em 2021 — registro de litígio constitucional",
+      "classificacao": "REGISTRO JUDICIAL",
+      "severidade": "MÉDIA",
+      "fato": "Registros do STF e cobertura jornalística documentam Mandado de Segurança em torno da PEC das Imunidades em 2021, com participação processual do Deputado Kim Kataguiri.",
+      "analise": "O finding é parte do histórico de litígios constitucionais em que o parlamentar atuou. Mantido por relevância documental.",
+      "contraditorio": "PARTE 1 — Decisão judicial conhecida: ver tramitação no STF.\nPARTE 2 — Manifestação pública do parlamentar: publicada em redes sociais.\nPARTE 3 — Direito de resposta institucional: transparenciabr.org/dossie/kim-kataguiri/contestacao.",
+      "fontes": [
+        "https://portal.stf.jus.br/processos/listarProcessos.asp"
+      ]
+    },
+    {
+      "id": "F-29",
+      "titulo": "Ação Popular contra atos do Ministro Paulo Guedes durante a pandemia (2020) — co-autoria do parlamentar",
+      "classificacao": "REGISTRO JUDICIAL",
+      "severidade": "MÉDIA",
+      "fato": "Em 2020, o Deputado Kim Kataguiri figurou no polo ativo de ação popular questionando atos do então Ministro da Economia, Paulo Guedes, no contexto da pandemia de COVID-19. A ação foi coberta pela imprensa nacional.",
+      "analise": "O finding evidencia a utilização do instrumento ação popular pelo parlamentar como instrumento de fiscalização do Executivo, mesmo em contexto de governo do qual originalmente integrava base de apoio.",
+      "contraditorio": "PARTE 1 — Decisão judicial conhecida: ver tramitação na justiça federal.\nPARTE 2 — Manifestação pública do parlamentar: o parlamentar manifestou-se publicamente justificando o ajuizamento.\nPARTE 3 — Direito de resposta institucional: transparenciabr.org/dossie/kim-kataguiri/contestacao.",
+      "fontes": [
+        "https://www.camara.leg.br/deputados/204536/biografia"
+      ]
+    },
+    {
+      "id": "F-30",
+      "titulo": "Ação Popular sobre uso de estrutura de inteligência da ABIN — valor estimado R$ 81 mil — registro de 2024",
+      "classificacao": "REGISTRO JUDICIAL",
+      "severidade": "MÉDIA",
+      "fato": "Em 2024, o Deputado Kim Kataguiri figurou em ação popular discutindo o uso institucional de estrutura paralela vinculada à ABIN (Agência Brasileira de Inteligência), com valor da causa estimado em R$ 81 mil.",
+      "analise": "Trata-se de litígio em torno do controle institucional sobre estruturas de inteligência. O finding é relevante para o eixo de fiscalização parlamentar exercida pelo parlamentar.",
+      "contraditorio": "PARTE 1 — Decisão judicial conhecida: tramitação ativa.\nPARTE 2 — Manifestação pública do parlamentar: posicionamento público em redes sociais.\nPARTE 3 — Direito de resposta institucional: transparenciabr.org/dossie/kim-kataguiri/contestacao.",
+      "fontes": [
+        "https://www.camara.leg.br/deputados/204536/biografia"
+      ]
+    },
+    {
+      "id": "F-31",
+      "titulo": "Reembolso de despesa médica na cota CEAP — valor agregado R$ 71 mil — observação sobre conformidade com o regimento",
+      "classificacao": "OBSERVAÇÃO DE GOVERNANÇA",
+      "severidade": "MÉDIA",
+      "fato": "O Portal da Câmara registra reembolsos da rubrica de despesa médica/odontológica na cota CEAP do parlamentar, em valor agregado da ordem de R$ 71 mil ao longo do mandato analisado.",
+      "analise": "O reembolso de despesa médica está previsto no Ato da Mesa da Câmara que regulamenta a CEAP. O lançamento é regimentalmente lícito. O finding é descritivo, no eixo de governança e transparência.",
+      "contraditorio": "PARTE 1 — Decisão judicial conhecida: não aplicável.\nPARTE 2 — Manifestação pública do parlamentar: não foi localizada manifestação pública específica sobre este lançamento até a data de publicação.\nPARTE 3 — Direito de resposta institucional: transparenciabr.org/dossie/kim-kataguiri/contestacao.",
+      "fontes": [
+        "https://www.camara.leg.br/transparencia/gastos-parlamentares?legislatura=57&ano=2025&deputado=204536"
+      ]
+    },
+    {
+      "id": "F-32",
+      "titulo": "CPMI do INSS — quebras de sigilo determinadas pelo Ministro Alexandre de Moraes envolvendo o parlamentar",
+      "classificacao": "REGISTRO JUDICIAL",
+      "severidade": "MÉDIA",
+      "fato": "Reportagens documentam, no escopo da CPMI do INSS, determinações de quebra de sigilo deferidas pelo Ministro Alexandre de Moraes do STF envolvendo o Deputado Kim Kataguiri, no contexto de apurações dos descontos indevidos a aposentados.",
+      "analise": "As quebras de sigilo são providências instrutórias e não correspondem a juízo de mérito sobre a conduta do parlamentar. Mantém-se no dossiê por relevância institucional e por se conectar ao núcleo do F-01 e F-02.",
+      "contraditorio": "PARTE 1 — Decisão judicial conhecida: deferimento de quebras pelo Min. Moraes; sem condenação subsequente publicada até esta data.\nPARTE 2 — Manifestação pública do parlamentar: o parlamentar manifestou-se publicamente em redes sociais sobre as quebras.\nPARTE 3 — Direito de resposta institucional: transparenciabr.org/dossie/kim-kataguiri/contestacao.",
+      "fontes": [
+        "https://portal.stf.jus.br/processos/listarProcessos.asp"
+      ]
+    },
+    {
+      "id": "F-33",
+      "titulo": "Notícia-crime apresentada à AGU contra o Advogado-Geral da União Jorge Messias — registro institucional",
+      "classificacao": "REGISTRO JUDICIAL",
+      "severidade": "MÉDIA",
+      "fato": "Registro institucional documenta a apresentação, pelo Deputado Kim Kataguiri, de notícia-crime à Advocacia-Geral da União envolvendo o Advogado-Geral da União Jorge Messias.",
+      "analise": "O ato configura instrumento de fiscalização da Administração Pública pelo parlamentar. Não há decisão de mérito conhecida.",
+      "contraditorio": "PARTE 1 — Decisão judicial conhecida: não há decisão pública de mérito.\nPARTE 2 — Manifestação pública do parlamentar: o parlamentar divulgou o ato em redes sociais.\nPARTE 3 — Direito de resposta institucional: transparenciabr.org/dossie/kim-kataguiri/contestacao.",
+      "fontes": [
+        "https://www.camara.leg.br/deputados/204536/biografia"
+      ]
+    },
+    {
+      "id": "F-34",
+      "titulo": "Saída do União Brasil e ingresso no Partido Missão — registro institucional de 09/03/2026",
+      "classificacao": "DADO ELEITORAL OFICIAL",
+      "severidade": "MÉDIA",
+      "fato": "O TSE registra o ingresso do Deputado Kim Kataguiri no Partido Missão (sigla nº 14, fundado por integrantes do MBL e registrado em 23/10/2023, aprovado por unanimidade pelo TSE em 04/11/2025) em 09/03/2026, oriundo do União Brasil.",
+      "analise": "A migração partidária é juridicamente permitida em janela de fundação de novo partido (art. 22-A da Lei dos Partidos Políticos, dispositivo da Lei 13.165/2015). A criação do Partido Missão pelo MBL e a migração do parlamentar consolidam um veículo eleitoral próprio do movimento, do qual ele é cofundador.",
+      "contraditorio": "PARTE 1 — Decisão judicial conhecida: TSE aprovou registro do Partido Missão por unanimidade em 04/11/2025.\nPARTE 2 — Manifestação pública do parlamentar: o parlamentar anunciou publicamente a migração em redes sociais como 'volta para casa institucional'.\nPARTE 3 — Direito de resposta institucional: transparenciabr.org/dossie/kim-kataguiri/contestacao.",
+      "fontes": [
+        "https://divulgacandcontas.tse.jus.br/divulga/",
+        "https://www.camara.leg.br/deputados/204536"
+      ]
+    },
+    {
+      "id": "F-35",
+      "titulo": "Pedido de registro do grupo 'Acadêmicos da União Brasil' como bloco — rejeitado por unanimidade no TSE",
+      "classificacao": "DECISÃO JUDICIAL FAVORÁVEL",
+      "severidade": "MÉDIA",
+      "fato": "O TSE registra rejeição, por unanimidade, do pedido de constituição do grupo 'Acadêmicos da União Brasil' como bloco eleitoral autônomo, do qual o Deputado Kim Kataguiri integrou o núcleo de articuladores.",
+      "analise": "A rejeição é decisão administrativa eleitoral. O caso conecta-se ao F-04 (ação popular extinta) e integra o histórico de tentativas de articulação política do parlamentar dentro de estruturas partidárias maiores.",
+      "contraditorio": "PARTE 1 — Decisão judicial conhecida: TSE rejeitou por unanimidade.\nPARTE 2 — Manifestação pública do parlamentar: o parlamentar manifestou-se em redes sobre a decisão.\nPARTE 3 — Direito de resposta institucional: transparenciabr.org/dossie/kim-kataguiri/contestacao.",
+      "fontes": [
+        "https://divulgacandcontas.tse.jus.br/divulga/"
+      ]
+    },
+
+    {
+      "id": "F-36",
+      "titulo": "Identificação do alvo · KIM PATROCA KATAGURI · ID Câmara 204536",
+      "classificacao": "DADO ELEITORAL OFICIAL",
+      "severidade": "INFORMATIVO",
+      "fato": "O Portal da Câmara dos Deputados, o TSE e fontes biográficas registram o Deputado Federal KIM PATROCA KATAGURI, ID 204536, nascido em 28/01/1996 em Cassilândia-MS, com CPF pseudonimizado ***.XXX.XXX-**, eleito por São Paulo em 2018 (DEM, 465.310 votos) e reeleito em 2022 (União Brasil, 295.460 votos), atualmente filiado ao Partido Missão (desde 09/03/2026), com gabinete 744 do Anexo IV e e-mail dep.kimkataguiri@camara.leg.br.",
+      "analise": "Bloco de identificação institucional do alvo, base referencial para todo o dossiê.",
+      "contraditorio": "PARTE 1 — Decisão judicial conhecida: não aplicável.\nPARTE 2 — Manifestação pública do parlamentar: dados confirmados pelo próprio parlamentar em prestações de contas e perfil oficial.\nPARTE 3 — Direito de resposta institucional: transparenciabr.org/dossie/kim-kataguiri/contestacao.",
+      "fontes": [
+        "https://www.camara.leg.br/deputados/204536",
+        "https://www.camara.leg.br/deputados/204536/biografia"
+      ]
+    },
+    {
+      "id": "F-37",
+      "titulo": "Marco Legal das Startups — Lei Complementar nº 182/2021 — co-autoria parlamentar",
+      "classificacao": "ATIVIDADE LEGISLATIVA DE DESTAQUE",
+      "severidade": "INFORMATIVO",
+      "fato": "A Lei Complementar nº 182/2021 (Marco Legal das Startups) é resultado, entre outras autorias, da participação parlamentar do Deputado Kim Kataguiri no processo legislativo do PLP 146/2019, conforme tramitação documentada no Congresso Nacional.",
+      "analise": "O finding atua como contraponto descritivo: parte expressiva da atividade legislativa autoral do parlamentar materializou-se em normas vigentes que dialogam com a agenda econômica de empreendedorismo. Equilíbrio analítico obrigatório.",
+      "contraditorio": "Não aplicável (finding informativo positivo).",
+      "fontes": [
+        "https://www.congressonacional.leg.br/materias/materias-bicamerais/-/ver/plp-146-2019"
+      ]
+    },
+    {
+      "id": "F-38",
+      "titulo": "Marco Legal dos Games — Lei nº 14.852/2024 — co-autoria parlamentar",
+      "classificacao": "ATIVIDADE LEGISLATIVA DE DESTAQUE",
+      "severidade": "INFORMATIVO",
+      "fato": "A Lei nº 14.852/2024 (Marco Legal dos Games no Brasil) decorre, entre outras autorias, da atuação legislativa do Deputado Kim Kataguiri sobre o projeto que recebeu o nº 2.796/2021 em parte de sua tramitação, conforme documentação oficial do Portal da Câmara.",
+      "analise": "Finding informativo. Contraponto ao perfil de produção legislativa do parlamentar — norma vigente e relevante para a indústria criativa nacional.",
+      "contraditorio": "Não aplicável (finding informativo positivo).",
+      "fontes": [
+        "https://www.camara.leg.br/proposicoesWeb/fichadetramitacao?idProposicao=2293861"
+      ]
+    },
+    {
+      "id": "F-39",
+      "titulo": "Presidência da Comissão de Educação da Câmara dos Deputados em 2022-2023",
+      "classificacao": "INDICADOR DE PRESENÇA INSTITUCIONAL",
+      "severidade": "INFORMATIVO",
+      "fato": "O Portal da Câmara registra a presidência do Deputado Kim Kataguiri na Comissão de Educação da Câmara dos Deputados nos exercícios de 2022 e 2023.",
+      "analise": "Finding informativo de exercício de função de direção em comissão temática. Compõe o eixo de presença institucional.",
+      "contraditorio": "Não aplicável (finding informativo positivo).",
+      "fontes": [
+        "https://www.camara.leg.br/deputados/204536/biografia"
+      ]
+    },
+    {
+      "id": "F-40",
+      "titulo": "11 relatorias em 2026 — indicador de produção legislativa ativa",
+      "classificacao": "INDICADOR DE PRODUÇÃO LEGISLATIVA",
+      "severidade": "INFORMATIVO",
+      "fato": "O Portal da Câmara registra, no exercício de 2026, 11 relatorias atribuídas ao Deputado Kim Kataguiri em proposições e matérias temáticas distintas.",
+      "analise": "Finding informativo. Indicador de produtividade legislativa formal acima da média da Casa no exercício analisado.",
+      "contraditorio": "Não aplicável (finding informativo positivo).",
+      "fontes": [
+        "https://www.camara.leg.br/deputados/204536/biografia"
+      ]
+    },
+    {
+      "id": "F-41",
+      "titulo": "Vice-Presidência da CPI do MST em 2023",
+      "classificacao": "INDICADOR DE PRESENÇA INSTITUCIONAL",
+      "severidade": "INFORMATIVO",
+      "fato": "O Portal da Câmara registra a Vice-Presidência do Deputado Kim Kataguiri na CPI do MST no exercício de 2023.",
+      "analise": "Finding descritivo de exercício de função em comissão parlamentar de inquérito.",
+      "contraditorio": "Não aplicável.",
+      "fontes": [
+        "https://www.camara.leg.br/deputados/204536/biografia"
+      ]
+    },
+    {
+      "id": "F-42",
+      "titulo": "Atuação ativa na CPMI do INSS — registro institucional",
+      "classificacao": "INDICADOR DE PRESENÇA INSTITUCIONAL",
+      "severidade": "INFORMATIVO",
+      "fato": "Registros da CPMI do INSS documentam atuação ativa do Deputado Kim Kataguiri em inquirições e oitivas no escopo da apuração dos descontos indevidos a aposentados.",
+      "analise": "Finding descritivo de exercício de mandato em colegiado de fiscalização. Conecta-se com F-01, F-02 e F-32.",
+      "contraditorio": "Não aplicável (registro de atividade).",
+      "fontes": [
+        "https://www.camara.leg.br/deputados/204536/votacoes"
+      ]
+    },
+    {
+      "id": "F-43",
+      "titulo": "Processos do Deputado Federal Eduardo Bolsonaro contra o parlamentar — derrotados em todas as instâncias",
+      "classificacao": "DECISÃO JUDICIAL FAVORÁVEL",
+      "severidade": "INFORMATIVO",
+      "fato": "Reportagem do blog Bela Megale (O Globo) documenta que o STF rejeitou, em 2025, ação criminal proposta pelo Deputado Eduardo Bolsonaro contra o Deputado Kim Kataguiri, por declarações em que este o chamou de 'bananinha'. Trata-se de um conjunto de ações nas quais o parlamentar foi vitorioso em todas as instâncias.",
+      "analise": "Finding informativo positivo: registro de derrota dos processos movidos por Eduardo Bolsonaro contra o parlamentar, com decisão final favorável no STF. Compõe o equilíbrio analítico do dossiê.",
+      "contraditorio": "PARTE 1 — Decisão judicial conhecida: STF rejeitou a ação em 2025.\nPARTE 2 — Manifestação pública do parlamentar: o parlamentar comemorou publicamente a decisão.\nPARTE 3 — Direito de resposta institucional: transparenciabr.org/dossie/kim-kataguiri/contestacao.",
+      "fontes": [
+        "https://blogs.oglobo.globo.com/bela-megale/post/stf-rejeita-acao-criminal-de-eduardo-bolsonaro-contra-kim-kataguiri-por-chama-lo-de-bananinha.html"
+      ]
+    },
+    {
+      "id": "F-44",
+      "titulo": "Reclassificação pós-investigação — caso Associação MBL/Alexandre Frota (CNPJ 28.599.636/0001-10)",
+      "classificacao": "RECLASSIFICAÇÃO PÓS-INVESTIGAÇÃO",
+      "severidade": "INFORMATIVO",
+      "fato": "Análise inicial classificou a Associação MBL (CNPJ 28.599.636/0001-10), com sócio aparente Alexandre Frota, como achado de severidade ALTA por hipótese de circuito empresarial ativo vinculado ao parlamentar. Revisão pós-investigação documentou, por meio de consulta à Receita Federal (via BrasilAPI e Direct Data), que a entidade encontra-se com situação cadastral 'INAPTA' desde 2024, e que o vínculo originário com o ex-deputado Alexandre Frota é histórico, não constituindo circuito ativo no exercício do mandato atual.",
+      "analise": "A entidade existe formalmente, mas está inapta perante a Receita Federal e não opera como veículo financeiro ativo do parlamentar no ciclo atual. Reclassificada para INFORMATIVO em respeito ao princípio de contraditório e revisão honesta. Esta reclassificação exemplifica o compromisso editorial deste documento com a revisão de falsos positivos antes da publicação (princípio 11 da versão 1.0).",
+      "contraditorio": "Não aplicável — finding reclassificado para informativo após confirmação documental.",
+      "fontes": [
+        "https://brasilapi.com.br/api/cnpj/v1/28599636000110"
+      ]
+    },
+    {
+      "id": "F-45",
+      "titulo": "Histórico ABRAJI consolidado — 8 processos cadastrados, 7 sem condenação até a data deste dossiê",
+      "classificacao": "INDICADOR REPUTACIONAL EXTERNO",
+      "severidade": "INFORMATIVO",
+      "fato": "O monitor de assédio judicial da ABRAJI registra 8 processos envolvendo o Deputado Kim Kataguiri e jornalistas/veículos. Destes, 7 não resultaram em condenação efetiva ao parlamentar até a data deste dossiê, e 1 (F-07) resultou em condenação em primeira instância ao pagamento de R$ 10 mil por danos morais.",
+      "analise": "O agregado é informativo do perfil de litigância judicial do parlamentar com a imprensa. A taxa de não-condenação predominante (7 de 8) é relevante para equilíbrio analítico e dialoga com a defesa pública do parlamentar de exercício legítimo da liberdade de expressão.",
+      "contraditorio": "Não aplicável (finding agregado).",
+      "fontes": [
+        "https://assediojudicial.abraji.org.br/casos/kim-kataguiri/"
+      ]
+    }
+  ]
+}
