@@ -43,6 +43,15 @@ sys.path.insert(0, str(MANUS_DIR))
 
 from agent_registry import CREW_DOSSIE_FORENSE_V1, MAESTRO  # noqa: E402
 
+# Import opcional da fase de revisão v1.1 (não falha se módulo ausente).
+try:
+    from pipeline.review_phase import review_phase as _review_phase  # type: ignore
+except ImportError:
+    try:
+        from dossie_v1.pipeline.review_phase import review_phase as _review_phase  # type: ignore
+    except ImportError:
+        _review_phase = None  # type: ignore[assignment]
+
 # Import opcional do agente de notícias (11º addon).
 try:
     from agents.news_realtime import coletar_noticias_atuais  # type: ignore
@@ -585,6 +594,39 @@ def run_pipeline(
         f"sweet_spot_ok={doc['_meta']['sweet_spot_atingido']}"
     )
 
+    # 4b. 🆕 v1.1 — Fase de revisão automatizada (6 agentes em paralelo).
+    review_warnings: list[str] = []
+    if _review_phase is not None:
+        try:
+            print("[pipeline] iniciando fase de revisão automatizada (v1.1)…")
+            review_result = asyncio.run(
+                _review_phase(slug=slug, findings_path=findings_path, max_retries=2)
+            )
+            review_warnings = review_result.get("warnings", [])
+            if review_result.get("corrections_applied") and review_result.get("corrected_findings"):
+                # Substitui findings pelo conjunto corrigido e re-persiste
+                corrected = review_result["corrected_findings"]
+                # Preserva estrutura do doc, apenas substitui lista de findings
+                if isinstance(doc.get("findings"), list):
+                    doc["findings"] = corrected
+                else:
+                    doc = corrected
+                findings_path.write_text(
+                    json.dumps(doc, ensure_ascii=False, indent=2), encoding="utf-8"
+                )
+                print(f"[pipeline] findings.json re-salvo após correções de revisão")
+            if review_warnings:
+                print(
+                    f"[pipeline] revisão concluída com {len(review_warnings)} warning(s) — "
+                    "publicando com flag review_warnings."
+                )
+            else:
+                print("[pipeline] revisão aprovada sem warnings.")
+        except Exception as exc:  # noqa: BLE001
+            sys.stderr.write(f"[warn] fase de revisão falhou (não bloqueia): {exc}\n")
+    else:
+        print("[pipeline] fase de revisão indisponível (módulo não encontrado) — pulando.")
+
     # 5. PDF.
     pdf_ok = False
     if not skip_pdf:
@@ -600,13 +642,15 @@ def run_pipeline(
             {
                 "findings_path": str(findings_path),
                 "pdf_path": str(pdf_path) if pdf_ok else "",
-                "findings_total": doc["kpis"]["findings_total"],
+                "findings_total": doc["kpis"]["findings_total"] if isinstance(doc, dict) and "kpis" in doc else len(doc) if isinstance(doc, list) else 0,
+                "review_warnings": review_warnings,
             },
         )
 
     return {
         "findings_path": str(findings_path),
         "pdf_path": str(pdf_path) if pdf_ok else "",
+        "review_warnings": review_warnings,
         "doc": doc,
     }
 

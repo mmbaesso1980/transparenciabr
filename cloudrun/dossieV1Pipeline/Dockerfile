@@ -20,6 +20,7 @@ COPY cloudrun/dossieV1Pipeline/requirements.txt /app/requirements-job.txt
 RUN pip install --no-cache-dir -r /app/requirements-job.txt
 
 # Copia toda a árvore necessária (manus_office com pipeline + agentes + skill + fonts).
+# Inclui: dossie_v1/agents/revisores/ (6 agentes v1.1) e dossie_v1/pipeline/review_phase.py
 COPY manus_office /app/manus_office
 COPY cloudrun/dossieV1Pipeline/main.py /app/main.py
 
