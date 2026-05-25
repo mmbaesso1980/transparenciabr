@@ -1,0 +1,11 @@
+node_modules/
+dist/
+dev-dist/
+.env
+.env.local
+.env.*.local
+.DS_Store
+*.log
+*.tsbuildinfo
+public/icon-192.png
+public/icon-512.png
