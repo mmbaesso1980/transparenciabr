@@ -5,6 +5,7 @@ import {
   Hexagon,
   LayoutDashboard,
   Shield,
+  Users,
 } from "lucide-react";
 import { NavLink, Outlet } from "react-router-dom";
 
@@ -56,6 +57,20 @@ export default function DashboardLayout() {
           }
         >
           <Coins className="size-[1.35rem]" strokeWidth={1.75} />
+        </NavLink>
+        <NavLink
+          to="/escritorio"
+          title="Escritório · Legião 100"
+          className={({ isActive }) =>
+            [
+              "flex size-10 items-center justify-center rounded-xl border transition-colors",
+              isActive
+                ? "border-[var(--border-subtle)] bg-[var(--bg-elevated)] text-[var(--accent-primary)]"
+                : "border-transparent text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)]",
+            ].join(" ")
+          }
+        >
+          <Users className="size-[1.35rem]" strokeWidth={1.75} />
         </NavLink>
         <NavLink
           to="/universo"
@@ -116,6 +131,9 @@ export default function DashboardLayout() {
             <CreditosGOD />
             <NavLink to="/status" className={navTabClass}>
               Status
+            </NavLink>
+            <NavLink to="/escritorio" className={navTabClass}>
+              Escritório
             </NavLink>
             <NavLink to="/universo" className={navTabClass}>
               Universo
