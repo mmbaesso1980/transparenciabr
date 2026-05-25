@@ -37,7 +37,9 @@ const EmpresasPrefeiturasPage = lazy(() => import("./pages/EmpresasPrefeiturasPa
 const AnomaliesPage = lazy(() => import("./pages/AnomaliesPage.jsx"));
 const RiscoPage = lazy(() => import("./pages/RiscoPage.jsx"));
 const ConsentFormPage = lazy(() => import("./pages/ConsentForm/ConsentForm.tsx"));
-const EscritorioPage = lazy(() => import("./pages/EscritorioPage.jsx"));
+const EscritorioPage   = lazy(() => import("./pages/EscritorioPage.jsx"));
+const RevisaoPage      = lazy(() => import("./pages/RevisaoPage.jsx"));
+const EscritorioHQPage = lazy(() => import("./pages/EscritorioHQPage.jsx"));
 
 // Vite: BASE_URL costuma ser "/" ou "/subpath/" (com barra final). React Router: basename sem barra final;
 // na raiz omitimos a prop.
@@ -141,7 +143,9 @@ export default function App() {
                     <Route path="/mapa" element={<MapaPage />} />
                     <Route path="/alertas" element={<AlertasPage />} />
                     <Route path="/perfil" element={<PerfilPage />} />
-                    <Route path="/escritorio" element={<EscritorioPage />} />
+                    <Route path="/escritorio"    element={<EscritorioPage />} />
+                    <Route path="/revisao"       element={<RevisaoPage />} />
+                    <Route path="/escritorio-hq" element={<EscritorioHQPage />} />
                   </Route>
                 </Route>
 
