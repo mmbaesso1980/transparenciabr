@@ -7,6 +7,26 @@
 > PDF tom INFORMATIVO em GCS), reaproveitando a Legião 100 (`manus_office/`) e
 > a infra Firebase já existente.
 
+## Otimização de custos (cross-project billing)
+
+O deploy distribui compute e dados em dois projetos GCP para queimar o crédito **GenAI App Builder Trial** (R$ 5.677,28 em `projeto-codex-br`, expira 03/05/2027):
+
+| Projeto | Recursos |
+|---|---|
+| `transparenciabr` | Firebase Hosting, Firestore, Cloud Function `iniciarDossieV1`, BigQuery, GCS `datalake-tbr-clean` |
+| `projeto-codex-br` | Pub/Sub `dossie-v1-pipeline`, Cloud Run Job `dossie-v1-pipeline`, Artifact Registry, Vertex AI (Gemini 2.5 Pro/Flash), Eventarc trigger |
+
+A SA `queima-vertex@projeto-codex-br` tem permissões cross-project (`roles/datastore.user` + `roles/storage.objectAdmin` em `transparenciabr`) para escrever de volta no Firestore e fazer upload do PDF no bucket de dados. A Cloud Function callable (em `transparenciabr`) tem `roles/pubsub.publisher` em `projeto-codex-br` para enfileirar jobs.
+
+Ver detalhes em `infrastructure/env_dossie_v1.md`.
+
+### Custo estimado por dossiê
+- Cloud Run Job (30 min, 2vCPU/2Gi): ~R$ 0,40
+- Vertex AI Gemini Pro (~50 chamadas Maestro/síntese): ~R$ 0,60
+- Vertex AI Gemini Flash (~500 chamadas dos 10 agentes paralelos + news_realtime): ~R$ 0,40
+- Pub/Sub + Firestore + GCS: ~R$ 0,10
+- **Total: ~R$ 1,50/dossiê** (debitado do crédito GenAI em `projeto-codex-br`)
+
 ## Adicionado
 
 ### Functions (HTTP callable)
