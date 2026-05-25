@@ -2172,3 +2172,6 @@ exports.enrichment = onRequestEnrichment(
   },
   enrichmentHttp
 );
+
+// ══ AURORA Forensic v1.0 — iniciarDossieV1 (Legião 100, Pub/Sub → Cloud Run Job) ══
+exports.iniciarDossieV1 = require("./src/dossie/iniciarDossieV1");
