@@ -28,7 +28,8 @@
 # Pode dar `exit` no SSH — o nohup continua rodando.
 # ════════════════════════════════════════════════════════════════════════════
 
-set -euo pipefail
+# set -e DESLIGADO — queremos rodar até o fim mesmo com falhas pontuais em endpoints externos
+set -uo pipefail
 export LANG=C.UTF-8  # universal, evita locale faltando na VM
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -45,8 +46,21 @@ OUT="${WORKDIR}/${RUN_ID}"
 LOG="${WORKDIR}/run.log"
 AUTO_SHUTDOWN="${AUTO_SHUTDOWN:-0}"  # default OFF — segurança extra em VM produtiva
 
-mkdir -p "${OUT}"/{directdata,osint,sancoes,diarios,judicial,reguladoras,grafo}
+echo "[BOOT] RUN_ID=${RUN_ID}"
+echo "[BOOT] WORKDIR=${WORKDIR}"
+echo "[BOOT] OUT=${OUT}"
+echo "[BOOT] LOG=${LOG}"
+echo "[BOOT] HOME=${HOME}"
+echo "[BOOT] USER=$(whoami)"
+echo "[BOOT] PWD=$(pwd)"
+echo "[BOOT] BASH=${BASH_VERSION:-N/A}"
+
+mkdir -p "${WORKDIR}" "${OUT}" "${OUT}/directdata" "${OUT}/osint" "${OUT}/sancoes" "${OUT}/diarios" "${OUT}/judicial" "${OUT}/reguladoras" "${OUT}/grafo"
+echo "[BOOT] mkdir OK"
+
 touch "${LOG}"
+echo "[BOOT] touch LOG OK"
+echo "[BOOT] LS WORKDIR: $(ls -la ${WORKDIR} | head -5)"
 
 log() { echo "[$(date -u +%H:%M:%S)] $*" | tee -a "${LOG}"; }
 
@@ -344,7 +358,11 @@ export EVISCERADOR_CFG="${CFG_JSON}"
 # EXECUTA WORKER
 # ═════════════════════════════════════════════════════════════════════════════
 log "─── Disparando worker Python (asyncio · 6 eixos paralelos · sem 20) ───"
+set +e  # não mata o script se o worker falhar em algum eixo
 python3 /tmp/eviscerador_worker.py 2>&1 | tee -a "${LOG}"
+WORKER_RC=$?
+set -e
+log "─── Worker terminou com código: ${WORKER_RC} ───"
 
 log "─── Sincronizando para GCS ───"
 gsutil -m rsync -r "${OUT}" "${BUCKET}/${RUN_ID}/" 2>&1 | tail -20 | tee -a "${LOG}"
