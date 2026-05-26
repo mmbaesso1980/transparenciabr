@@ -22,6 +22,7 @@ RUN pip install --no-cache-dir -r /app/requirements-job.txt
 # Copia toda a árvore necessária (manus_office com pipeline + agentes + skill + fonts).
 # Inclui: dossie_v1/agents/revisores/ (6 agentes v1.1) e dossie_v1/pipeline/review_phase.py
 COPY manus_office /app/manus_office
+COPY cloudrun/dossieV1Pipeline/pipeline_metrics.py /app/pipeline_metrics.py
 COPY cloudrun/dossieV1Pipeline/main.py /app/main.py
 
 # Garante que o gerar_dossie_v1.py encontra as fontes (script tem path hardcoded

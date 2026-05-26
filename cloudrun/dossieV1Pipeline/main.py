@@ -28,6 +28,7 @@ import os
 import subprocess
 import sys
 import tempfile
+import time
 import traceback
 from datetime import datetime
 from pathlib import Path
@@ -39,6 +40,11 @@ try:
 except ImportError:
     firestore = None  # type: ignore
     storage = None  # type: ignore
+
+try:
+    import pipeline_metrics as _metrics  # type: ignore
+except ImportError:
+    _metrics = None  # type: ignore
 
 app = Flask(__name__)
 
@@ -137,11 +143,16 @@ def handle_pubsub():
         # ACK: sem slug não há recuperação; HTTP 4xx faz Pub/Sub redelivery infinito.
         return jsonify({"error": "slug obrigatório", "payload": payload}), 200
     alvo = (payload.get("alvo") or "").strip() or _slug_para_alvo(slug)
+    t0 = time.perf_counter()
 
     _firestore_status(
         slug,
         {"status": "running", "alvo": alvo, "started_at": datetime.utcnow().isoformat() + "Z"},
     )
+
+    def _observe(status: str, findings_n: int | None = None) -> None:
+        if _metrics:
+            _metrics.observe_job(status, slug, time.perf_counter() - t0, findings_n)
 
     try:
         with tempfile.TemporaryDirectory(prefix=f"dossie_{slug}_") as tmp:
@@ -149,6 +160,7 @@ def handle_pubsub():
             ok, findings_path, pdf_path = _run_pipeline(alvo, slug, output_dir)
             if not ok:
                 _firestore_status(slug, {"status": "error", "error": "pipeline_failed"})
+                _observe("pipeline_error", None)
                 return jsonify({"status": "error", "stage": "pipeline"}), 500
 
             gcs_uri = _upload_pdf(Path(pdf_path), slug)
@@ -162,11 +174,21 @@ def handle_pubsub():
                     "completed_at": datetime.utcnow().isoformat() + "Z",
                 },
             )
+            findings_n: int | None = None
+            try:
+                doc = json.loads(Path(findings_path).read_text(encoding="utf-8"))
+                findings_n = int(doc.get("kpis", {}).get("findings_total", -1))
+                if findings_n < 0:
+                    findings_n = len(doc.get("findings", []))
+            except Exception:
+                findings_n = None
+            _observe("done", findings_n)
             return jsonify({"status": "done", "pdf": gcs_uri}), 200
     except Exception as exc:
         tb = traceback.format_exc()
         sys.stderr.write(tb)
         _firestore_status(slug, {"status": "error", "error": str(exc)[:500]})
+        _observe("exception", None)
         return jsonify({"status": "error", "error": str(exc)}), 500
 
 
@@ -190,6 +212,13 @@ def health():
     }
     required_ok = checks["pipeline_script_exists"] and checks["gemini_key_set"]
     return jsonify({"ok": required_ok, "checks": checks}), (200 if required_ok else 503)
+
+
+@app.route("/metrics", methods=["GET"])
+def metrics():
+    if _metrics is None:
+        return jsonify({"error": "prometheus_client indisponível"}), 503
+    return _metrics.render_metrics(), 200, {"Content-Type": _metrics.content_type()}
 
 
 if __name__ == "__main__":
