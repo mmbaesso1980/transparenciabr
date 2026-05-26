@@ -115,23 +115,55 @@ def _carregar_contexto() -> dict[str, str]:
 
 
 def _build_llm() -> Any:
-    """Instancia Gemini 2.5 Pro. Falha rápido se faltar API key."""
+    """Instancia Gemini 2.5 Pro.
+
+    Preferencia: Vertex AI (queima credito codex-br).
+    Fallback: Google AI Studio (free tier, GEMINI_API_KEY).
+
+    Selecao por env LLM_BACKEND:
+      - 'vertex'   -> forca Vertex (falha se nao disponivel)
+      - 'genai'    -> forca AI Studio
+      - vazio/auto -> tenta Vertex se VERTEX_PROJECT setado, senao AI Studio
+    """
+    backend  = (os.environ.get("LLM_BACKEND") or "auto").strip().lower()
+    model    = (os.environ.get("MANUS_GEMINI_MODEL") or "gemini-2.5-pro").strip()
+    temp     = float(os.environ.get("MANUS_GEMINI_TEMP", "0.2"))
+    vproject = (os.environ.get("VERTEX_PROJECT") or os.environ.get("VERTEX_PROJECT_ID") or "projeto-codex-br").strip()
+    vloc     = (os.environ.get("VERTEX_LOCATION") or "us-east1").strip()
+
+    use_vertex = backend == "vertex" or (backend == "auto" and bool(vproject))
+
+    if use_vertex:
+        try:
+            from langchain_google_vertexai import ChatVertexAI
+            return ChatVertexAI(
+                model_name=model,
+                temperature=temp,
+                project=vproject,
+                location=vloc,
+                max_output_tokens=int(os.environ.get("MANUS_GEMINI_MAX_TOKENS", "8192")),
+            )
+        except Exception as e:
+            if backend == "vertex":
+                raise RuntimeError(f"LLM_BACKEND=vertex mas Vertex AI indisponivel: {e}") from e
+            # auto: cai pro AI Studio
+
+    # Fallback: Google AI Studio
     try:
         from langchain_google_genai import ChatGoogleGenerativeAI
     except ImportError as e:
         raise RuntimeError(
-            "langchain_google_genai não instalado. "
+            "langchain_google_genai nao instalado. "
             "Rode: pip install -r manus_office/requirements.txt"
         ) from e
 
     key = (os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY") or "").strip()
     if not key:
-        raise RuntimeError("Defina GEMINI_API_KEY ou GOOGLE_API_KEY no ambiente.")
+        raise RuntimeError("Defina GEMINI_API_KEY (AI Studio) ou VERTEX_PROJECT (Vertex AI) no ambiente.")
 
-    model = (os.environ.get("MANUS_GEMINI_MODEL") or "gemini-2.5-pro").strip()
     return ChatGoogleGenerativeAI(
         model=model,
-        temperature=float(os.environ.get("MANUS_GEMINI_TEMP", "0.2")),
+        temperature=temp,
         google_api_key=key,
     )
 
