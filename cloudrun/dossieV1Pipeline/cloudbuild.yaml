@@ -66,10 +66,11 @@ steps:
           --memory=${_MEMORY} \
           --cpu=${_CPU} \
           --timeout=${_TIMEOUT} \
+          --cpu-boost \
           --concurrency=1 \
           --max-instances=4 \
           --service-account=dossie-v1-pipeline@$PROJECT_ID.iam.gserviceaccount.com \
-          --set-env-vars=GCS_BUCKET=${_GCS_BUCKET},GCS_PREFIX=${_GCS_PREFIX},FIRESTORE_COLLECTION=${_FIRESTORE_COLLECTION},MANUS_GEMINI_MODEL=gemini-2.5-pro \
+          --set-env-vars=GCS_BUCKET=${_GCS_BUCKET},GCS_PREFIX=${_GCS_PREFIX},FIRESTORE_COLLECTION=${_FIRESTORE_COLLECTION},FIRESTORE_PROJECT=transparenciabr,MANUS_GEMINI_MODEL=gemini-2.5-pro,GEMINI_TIMEOUT_SEC=120,PUBSUB_PROJECT_ID=$PROJECT_ID,DOSSIE_V1_TOPIC=dossie-v1-pipeline,DOSSIE_V1_DLQ_SUB=dossie-v1-pipeline-dlq-sub \
           --set-secrets=GEMINI_API_KEY=GEMINI_API_KEY:latest
 
 images:
