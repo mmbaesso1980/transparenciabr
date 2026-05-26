@@ -29,8 +29,10 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 // ---------- CONFIG ----------
-const PROJECT_ID = process.env.GCP_PROJECT_ID || 'transparenciabr';
-const LOCATION = process.env.VERTEX_LOCATION || 'us-central1';
+// Vertex AI -> projeto-codex-br (creditos R$ 5.677).
+// Data project (BQ/GCS) -> transparenciabr (lido separadamente quando necessario).
+const PROJECT_ID = process.env.VERTEX_PROJECT || process.env.GCP_PROJECT_ID || 'projeto-codex-br';
+const LOCATION = process.env.VERTEX_LOCATION || 'us-east1';
 const MODEL = process.env.CEAP_VERTEX_CLASSIFY_MODEL || process.env.VERTEX_MODEL || 'gemini-2.5-pro';
 const BUCKET_CLEAN = 'datalake-tbr-clean';
 const SNAPSHOT_DATE = new Date().toISOString().slice(0, 10);
