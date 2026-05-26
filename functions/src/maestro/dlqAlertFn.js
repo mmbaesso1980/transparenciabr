@@ -9,7 +9,7 @@
 const functions = require('firebase-functions/v1');
 const axios = require('axios');
 
-const REGION = process.env.FUNCTIONS_REGION || 'southamerica-east1';
+const REGION = 'southamerica-east1';
 const DLQ_TOPIC = process.env.DOSSIE_V1_DLQ_TOPIC || 'dossie-v1-pipeline-dlq';
 
 function decodePayload(message) {
