@@ -172,7 +172,24 @@ def handle_pubsub():
 
 @app.route("/healthz", methods=["GET"])
 def healthz():
-    return jsonify({"ok": True, "pipeline_script": str(PIPELINE_SCRIPT), "exists": PIPELINE_SCRIPT.exists()})
+    """Compat legada — mesmo contrato que /health."""
+    return health()
+
+
+@app.route("/health", methods=["GET"])
+def health():
+    """Readiness: dependências mínimas para o job de dossiê."""
+    checks = {
+        "pipeline_script_exists": PIPELINE_SCRIPT.exists(),
+        "gemini_key_set": bool(os.environ.get("GEMINI_API_KEY")),
+        "firestore_project": FIRESTORE_PROJECT,
+        "gcs_bucket": GCS_BUCKET,
+        "direct_data_token_set": bool(
+            os.environ.get("DIRECT_DATA_TOKEN") or os.environ.get("DD_TOKEN")
+        ),
+    }
+    required_ok = checks["pipeline_script_exists"] and checks["gemini_key_set"]
+    return jsonify({"ok": required_ok, "checks": checks}), (200 if required_ok else 503)
 
 
 if __name__ == "__main__":

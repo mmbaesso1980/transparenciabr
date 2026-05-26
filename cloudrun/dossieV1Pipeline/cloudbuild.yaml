@@ -66,6 +66,7 @@ steps:
           --memory=${_MEMORY} \
           --cpu=${_CPU} \
           --timeout=${_TIMEOUT} \
+          --cpu-boost \
           --concurrency=1 \
           --max-instances=4 \
           --service-account=dossie-v1-pipeline@$PROJECT_ID.iam.gserviceaccount.com \
