@@ -10,6 +10,7 @@ Todos imperativo INFORMATIVO (skill `transparenciabr-lei`).
 | 3 | `agent_lead_hunter.py` | Diário 06h-BRT | Caça leads INSS qualificados | Cloud Scheduler |
 | 4 | `agent_dossie_comparativo.py` | sob demanda | Dossiê A_vs_B (R$ 2k/un) | Pub/Sub `dossie-comparativo` |
 | 5 | `memoria_maestro.py` | reflect 24h, prune 7d | Memória persistente Maestro | Cloud Scheduler |
+| 6 | `agent_log_watcher.py` | 10 min | Erros Cloud Run dossie-v1-pipeline → Discord | Cloud Scheduler |
 
 ## Deploy (Cloud Shell)
 

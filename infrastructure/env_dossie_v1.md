@@ -16,6 +16,10 @@ A Cloud Function callable publica no topic do `projeto-codex-br`; o Job consome 
 
 | Variável | Onde | Valor padrão | Notas |
 |---|---|---|---|
+| `FIRESTORE_PROJECT` | Cloud Run Job env | `transparenciabr` | **v3.1**: `firestore.Client(project=…)` — Firestore dos dossiês fica em `transparenciabr` mesmo com runtime em `codex-br`. |
+| `GEMINI_TIMEOUT_SEC` | Cloud Run Job env | `120` | Timeout por chamada `llm.invoke` no pipeline (evita hang silencioso). |
+| `PUBSUB_PROJECT_ID` | Cloud Run Job env | `$PROJECT_ID` (codex) | Usado por `/admin/replay` para pull da DLQ. |
+| `AURORA_ADMIN_TOKEN` | Secret Manager ou env | — | Header `X-Aurora-Token` no replay DLQ (alternativa: secret `aurora-admin-token`). |
 | `GEMINI_API_KEY` | Cloud Run Job env (Secret Manager em `codex-br`) | (secret) | Chave Gemini para os 110 agentes paralelos e Maestro. |
 | `GCP_PROJECT_ID` | **Cloud Function env** | `projeto-codex-br` | **CRÍTICO**: aponta o cliente Pub/Sub da function para o topic em `codex-br`. |
 | `BQ_PROJECT_ID` | Cloud Run Job env | `transparenciabr` | Project com BigQuery + Firestore. |
