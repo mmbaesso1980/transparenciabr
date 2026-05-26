@@ -2177,3 +2177,4 @@ exports.enrichment = onRequestEnrichment(
 exports.iniciarDossieV1 = require("./src/dossie/iniciarDossieV1");
 // ══ AURORA Forensic v1.1 — rerunReview (re-roda fase de revisão via Pub/Sub) ══
 exports.rerunReview = require("./src/dossie/rerunReview").rerunReview;
+exports.dlqAlertFn = require("./src/maestro/dlqAlertFn").dlqAlertFn;
