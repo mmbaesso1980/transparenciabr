@@ -1,0 +1,36 @@
+{
+  "slug": "andreia-siqueira",
+  "alvo_nome": "Andreia Brito Gonçalves Siqueira",
+  "alvo_nome_publico": "Andreia Siqueira",
+  "partido_uf": "MDB-PA",
+  "id_camara": "220676",
+  "mandato": "2023-2027",
+  "versao": "v1.0-FINAL",
+  "status": "in_review",
+  "kpis": {
+    "findings_total": 50,
+    "findings_criticos": 12,
+    "findings_altos": 17,
+    "findings_medios": 13,
+    "findings_informativos": 8,
+    "universo_financeiro_brl": 76470337.46,
+    "ceap_total_brl": 1400337.46,
+    "emendas_total_brl": 75070000.00,
+    "cnpjs_centrais": 9,
+    "score_aurora_nivel": "ELEVADO",
+    "agentes_tecnicos_total": 18
+  },
+  "pdf": {
+    "gcs_path": "gs://datalake-tbr-clean/dossies_v1/andreia-siqueira/dossie.pdf",
+    "sha256": "eb61343b41f09580ab2eb15f200be918a4dd4df93e67bc60b815eeabfd01aa73",
+    "bytes": 137295
+  },
+  "url_contestacao": "https://transparenciabr.org/dossie/andreia-siqueira/contestacao",
+  "compromisso_v1_final": ["contraditorio_3_partes", "fontes_primarias", "falsos_positivos_reclassificados"],
+  "reclassificacoes_pos_investigacao": ["F-10", "F-19", "F-37", "F-38", "F-39"],
+  "emitido_em": "2026-05-26",
+  "emitido_por": "Perplexity Computer · agent_dossier_compiler · AURORA 360",
+  "pipeline_origem": "manual_consolidacao_v1_final",
+  "review_status": "pending",
+  "review_warnings": []
+}

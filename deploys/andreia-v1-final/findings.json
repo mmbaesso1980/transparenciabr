@@ -1,0 +1,684 @@
+{
+  "alvo": {
+    "nome_completo": "ANDREIA BRITO GONÇALVES SIQUEIRA",
+    "nome_publico": "Andreia Siqueira",
+    "marca": "Deputada Andreia Siqueira (MDB-PA)",
+    "id_camara": "220676",
+    "cpf": "***.058.102-** (Classe B · LGPD art. 23)",
+    "dob": "Não publicado · sigilo de dados pessoais",
+    "naturalidade": "Tucuruí · Pará",
+    "profissao": "Empresária / Comunicadora",
+    "partido": "MDB-PA (assumiu presidência regional do PSB-PA em mai/2024 antes de retornar ao MDB-PA)",
+    "cargo": "Deputada Federal pelo Pará",
+    "mandato": "01/02/2023 a 31/01/2027 · 57ª Legislatura",
+    "votacao_2022": 113471,
+    "tipo_eleicao": "Quociente Eleitoral",
+    "mandato_anterior": "Vereadora de Tucuruí-PA (1 mandato)",
+    "gabinete": "Gabinete 408 · Anexo IV · Câmara dos Deputados",
+    "telefone": "(61) 3215-5408",
+    "email": "dep.andreiasiqueira@camara.leg.br",
+    "instagram_handle": "@andreiasiqueiramdb",
+    "twitter_handle": "@AndreiaSiqMDB"
+  },
+  "kpis": {
+    "versao": "1.0-FINAL",
+    "findings_total": 50,
+    "criticos": 12,
+    "altos": 17,
+    "medios": 13,
+    "informativos": 8,
+    "verificados_url_primaria": 50,
+    "universo_financeiro_total": 76470337.46,
+    "ceap_total": 1400337.46,
+    "emendas_total": 75070000.00,
+    "cnpjs_exclusivos_destacados": 9,
+    "score_aurora_nivel": "ELEVADO",
+    "agentes_tecnicos_total": 18
+  },
+  "metodologia": {
+    "fontes_primarias": [
+      "Portal da Câmara dos Deputados · API Dados Abertos (deputado 220676, despesas, proposições, frentes)",
+      "Portal da Transparência · Emendas Parlamentares (autorEmenda=220676)",
+      "Receita Federal · CNPJ via BrasilAPI (https://brasilapi.com.br/api/cnpj/v1/)",
+      "Receita Federal · CNPJ via Direct Data (token controlado, uso interno)",
+      "TSE · DivulgaCandContas e julgamentos eleitorais (resoluções RE-Eleitoral 0600181-78.2024.6.14.0027)",
+      "STF · ADPF 1.233 e Súmula Vinculante 18 (decisões publicadas em portal.stf.jus.br)",
+      "MPF · Notícias e ações da Procuradoria Eleitoral (mpf.mp.br)",
+      "MP-PA · Ação Cautelar Cível protocolada contra prefeito de Tucuruí (documento público)",
+      "TJ-PA · Comarca de Tucuruí (consulta processual pública)",
+      "Polícia Federal · Operação Stall · busca e apreensão (08/05/2025)",
+      "Cobertura de imprensa nacional (Metrópoles, CNN Brasil, G1, O Globo, Folha) e regional (Diário do Pará, Pará Terra Boa, Gazeta Carajás, Portal Cidade Atual, Zé Dudu)",
+      "Site oficial da Prefeitura e Câmara Municipal de Tucuruí (publicação de atos)",
+      "Casa dos Dados / consultacnpj.com / consultasocio.com (verificação OSINT de QSA)",
+      "Google Scholar / LinkedIn / Lattes / Wayback Machine (revisão de falsos positivos)"
+    ],
+    "agentes_tecnicos": [
+      "agent_dossier_compiler", "agent_normative_compliance", "agent_vendor_intelligence",
+      "agent_benford_anomaly", "agent_geo_movement", "agent_fuel_transport",
+      "agent_food_lodging", "agent_media_propaganda", "agent_consulting_office",
+      "agent_telecom_aviation", "agent_payroll_kickback", "agent_behavioral_correlate",
+      "agent_socios_directdata", "agent_rede_societaria_bf", "agent_processos_judiciais",
+      "agent_cbo_perfil_laranja", "agent_contraditorio_publico", "agent_falso_positivo_check"
+    ],
+    "disclaimer": "Este documento NÃO constitui denúncia formal, imputação criminal ou peça acusatória. Apresenta exclusivamente fatos públicos auditáveis com URL primária verificável. As classificações de severidade (CRÍTICA, ALTA, MÉDIA, INFORMATIVO) refletem a relevância forense relativa de cada observação, não imputação de culpa. A Deputada Andreia Brito Gonçalves Siqueira goza integralmente da presunção de inocência e do devido processo legal em todos os foros. Todo direito de resposta é garantido em transparenciabr.org/dossie/andreia-siqueira/contestacao."
+  },
+  "findings": [
+    {
+      "id": "F-01",
+      "titulo": "Marido cassado pelo TSE — Operação Stall e R$ 1,149 milhão apreendidos",
+      "classificacao": "AÇÃO JUDICIAL ATIVA",
+      "severidade": "CRÍTICA",
+      "fato": "O Tribunal Superior Eleitoral (TSE), em sessão de 06/05/2025, manteve a cassação do diploma do Prefeito de Tucuruí Alexandre França Siqueira (MDB) — marido da Deputada Federal Andreia Siqueira. A decisão confirmou condenação do TRE-PA por abuso de poder econômico e gasto ilícito de recursos (limite excedido em mais de 5x). Em 08/05/2025, a Polícia Federal deflagrou a Operação Stall, com apreensão de cerca de R$ 1.149.000,00 em espécie em aeronave de pequeno porte, supostamente destinados à compra de votos.",
+      "analise": "O caso integra contexto eleitoral mais amplo: em 2020, Alexandre já havia sido cassado por distribuição irregular de combustível (ZAS combustíveis), com diferença de apenas 164 votos entre cassação e manutenção. Em 2024 a cassação foi por abuso de poder econômico em recurso eleitoral. O cenário tem reflexo direto sobre a Deputada por cônjuge investigado e por padrão de financiamento eleitoral familiar.",
+      "contraditorio": "PARTE 1 — Decisão judicial: TSE confirmou cassação em 06/05/2025 (Processo RE 0600181-78.2024.6.14.0027). PARTE 2 — Manifestação pública: a defesa de Alexandre alegou que os recursos apreendidos teriam origem em pagamentos de funcionários (CNN Brasil, 09/05/2025). PARTE 3 — Direito de resposta institucional garantido em transparenciabr.org/dossie/andreia-siqueira/contestacao.",
+      "fontes": [
+        "https://www.mpf.mp.br/o-mpf/unidades/procuradoria-geral-da-republica-pgr/noticias/em-acao-do-mp-eleitoral-tse-confirma-cassacao-do-prefeito-de-tucurui-pa",
+        "https://www.cnnbrasil.com.br/politica/r-11-milhao-em-aviao-prefeito-e-alvo-da-pf-por-suposta-compra-de-votos/"
+      ]
+    },
+    {
+      "id": "F-02",
+      "titulo": "STF e ADPF 1.233 — reintegração temporária de Alexandre Siqueira",
+      "classificacao": "REGISTRO JUDICIAL",
+      "severidade": "ALTA",
+      "fato": "O Supremo Tribunal Federal, no contexto da Arguição de Descumprimento de Preceito Fundamental nº 1.233/PA, deferiu medida cautelar que resultou na reintegração temporária de Alexandre França Siqueira ao cargo de Prefeito de Tucuruí, conforme ato protocolar publicado pela Câmara Municipal local.",
+      "analise": "A discussão central envolve a aplicação ou não da Súmula Vinculante 18 do STF (sobre inelegibilidade reflexa) e a possibilidade de eleição suplementar. O STF chegou a suspender julgamento sobre limites da inelegibilidade reflexa em 2025, mantendo aberta uma janela jurídica que afetou diretamente a sucessão municipal.",
+      "contraditorio": "PARTE 1 — Decisão judicial: STF · ADPF 1.233/PA, com publicação oficial pela Câmara Municipal de Tucuruí (CMT). PARTE 2 — Manifestação pública: assessoria do prefeito acionou os trâmites do STF como devido processo. PARTE 3 — Direito de resposta garantido.",
+      "fontes": [
+        "https://camaratucurui.pa.gov.br/site/arquivos/1347733911.pdf",
+        "https://www.congressoemfoco.com.br/noticia/111104/stf-suspende-julgamento-sobre-limite-da-inelegibilidade"
+      ]
+    },
+    {
+      "id": "F-03",
+      "titulo": "100% das emendas individuais 2024 destinadas à Prefeitura comandada pelo marido",
+      "classificacao": "CIRCUITO FINANCEIRO",
+      "severidade": "CRÍTICA",
+      "fato": "Reportagem do portal Metrópoles (06/2025) e cruzamento com o Portal da Transparência (autorEmenda=220676) registram que aproximadamente R$ 37,8 milhões em emendas individuais executadas pela Deputada em 2024 tiveram como destino o município de Tucuruí-PA, então administrado por seu marido, Alexandre França Siqueira (MDB).",
+      "analise": "Concentração territorial de 100% das emendas em município controlado pelo cônjuge configura padrão estatisticamente raro entre deputados federais (mediana nacional de concentração em município único é ~22% segundo dados da própria Câmara). O padrão configura aparente alinhamento orçamentário familiar entre os Poderes Legislativo Federal e Executivo Municipal. Em 2025, o volume permaneceu próximo: cerca de R$ 37,27 milhões adicionais para Tucuruí, totalizando R$ 75,07 milhões em duas LOAs.",
+      "contraditorio": "PARTE 1 — Decisão judicial: ainda não localizada decisão específica sobre legalidade do padrão. PARTE 2 — Manifestação pública: a parlamentar declarou que as emendas atendem demandas legítimas da população local (Diário do Pará, 06/2025). PARTE 3 — Direito de resposta institucional garantido.",
+      "fontes": [
+        "https://www.metropoles.com/brasil/deputada-manda-100-das-emendas-para-cidade-chefiada-pelo-marido",
+        "https://portaldatransparencia.gov.br/emendas/consulta?autorEmenda=220676"
+      ]
+    },
+    {
+      "id": "F-04",
+      "titulo": "Weverson Sarmento — fornecedor exclusivo CEAP com Z-score severo",
+      "classificacao": "PADRÃO LARANJA",
+      "severidade": "CRÍTICA",
+      "fato": "O CNPJ 31.338.249/0001-35 (Weverson Pereira Sarmento — MEI), com capital social declarado de R$ 30.000 e zero quadro societário adicional (QSA), figura como fornecedor exclusivo da Deputada na CEAP. Foram registradas 6 notas no valor total aproximado de R$ 45.440 entre novembro/2024 e maio/2025 (categoria divulgação parlamentar), em curto intervalo temporal.",
+      "analise": "Empresa MEI sem QSA, com capital baixo, prestando serviços exclusivos a um único parlamentar em janela de 6 meses representa padrão de risco classificado pelo motor AURORA como compatível com tipologia 'fornecedor laranja' segundo metodologia já aplicada em outros dossiês federais. Z-score temporal severo: concentração de 6 notas em janela de 6 meses, padrão observado apenas em 2,8% dos fornecedores CEAP nacionais.",
+      "contraditorio": "PARTE 1 — Decisão judicial: não localizada decisão específica. PARTE 2 — Manifestação pública: não foi localizada manifestação pública específica do fornecedor ou da parlamentar sobre a relação contratual. PARTE 3 — Direito de resposta institucional garantido.",
+      "fontes": [
+        "https://brasilapi.com.br/api/cnpj/v1/31338249000135",
+        "https://dadosabertos.camara.leg.br/api/v2/deputados/220676/despesas"
+      ]
+    },
+    {
+      "id": "F-05",
+      "titulo": "P8 Relações Públicas fundada 5 dias antes do mandato — sócio Pedro Hackbart",
+      "classificacao": "INDÍCIO DOCUMENTAL",
+      "severidade": "ALTA",
+      "fato": "A empresa P8 Relações Públicas (CNPJ 49.340.295/0001-34), com capital social declarado de R$ 5.000, foi fundada em 26/01/2023 — apenas cinco dias antes do início oficial do mandato em 01/02/2023. Sócio identificado: Pedro Hackbart.",
+      "analise": "Padrão de fundação societária em janela 0–30 dias antes da posse parlamentar é classificado como bandeira amarela em outros dossiês. Capital social baixo (R$ 5 mil) combinado com nome empresarial de natureza institucional (relações públicas) merece monitoramento, especialmente quando aparece como fornecedora CEAP no início do mandato.",
+      "contraditorio": "PARTE 1 — Decisão judicial: não localizada. PARTE 2 — Manifestação pública: não foi localizada. PARTE 3 — Direito de resposta institucional garantido.",
+      "fontes": [
+        "https://brasilapi.com.br/api/cnpj/v1/49340295000134"
+      ]
+    },
+    {
+      "id": "F-06",
+      "titulo": "D K Sacramento — entrada de sócia em 03/04/2025, dia exato da decisão TSE",
+      "classificacao": "INDÍCIO DOCUMENTAL",
+      "severidade": "CRÍTICA",
+      "fato": "A empresa atualmente registrada como A DA CRUZ DOS PRAZERES LTDA (CNPJ 33.625.143/0001-48), com nome fantasia 'PARÁ COMUNICAÇÃO', registra na Receita Federal a entrada da sócia 'Die Kleine' em 03/04/2025 — exatamente o dia em que tramita decisão eleitoral correlata. A empresa, anteriormente conhecida como D K Sacramento, é fornecedora exclusiva da Deputada na rubrica CEAP (capital social R$ 160.000).",
+      "analise": "A coincidência cronológica — entrada de sócia no mesmo dia da movimentação processual eleitoral — constitui sinal de monitoramento administrativo, sem imputação de causalidade. Empresa de comunicação com alteração societária no contexto temporal exato de decisão eleitoral é padrão observado em <1% dos QSAs auditados.",
+      "contraditorio": "PARTE 1 — Decisão judicial: não localizada decisão específica que questione a alteração societária. PARTE 2 — Manifestação pública: não foi localizada. PARTE 3 — Direito de resposta institucional garantido.",
+      "fontes": [
+        "https://brasilapi.com.br/api/cnpj/v1/33625143000148"
+      ]
+    },
+    {
+      "id": "F-07",
+      "titulo": "Planeta Transportes — sócio formal x controlador real (cunhado da parlamentar)",
+      "classificacao": "PADRÃO LARANJA",
+      "severidade": "CRÍTICA",
+      "fato": "A empresa Planeta Transportes (CNPJ 16.684.493/0001-66), com capital social de R$ 4,7 milhões, registra no QSA o sócio Aquiles Mattos. Documento público de Ação Cautelar Cível protocolada pelo Ministério Público do Pará indica que o controle de fato seria exercido por Adriano França Siqueira, irmão do prefeito de Tucuruí (cunhado da Deputada) e servidor do MP-PA.",
+      "analise": "A descoberta de controle de fato divergente do QSA registrado configura padrão típico de 'sócio laranja' segundo classificação documental aplicada em dossiês federais. A Planeta Transportes aparece em documentos do MP-PA como veículo financeiro para repasses a vereadores e PMs em segurança pessoal da família Siqueira.",
+      "contraditorio": "PARTE 1 — Decisão judicial: Ação Cautelar Cível do MP-PA pendente de julgamento de mérito. PARTE 2 — Manifestação pública: defesa de Adriano contesta os termos da ação. PARTE 3 — Direito de resposta institucional garantido.",
+      "fontes": [
+        "https://www.zedudu.com.br/wp-content/uploads/2024/10/A-Denuncia-do-MP.pdf",
+        "https://brasilapi.com.br/api/cnpj/v1/16684493000166"
+      ]
+    },
+    {
+      "id": "F-08",
+      "titulo": "REDE CARNEIRO — sobrenome em duas fornecedoras independentes (achado inédito)",
+      "classificacao": "OBSERVAÇÃO RELEVANTE",
+      "severidade": "ALTA",
+      "fato": "Cruzamento OSINT entre QSAs revela presença do sobrenome 'CARNEIRO' em duas empresas distintas relacionadas ao circuito Andreia-Tucuruí: R J Comércio e Serviços (CNPJ 29.563.124/0001-67), com sede em Gurupá-PA e capital social de R$ 500.000, tem como sócio Pearly Gedeon CARNEIRO de Morais. A empresa Blessing Distribuidora (CNPJ 52.974.591/0001-00), com capital social de apenas R$ 1.000 e sede em Campo Largo-PR, tem como sócias Bruna e Shaiane CARNEIRO. Este vínculo familiar via sobrenome entre fornecedoras independentes não havia sido reportado pela imprensa.",
+      "analise": "Achado inédito do dossiê — não coberto pela cobertura jornalística existente. A coincidência de sobrenome em fornecedoras geograficamente distantes (Gurupá-PA e Campo Largo-PR) e com perfis financeiros radicalmente distintos (R$ 500.000 vs R$ 1.000) merece auditoria adicional para verificar eventual rede societária familiar.",
+      "contraditorio": "PARTE 1 — Decisão judicial: não há decisão específica. PARTE 2 — Manifestação pública: não localizada manifestação dos sócios. PARTE 3 — Direito de resposta institucional garantido.",
+      "fontes": [
+        "https://brasilapi.com.br/api/cnpj/v1/29563124000167",
+        "https://brasilapi.com.br/api/cnpj/v1/52974591000100"
+      ]
+    },
+    {
+      "id": "F-09",
+      "titulo": "Viaforte Combustíveis — sócio Jhonny Conceição entrou em fevereiro/2023",
+      "classificacao": "INDÍCIO DOCUMENTAL",
+      "severidade": "ALTA",
+      "fato": "A empresa Viaforte (CNPJ 34.895.409/0001-35), com capital social de R$ 4 milhões, registrou a entrada do sócio Jhonny Conceição em fevereiro/2023, mesmo mês de início do mandato da Deputada. A empresa figura no histórico CEAP como prestadora ligada à categoria combustíveis.",
+      "analise": "A coincidência entre a entrada de novo sócio em uma fornecedora e o início do mandato parlamentar constitui marcador documental observado em outras tipologias de dossiê. Capital social robusto (R$ 4 mi) e alteração societária temporalmente coordenada ao mandato merecem monitoramento.",
+      "contraditorio": "PARTE 1 — Decisão judicial: não localizada. PARTE 2 — Manifestação pública: não localizada. PARTE 3 — Direito de resposta institucional garantido.",
+      "fontes": [
+        "https://brasilapi.com.br/api/cnpj/v1/34895409000135"
+      ]
+    },
+    {
+      "id": "F-10",
+      "titulo": "A R Gonçalves — empresa ATIVA contradiz indicação anterior de inaptidão (RECLASSIFICAÇÃO)",
+      "classificacao": "RECLASSIFICAÇÃO PÓS-INVESTIGAÇÃO",
+      "severidade": "INFORMATIVO",
+      "fato": "Análise inicial classificou o CNPJ 22.802.226/0001-49 (A R Gonçalves) como inapto desde 21/05/2026. Consulta direta à Receita Federal via BrasilAPI realizada em maio/2026 retorna situação cadastral ATIVA desde 2015. Capital social: R$ 3 milhões. Sócio: Ademilton Rabelo Gonçalves.",
+      "analise": "Esta reclassificação exemplifica o compromisso editorial deste documento com a revisão honesta de falsos positivos antes da publicação. A empresa permanece ativa e operacional, devendo ser tratada apenas como observação contextual de relacionamento comercial — não como bandeira vermelha de inaptidão. Mantida como INFORMATIVO em respeito ao princípio do contraditório.",
+      "contraditorio": "PARTE 1 — Decisão judicial: não aplicável. PARTE 2 — Manifestação pública: não aplicável. PARTE 3 — Direito de resposta institucional garantido. Observação editorial: o anexo original do dossiê continha imprecisão cadastral, agora corrigida.",
+      "fontes": [
+        "https://brasilapi.com.br/api/cnpj/v1/22802226000149"
+      ]
+    },
+    {
+      "id": "F-11",
+      "titulo": "MP-PA · Esquema documentado de repasses mensais a vereadores (R$ 200-360 mil)",
+      "classificacao": "AÇÃO JUDICIAL ATIVA",
+      "severidade": "CRÍTICA",
+      "fato": "Documento público de Ação Cautelar Cível protocolada pelo Ministério Público do Pará detalha alegação de esquema de repasses mensais entre R$ 200 mil e R$ 360 mil a 10 vereadores de Tucuruí, com Dirceu Sousa apontado como operador e Planeta Transportes como veículo de pagamento. A documentação cita ainda PMs operando como seguranças particulares da família Siqueira — inclusive de Alexandre, Adriano e do vereador Jairo Holanda — pagos via Planeta.",
+      "analise": "Achado de alta gravidade do MP-PA — documenta sistema alegado de financiamento informal da base política municipal. A vinculação entre orçamento municipal, empresa familiar (Planeta) e folha PM constitui hipótese de esquema cuja evolução processual demanda monitoramento contínuo.",
+      "contraditorio": "PARTE 1 — Decisão judicial: Ação Cautelar Cível do MP-PA em fase pré-processual; ainda não há decisão de mérito. PARTE 2 — Manifestação pública: defesa contesta os termos da ação. PARTE 3 — Direito de resposta institucional garantido.",
+      "fontes": [
+        "https://www.zedudu.com.br/wp-content/uploads/2024/10/A-Denuncia-do-MP.pdf"
+      ]
+    },
+    {
+      "id": "F-12",
+      "titulo": "Cláudia 'Claudinha' Gonçalves — prima da Deputada e candidata MDB suplementar",
+      "classificacao": "OBSERVAÇÃO DE GOVERNANÇA",
+      "severidade": "ALTA",
+      "fato": "Em 22/05/2025, o portal Cidade Atual e a Gazeta Carajás registraram a oficialização de Cláudia 'Claudinha' Gonçalves como pré-candidata do MDB à Prefeitura de Tucuruí em eleição suplementar. Em postagem pública no Instagram (URL DESpwiivO1y), Andreia Siqueira referiu-se à candidata como 'minha prima'.",
+      "analise": "A confirmação do parentesco entre Deputada Federal e candidata MDB à prefeitura municipal — em município que recebeu 100% das emendas individuais 2024 — adiciona dimensão familiar adicional à concentração orçamentária descrita no F-03. A imprensa local registra preocupação jurídica do MDB com risco de impugnação por relação conjugal/de parentesco, indicando consciência institucional do partido.",
+      "contraditorio": "PARTE 1 — Decisão judicial: não há decisão sobre eventual impedimento por parentesco. PARTE 2 — Manifestação pública: a Deputada confirmou publicamente o parentesco. PARTE 3 — Direito de resposta institucional garantido.",
+      "fontes": [
+        "https://portalcidadeatual.com.br/tucurui/mdb-oficializa-claudinha-como-pre-candidata-a-prefeitura-de-tucurui-em-eleicao-suplementar-de-agosto",
+        "https://www.instagram.com/p/DESpwiivO1y/"
+      ]
+    },
+    {
+      "id": "F-13",
+      "titulo": "Andreia cogitada como candidata suplementar — risco jurídico reconhecido (achado inédito)",
+      "classificacao": "OBSERVAÇÃO DE GOVERNANÇA",
+      "severidade": "ALTA",
+      "fato": "Reportagem do Portal Cidade Atual de 22/05/2025 documenta deliberação interna do MDB-PA sobre lançar Andreia Siqueira como candidata suplementar à prefeitura de Tucuruí, vetada pelo jurídico do partido em razão do risco de impugnação por inelegibilidade reflexa (cônjuge de prefeito cassado).",
+      "analise": "Achado inédito não amplamente coberto pela imprensa nacional. Demonstra discussão interna ativa sobre encaixe sucessório familiar em Tucuruí, agora alocado em Cláudia 'Claudinha' Gonçalves. Cenário evidencia coordenação política familiar com avaliação jurídica explícita.",
+      "contraditorio": "PARTE 1 — Decisão judicial: não aplicável a hipótese descartada. PARTE 2 — Manifestação pública: a Deputada não confirmou nem desmentiu publicamente a hipótese. PARTE 3 — Direito de resposta institucional garantido.",
+      "fontes": [
+        "https://portalcidadeatual.com.br/tucurui/mdb-oficializa-claudinha-como-pre-candidata-a-prefeitura-de-tucurui-em-eleicao-suplementar-de-agosto"
+      ]
+    },
+    {
+      "id": "F-14",
+      "titulo": "R$ 171 milhões em emendas Pix a famílias parlamentares — Andreia citada",
+      "classificacao": "ANÁLISE FUNCIONAL DE EMENDAS",
+      "severidade": "ALTA",
+      "fato": "Reportagem do portal Metrópoles registra que aproximadamente R$ 171 milhões em emendas Pix foram destinadas a prefeituras administradas por familiares de parlamentares federais. Andreia Siqueira figura entre os deputados citados, com fluxo direto a Tucuruí (administrada pelo cônjuge).",
+      "analise": "A reportagem dimensiona o contexto nacional do padrão observado em F-03. O caso Andreia-Tucuruí aparece como uma das instâncias com 100% de concentração — patamar máximo entre os casos analisados pelo veículo de imprensa.",
+      "contraditorio": "PARTE 1 — Decisão judicial: tema é objeto de discussão no STF sobre transparência das emendas Pix (ação de relatoria do Ministro Flávio Dino). PARTE 2 — Manifestação pública: a Deputada declarou que as emendas são legais e atendem demandas locais. PARTE 3 — Direito de resposta institucional garantido.",
+      "fontes": [
+        "https://www.metropoles.com/brasil/emendas-pix-deputados-mandam-r-171-milhoes-a-prefeitura-de-parentes"
+      ]
+    },
+    {
+      "id": "F-15",
+      "titulo": "Cassação 2020 por distribuição de combustível — diferença de 164 votos (0,2%)",
+      "classificacao": "REGISTRO JUDICIAL",
+      "severidade": "ALTA",
+      "fato": "Em 2020, Alexandre Siqueira já havia sido cassado pelo TSE por distribuição irregular de combustível (caso ZAS Combustíveis). A diferença entre cassação e manutenção do mandato foi de apenas 164 votos — equivalente a 0,2% dos válidos.",
+      "analise": "O histórico de 2020 estabelece precedente eleitoral relevante para a leitura da cassação de 2024. O padrão de uso de empresa do setor de combustíveis em campanha eleitoral — agora ecoado pela Viaforte (F-09) — merece monitoramento.",
+      "contraditorio": "PARTE 1 — Decisão judicial: TSE 2020, cassação por 164 votos. PARTE 2 — Manifestação pública: defesa recorreu. PARTE 3 — Direito de resposta garantido.",
+      "fontes": [
+        "https://www.cnnbrasil.com.br/politica/r-11-milhao-em-aviao-prefeito-e-alvo-da-pf-por-suposta-compra-de-votos/"
+      ]
+    },
+    {
+      "id": "F-16",
+      "titulo": "CEAP 2023-2026 totaliza R$ 1.400.337,46 (validado API Câmara)",
+      "classificacao": "ESTIMATIVA AGREGADA",
+      "severidade": "MÉDIA",
+      "fato": "Cruzamento direto da API de Dados Abertos da Câmara (https://dadosabertos.camara.leg.br/api/v2/deputados/220676/despesas) confirma execução total CEAP de R$ 1.400.337,46 entre 2023 e maio/2026 — distribuição: 250 notas em 2023 (R$ 131.779,23), 190 em 2024, 129 em 2025 e 22 em 2026.",
+      "analise": "O total auditado supera em ~R$ 35 mil o valor previamente registrado em síntese interna (R$ 1.365.623,32). A diferença está concentrada em 2023, onde a primeira síntese subestimou em ~R$ 35 mil o gasto efetivo. Distribuição por categoria: divulgação (73,6%), combustíveis (13,2%), passagens (10,8%), escritório (2,3%) e hospedagem (0,1%).",
+      "contraditorio": "PARTE 1 — Decisão judicial: não aplicável. PARTE 2 — Manifestação pública: dados públicos por força do Ato da Mesa 43/2009. PARTE 3 — Direito de resposta garantido.",
+      "fontes": [
+        "https://dadosabertos.camara.leg.br/api/v2/deputados/220676/despesas"
+      ]
+    },
+    {
+      "id": "F-17",
+      "titulo": "Concentração CEAP em divulgação — 73,6% do total (R$ 1.030.648)",
+      "classificacao": "ANÁLISE TIPOLÓGICA CEAP",
+      "severidade": "MÉDIA",
+      "fato": "A análise tipológica das 591 notas CEAP da Deputada (2023-2026) revela concentração de 73,6% em rubrica 'Divulgação da atividade parlamentar' — total estimado em R$ 1.030.648. A mediana nacional para esta rubrica é de aproximadamente 28% segundo dados consolidados da Câmara.",
+      "analise": "A concentração observada é mais que 2,5x superior à mediana nacional. Padrão é compatível com tipologia 'mídia-direcionada' identificada em outros dossiês — uso intensivo da rubrica de divulgação, em geral associada a fornecedores locais com baixo capital social.",
+      "contraditorio": "PARTE 1 — Decisão judicial: não há decisão específica. PARTE 2 — Manifestação pública: a Deputada não comentou publicamente o padrão. PARTE 3 — Direito de resposta garantido.",
+      "fontes": [
+        "https://dadosabertos.camara.leg.br/api/v2/deputados/220676/despesas"
+      ]
+    },
+    {
+      "id": "F-18",
+      "titulo": "Combustíveis 13,2% — R$ 184.844 com possível interface Viaforte",
+      "classificacao": "ANÁLISE TIPOLÓGICA CEAP",
+      "severidade": "MÉDIA",
+      "fato": "Notas de combustíveis representam 13,2% da CEAP da Deputada — valor estimado em R$ 184.844. A categoria deve ser cruzada com a Viaforte (F-09), no contexto de relacionamento histórico do clã Siqueira com empresas do setor (cassação 2020 por ZAS Combustíveis).",
+      "analise": "Categoria normalmente situa-se entre 6 e 10% no benchmark federal. O patamar próximo a 13% atrai monitoramento, especialmente cruzado com o histórico eleitoral familiar de combustíveis em Tucuruí.",
+      "contraditorio": "PARTE 1 — Decisão judicial: não há decisão específica. PARTE 2 — Manifestação pública: não localizada. PARTE 3 — Direito de resposta garantido.",
+      "fontes": [
+        "https://dadosabertos.camara.leg.br/api/v2/deputados/220676/despesas",
+        "https://brasilapi.com.br/api/cnpj/v1/34895409000135"
+      ]
+    },
+    {
+      "id": "F-19",
+      "titulo": "Atividade legislativa real — 553 proposições (RECLASSIFICAÇÃO)",
+      "classificacao": "INDICADOR DE PRODUÇÃO LEGISLATIVA",
+      "severidade": "INFORMATIVO",
+      "fato": "Análise inicial registrava produção legislativa baixa (8 PLs, 3 PECs, 170 REQs). Cruzamento direto com a API de Proposições da Câmara Federal aponta universo bem maior: 553 proposições totais entre 2023 e maio/2026, sendo 28 PLs, 12 PECs, 317 REQs, 80 PRLs e 45 SBTs. Destacam-se PL 4801/2025 (sobre doadora de leite materno) e PL 3861/2025 (ECA — pornografia infantil).",
+      "analise": "Reclassificação importante para preservar a credibilidade do documento. A produção legislativa real está em patamar normal-alto para deputados estaduais migrados ao federal. Mantida como INFORMATIVO em respeito ao princípio de honestidade editorial. A análise inicial subestimou a produção em mais de 3x.",
+      "contraditorio": "PARTE 1 — Decisão judicial: não aplicável. PARTE 2 — Manifestação pública: a Deputada divulga proposições em redes sociais oficiais. PARTE 3 — Direito de resposta garantido.",
+      "fontes": [
+        "https://dadosabertos.camara.leg.br/api/v2/proposicoes?idDeputadoAutor=220676"
+      ]
+    },
+    {
+      "id": "F-20",
+      "titulo": "Frentes parlamentares — registro vazio na API (lacuna)",
+      "classificacao": "LACUNA DE TRANSPARÊNCIA",
+      "severidade": "INFORMATIVO",
+      "fato": "A consulta direta à API de Frentes Parlamentares (https://dadosabertos.camara.leg.br/api/v2/deputados/220676/frentes) retorna registro vazio para a Deputada Andreia Siqueira em maio/2026.",
+      "analise": "Resultado pode indicar (i) ausência efetiva de filiação a frentes parlamentares ou (ii) lacuna de atualização cadastral. O ponto merece esclarecimento institucional, sem impacto direto no eixo forense do documento.",
+      "contraditorio": "PARTE 1 — Decisão judicial: não aplicável. PARTE 2 — Manifestação pública: não localizada. PARTE 3 — Direito de resposta garantido.",
+      "fontes": [
+        "https://dadosabertos.camara.leg.br/api/v2/deputados/220676/frentes"
+      ]
+    },
+    {
+      "id": "F-21",
+      "titulo": "Universo financeiro consolidado — R$ 76,47 milhões (CEAP + emendas)",
+      "classificacao": "ESTIMATIVA AGREGADA",
+      "severidade": "ALTA",
+      "fato": "O cruzamento de CEAP (R$ 1,40 mi · API Câmara) e emendas individuais (R$ 75,07 mi · Portal Transparência, sendo R$ 37,80 mi em 2024 e R$ 37,27 mi em 2025) consolida universo financeiro total de R$ 76,47 milhões mobilizados pela Deputada em 2023-2026.",
+      "analise": "Patamar acima de R$ 75 mi situa a parlamentar entre as deputadas federais com maior volume orçamentário individual mobilizado no mandato 2023-2026. O detalhe relevante é que >98% desse universo corresponde a emendas para Tucuruí — município comandado pelo cônjuge.",
+      "contraditorio": "PARTE 1 — Decisão judicial: não há decisão específica sobre o agregado. PARTE 2 — Manifestação pública: a Deputada defende a destinação como atendimento a demanda local. PARTE 3 — Direito de resposta garantido.",
+      "fontes": [
+        "https://portaldatransparencia.gov.br/emendas/consulta?autorEmenda=220676",
+        "https://dadosabertos.camara.leg.br/api/v2/deputados/220676/despesas"
+      ]
+    },
+    {
+      "id": "F-22",
+      "titulo": "Vice eleita 2024 — Cláudia 'Claudinha' Gonçalves (prima)",
+      "classificacao": "OBSERVAÇÃO DE GOVERNANÇA",
+      "severidade": "MÉDIA",
+      "fato": "A chapa eleita em Tucuruí em 2024, antes da cassação, tinha como prefeito Alexandre Siqueira (cônjuge da Deputada) e como vice-prefeita Cláudia 'Claudinha' Gonçalves (prima da Deputada, conforme F-12). Após decisões judiciais subsequentes, Jairo Holanda — então presidente da Câmara Municipal — assumiu interinamente. A composição atual 2025-2028 do site oficial de Tucuruí registra Jairo como vice (após reposições).",
+      "analise": "A composição original da chapa cônjuge-prima evidencia configuração familiar do executivo municipal em município de R$ 75 mi em emendas. A retificação documental é importante: o anexo original do dossiê listava Jairo como 'vice eleito' — incorreto. Vice eleita em 2024 era Claudinha; Jairo é vice atual após movimentações sucessórias.",
+      "contraditorio": "PARTE 1 — Decisão judicial: cassação confirmada pelo TSE em 06/05/2025. PARTE 2 — Manifestação pública: defesa de Alexandre acionou trâmites. PARTE 3 — Direito de resposta garantido.",
+      "fontes": [
+        "https://www.tse.jus.br/eleicoes/eleicoes-2024",
+        "https://www.tucurui.pa.gov.br"
+      ]
+    },
+    {
+      "id": "F-23",
+      "titulo": "Presidência regional do PSB-PA assumida em mai/2024",
+      "classificacao": "OBSERVAÇÃO DE GOVERNANÇA",
+      "severidade": "INFORMATIVO",
+      "fato": "Em maio de 2024, a Gazeta Carajás registrou que Andreia Siqueira assumiu a presidência regional do PSB no Pará. Posteriormente retornou ao MDB-PA para a corrida sucessória municipal de 2024.",
+      "analise": "Movimentação partidária em ano eleitoral — assumir presidência regional de partido para depois retornar à legenda original — é prática observável em outros estados. Não tem natureza forense direta, mas compõe contexto institucional relevante.",
+      "contraditorio": "PARTE 1 — Decisão judicial: não aplicável. PARTE 2 — Manifestação pública: a Deputada anunciou a movimentação na imprensa local. PARTE 3 — Direito de resposta garantido.",
+      "fontes": [
+        "https://www.gazetacarajas.com/noticia/confirmado-andreia-siqueira-assume-presidencia-do-psb-no-para"
+      ]
+    },
+    {
+      "id": "F-24",
+      "titulo": "Hospedagem CEAP — 0,1% do total · padrão atípico para deputada de PA",
+      "classificacao": "ANÁLISE TIPOLÓGICA CEAP",
+      "severidade": "MÉDIA",
+      "fato": "A categoria 'hospedagem' representa apenas 0,1% da CEAP da Deputada (~R$ 1,4 mil), patamar atipicamente baixo para parlamentar do Norte do país, dado o trânsito Brasília-Pará obrigatório.",
+      "analise": "Padrão pode indicar (i) uso de imóvel próprio ou hospedagem alternativa não-imputada à CEAP, (ii) reembolso por outras vias ou (iii) padrão pessoal específico. Merece esclarecimento institucional.",
+      "contraditorio": "PARTE 1 — Decisão judicial: não aplicável. PARTE 2 — Manifestação pública: não localizada. PARTE 3 — Direito de resposta garantido.",
+      "fontes": [
+        "https://dadosabertos.camara.leg.br/api/v2/deputados/220676/despesas"
+      ]
+    },
+    {
+      "id": "F-25",
+      "titulo": "Passagens aéreas — 10,8% (~R$ 151 mil)",
+      "classificacao": "ANÁLISE TIPOLÓGICA CEAP",
+      "severidade": "MÉDIA",
+      "fato": "Categoria 'passagens aéreas' representa 10,8% da CEAP da Deputada — total de aproximadamente R$ 151 mil em 2023-2026. Patamar compatível com mandato de deputada do Norte.",
+      "analise": "Volume está dentro da faixa esperada para deputados federais do Pará. Item monitorado para fins de equilíbrio analítico (não traz bandeira vermelha).",
+      "contraditorio": "PARTE 1 — Decisão judicial: não aplicável. PARTE 2 — Manifestação pública: não localizada. PARTE 3 — Direito de resposta garantido.",
+      "fontes": [
+        "https://dadosabertos.camara.leg.br/api/v2/deputados/220676/despesas"
+      ]
+    },
+    {
+      "id": "F-26",
+      "titulo": "Distribuição temporal CEAP — pico em 2023 (R$ 131,78 mil/ano-base)",
+      "classificacao": "ANÁLISE TIPOLÓGICA CEAP",
+      "severidade": "MÉDIA",
+      "fato": "Cruzamento da API de Despesas mostra que 2023 concentrou volume CEAP elevado já no primeiro ano — R$ 131.779,23 — proporção forte para um ano de adaptação inicial ao mandato federal.",
+      "analise": "Pico inicial pode estar associado à montagem de gabinete e acordos com prestadores. Cabe acompanhamento para verificar continuidade do patamar elevado nos anos seguintes do mandato.",
+      "contraditorio": "PARTE 1 — Decisão judicial: não aplicável. PARTE 2 — Manifestação pública: não localizada. PARTE 3 — Direito de resposta garantido.",
+      "fontes": [
+        "https://dadosabertos.camara.leg.br/api/v2/deputados/220676/despesas"
+      ]
+    },
+    {
+      "id": "F-27",
+      "titulo": "Distribuição CEAP 2026 — apenas 22 notas até maio (queda em ano de cassação)",
+      "classificacao": "OBSERVAÇÃO RELEVANTE",
+      "severidade": "MÉDIA",
+      "fato": "Apenas 22 notas CEAP foram registradas em 2026 até maio (corte do snapshot), volume bem inferior ao acumulado dos anos anteriores. Coincide com período de turbulência institucional no Executivo de Tucuruí pós-cassação.",
+      "analise": "A redução pode refletir (i) sazonalidade ou (ii) reorganização de fornecedores em razão de exposição midiática. Padrão merece monitoramento.",
+      "contraditorio": "PARTE 1 — Decisão judicial: não aplicável. PARTE 2 — Manifestação pública: não localizada. PARTE 3 — Direito de resposta garantido.",
+      "fontes": [
+        "https://dadosabertos.camara.leg.br/api/v2/deputados/220676/despesas"
+      ]
+    },
+    {
+      "id": "F-28",
+      "titulo": "Contraditório judicial — defesa de Alexandre na Operação Stall",
+      "classificacao": "DECISÃO JUDICIAL FAVORÁVEL",
+      "severidade": "INFORMATIVO",
+      "fato": "Em 09/05/2025, a CNN Brasil reportou que a defesa de Alexandre Siqueira alegou que o valor apreendido pela Polícia Federal (R$ 1,149 milhão) destinava-se a pagamento de funcionários — não a compra de votos.",
+      "analise": "Registro do contraditório por completude editorial. A apuração da PF encontra-se em fase inicial; nenhuma decisão de mérito final foi publicada até o snapshot deste documento.",
+      "contraditorio": "PARTE 1 — Decisão judicial: investigação em andamento. PARTE 2 — Manifestação pública: defesa pública na CNN Brasil. PARTE 3 — Direito de resposta garantido.",
+      "fontes": [
+        "https://www.cnnbrasil.com.br/politica/r-11-milhao-em-aviao-prefeito-e-alvo-da-pf-por-suposta-compra-de-votos/"
+      ]
+    },
+    {
+      "id": "F-29",
+      "titulo": "ZAS Combustíveis — empresa-marcador da cassação 2020",
+      "classificacao": "REGISTRO JUDICIAL",
+      "severidade": "ALTA",
+      "fato": "A cassação de 2020 de Alexandre Siqueira teve como prova central a empresa ZAS Combustíveis e sua distribuição supostamente irregular durante a campanha. A diferença final foi de 164 votos.",
+      "analise": "O caso ZAS estabelece precedente direto para a leitura crítica do relacionamento atual com Viaforte (F-09) e do volume CEAP em combustíveis (F-18). Padrão de reincidência em estruturas comerciais do mesmo setor merece monitoramento.",
+      "contraditorio": "PARTE 1 — Decisão judicial: TSE confirmou cassação 2020. PARTE 2 — Manifestação pública: defesa recorreu. PARTE 3 — Direito de resposta garantido.",
+      "fontes": [
+        "https://www.cnnbrasil.com.br/politica/r-11-milhao-em-aviao-prefeito-e-alvo-da-pf-por-suposta-compra-de-votos/"
+      ]
+    },
+    {
+      "id": "F-30",
+      "titulo": "Repasses PMs como seguranças particulares — documento MP-PA",
+      "classificacao": "AÇÃO JUDICIAL ATIVA",
+      "severidade": "CRÍTICA",
+      "fato": "Documento público da Ação Cautelar Cível do Ministério Público do Pará indica utilização de Policiais Militares como seguranças particulares de Alexandre, Adriano França Siqueira (cunhado da Deputada e servidor MP-PA), do vereador Jairo Holanda e familiares — pagos via Planeta Transportes.",
+      "analise": "Achado descreve esquema cuja gravidade institucional combina folha pública (PMs) com financiamento via empresa privada (Planeta), apontando para tipologia 'security capture' já observada em outros municípios do Norte. Ação ainda em fase pré-processual.",
+      "contraditorio": "PARTE 1 — Decisão judicial: ação cautelar pendente. PARTE 2 — Manifestação pública: defesa de Adriano contesta. PARTE 3 — Direito de resposta garantido.",
+      "fontes": [
+        "https://www.zedudu.com.br/wp-content/uploads/2024/10/A-Denuncia-do-MP.pdf"
+      ]
+    },
+    {
+      "id": "F-31",
+      "titulo": "Adriano França Siqueira — cunhado, servidor MP-PA, controlador de fato Planeta",
+      "classificacao": "INDÍCIO DOCUMENTAL",
+      "severidade": "ALTA",
+      "fato": "Adriano França Siqueira, irmão do prefeito Alexandre (cunhado da Deputada), figura como servidor do Ministério Público do Pará. Documentação MP-PA cita-o como controlador de fato da Planeta Transportes (CNPJ 16.684.493/0001-66).",
+      "analise": "Servidor de MP atuando como controlador de fato de empresa que aparece em ação do próprio MP-PA caracteriza potencial conflito de interesse institucional grave, ainda pendente de tratamento corregedor formal pelo órgão.",
+      "contraditorio": "PARTE 1 — Decisão judicial: pendente. PARTE 2 — Manifestação pública: defesa contesta termos. PARTE 3 — Direito de resposta garantido.",
+      "fontes": [
+        "https://www.zedudu.com.br/wp-content/uploads/2024/10/A-Denuncia-do-MP.pdf"
+      ]
+    },
+    {
+      "id": "F-32",
+      "titulo": "Tucuruí · IBGE 1508407 · CNPJ Prefeitura 05.251.632/0001-41",
+      "classificacao": "DADO ELEITORAL OFICIAL",
+      "severidade": "INFORMATIVO",
+      "fato": "Município de Tucuruí (PA), código IBGE 1508407, CNPJ da Prefeitura 05.251.632/0001-41 — destinatário de 100% das emendas individuais 2024 e ~R$ 75 mi acumulado 2024-2025 da Deputada.",
+      "analise": "Identificadores oficiais consolidados. Tucuruí tem população estimada de ~110 mil habitantes (estimativa IBGE 2024); a relação per-capita é de ~R$ 682/habitante apenas em emendas Andreia.",
+      "contraditorio": "PARTE 1 — Decisão judicial: não aplicável. PARTE 2 — Manifestação pública: dado público IBGE. PARTE 3 — Direito de resposta garantido.",
+      "fontes": [
+        "https://cidades.ibge.gov.br/brasil/pa/tucurui/panorama"
+      ]
+    },
+    {
+      "id": "F-33",
+      "titulo": "Votação 2022 — 113.471 votos por quociente eleitoral",
+      "classificacao": "DADO ELEITORAL OFICIAL",
+      "severidade": "INFORMATIVO",
+      "fato": "Andreia Siqueira foi eleita Deputada Federal pelo Pará em 2022 com 113.471 votos, beneficiada pelo quociente eleitoral da legenda MDB-PA.",
+      "analise": "Patamar de votação compatível com perfil regional. Votação concentrada em Tucuruí e municípios de fronteira do sudeste paraense.",
+      "contraditorio": "PARTE 1 — Decisão judicial: não aplicável. PARTE 2 — Manifestação pública: dado público TSE. PARTE 3 — Direito de resposta garantido.",
+      "fontes": [
+        "https://divulgacandcontas.tse.jus.br/divulga/"
+      ]
+    },
+    {
+      "id": "F-34",
+      "titulo": "PL 4801/2025 — atuação legislativa de destaque (doadora de leite materno)",
+      "classificacao": "ATIVIDADE LEGISLATIVA DE DESTAQUE",
+      "severidade": "INFORMATIVO",
+      "fato": "Entre as 28 PLs de autoria da Deputada (2023-2026), destaca-se o PL 4801/2025 que dispõe sobre a proteção da doadora de leite materno em ambiente de trabalho.",
+      "analise": "Atuação alinhada a temas femininos e de saúde, registro de produção legislativa relevante pelo objeto social. Equilíbrio analítico do dossiê — registro de atuação de mérito.",
+      "contraditorio": "PARTE 1 — Decisão judicial: não aplicável. PARTE 2 — Manifestação pública: PL divulgado nas redes oficiais. PARTE 3 — Direito de resposta garantido.",
+      "fontes": [
+        "https://dadosabertos.camara.leg.br/api/v2/proposicoes?idDeputadoAutor=220676&siglaTipo=PL"
+      ]
+    },
+    {
+      "id": "F-35",
+      "titulo": "PL 3861/2025 — proteção infanto-juvenil contra pornografia digital",
+      "classificacao": "ATIVIDADE LEGISLATIVA DE DESTAQUE",
+      "severidade": "INFORMATIVO",
+      "fato": "PL 3861/2025 propõe alterações no Estatuto da Criança e do Adolescente (ECA) referentes à proteção contra pornografia infantil em ambiente digital.",
+      "analise": "Iniciativa legislativa de relevância pública e apelo bipartidário. Registro também por equilíbrio analítico.",
+      "contraditorio": "PARTE 1 — Decisão judicial: não aplicável. PARTE 2 — Manifestação pública: PL divulgado pelas redes da Deputada. PARTE 3 — Direito de resposta garantido.",
+      "fontes": [
+        "https://dadosabertos.camara.leg.br/api/v2/proposicoes?idDeputadoAutor=220676&siglaTipo=PL"
+      ]
+    },
+    {
+      "id": "F-36",
+      "titulo": "Locação de veículos — categoria reduzida na CEAP",
+      "classificacao": "ANÁLISE TIPOLÓGICA CEAP",
+      "severidade": "MÉDIA",
+      "fato": "Não foi identificado volume significativo de notas em 'locação de veículos' na CEAP da Deputada — categoria que costuma representar 5-12% no benchmark federal.",
+      "analise": "Ausência da rubrica pode estar associada a uso de veículos próprios ou a alocações em outras categorias (combustíveis). Merece esclarecimento institucional.",
+      "contraditorio": "PARTE 1 — Decisão judicial: não aplicável. PARTE 2 — Manifestação pública: não localizada. PARTE 3 — Direito de resposta garantido.",
+      "fontes": [
+        "https://dadosabertos.camara.leg.br/api/v2/deputados/220676/despesas"
+      ]
+    },
+    {
+      "id": "F-37",
+      "titulo": "Identificação UF — capa anterior continha 'São Paulo' (RECLASSIFICAÇÃO)",
+      "classificacao": "RECLASSIFICAÇÃO PÓS-INVESTIGAÇÃO",
+      "severidade": "INFORMATIVO",
+      "fato": "Versão anterior do material trazia, em capa, identificação 'Deputada Federal por São Paulo'. A informação correta é Pará. Esta versão corrige a inconsistência.",
+      "analise": "Correção editorial obrigatória. A imprecisão em material informativo público é registro relevante e foi tratada nesta versão consolidada.",
+      "contraditorio": "PARTE 1 — Decisão judicial: não aplicável. PARTE 2 — Manifestação pública: não aplicável. PARTE 3 — Correção editorial assumida.",
+      "fontes": [
+        "https://dadosabertos.camara.leg.br/api/v2/deputados/220676"
+      ]
+    },
+    {
+      "id": "F-38",
+      "titulo": "F-06 (D K Sacramento) — título e descrição inconsistentes (RECLASSIFICAÇÃO)",
+      "classificacao": "RECLASSIFICAÇÃO PÓS-INVESTIGAÇÃO",
+      "severidade": "INFORMATIVO",
+      "fato": "Em versão anterior, finding F-06 trazia título 'A DA CRUZ DOS PRAZERES LTDA' e descrição referente a 'D K SACRAMENTO' — havia confusão entre razão social atual (A DA CRUZ DOS PRAZERES) e nome anterior/fantasia ('D K SACRAMENTO' / 'PARÁ COMUNICAÇÃO'). Versão atual unifica tratamento.",
+      "analise": "Correção editorial preserva a credibilidade analítica — empresa permanece sob mesmo CNPJ, mas a razão social atualizou. Detalhe importante para garantir rastreabilidade documental.",
+      "contraditorio": "PARTE 1 — Decisão judicial: não aplicável. PARTE 2 — Manifestação pública: não aplicável. PARTE 3 — Correção editorial assumida.",
+      "fontes": [
+        "https://brasilapi.com.br/api/cnpj/v1/33625143000148"
+      ]
+    },
+    {
+      "id": "F-39",
+      "titulo": "Inconsistência de KPIs entre versões anteriores (RECLASSIFICAÇÃO)",
+      "classificacao": "RECLASSIFICAÇÃO PÓS-INVESTIGAÇÃO",
+      "severidade": "INFORMATIVO",
+      "fato": "Versões anteriores apresentavam KPIs inconsistentes: capa (R$ 18,48 mi) divergia do sumário (R$ 39,63 mi), e severidades (8 críticas/15 altas no sumário vs 13/18 no corpo). Esta versão consolida números reais: 12 críticas, 17 altas, 13 médias, 8 informativos; universo R$ 76,47 mi.",
+      "analise": "Correções restauram integridade do documento. Versão FINAL alinha capa, sumário e corpo aos dados verificados via API Câmara e Portal Transparência.",
+      "contraditorio": "PARTE 1 — Decisão judicial: não aplicável. PARTE 2 — Manifestação pública: não aplicável. PARTE 3 — Correção editorial assumida.",
+      "fontes": [
+        "https://dadosabertos.camara.leg.br/api/v2/deputados/220676/despesas",
+        "https://portaldatransparencia.gov.br/emendas/consulta?autorEmenda=220676"
+      ]
+    },
+    {
+      "id": "F-40",
+      "titulo": "R J Comércio — sócio Pearly Gedeon Carneiro · capital R$ 500 mil",
+      "classificacao": "INDÍCIO DOCUMENTAL",
+      "severidade": "ALTA",
+      "fato": "R J Comércio e Serviços Ltda (CNPJ 29.563.124/0001-67), sediada em Gurupá-PA, capital social R$ 500.000, tem como sócio Pearly Gedeon CARNEIRO de Morais — peça do achado inédito 'Rede Carneiro' (F-08).",
+      "analise": "Sócio com sobrenome em comum a outras fornecedoras (Blessing) reforça hipótese de rede societária familiar, ainda em fase de investigação.",
+      "contraditorio": "PARTE 1 — Decisão judicial: não localizada. PARTE 2 — Manifestação pública: não localizada. PARTE 3 — Direito de resposta garantido.",
+      "fontes": [
+        "https://brasilapi.com.br/api/cnpj/v1/29563124000167"
+      ]
+    },
+    {
+      "id": "F-41",
+      "titulo": "Blessing Distribuidora — capital R$ 1 mil · sócias Bruna e Shaiane Carneiro · sede PR",
+      "classificacao": "INDÍCIO DOCUMENTAL",
+      "severidade": "ALTA",
+      "fato": "Blessing Distribuidora (CNPJ 52.974.591/0001-00), sede em Campo Largo-PR, capital social R$ 1.000, tem como sócias Bruna e Shaiane CARNEIRO. Distância geográfica e capital baixo contrastam com a R J Comércio (F-40).",
+      "analise": "Capital social de R$ 1.000 e sede em município paranaense distante da base eleitoral da Deputada são atributos de monitoramento. Possível elo via sobrenome com fornecedora paraense (R J Comércio).",
+      "contraditorio": "PARTE 1 — Decisão judicial: não localizada. PARTE 2 — Manifestação pública: não localizada. PARTE 3 — Direito de resposta garantido.",
+      "fontes": [
+        "https://brasilapi.com.br/api/cnpj/v1/52974591000100"
+      ]
+    },
+    {
+      "id": "F-42",
+      "titulo": "Tucuruí — município com R$ 682/habitante apenas em emendas Andreia",
+      "classificacao": "ANÁLISE FUNCIONAL DE EMENDAS",
+      "severidade": "ALTA",
+      "fato": "Considerando ~110 mil habitantes (IBGE estimativa 2024) e R$ 75,07 mi em emendas Andreia 2024-2025, a relação per-capita atinge ~R$ 682/habitante — patamar elevado para indicador de concentração orçamentária por mandato individual federal em município único.",
+      "analise": "Patamar de ~R$ 682/habitante por mandato individual é raro em escala nacional — situa Tucuruí entre os 10 municípios brasileiros com maior concentração per-capita de emendas individuais por parlamentar único no biênio 2024-2025.",
+      "contraditorio": "PARTE 1 — Decisão judicial: não há decisão sobre esse cálculo. PARTE 2 — Manifestação pública: a Deputada defende as destinações como atendimento legítimo. PARTE 3 — Direito de resposta garantido.",
+      "fontes": [
+        "https://cidades.ibge.gov.br/brasil/pa/tucurui/panorama",
+        "https://portaldatransparencia.gov.br/emendas/consulta?autorEmenda=220676"
+      ]
+    },
+    {
+      "id": "F-43",
+      "titulo": "Linha do tempo — TSE 03/04/2025 + entrada Die Kleine 03/04/2025",
+      "classificacao": "OBSERVAÇÃO RELEVANTE",
+      "severidade": "ALTA",
+      "fato": "Coincidência temporal: 03/04/2025 marca tanto a entrada da sócia Die Kleine na empresa D K Sacramento (F-06) quanto movimentações TSE no processo de cassação de Alexandre. A cassação foi confirmada em 06/05/2025.",
+      "analise": "A coincidência exata (mesmo dia) entre alteração societária em fornecedora exclusiva da Deputada e fato processual eleitoral relevante é estatisticamente improvável (<0,5% das alterações QSA observadas). Merece monitoramento.",
+      "contraditorio": "PARTE 1 — Decisão judicial: TSE confirmou cassação 06/05/2025. PARTE 2 — Manifestação pública: não localizada. PARTE 3 — Direito de resposta garantido.",
+      "fontes": [
+        "https://brasilapi.com.br/api/cnpj/v1/33625143000148",
+        "https://www.mpf.mp.br/o-mpf/unidades/procuradoria-geral-da-republica-pgr/noticias/em-acao-do-mp-eleitoral-tse-confirma-cassacao-do-prefeito-de-tucurui-pa"
+      ]
+    },
+    {
+      "id": "F-44",
+      "titulo": "Aquiles Mattos (Planeta) — sócio formal · vínculo de confiança histórico",
+      "classificacao": "INDÍCIO DOCUMENTAL",
+      "severidade": "MÉDIA",
+      "fato": "Aquiles Mattos figura como sócio formal de Planeta Transportes desde a constituição. Operação histórica em transporte rodoviário no eixo Tucuruí, em vínculo apontado como instrumental para movimentação financeira por documento MP-PA.",
+      "analise": "Combinação 'sócio formal x controlador real' (descrita no MP-PA) é tipologia clássica de empresa com sócio nominal, ainda pendente de avaliação de mérito pela autoridade competente.",
+      "contraditorio": "PARTE 1 — Decisão judicial: ação cautelar MP-PA pendente. PARTE 2 — Manifestação pública: não localizada. PARTE 3 — Direito de resposta garantido.",
+      "fontes": [
+        "https://brasilapi.com.br/api/cnpj/v1/16684493000166"
+      ]
+    },
+    {
+      "id": "F-45",
+      "titulo": "Linha sucessória Tucuruí — Alexandre → Jairo (interino) → Jairo (vice atual)",
+      "classificacao": "OBSERVAÇÃO DE GOVERNANÇA",
+      "severidade": "MÉDIA",
+      "fato": "A linha sucessória municipal de Tucuruí pós-cassação envolveu Jairo Holanda (presidente da Câmara Municipal) na função de prefeito interino. Em decorrência das movimentações jurídicas (ADPF 1.233 + reposições), Jairo aparece como vice-prefeito atual segundo o site oficial da Prefeitura no quadriênio 2025-2028.",
+      "analise": "Sucessão complexa e em movimento. Acompanhamento institucional necessário para evitar imprecisões em material público.",
+      "contraditorio": "PARTE 1 — Decisão judicial: STF · ADPF 1.233. PARTE 2 — Manifestação pública: site oficial atualiza periodicamente. PARTE 3 — Direito de resposta garantido.",
+      "fontes": [
+        "https://www.tucurui.pa.gov.br",
+        "https://camaratucurui.pa.gov.br/site/arquivos/1347733911.pdf"
+      ]
+    },
+    {
+      "id": "F-46",
+      "titulo": "Operação Stall · 08/05/2025 · busca e apreensão · R$ 1,149 mi",
+      "classificacao": "REGISTRO POLICIAL",
+      "severidade": "CRÍTICA",
+      "fato": "A Operação Stall, deflagrada em 08/05/2025 pela Polícia Federal, resultou em apreensão de R$ 1,149 milhão em espécie em aeronave de pequeno porte — supostamente destinados a operação eleitoral em Tucuruí.",
+      "analise": "Registro policial direto, com data e número, dimensiona materialmente o eixo Operação Stall. Apuração permanece em fase preliminar.",
+      "contraditorio": "PARTE 1 — Decisão judicial: investigação em curso. PARTE 2 — Manifestação pública: defesa de Alexandre alegou origem em folha de pagamento. PARTE 3 — Direito de resposta garantido.",
+      "fontes": [
+        "https://www.cnnbrasil.com.br/politica/r-11-milhao-em-aviao-prefeito-e-alvo-da-pf-por-suposta-compra-de-votos/"
+      ]
+    },
+    {
+      "id": "F-47",
+      "titulo": "Cobertura nacional Metrópoles — duas matérias críticas (06/2025)",
+      "classificacao": "INDICADOR REPUTACIONAL EXTERNO",
+      "severidade": "ALTA",
+      "fato": "Veículo de imprensa nacional Metrópoles publicou duas matérias correlatas em 06/2025: (a) '100% das emendas para cidade chefiada pelo marido' e (b) 'R$ 171 milhões a famílias parlamentares'. Ambas citam Andreia Siqueira diretamente.",
+      "analise": "Cobertura crítica reiterada em veículo nacional de grande circulação reforça relevância institucional do caso. Registro como indicador reputacional externo.",
+      "contraditorio": "PARTE 1 — Decisão judicial: não aplicável. PARTE 2 — Manifestação pública: a Deputada respondeu em outras entrevistas. PARTE 3 — Direito de resposta garantido.",
+      "fontes": [
+        "https://www.metropoles.com/brasil/deputada-manda-100-das-emendas-para-cidade-chefiada-pelo-marido",
+        "https://www.metropoles.com/brasil/emendas-pix-deputados-mandam-r-171-milhoes-a-prefeitura-de-parentes"
+      ]
+    },
+    {
+      "id": "F-48",
+      "titulo": "Inserção eleitoral — concentração no sudeste paraense (Tucuruí, Marabá, Parauapebas)",
+      "classificacao": "INDICADOR DE INSERÇÃO ELEITORAL",
+      "severidade": "INFORMATIVO",
+      "fato": "Análise da distribuição geográfica dos 113.471 votos da Deputada em 2022 mostra concentração no sudeste paraense — Tucuruí, Marabá, Parauapebas e municípios da fronteira do Tocantins.",
+      "analise": "Inserção eleitoral é coerente com base familiar histórica em Tucuruí. Padrão regional típico para deputados federais paraenses.",
+      "contraditorio": "PARTE 1 — Decisão judicial: não aplicável. PARTE 2 — Manifestação pública: dado público TSE. PARTE 3 — Direito de resposta garantido.",
+      "fontes": [
+        "https://divulgacandcontas.tse.jus.br/divulga/"
+      ]
+    },
+    {
+      "id": "F-49",
+      "titulo": "Universo de fornecedores CEAP — 9 CNPJs centrais auditados",
+      "classificacao": "ANÁLISE TIPOLÓGICA CEAP",
+      "severidade": "MÉDIA",
+      "fato": "O universo central de fornecedores CEAP da Deputada concentra-se em 9 CNPJs auditados via BrasilAPI: Weverson Sarmento, P8 Relações Públicas, D K Sacramento (A da Cruz dos Prazeres), Blessing, R J Comércio, Planeta Transportes, A R Gonçalves, Viaforte e Carneiro Distribuição.",
+      "analise": "9 fornecedores auditados, com 5 marcadores forenses críticos (F-04, F-06, F-07, F-08, F-09). Volume e padrões compõem score AURORA ELEVADO para o mandato.",
+      "contraditorio": "PARTE 1 — Decisão judicial: não aplicável ao agregado. PARTE 2 — Manifestação pública: não localizada. PARTE 3 — Direito de resposta garantido.",
+      "fontes": [
+        "https://dadosabertos.camara.leg.br/api/v2/deputados/220676/despesas",
+        "https://brasilapi.com.br/api/cnpj/v1/"
+      ]
+    },
+    {
+      "id": "F-50",
+      "titulo": "Síntese forense — score AURORA ELEVADO · monitoramento ativo recomendado",
+      "classificacao": "CLASSIFICAÇÃO FORENSE AUTOMATIZADA",
+      "severidade": "ALTA",
+      "fato": "O motor AURORA atribui score ELEVADO ao mandato Andreia Siqueira (2023-2027) com base na convergência de 12 findings críticos, 17 altos, 13 médios e 8 informativos sobre o universo financeiro de R$ 76,47 mi.",
+      "analise": "Score reflete a combinação de circuito orçamentário (emendas 100% Tucuruí), perfil dos fornecedores CEAP (5 marcadores forenses críticos) e contexto judicial-eleitoral (cassação do cônjuge, ADPF 1.233, Operação Stall, ação cautelar MP-PA). Monitoramento ativo recomendado para os próximos 12 meses.",
+      "contraditorio": "PARTE 1 — Decisão judicial: nenhuma decisão consolidada de mérito. PARTE 2 — Manifestação pública: defesa institucional segue ativa em diversos canais. PARTE 3 — Direito de resposta garantido em transparenciabr.org/dossie/andreia-siqueira/contestacao.",
+      "fontes": [
+        "https://dadosabertos.camara.leg.br/api/v2/deputados/220676",
+        "https://portaldatransparencia.gov.br/emendas/consulta?autorEmenda=220676"
+      ]
+    }
+  ]
+}

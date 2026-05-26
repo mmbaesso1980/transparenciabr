@@ -1,0 +1,17 @@
+{
+  "slug": "andreia-siqueira",
+  "versao": "v1.0-FINAL",
+  "action": "review_pipeline",
+  "revisores": [
+    "revisor_fonte_primaria",
+    "revisor_tom",
+    "revisor_contraditorio",
+    "revisor_falso_positivo",
+    "revisor_mascara_pii",
+    "revisor_severidade"
+  ],
+  "pdf_gcs": "gs://datalake-tbr-clean/dossies_v1/andreia-siqueira/dossie.pdf",
+  "findings_doc": "dossies_v1/andreia-siqueira",
+  "notify_telegram_chat_id": "6483072695",
+  "origin": "manual_consolidacao_v1_final"
+}
