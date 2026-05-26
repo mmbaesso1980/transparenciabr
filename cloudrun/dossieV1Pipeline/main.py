@@ -105,6 +105,24 @@ def _firestore_status(slug: str, payload: dict) -> None:
         sys.stderr.write(f"[warn] Firestore update falhou ({slug}): {exc}\n")
 
 
+def _get_admin_token() -> str:
+    """Token admin: env AURORA_ADMIN_TOKEN ou Secret Manager `aurora-admin-token`."""
+    raw = os.environ.get("AURORA_ADMIN_TOKEN", "").strip()
+    if raw:
+        return raw
+    try:
+        from google.cloud import secretmanager  # type: ignore
+
+        pid = os.environ.get("SECRET_PROJECT_ID", os.environ.get("GOOGLE_CLOUD_PROJECT", ""))
+        if not pid:
+            return ""
+        client = secretmanager.SecretManagerServiceClient()
+        name = f"projects/{pid}/secrets/aurora-admin-token/versions/latest"
+        return client.access_secret_version(request={"name": name}).payload.data.decode("utf-8").strip()
+    except Exception:
+        return ""
+
+
 def _run_pipeline(alvo: str, slug: str, output_dir: Path) -> tuple[bool, str, str]:
     """Executa dossie_pipeline.py como subprocess e devolve (ok, findings_path, pdf_path)."""
     cmd = [
@@ -219,6 +237,43 @@ def metrics():
     if _metrics is None:
         return jsonify({"error": "prometheus_client indisponível"}), 503
     return _metrics.render_metrics(), 200, {"Content-Type": _metrics.content_type()}
+
+
+@app.route("/admin/replay", methods=["POST"])
+def admin_replay():
+    """Republica mensagens da DLQ para o tópico principal (requer token admin)."""
+    token = request.headers.get("X-Aurora-Token", "")
+    expected = _get_admin_token()
+    if not expected or token != expected:
+        return jsonify({"error": "unauthorized"}), 401
+
+    from google.cloud import pubsub_v1  # type: ignore
+
+    project = os.environ.get("PUBSUB_PROJECT_ID", os.environ.get("GOOGLE_CLOUD_PROJECT", ""))
+    if not project:
+        return jsonify({"error": "PUBSUB_PROJECT_ID/GOOGLE_CLOUD_PROJECT ausente"}), 500
+
+    main_topic = os.environ.get("DOSSIE_V1_TOPIC", "dossie-v1-pipeline")
+    dlq_sub = os.environ.get("DOSSIE_V1_DLQ_SUB", "dossie-v1-pipeline-dlq-sub")
+    subscriber = pubsub_v1.SubscriberClient()
+    publisher = pubsub_v1.PublisherClient()
+    sub_path = subscriber.subscription_path(project, dlq_sub)
+    topic_path = publisher.topic_path(project, main_topic)
+
+    max_msg = min(int(request.args.get("max", "100")), 500)
+    response = subscriber.pull(
+        request={"subscription": sub_path, "max_messages": max_msg},
+        timeout=60.0,
+    )
+    ack_ids: list[str] = []
+    replayed = 0
+    for rm in response.received_messages:
+        publisher.publish(topic_path, rm.message.data).result(timeout=60.0)
+        ack_ids.append(rm.ack_id)
+        replayed += 1
+    if ack_ids:
+        subscriber.acknowledge(request={"subscription": sub_path, "ack_ids": ack_ids})
+    return jsonify({"replayed": replayed, "topic": main_topic, "dlq_sub": dlq_sub}), 200
 
 
 if __name__ == "__main__":
