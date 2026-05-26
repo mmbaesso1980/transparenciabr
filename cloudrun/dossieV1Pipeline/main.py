@@ -49,6 +49,19 @@ GCS_BUCKET = os.environ.get("GCS_BUCKET", "datalake-tbr-clean")
 GCS_PREFIX = os.environ.get("GCS_PREFIX", "dossies_v1")
 FIRESTORE_COLLECTION = os.environ.get("FIRESTORE_COLLECTION", "dossies_v1")
 
+SLUG_TO_ALVO = {
+    "erika-hilton": "Erika Hilton",
+    "kim-kataguiri": "Kim Kataguiri",
+}
+
+
+def _slug_para_alvo(slug: str) -> str:
+    """Deriva nome público a partir do slug kebab-case (fallback quando Pub/Sub não envia `alvo`)."""
+    s = slug.strip().lower()
+    if s in SLUG_TO_ALVO:
+        return SLUG_TO_ALVO[s]
+    return " ".join(p.capitalize() for p in s.split("-") if p)
+
 
 def _decode_pubsub(envelope: dict) -> dict:
     """Decodifica payload Pub/Sub push (envelope JSON com `message.data` base64)."""
@@ -117,11 +130,11 @@ def _run_pipeline(alvo: str, slug: str, output_dir: Path) -> tuple[bool, str, st
 def handle_pubsub():
     envelope = request.get_json(silent=True) or {}
     payload = _decode_pubsub(envelope)
-    alvo = (payload.get("alvo") or "").strip()
     slug = (payload.get("slug") or "").strip()
-
-    if not alvo or not slug:
-        return jsonify({"error": "alvo e slug são obrigatórios", "payload": payload}), 400
+    if not slug:
+        # ACK: sem slug não há recuperação; HTTP 4xx faz Pub/Sub redelivery infinito.
+        return jsonify({"error": "slug obrigatório", "payload": payload}), 200
+    alvo = (payload.get("alvo") or "").strip() or _slug_para_alvo(slug)
 
     _firestore_status(
         slug,
