@@ -61,7 +61,7 @@ export class AgentController {
     this.homePos = homePos;
     this.extraPositions = extraPositions;
 
-    this.currentState   = 'idle';
+    this.currentState   = null;  // null inicial pra primeiro setState('idle') disparar _startIdleWandering
     this.balloon        = null;
     this.balloonTween   = null;
     this.moveTween      = null;

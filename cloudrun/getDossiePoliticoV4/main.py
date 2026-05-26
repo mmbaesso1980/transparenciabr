@@ -20,9 +20,10 @@ except ImportError:  # pragma: no cover
     vertexai = None
     GenerativeModel = None
 
+# Cross-project: BQ -> transparenciabr (dados). Vertex -> projeto-codex-br (creditos).
 BQ_PROJECT = os.environ.get("BQ_PROJECT_ID", "transparenciabr")
-VERTEX_PROJECT = os.environ.get("VERTEX_PROJECT_ID", BQ_PROJECT)
-VERTEX_LOCATION = os.environ.get("VERTEX_LOCATION", "us-central1")
+VERTEX_PROJECT = os.environ.get("VERTEX_PROJECT_ID") or os.environ.get("VERTEX_PROJECT") or "projeto-codex-br"
+VERTEX_LOCATION = os.environ.get("VERTEX_LOCATION", "us-east1")
 GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-pro")
 
 AURORA_AGENTS = [

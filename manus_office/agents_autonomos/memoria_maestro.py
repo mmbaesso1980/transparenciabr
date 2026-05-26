@@ -29,13 +29,15 @@ import os, json, datetime as dt, hashlib
 from google.cloud import firestore, aiplatform
 import numpy as np
 
-PROJECT = "transparenciabr"
-LOCATION = "us-central1"
+# Vertex AI -> projeto-codex-br (creditos R$ 5.677). Firestore -> transparenciabr (dados).
+PROJECT          = os.environ.get("VERTEX_PROJECT", "projeto-codex-br")  # Vertex AI / Gemini
+FIRESTORE_PROJECT = os.environ.get("FIRESTORE_PROJECT", "transparenciabr")  # dados
+LOCATION = os.environ.get("VERTEX_LOCATION", "us-east1")
 EMBED_MODEL = "textembedding-gecko-multilingual@latest"
 
 def _embed(text: str):
     """Chama Vertex text embedding. Retorna vetor 768-d."""
-    aiplatform.init(project=PROJECT, location=LOCATION)
+    aiplatform.init(project=PROJECT, location=LOCATION)  # Vertex roda em codex-br
     from vertexai.language_models import TextEmbeddingModel
     model = TextEmbeddingModel.from_pretrained(EMBED_MODEL)
     return model.get_embeddings([text])[0].values
@@ -46,7 +48,7 @@ def _cosine(a, b):
 
 def remember(content: str, source: str = "chat", node_type: str = "fact"):
     """Persiste memória. Se já há nó próximo (>0.85 cos), bumpa weight em vez de duplicar."""
-    db = firestore.Client(project=PROJECT)
+    db = firestore.Client(project=FIRESTORE_PROJECT)
     emb = _embed(content)
     # Buscar candidatos do mesmo type pelos 50 mais recentes
     qs = db.collection("agents_graph").where("type","==",node_type)\
@@ -77,7 +79,7 @@ def remember(content: str, source: str = "chat", node_type: str = "fact"):
 
 def recall(query: str, k: int = 5, min_weight: float = 0.0):
     """Recupera k nós mais semelhantes à query."""
-    db = firestore.Client(project=PROJECT)
+    db = firestore.Client(project=FIRESTORE_PROJECT)
     emb = _embed(query)
     qs = db.collection("agents_graph").where("weight",">=",min_weight)\
             .order_by("weight", direction=firestore.Query.DESCENDING).limit(200).stream()
@@ -95,7 +97,7 @@ def recall(query: str, k: int = 5, min_weight: float = 0.0):
 
 def reflect():
     """Cria nós 'pattern' agregando facts com weight alto."""
-    db = firestore.Client(project=PROJECT)
+    db = firestore.Client(project=FIRESTORE_PROJECT)
     high = list(db.collection("agents_graph").where("type","==","fact")\
                   .where("weight",">",0.7).limit(50).stream())
     if len(high) < 3: return {"created_patterns": 0}
@@ -121,7 +123,7 @@ def reflect():
 
 def prune():
     """Remove nós fracos e velhos."""
-    db = firestore.Client(project=PROJECT)
+    db = firestore.Client(project=FIRESTORE_PROJECT)
     cutoff = dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=30)
     qs = db.collection("agents_graph").where("weight","<",0.1)\
             .where("last_seen","<",cutoff).limit(200).stream()
