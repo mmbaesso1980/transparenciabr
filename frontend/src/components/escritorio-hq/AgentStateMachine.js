@@ -1,3 +1,5 @@
+import Phaser from 'phaser';
+
 /**
  * AgentStateMachine.js — Controla a máquina de estados de cada agente sprite
  *
@@ -87,6 +89,7 @@ export class AgentController {
     switch (newState) {
       case 'idle':
         this._goHome();
+        this._startIdleWandering();
         break;
 
       case 'working':
@@ -134,6 +137,97 @@ export class AgentController {
     if (this.moveTween) this.moveTween.stop();
     this.sprite.setPosition(x, y);
     this.sprite.setFrame(STATE_ANIM[this.currentState]?.frame ?? 0);
+  }
+
+  // ── Comportamento Black Mirror: bonecos vivem sozinhos ────────────────────
+
+  /**
+   * Inicia comportamento idle vivo: vagueia, vai pra copa, conversa em pares.
+   * Comandante Baesso · USS Callister mode.
+   */
+  _startIdleWandering() {
+    if (this.idleTimer) this.idleTimer.remove();
+    // Cada 6-14s decide próxima ação idle
+    const next = () => Phaser.Math.Between(6000, 14000);
+    this.idleTimer = this.scene.time.addEvent({
+      delay:    next(),
+      callback: () => {
+        if (this.currentState !== 'idle') return;
+        const action = Phaser.Math.Between(0, 100);
+        if (action < 35) {
+          // Caminha aleatório (1-3 tiles do home)
+          this._wanderRandom();
+        } else if (action < 55) {
+          // Vai pra copa tomar café
+          this._goCoffee();
+        } else if (action < 75) {
+          // Procura par e conversa
+          this._tryChat();
+        } else if (action < 85) {
+          // Vira de lado (mudar frame)
+          this.sprite.setFrame(Phaser.Math.Between(0, 1));
+        }
+        // resto: fica parado mesmo
+        this.idleTimer.delay = next();
+      },
+      loop: true,
+    });
+  }
+
+  _wanderRandom() {
+    const dx = Phaser.Math.Between(-2, 2);
+    const dy = Phaser.Math.Between(-1, 1);
+    const target = {
+      tx: this.homePos.tx + dx,
+      ty: this.homePos.ty + dy,
+    };
+    this._walkTo(target, () => {
+      this.scene.time.delayedCall(Phaser.Math.Between(1500, 3500), () => {
+        if (this.currentState === 'idle') this._walkTo(this.homePos, () => this.sprite.setFrame(0));
+      });
+    });
+  }
+
+  _goCoffee() {
+    // Posições aleatórias da copa
+    const coffeeSpots = [
+      { tx: 27, ty: 18 }, { tx: 28, ty: 19 }, { tx: 29, ty: 18 },
+      { tx: 27, ty: 20 }, { tx: 28, ty: 21 },
+    ];
+    const spot = coffeeSpots[Phaser.Math.Between(0, coffeeSpots.length - 1)];
+    this._walkTo(spot, () => {
+      this._showBalloon('balloon_work'); // "..." enquanto toma café
+      this.scene.time.delayedCall(Phaser.Math.Between(3000, 6000), () => {
+        this._hideBalloon();
+        if (this.currentState === 'idle') this._walkTo(this.homePos, () => this.sprite.setFrame(0));
+      });
+    });
+  }
+
+  _tryChat() {
+    // Dispara evento DOM — a cena coordena pares
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('aurora:requestChat', {
+        detail: { sprite: this.sprite, homePos: this.homePos, controller: this },
+      }));
+    }
+  }
+
+  /** Chamado externamente pela cena para iniciar conversa com outro agente */
+  startChatWith(otherCtrl) {
+    if (this.currentState !== 'idle') return;
+    // Anda até meio-caminho do outro agente
+    const mid = {
+      tx: Math.floor((this.homePos.tx + otherCtrl.homePos.tx) / 2),
+      ty: Math.floor((this.homePos.ty + otherCtrl.homePos.ty) / 2),
+    };
+    this._walkTo(mid, () => {
+      this._showBalloon('balloon_work');
+      this.scene.time.delayedCall(Phaser.Math.Between(2500, 5000), () => {
+        this._hideBalloon();
+        if (this.currentState === 'idle') this._walkTo(this.homePos, () => this.sprite.setFrame(0));
+      });
+    });
   }
 
   _walkTo(pos, onComplete) {
@@ -209,6 +303,7 @@ export class AgentController {
     if (this.moveTween)    { this.moveTween.stop();     this.moveTween   = null; }
     if (this.pulseTween)   { this.pulseTween.stop();    this.pulseTween  = null; }
     if (this.blinkTimer)   { this.blinkTimer.remove();  this.blinkTimer  = null; }
+    if (this.idleTimer)    { this.idleTimer.remove();   this.idleTimer   = null; }
     this._hideBalloon();
     this.sprite.setAlpha(1);
   }

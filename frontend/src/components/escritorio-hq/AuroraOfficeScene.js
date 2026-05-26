@@ -139,6 +139,39 @@ export default class AuroraOfficeScene extends Phaser.Scene {
 
     // 9. Textos de zona
     this._addZoneLabels();
+
+    // 10. Black Mirror mode: ativa idle wandering em todos
+    for (const ctrl of this._agentControllers.values()) {
+      ctrl.setState('idle');
+    }
+
+    // 11. Coordenador de conversas em pares
+    this._chatPending = null;
+    this._chatListener = (e) => {
+      const { controller } = e.detail;
+      if (this._chatPending && this._chatPending !== controller) {
+        // Forma par
+        const partner = this._chatPending;
+        this._chatPending = null;
+        controller.startChatWith(partner);
+        partner.startChatWith(controller);
+      } else {
+        // Primeiro a pedir — espera 3s por par; senão desiste
+        this._chatPending = controller;
+        this.time.delayedCall(3000, () => {
+          if (this._chatPending === controller) this._chatPending = null;
+        });
+      }
+    };
+    if (typeof window !== 'undefined') {
+      window.addEventListener('aurora:requestChat', this._chatListener);
+    }
+  }
+
+  shutdown() {
+    if (typeof window !== 'undefined' && this._chatListener) {
+      window.removeEventListener('aurora:requestChat', this._chatListener);
+    }
   }
 
   update(time, delta) {
