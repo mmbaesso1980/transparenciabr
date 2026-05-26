@@ -67,7 +67,13 @@ tg "🔥 EVISCERADOR v2.0 INICIADO direto-na-VM · ${RUN_ID}"
 
 # Instala deps
 log "─── Instalando aiohttp ───"
-pip3 install --user --quiet aiohttp 2>&1 | tail -2 | tee -a "${LOG}" || true
+pip3 install --user --quiet --break-system-packages aiohttp 2>&1 | tail -2 | tee -a "${LOG}" || \
+  pip3 install --user --quiet aiohttp 2>&1 | tail -2 | tee -a "${LOG}" || \
+  true
+python3 -c "import aiohttp; print(f'aiohttp {aiohttp.__version__} OK')" 2>&1 | tee -a "${LOG}" || {
+  log "❌ aiohttp não disponível — instalando via apt"
+  sudo apt-get install -y python3-aiohttp 2>&1 | tail -3 | tee -a "${LOG}"
+}
 
 # ═════════════════════════════════════════════════════════════════════════════
 # GERA WORKER PYTHON
@@ -160,12 +166,14 @@ async def eixo2_diarios(session):
     for termo in termos:
         for uf in ufs:
             url = "https://queridodiario.ok.org.br/api/gazettes"
-            tasks.append(fetch(session, url, f"qd_{uf}_{re.sub(r'\\W+','_',termo)[:30]}", "diarios",
+            slug_t = re.sub(r'\W+', '_', termo)[:30]
+            tasks.append(fetch(session, url, f"qd_{uf}_{slug_t}", "diarios",
                 params={"querystring": termo, "territory_uf": uf, "size": 100}))
     # DOU via API Imprensa Nacional (pública)
     for termo in termos:
         url = "https://www.in.gov.br/consulta/-/buscar/dou"
-        tasks.append(fetch(session, url, f"dou_{re.sub(r'\\W+','_',termo)[:30]}", "diarios",
+        slug_t = re.sub(r'\W+', '_', termo)[:30]
+        tasks.append(fetch(session, url, f"dou_{slug_t}", "diarios",
             params={"q": termo, "s": "todos"}))
 
     results = await asyncio.gather(*tasks, return_exceptions=True)
@@ -209,8 +217,9 @@ async def eixo4_reguladoras(session):
             f"ibama_{cnpj}", "reguladoras", params={"cnpj": cnpj}))
     # INPI por nome
     for termo in ["paulo octavio", "AKP enterprise", "principal construcoes"]:
+        inpi_slug = re.sub(r'\W+', '_', termo)[:30]
         tasks.append(fetch(session, "https://busca.inpi.gov.br/pePI/jsp/marcas/Pesquisa_classe_basica.jsp",
-            f"inpi_{re.sub(r'\\W+','_',termo)[:30]}", "reguladoras", params={"q": termo}))
+            f"inpi_{inpi_slug}", "reguladoras", params={"q": termo}))
 
     results = await asyncio.gather(*tasks, return_exceptions=True)
     ok = sum(1 for r in results if isinstance(r, dict) and r.get("status") == 200)
@@ -224,18 +233,19 @@ async def eixo5_judicial(session):
     # DJEN API CNJ
     for nome in PESSOAS.keys():
         url = "https://comunicaapi.pje.jus.br/api/v1/comunicacao"
-        tasks.append(fetch(session, url, f"djen_{re.sub(r'\\W+','_',nome)[:30]}", "judicial",
+        djen_slug = re.sub(r'\W+', '_', nome)[:30]
+        tasks.append(fetch(session, url, f"djen_{djen_slug}", "judicial",
             params={"nomeParte": nome, "itensPorPagina": 200}))
     # STJ AREsp específico
     url_stj = "https://scon.stj.jus.br/SCON/jurisprudencia/toc.jsp"
     tasks.append(fetch(session, url_stj, "stj_aresp_1079064", "judicial",
         params={"livre": "AREsp 1079064", "tipo_visualizacao": "RESUMO"}))
-    # Maré Alta / Number One / Caixa de Pandora
+    # Maré Alta / Number One / Caixa de Pandora (via DuckDuckGo HTML para evitar bloqueio Google)
     operacoes = ["Maré Alta", "Number One", "Caixa de Pandora", "Mensalão DEM"]
     for op in operacoes:
-        tasks.append(fetch(session, "https://www.google.com/search",
-            f"op_{re.sub(r'\\W+','_',op)[:30]}", "judicial",
-            params={"q": f'"{op}" "Paulo Octávio" site:tjdft.jus.br OR site:stj.jus.br'}))
+        op_slug = re.sub(r'\W+', '_', op)[:30]
+        tasks.append(fetch(session, "https://html.duckduckgo.com/html/", f"op_{op_slug}", "judicial",
+            params={"q": f'"{op}" "Paulo Octavio" site:tjdft.jus.br OR site:stj.jus.br'}))
 
     results = await asyncio.gather(*tasks, return_exceptions=True)
     ok = sum(1 for r in results if isinstance(r, dict) and r.get("status") == 200)
