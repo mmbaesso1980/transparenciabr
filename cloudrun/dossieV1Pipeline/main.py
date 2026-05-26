@@ -17,6 +17,7 @@ Variáveis de ambiente esperadas:
     GCS_BUCKET            — bucket de destino (default: datalake-tbr-clean)
     GCS_PREFIX            — prefixo do PDF (default: dossies_v1)
     FIRESTORE_COLLECTION  — coleção Firestore (default: dossies_v1)
+    FIRESTORE_PROJECT     — projeto GCP do Firestore (default: transparenciabr)
 """
 
 from __future__ import annotations
@@ -48,6 +49,7 @@ PIPELINE_SCRIPT = PIPELINE_DIR / "dossie_pipeline.py"
 GCS_BUCKET = os.environ.get("GCS_BUCKET", "datalake-tbr-clean")
 GCS_PREFIX = os.environ.get("GCS_PREFIX", "dossies_v1")
 FIRESTORE_COLLECTION = os.environ.get("FIRESTORE_COLLECTION", "dossies_v1")
+FIRESTORE_PROJECT = os.environ.get("FIRESTORE_PROJECT", "transparenciabr")
 
 SLUG_TO_ALVO = {
     "erika-hilton": "Erika Hilton",
@@ -90,7 +92,7 @@ def _firestore_status(slug: str, payload: dict) -> None:
     if firestore is None:
         return
     try:
-        client = firestore.Client()
+        client = firestore.Client(project=FIRESTORE_PROJECT)
         ref = client.collection(FIRESTORE_COLLECTION).document(slug)
         ref.set({**payload, "updated_at": firestore.SERVER_TIMESTAMP}, merge=True)
     except Exception as exc:

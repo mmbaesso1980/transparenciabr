@@ -482,7 +482,9 @@ def _firestore_callback(doc_path: str | None) -> Callable[[str, str, dict[str, A
         )
         return None
     try:
-        client = firestore.Client()
+        client = firestore.Client(
+            project=os.environ.get("FIRESTORE_PROJECT", "transparenciabr")
+        )
         # doc_path no formato 'dossies_v1/<slug>'
         parts = doc_path.split("/")
         if len(parts) % 2 != 0:
