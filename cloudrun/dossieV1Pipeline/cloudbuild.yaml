@@ -23,6 +23,9 @@ substitutions:
   _MEMORY: 4Gi
   _CPU: '2'
   _TIMEOUT: 3600s
+  # _TAG default — populado por SHORT_SHA quando build vem de trigger GitHub;
+  # cai em 'manual' quando rodar via `gcloud builds submit` direto.
+  _TAG: ${SHORT_SHA:-manual}
 
 options:
   logging: CLOUD_LOGGING_ONLY
@@ -35,7 +38,7 @@ steps:
       - -f
       - cloudrun/dossieV1Pipeline/Dockerfile
       - -t
-      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/transparenciabr/${_SERVICE}:$SHORT_SHA
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/transparenciabr/${_SERVICE}:${_TAG}
       - -t
       - ${_REGION}-docker.pkg.dev/$PROJECT_ID/transparenciabr/${_SERVICE}:latest
       - .
@@ -44,7 +47,7 @@ steps:
     name: gcr.io/cloud-builders/docker
     args:
       - push
-      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/transparenciabr/${_SERVICE}:$SHORT_SHA
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/transparenciabr/${_SERVICE}:${_TAG}
 
   - id: push-latest
     name: gcr.io/cloud-builders/docker
@@ -59,7 +62,7 @@ steps:
       - -c
       - |
         gcloud run deploy ${_SERVICE} \
-          --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/transparenciabr/${_SERVICE}:$SHORT_SHA \
+          --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/transparenciabr/${_SERVICE}:${_TAG} \
           --region=${_REGION} \
           --platform=managed \
           --no-allow-unauthenticated \
@@ -74,5 +77,5 @@ steps:
           --set-secrets=GEMINI_API_KEY=GEMINI_API_KEY:latest
 
 images:
-  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/transparenciabr/${_SERVICE}:$SHORT_SHA
+  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/transparenciabr/${_SERVICE}:${_TAG}
   - ${_REGION}-docker.pkg.dev/$PROJECT_ID/transparenciabr/${_SERVICE}:latest
