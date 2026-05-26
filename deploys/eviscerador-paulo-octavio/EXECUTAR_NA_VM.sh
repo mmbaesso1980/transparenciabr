@@ -29,7 +29,7 @@
 # ════════════════════════════════════════════════════════════════════════════
 
 set -euo pipefail
-export LANG=pt_BR.UTF-8
+export LANG=C.UTF-8  # universal, evita locale faltando na VM
 
 # ═════════════════════════════════════════════════════════════════════════════
 # CONFIGURAÇÃO
@@ -39,8 +39,10 @@ TELEGRAM_CHAT="6483072695"
 TG_TOKEN="${TG_TOKEN:-8671845549:AAHJpkjvDFSYvCYC4VGu1Ja7kzjE3kuviL8}"
 BUCKET="gs://datalake-tbr-clean/eviscerador_v2/paulo_octavio"
 RUN_ID="$(date -u +%Y%m%dT%H%M%SZ)"
-OUT="/home/baesso/eviscerador_v2/${RUN_ID}"
-LOG="/home/baesso/eviscerador_v2/run.log"
+# Usa $HOME (auto-detecta usuário real da VM: manusalt13_gmail_com, baesso, etc)
+WORKDIR="${HOME}/eviscerador_v2"
+OUT="${WORKDIR}/${RUN_ID}"
+LOG="${WORKDIR}/run.log"
 AUTO_SHUTDOWN="${AUTO_SHUTDOWN:-0}"  # default OFF — segurança extra em VM produtiva
 
 mkdir -p "${OUT}"/{directdata,osint,sancoes,diarios,judicial,reguladoras,grafo}
