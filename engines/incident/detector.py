@@ -10,7 +10,9 @@ import re
 import unicodedata
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
+
+ScanMode = Literal["output", "source"]
 
 from engines.sanitization.env_tokens import operator_tokens_from_env
 
@@ -86,16 +88,43 @@ def load_sentinels_config(path: Path | None = None) -> dict[str, Any]:
     return json.loads(cfg_path.read_text(encoding="utf-8"))
 
 
-def scan_text(text: str, cfg: dict[str, Any] | None = None) -> list[SentinelHit]:
+_TOM_VERB_SLUGS = frozenset(
+    {
+        "blocklist_fraudou",
+        "blocklist_desviou",
+        "blocklist_roubou",
+        "blocklist_corrupto",
+    }
+)
+
+
+def tom_blocklist_words(cfg: dict[str, Any] | None = None) -> tuple[str, ...]:
+    """Subconjunto da blocklist M11 usado na validação de tom (sem literais no caller)."""
+    cfg = cfg or load_sentinels_config()
+    words: list[str] = []
+    for word in cfg.get("blocklist") or []:
+        if f"blocklist_{slugify(str(word))}" in _TOM_VERB_SLUGS:
+            words.append(str(word))
+    return tuple(words)
+
+
+def scan_text(
+    text: str,
+    cfg: dict[str, Any] | None = None,
+    *,
+    mode: ScanMode = "output",
+) -> list[SentinelHit]:
+    """Varre texto; ``mode=source`` omite struct_* sintáticas (None/null em código Python)."""
     cfg = cfg or load_sentinels_config()
     t = normalize_text(text)
     hits: list[SentinelHit] = []
     contra = contradictorio_spans(t)
 
-    for code, rx in _STRUCTURAL:
-        slug = slugify(code.replace("STRUCT_", "struct_"))
-        for m in rx.finditer(t):
-            hits.append(SentinelHit(code, slug, m.group(0), m.start(), m.end()))
+    if mode == "output":
+        for code, rx in _STRUCTURAL:
+            slug = slugify(code.replace("STRUCT_", "struct_"))
+            for m in rx.finditer(t):
+                hits.append(SentinelHit(code, slug, m.group(0), m.start(), m.end()))
 
     for m in _QMARK_FIELD.finditer(t):
         if allow_question_ctx(t, m.start(), m.end(), contra):
@@ -157,6 +186,11 @@ def scan_text(text: str, cfg: dict[str, Any] | None = None) -> list[SentinelHit]
     return hits
 
 
-def scan_file(path: Path, cfg: dict[str, Any] | None = None) -> list[SentinelHit]:
+def scan_file(
+    path: Path,
+    cfg: dict[str, Any] | None = None,
+    *,
+    mode: ScanMode = "output",
+) -> list[SentinelHit]:
     text = path.read_text(encoding="utf-8", errors="replace")
-    return scan_text(text, cfg)
+    return scan_text(text, cfg, mode=mode)

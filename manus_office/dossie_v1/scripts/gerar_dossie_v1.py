@@ -164,11 +164,11 @@ def cover_page_factory(alvo, kpis, meto):
             canvas_obj.setFont('Inter', 7.5)
             canvas_obj.setFillColor(INK_MUTED)
             canvas_obj.drawString(cx, cy-0.45*cm, lab)
-        # Bottom block — agentes técnicos
+        # Bottom block — agentes forenses
         canvas_obj.setFont('DMSans-Bold', 10)
         canvas_obj.setFillColor(INK)
         n_agentes = len(meto.get('agentes_tecnicos', []))
-        canvas_obj.drawString(1.8*cm, 4.7*cm, f'METODOLOGIA · {n_agentes} AGENTES TÉCNICOS')
+        canvas_obj.drawString(1.8*cm, 4.7*cm, f'METODOLOGIA · {n_agentes} AGENTES FORENSES')
         canvas_obj.setFont('Inter', 7.5)
         canvas_obj.setFillColor(INK_MUTED)
         agentes_str = ' · '.join(meto.get('agentes_tecnicos', []))
@@ -413,8 +413,8 @@ def build_story(data):
     story.append(Paragraph('Metodologia e Fontes', s_h2))
     n_agentes = len(meto.get('agentes_tecnicos', []))
     story.append(Paragraph(
-        f"A compilação foi conduzida por {n_agentes} agentes técnicos especializados, encadeados em "
-        f"pipeline automatizado de coleta, cruzamento e validação. Cada finding referencia ao menos uma URL "
+        f"A compilação foi conduzida por {n_agentes} agentes forenses especializados, encadeados em "
+        f"fluxo automatizado de coleta, cruzamento e validação. Cada finding referencia ao menos uma URL "
         f"primária pública verificável. A versão v1.0 reforça três compromissos editoriais: contraditório "
         f"público em três partes, citação exclusiva de fontes primárias, e revisão pré-publicação de falsos "
         f"positivos para findings de severidade igual ou superior a ALTA.", s_body))

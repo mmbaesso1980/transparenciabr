@@ -69,4 +69,24 @@ if [[ ${#EXIST[@]} -eq 0 ]]; then
   echo "Sem ficheiros presentes no checkout para varrer."
   exit 0
 fi
-exec python3 -m engines.incident "${EXIST[@]}"
+
+# Artefatos de saída: todas as regras. Código-fonte .py: sem struct_* sintáticas (None é Python legítimo).
+PY_FILES=()
+OUT_FILES=()
+for f in "${EXIST[@]}"; do
+  case "$f" in
+    *.py) PY_FILES+=("$f") ;;
+    *) OUT_FILES+=("$f") ;;
+  esac
+done
+
+run_scan() {
+  local mode="$1"
+  shift
+  [[ $# -eq 0 ]] && return 0
+  python3 -m engines.incident --mode="$mode" "$@"
+}
+
+run_scan output "${OUT_FILES[@]}" || exit $?
+run_scan source "${PY_FILES[@]}" || exit $?
+echo "OK incident scan (${#OUT_FILES[@]} output, ${#PY_FILES[@]} source)"

@@ -7,14 +7,22 @@ import sys
 from pathlib import Path
 
 from .contention import blocks_publication
-from .detector import load_sentinels_config, scan_text
+from .detector import ScanMode, load_sentinels_config, scan_text
 from .triage import max_severity, triage_hit
 
 
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description="M11 incident scan (CI)")
-    p.add_argument("files", nargs="*", help="Ficheiros .md .txt .json (campo body)")
+    p.add_argument(
+        "--mode",
+        choices=("output", "source"),
+        default="output",
+        help="output: todas as regras (artefatos MD/JSON/PDF); "
+        "source: sem struct_none/null/undefined/nan/obj em código",
+    )
+    p.add_argument("files", nargs="*", help="Ficheiros a varrer")
     args = p.parse_args(argv)
+    scan_mode: ScanMode = args.mode  # type: ignore[assignment]
     cfg = load_sentinels_config()
     worst: str | None = None
     for fp in args.files:
@@ -27,7 +35,7 @@ def main(argv: list[str] | None = None) -> int:
             text = data.get("body") or data.get("text") or ""
         else:
             text = path.read_text(encoding="utf-8", errors="replace")
-        hits = scan_text(text, cfg)
+        hits = scan_text(text, cfg, mode=scan_mode)
         sev = max_severity(hits)
         if sev is None:
             continue
