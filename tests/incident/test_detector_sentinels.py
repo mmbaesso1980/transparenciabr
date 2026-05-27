@@ -25,6 +25,16 @@ def test_detect_none_literal(cfg, monkeypatch):
     assert "struct_none" in _slugs(hits)
 
 
+def test_struct_none_suppressed_in_python_source(cfg, monkeypatch):
+    monkeypatch.delenv("TBR_OPERATOR_PII_TOKENS", raising=False)
+    py_snippet = "def foo(x=None):\n    if x is None:\n        return None\n"
+    hits = scan_text(py_snippet, cfg, mode="source")
+    assert "struct_none" not in _slugs(hits)
+    assert "struct_null" not in _slugs(hits)
+    hits_output = scan_text("O processo None no tribunal.", cfg, mode="output")
+    assert "struct_none" in _slugs(hits_output)
+
+
 def test_detect_qmark_field_not_in_contradictorio(cfg, monkeypatch):
     monkeypatch.delenv("TBR_OPERATOR_PII_TOKENS", raising=False)
     hits = scan_text('Campo JSON: ?, fim.', cfg)

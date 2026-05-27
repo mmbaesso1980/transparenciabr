@@ -23,3 +23,11 @@ def test_script_does_not_drop_legitimate_scan_roots() -> None:
     assert "engines/dossie*" in text
     assert "frontend/*" in text
     assert "docs/*" in text
+
+
+def test_script_uses_output_vs_source_scan_modes() -> None:
+    text = _SCRIPT.read_text(encoding="utf-8")
+    assert '--mode="$mode"' in text or "--mode=\"$mode\"" in text
+    assert 'run_scan output' in text
+    assert 'run_scan source' in text
+    assert "*.py) PY_FILES" in text
