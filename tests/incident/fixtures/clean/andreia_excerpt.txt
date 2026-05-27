@@ -1,0 +1,9 @@
+# Excerto fictício “limpo” — bateria anti-falso-positivo (Andreia).
+
+## Resumo
+
+Indicadores de CEAP classificados por categoria econômica, com referência ao CSV oficial.
+
+## Contraditório
+
+Onde está o limite entre gasto regular e anomalia estatística? Usamos Z-score com janela móvel.

@@ -1,0 +1,2 @@
+# Ferramentas de desenvolvimento (não usadas em runtime dos engines em produção).
+PyYAML>=6.0.1,<7

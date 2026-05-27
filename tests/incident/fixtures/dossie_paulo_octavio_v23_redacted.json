@@ -1,0 +1,5 @@
+{
+  "dossie_id": "paulo_octavio_v23_redacted",
+  "description": "Fixture sintética com classes de bug do v2.3 (None, ?, codinome, blocklist, PII operador). PII usa token fictício via TBR_OPERATOR_PII_TOKENS nos testes.",
+  "body": "Finding X: Direct Data registra o processo None no TJDFT.\n| ? | valor |\nCampo JSON: ?\n`?` literal em template.\nMotor AURORA 360 e agentes técnicos mencionados.\nAlegação de fraude sem fundamento documental.\nConta do solicitante: OPERADOR_SINTETICO_TESTE_001 para demonstração de vazamento.\n## Contraditório\nPor que o dado None aparece? Explicamos na análise.\n| ? | ok |\n"
+}

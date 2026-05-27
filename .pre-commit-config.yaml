@@ -1,0 +1,9 @@
+repos:
+  - repo: local
+    hooks:
+      - id: incident-yaml-json-sync
+        name: engines/incident YAML → JSON sync
+        entry: bash scripts/validate_incident_json_sync.sh
+        language: system
+        files: ^engines/incident/(sentinels|severity_map)\.(yaml|yml|json)$
+        pass_filenames: false
