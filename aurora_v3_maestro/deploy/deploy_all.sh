@@ -6,7 +6,7 @@
 # listener systemd na VM aurora-cacador-br. Idempotente — pode rodar várias
 # vezes; só cria recurso se não existir.
 #
-# Rodar no Cloud Shell autenticado como Comandante OPERADOR:
+# Rodar no Cloud Shell autenticado como Comandante Baesso:
 #   bash deploy_all.sh
 #
 # Variáveis sobrescrevíveis:
@@ -127,8 +127,9 @@ done
 # 7) Build + Deploy do worker (Cloud Run)
 # -----------------------------------------------------------------------------
 echo "[7/9] Build do worker (Cloud Build)..."
-WORKER_DIR="$(cd "$(dirname "$0")/.." && pwd)/worker"
-cp ../prompts/SYSTEM_PROMPT_v1.0.md "${WORKER_DIR}/SYSTEM_PROMPT_v1.0.md"
+PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+WORKER_DIR="${PROJECT_ROOT}/worker"
+cp "${PROJECT_ROOT}/prompts/SYSTEM_PROMPT_v1.0.md" "${WORKER_DIR}/SYSTEM_PROMPT_v1.0.md"
 
 cd "${WORKER_DIR}"
 IMAGE="gcr.io/${PROJECT_VERTEX}/${SERVICE_NAME}:v1.0.0"
