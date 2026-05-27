@@ -18,7 +18,7 @@ Cloud Run Job (ou processo standalone na VM) que:
   6. Loga TUDO em maestro_audit_log (APPEND-ONLY, imutável)
   7. Reflete pós-tarefa em maestro_memory/<topic> (camada de aprendizado tático)
 
-Comandante: COMANDANTE  OPERADOR (operador@transparenciabr.app)
+Comandante: Maurílio Mesquita Baesso (mmbaesso@hotmail.com)
 Versão: 1.0.0 — 2026-05-27
 """
 
@@ -69,7 +69,7 @@ MODEL_ID = os.getenv("MAESTRO_MODEL", "gemini-2.5-pro")
 TEMPERATURE = float(os.getenv("MAESTRO_TEMP", "0.1"))
 MAX_OUTPUT_TOKENS = int(os.getenv("MAESTRO_MAX_TOKENS", "32768"))
 
-WHITELIST_CHATS = {6483072695}  # F1 — apenas o Comandante OPERADOR
+WHITELIST_CHATS = {6483072695}  # F1 — apenas o Comandante Baesso
 SUBSCRIPTION = os.getenv("MAESTRO_SUB", "maestro-commands-sub")
 PROMPT_PATH = Path(os.getenv(
     "MAESTRO_PROMPT_PATH",
@@ -184,7 +184,7 @@ def build_tools() -> Tool:
     fns = [
         FunctionDeclaration(
             name="telegram_send",
-            description="Envia mensagem para o Comandante OPERADOR via Telegram. Sempre português formal.",
+            description="Envia mensagem para o Comandante Baesso via Telegram. Sempre português formal.",
             parameters={
                 "type": "object",
                 "properties": {
@@ -512,7 +512,7 @@ def exec_vertex_invoke(args: dict, chat_id: int) -> dict:
 
 
 def exec_directdata_call(args: dict, chat_id: int) -> dict:
-    token = STATE.secrets.get(SECRET_DIRECT_DATA, "__SECRET_FROM_GCP_SECRET_MANAGER__")
+    token = STATE.secrets.get(SECRET_DIRECT_DATA, "29AE5E97-AACF-4ACC-B0ED-692472D72D60")
     endpoint = args["endpoint"]
     params = args.get("params", {})
     url = f"https://apiv3.directd.com.br/api/{endpoint}"
@@ -742,8 +742,32 @@ def handle_message(message: pubsub_v1.subscriber.message.Message) -> None:
         message.ack()
 
 
+def _start_health_server() -> None:
+    """Cloud Run exige listener HTTP em $PORT — usamos um endpoint /health stdlib.
+    Worker Pub/Sub continua em background; este servidor existe SÓ para o probe."""
+    import threading
+    from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+    class _HealthHandler(BaseHTTPRequestHandler):
+        def do_GET(self):  # noqa: N802
+            self.send_response(200)
+            self.send_header("Content-Type", "text/plain")
+            self.end_headers()
+            self.wfile.write(b"maestro-worker v1.0 ok\n")
+
+        def log_message(self, format, *args):  # silencia stdout do http.server
+            return
+
+    port = int(os.environ.get("PORT", "8080"))
+    srv = ThreadingHTTPServer(("0.0.0.0", port), _HealthHandler)
+    t = threading.Thread(target=srv.serve_forever, daemon=True, name="health-http")
+    t.start()
+    jlog("health.listening", port=port)
+
+
 def main() -> None:
     bootstrap()
+    _start_health_server()
     subscriber = pubsub_v1.SubscriberClient()
     sub_path = subscriber.subscription_path(PROJECT_VERTEX, SUBSCRIPTION)
     flow = pubsub_v1.types.FlowControl(max_messages=1)  # 1 comando por vez
