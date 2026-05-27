@@ -2,8 +2,15 @@
 """Gera dossiê forense parlamentar — padrão TransparênciaBR v1.0 · tom informativo · totalmente data-driven."""
 import argparse
 import json
+import sys
 from datetime import datetime
 from pathlib import Path
+
+_REPO_ROOT = Path(__file__).resolve().parents[3]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+
+from engines.sanitization.operator_pii_filter import sanitize_structure  # noqa: E402
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import cm, mm
@@ -671,7 +678,7 @@ def main():
 
     data_path = Path(args.findings)
     out_path = Path(args.output)
-    data = json.loads(data_path.read_text(encoding='utf-8'))
+    data = sanitize_structure(json.loads(data_path.read_text(encoding='utf-8')))
 
     doc = BaseDocTemplate(
         str(out_path),

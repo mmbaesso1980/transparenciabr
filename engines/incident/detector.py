@@ -6,12 +6,13 @@ Tokens de operador: variável de ambiente ``TBR_OPERATOR_PII_TOKENS`` (separador
 from __future__ import annotations
 
 import json
-import os
 import re
 import unicodedata
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+
+from engines.sanitization.env_tokens import operator_tokens_from_env
 
 PACKAGE_DIR = Path(__file__).resolve().parent
 
@@ -78,12 +79,6 @@ def allow_question_ctx(text: str, start: int, end: int, spans: list[tuple[int, i
     """True se o hit de ``?`` deve ser suprimido (pergunta natural no contraditório)."""
     mid = (start + end) // 2
     return _in_any_span(mid, spans)
-
-
-def operator_tokens_from_env() -> list[str]:
-    raw = os.environ.get("TBR_OPERATOR_PII_TOKENS", "") or ""
-    parts = [p.strip() for p in raw.split("|")]
-    return [p for p in parts if p]
 
 
 def load_sentinels_config(path: Path | None = None) -> dict[str, Any]:

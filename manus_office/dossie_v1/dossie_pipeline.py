@@ -40,8 +40,11 @@ PIPELINE_DIR = Path(__file__).resolve().parent
 MANUS_DIR = PIPELINE_DIR.parent
 REPO_DIR = MANUS_DIR.parent
 
-# Permite import do agent_registry sem instalar pacote.
+# Permite import do agent_registry e engines/ sem instalar pacote.
+sys.path.insert(0, str(REPO_DIR))
 sys.path.insert(0, str(MANUS_DIR))
+
+from engines.sanitization.operator_pii_filter import sanitize_structure  # noqa: E402
 
 from agent_registry import CREW_DOSSIE_FORENSE_V1, MAESTRO  # noqa: E402
 
@@ -658,7 +661,8 @@ def run_pipeline(
     # 3. Maestro consolida.
     doc = _consolidar_maestro(parciais, alvo, slug, noticias)
 
-    # 4. Persiste findings.json.
+    # 4. Persiste findings.json (sanitizer M12 — LGPD classe C antes de gravar).
+    doc = sanitize_structure(doc)
     findings_path.write_text(json.dumps(doc, ensure_ascii=False, indent=2), encoding="utf-8")
     print(f"[pipeline] findings.json salvo em {findings_path}")
     print(
@@ -685,6 +689,7 @@ def run_pipeline(
                     doc["findings"] = corrected
                 else:
                     doc = corrected
+                doc = sanitize_structure(doc)
                 findings_path.write_text(
                     json.dumps(doc, ensure_ascii=False, indent=2), encoding="utf-8"
                 )
