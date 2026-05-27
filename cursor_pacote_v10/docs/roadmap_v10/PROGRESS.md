@@ -6,7 +6,7 @@ Atualizar a cada PR mergeado. Notificar Telegram chat 6483072695 com summary.
 
 | Sprint | Task | Status | PR | LLM-Judge | Replay | Notas |
 |---|---|---|---|---|---|---|
-| S0-EMERG | M11 — Protocolo de Incidente + Retratação (postmortem v2.3) | ⏳ | — | — | — | — |
+| S0-EMERG | M11 — Protocolo de Incidente + Retratação (postmortem v2.3) | ✅ | 6851a385 | #244 | 2026-05-27 | Maestro v1.0 |
 | S0-EMERG | M12 — Sanitizador de PII do Solicitante (defesa em profundidade) | ⏳ | — | — | — | — |
 | S0-EMERG | M01 — CI Lint de tom + skill manifest em PR | ⏳ | — | — | — | — |
 | S1 | S03 — Cadeia de Custódia OpenLineage + SHA-256 | ⏳ | — | — | — | — |
