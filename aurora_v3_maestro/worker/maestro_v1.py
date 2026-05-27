@@ -410,9 +410,9 @@ def audit(event: str, chat_id: int, payload: dict[str, Any]) -> str:
             "model": MODEL_ID,
             "version": "1.0.0",
         })
-        jlog("audit.write", audit_id=audit_id, event=event)
+        jlog("audit.write", audit_id=audit_id, audit_event=event)
     except Exception as e:
-        jlog("audit.err", error=str(e), event=event)
+        jlog("audit.err", error=str(e), audit_event=event)
     return audit_id
 
 
