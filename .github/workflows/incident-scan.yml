@@ -1,0 +1,54 @@
+name: M11 incident scan
+
+on:
+  pull_request:
+    paths:
+      - "manus_office/**"
+      - "engines/dossie**"
+      - "engines/incident/**"
+      - "functions/**dossie**"
+      - "functions/**Dossie**"
+      - "frontend/**/Dossie**"
+      - "frontend/**/dossie**"
+      - "**/*.pdf"
+      - "tests/incident/**"
+
+jobs:
+  incident-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install engines deps + pytest
+        run: |
+          python3 -m pip install --upgrade pip
+          pip install -r engines/requirements.txt
+          pip install pytest
+
+      - name: Validate YAML/JSON sync (M11)
+        run: |
+          pip install -r dev-requirements.txt
+          bash scripts/validate_incident_json_sync.sh
+
+      - name: Block operator PII in repo files
+        run: |
+          set -euo pipefail
+          python3 scripts/check_incident_repo_pii.py
+
+      - name: Unit tests (incident)
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+        run: pytest tests/incident/ -q
+
+      - name: Incident scan (ficheiros texto do delta do PR)
+        if: github.event_name == 'pull_request'
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+          TBR_OPERATOR_PII_TOKENS: OPERADOR_SINTETICO_TESTE_001
+        run: bash scripts/incident_ci_pr_scan.sh

@@ -1,0 +1,28 @@
+{
+  "by_slug": {
+    "blocklist_asmodeus": "CRITICAL",
+    "blocklist_bigquery_interno": "CRITICAL",
+    "blocklist_corrupto": "HIGH",
+    "blocklist_desviou": "HIGH",
+    "blocklist_fraude": "HIGH",
+    "blocklist_fraudou": "HIGH",
+    "blocklist_goetia": "CRITICAL",
+    "blocklist_ladrao": "HIGH",
+    "blocklist_prova_de_crime": "HIGH",
+    "blocklist_roubou": "HIGH",
+    "codename_agentes_tecnicos": "HIGH",
+    "codename_asmodeus": "CRITICAL",
+    "codename_aurora_360": "CRITICAL",
+    "codename_goetia": "CRITICAL",
+    "codename_lobo_mau": "HIGH",
+    "codename_pipeline_automatizado": "HIGH",
+    "struct_nan": "MEDIUM",
+    "struct_none": "HIGH",
+    "struct_null": "HIGH",
+    "struct_obj": "MEDIUM",
+    "struct_qmark_bullet": "MEDIUM",
+    "struct_qmark_field": "HIGH",
+    "struct_qmark_inline": "MEDIUM",
+    "struct_undefined": "MEDIUM"
+  }
+}

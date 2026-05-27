@@ -1,0 +1,9 @@
+# Excerto fictício “limpo” — bateria anti-falso-positivo (Paulo, sem bugs v2.3).
+
+## Resumo
+
+Panorama de fornecedores PNCP com georreferência aproximada e disclaimers de precisão.
+
+## Contraditório
+
+Quando dois CNPJs compartilham endereço, como tratamos? Registamos como correlação fraca.
