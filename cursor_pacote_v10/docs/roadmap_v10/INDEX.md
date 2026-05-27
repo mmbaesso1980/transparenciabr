@@ -1,15 +1,18 @@
-# Roadmap v10.0.0 — Specs individuais (23 tasks)
+# Roadmap v10.0.0 — Specs individuais (24 tasks)
 
-**Total story points:** 133 | **Sprints:** S0-EMERG → S6
+**Total story points:** 136 | **Sprints:** S0-EMERG → S6
+
+> Nota: M13 adicionado em 27/05/2026 como ação corretiva do incidente Lightning dunning. +3 pts em S0-EMERG.
 
 ## Por sprint
 
-### S0-EMERG (15 pts)
+### S0-EMERG (18 pts)
 
 | ID | Título | Pts | Prioridade | Impacto | Skill |
 |---|---|---|---|---|---|
 | [M11](./M11.md) | Protocolo de Incidente + Retratação (postmortem v2.3) | 5 | P0 | Crítico | transparenciabr-lei + maestro-autonomo |
 | [M12](./M12.md) | Sanitizador de PII do Solicitante (defesa em profundidade) | 5 | P0 | Crítico | transparenciabr-lei |
+| [M13](./M13.md) | Pre-flight Billing Check + FinOps Guard | 3 | P0 | Crítico | maestro-autonomo + transparenciabr-lei |
 | [M01](./M01.md) | CI Lint de tom + skill manifest em PR | 5 | P0 | Alto | transparenciabr-lei |
 
 ### S1 (13 pts)
