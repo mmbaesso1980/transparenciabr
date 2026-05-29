@@ -973,9 +973,15 @@ def reason_loop(user_text: str, chat_id: int, command_id: str) -> dict:
         if not function_calls:
             # Texto final livre — encaminha pro Telegram e fecha
             text_out = "".join([p.text for p in parts if hasattr(p, "text") and p.text]) or "(sem texto)"
-            exec_telegram_send({"text": text_out[:4000]}, chat_id)
-            audit("reason.text_only_end", chat_id, {"text": text_out[:800]})
-            return {"ok": True, "text": text_out}
+            # v2.1.1 — anti-duplicação: só envia se ainda não mandamos nada neste comando
+            if not telegram_sent:
+                exec_telegram_send({"text": text_out[:4000]}, chat_id)
+                telegram_sent = True
+            else:
+                jlog("telegram.duplicate.suppressed", command_id=command_id, turn=turns, text_preview=text_out[:200])
+                audit("telegram.duplicate.suppressed", chat_id, {"command_id": command_id, "text": text_out[:300]})
+            audit("reason.text_only_end", chat_id, {"text": text_out[:800], "telegram_sent": telegram_sent})
+            return {"ok": True, "text": text_out, "telegram_sent": telegram_sent}
 
         # Acrescenta a resposta do modelo no histórico
         history.append(candidate.content)
@@ -1002,8 +1008,13 @@ def reason_loop(user_text: str, chat_id: int, command_id: str) -> dict:
             audit("tool.result", chat_id, {"name": name, "ok": result.get("ok", False), "args_sample": str(args)[:300]})
 
             # GOD v2.0 — track regra do silêncio
-            if name == "telegram_send" and result.get("ok"):
-                telegram_sent = True
+            # v2.1.1 — anti-duplicação: se modelo chamar telegram_send 2x no mesmo comando, suprime
+            if name == "telegram_send":
+                if telegram_sent and result.get("ok"):
+                    jlog("telegram.duplicate.intra_command", command_id=command_id, turn=turns)
+                    audit("telegram.duplicate.intra_command", chat_id, {"command_id": command_id, "args": str(args)[:300]})
+                if result.get("ok"):
+                    telegram_sent = True
             if name not in ("telegram_send", "task_complete"):
                 last_tool_summary.append(f"{name}={'ok' if result.get('ok') else 'fail'}")
 

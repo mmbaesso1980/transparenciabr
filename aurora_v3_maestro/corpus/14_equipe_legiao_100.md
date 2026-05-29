@@ -12,13 +12,13 @@
                           │
         ┌─────────────────┼─────────────────┐
         │                 │                 │
-   10 CREWS LEGADO   1 CREW FORENSE v1.0   100 OPERADORES
+   10 CREWS LEGADO   1 CREW FORENSE v1.0   100 AGENTES
    (10 ag. cada)    (10 agentes-detetive)  (suporte cruzado)
 ```
 
 Total: **111 agentes** comandados pelo Maestro.
 
-## 2. AS 10 CREWS LEGADO (100 operadores totais)
+## 2. AS 10 CREWS LEGADO (100 agentes totais)
 
 | ID | Nome | Emoji | Missão |
 |---|---|---|---|
@@ -33,7 +33,7 @@ Total: **111 agentes** comandados pelo Maestro.
 | `crew-dossie` | Dossiê Executivo | 📋 | Consolidação narrativa, citação de fontes |
 | `crew-deploy` | Engenharia & Entrega | 🛠️ | Especificação técnica, entrega de artefatos |
 
-Cada crew tem **10 operadores** numerados `a01` a `a10`, identificados por totens:
+Cada crew tem **10 agentes** numerados `a01` a `a10`, identificados por totens:
 🐺 🦉 🦅 🐉 ⚡ 🔮 🛡️ ⚔️ 🗡️ 🏹
 
 Chave Firestore por agente: `${crew.id}-${agent.shortId}` (ex.: `crew-forense-a07`).
@@ -127,7 +127,7 @@ O frontend `/escritorio-hq` renderiza isso em tempo real — você ver os boneco
 
 - **Total agentes:** 111 (110 + Maestro)
 - **Crews:** 11
-- **Operadores anônimos por crew legado:** 10
+- **Agentes anônimos por crew legado:** 10
 - **Detetives especializados (Forense v1.0):** 10
 - **Localização frontend:** `/escritorio` e `/escritorio-hq`
 - **Backend registry:** `manus_office/agent_registry.py`
