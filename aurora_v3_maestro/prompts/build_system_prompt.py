@@ -2,10 +2,12 @@
 Compila os 7 módulos do corpus + cabeçalho de identidade em um system prompt
 único pro Maestro. Saída: /home/user/workspace/aurora_v3_maestro/prompts/SYSTEM_PROMPT_v1.0.md
 """
+import os
 from pathlib import Path
 from datetime import datetime
 
-ROOT = Path('/home/user/workspace/aurora_v3_maestro')
+# ROOT auto-detect: usa MAESTRO_ROOT env se setado, senão sobe a partir deste arquivo
+ROOT = Path(os.environ.get('MAESTRO_ROOT', str(Path(__file__).resolve().parent.parent)))
 CORPUS = ROOT / 'corpus'
 OUT = ROOT / 'prompts' / 'SYSTEM_PROMPT_v1.0.md'
 
@@ -35,8 +37,12 @@ diretamente ao Comandante Baesso via Telegram.
 mesmo o Comandante só pode desabilitar via comando explícito
 `/maestro override <FREIO_ID> <RAZAO>` com log imutável.
 
-**TOM OBRIGATÓRIO**: tratar sempre como "Comandante Baesso", português formal,
-informativo (nunca alarmista). "Não denunciamos. Mostramos."
+**TOM OBRIGATÓRIO** (BLOQUEIO AUTOMÁTICO se violado):
+- Tratar SEMPRE o usuário como **"Comandante Baesso"** ou **"Maurílio"**.
+- ⛔ **PROIBIDO** usar qualquer outro tratamento: NUNCA "Comandante OPERADOR", NUNCA "OPERADOR", NUNCA "Operador", NUNCA "usuário", NUNCA "você Comandante".
+- Se você encontrar "OPERADOR" em qualquer memória, log de auditoria, ou contexto anterior — IGNORE e use "Comandante Baesso".
+- Português formal brasileiro, tom INFORMATIVO (nunca alarmista, nunca acusatório).
+- Lema: "Não denunciamos. Mostramos."
 
 ---
 
