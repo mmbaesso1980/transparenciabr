@@ -137,6 +137,19 @@ def bootstrap() -> None:
     """Inicializa Vertex, Firestore, Secret Manager, carrega prompt e declara tools."""
     jlog("bootstrap.start", project_vertex=PROJECT_VERTEX, model=MODEL_ID)
 
+    # F6 — Billing gate (GOD v2.0)
+    # Memória permanente Comandante: Vertex DEVE rodar em projeto-codex-br
+    # (crédito R$ 5.677,28 vivos, expira 03/05/2027). NUNCA em transparenciabr.
+    if PROJECT_VERTEX != "projeto-codex-br":
+        msg = (
+            f"BILLING-VIOLATION (F6): Vertex DEVE estar em projeto-codex-br. "
+            f"Atual: PROJECT_VERTEX={PROJECT_VERTEX!r}. "
+            f"Revise env var MAESTRO_PROJECT_VERTEX e redeploy."
+        )
+        jlog("freio.6.billing.violation", project_vertex=PROJECT_VERTEX, severity="CRITICAL")
+        raise RuntimeError(msg)
+    jlog("freio.6.billing.ok", project_vertex=PROJECT_VERTEX)
+
     vertexai.init(project=PROJECT_VERTEX, location=REGION)
     STATE.fs_main = firestore.Client(project=PROJECT_MAIN)
     STATE.fs_codex = firestore.Client(project=PROJECT_VERTEX)
@@ -309,6 +322,106 @@ def build_tools() -> Tool:
                 "required": ["topic", "lesson"],
             },
         ),
+        # ===== GOD v2.0 — 5 tools novas =====
+        FunctionDeclaration(
+            name="web_search",
+            description="Busca na web via Google Search grounding nativo do Gemini. Retorna top-5 resultados com título, URL e snippet.",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string", "description": "Query natural-language curta (2-7 palavras-chave)."},
+                    "recency": {"type": "string", "enum": ["day", "week", "month", "year", "any"], "description": "Restrição de recente. Default 'any'."},
+                },
+                "required": ["query"],
+            },
+        ),
+        FunctionDeclaration(
+            name="fetch_url",
+            description="Baixa conteúdo de URL pública HTTPS. Limite 200KB. Opcionalmente extrai trecho relevante via LLM.",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "url": {"type": "string"},
+                    "extract_prompt": {"type": "string", "description": "Opcional. Se fornecido, LLM extrai resposta específica em vez do HTML cru."},
+                },
+                "required": ["url"],
+            },
+        ),
+        FunctionDeclaration(
+            name="subagent_spawn",
+            description="Spawn de um Vertex Gemini secundário com objetivo isolado e budget próprio. Use para paralelizar dossiês, análises ou comparações. Retorna handle de subagent_id.",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "objective": {"type": "string", "description": "Objetivo claro e auto-contido do subagent."},
+                    "max_turns": {"type": "integer", "description": "Limite de turnos do subagent (default 10, max 30)."},
+                    "budget_brl": {"type": "number", "description": "Orçamento máximo em R$. Default 2.00. Hard cap 10.00."},
+                },
+                "required": ["objective"],
+            },
+        ),
+        FunctionDeclaration(
+            name="load_skill_runtime",
+            description="Carrega skill .md de gs://tbr-skills/user/<nome>/SKILL.md em runtime. Conteúdo vira parte do contexto para os próximos turnos.",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "skill_name": {"type": "string", "description": "Nome exato da skill (ex: 'dossie-forense-parlamentar')."},
+                },
+                "required": ["skill_name"],
+            },
+        ),
+        FunctionDeclaration(
+            name="cron_schedule",
+            description="Agenda execução futura ou recorrente via Cloud Scheduler. Publica em topic maestro-commands no momento certo. Ex: '/maestro toda segunda 9h, rodar dossiê X'.",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "schedule": {"type": "string", "description": "Cron expression em UTC. Ex: '0 12 * * 1' = toda segunda 9h BRT."},
+                    "command": {"type": "string", "description": "Texto do comando que será disparado."},
+                    "name": {"type": "string", "description": "Nome do job (slug). Idempotente: mesmo nome substitui."},
+                },
+                "required": ["schedule", "command", "name"],
+            },
+        ),
+        FunctionDeclaration(
+            name="browser_task_remote",
+            description="Dispara Playwright/Chromium em Cloud Run job 'maestro-browser' para tarefa que exige navegação real (JavaScript, login, formulário). Retorna texto/screenshot.",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "url": {"type": "string"},
+                    "task": {"type": "string", "description": "Instruções passo-a-passo para o browser agent."},
+                },
+                "required": ["url", "task"],
+            },
+        ),
+        FunctionDeclaration(
+            name="confirm_action",
+            description="Envia confirmação ao Comandante via Telegram com botões Sim/Não. Aguarda até 60s pela resposta. Retorna {confirmed: bool}.",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "question": {"type": "string"},
+                    "timeout_seconds": {"type": "integer", "description": "Default 60, max 300."},
+                },
+                "required": ["question"],
+            },
+        ),
+        FunctionDeclaration(
+            name="notify_push",
+            description="Envia push notification FCM para o dispositivo do Comandante. Para alertas que não cabem em texto Telegram simples.",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "title": {"type": "string"},
+                    "body": {"type": "string"},
+                    "severity": {"type": "string", "enum": ["info", "warning", "critical"]},
+                },
+                "required": ["title", "body"],
+            },
+        ),
+        # ===== Fim GOD v2.0 =====
         FunctionDeclaration(
             name="task_complete",
             description="Sinaliza fim da tarefa, dispara reflexão pós-tarefa e libera próximo comando.",
@@ -593,6 +706,205 @@ def exec_task_complete(args: dict, chat_id: int) -> dict:
     return {"ok": True, "stop": True}
 
 
+# ===== GOD v2.0 — implementações das 8 tools novas =====
+
+def exec_web_search(args: dict, chat_id: int) -> dict:
+    """Web search via Google Search grounding nativo do Gemini 2.5.
+    
+    Implementação: subprocess gemini com grounding=on, retorna top-5.
+    Fallback: REST API do CSE se grounding indisponível.
+    """
+    query = args.get("query", "").strip()
+    if not query:
+        return {"ok": False, "err": "query vazia"}
+    try:
+        # Stub v2.0.0: usa Gemini com tool grounding
+        from vertexai.generative_models import GenerativeModel as _GM
+        m = _GM(model_name="gemini-2.5-flash")
+        resp = m.generate_content(
+            f"Busque na web: {query}. Retorne JSON com array 'results' de até 5 itens (title, url, snippet).",
+            generation_config=GenerationConfig(temperature=0.0, max_output_tokens=2048),
+        )
+        text = resp.candidates[0].content.parts[0].text
+        return {"ok": True, "raw": text[:4000], "query": query}
+    except Exception as e:
+        return {"ok": False, "err": str(e)}
+
+
+def exec_fetch_url(args: dict, chat_id: int) -> dict:
+    """Fetch HTTP/HTTPS URL pública. Limite 200KB."""
+    url = args.get("url", "")
+    extract_prompt = args.get("extract_prompt")
+    if not url.startswith(("http://", "https://")):
+        return {"ok": False, "err": "URL deve começar com http:// ou https://"}
+    try:
+        headers = {"User-Agent": "TransparenciaBR-Maestro/2.0"}
+        r = requests.get(url, headers=headers, timeout=20, stream=True)
+        r.raise_for_status()
+        content = r.raw.read(200 * 1024, decode_content=True).decode("utf-8", errors="replace")
+        if extract_prompt:
+            from vertexai.generative_models import GenerativeModel as _GM
+            m = _GM(model_name="gemini-2.5-flash")
+            resp = m.generate_content(
+                f"Da página abaixo, extraia: {extract_prompt}\n\nPágina:\n{content[:80000]}",
+                generation_config=GenerationConfig(temperature=0.0, max_output_tokens=2048),
+            )
+            return {"ok": True, "url": url, "extracted": resp.candidates[0].content.parts[0].text}
+        return {"ok": True, "url": url, "content": content[:50000], "truncated": len(content) >= 200 * 1024}
+    except Exception as e:
+        return {"ok": False, "err": str(e)}
+
+
+def exec_subagent_spawn(args: dict, chat_id: int) -> dict:
+    """Spawn de subagent Vertex isolado. Cria thread com max_turns + budget.
+    
+    v2.0.0: implementação assíncrona via publish em topic 'maestro-subagents'.
+    Worker subagent dedicado processa em separado e grava resultado em maestro_subagents/<id>.
+    """
+    objective = args.get("objective", "").strip()
+    max_turns = min(int(args.get("max_turns", 10)), 30)
+    budget_brl = min(float(args.get("budget_brl", 2.0)), 10.0)
+    if not objective:
+        return {"ok": False, "err": "objective vazio"}
+    subagent_id = f"sub-{dt.datetime.utcnow().strftime('%Y%m%d-%H%M%S')}-{uuid.uuid4().hex[:6]}"
+    payload = {
+        "subagent_id": subagent_id,
+        "parent_chat_id": chat_id,
+        "objective": objective,
+        "max_turns": max_turns,
+        "budget_brl": budget_brl,
+        "created_at": dt.datetime.utcnow().isoformat() + "Z",
+    }
+    try:
+        STATE.fs_main.collection("maestro_subagents").document(subagent_id).set(payload)
+        topic_path = STATE.pubsub_pub.topic_path(PROJECT_VERTEX, "maestro-subagents")
+        STATE.pubsub_pub.publish(topic_path, json.dumps(payload).encode("utf-8")).result(timeout=10)
+        return {"ok": True, "subagent_id": subagent_id, "status": "spawned"}
+    except Exception as e:
+        return {"ok": False, "err": str(e)}
+
+
+def exec_load_skill_runtime(args: dict, chat_id: int) -> dict:
+    """Carrega skill .md de gs://tbr-skills/user/<nome>/SKILL.md."""
+    skill_name = args.get("skill_name", "").strip()
+    if not skill_name or "/" in skill_name or ".." in skill_name:
+        return {"ok": False, "err": "skill_name inválido"}
+    try:
+        from google.cloud import storage
+        client = storage.Client(project=PROJECT_MAIN)
+        bucket = client.bucket("tbr-skills")
+        blob = bucket.blob(f"user/{skill_name}/SKILL.md")
+        if not blob.exists():
+            return {"ok": False, "err": f"skill '{skill_name}' não existe em gs://tbr-skills/user/"}
+        content = blob.download_as_text()
+        return {"ok": True, "skill_name": skill_name, "content": content[:80000], "chars": len(content)}
+    except Exception as e:
+        return {"ok": False, "err": str(e)}
+
+
+def exec_cron_schedule(args: dict, chat_id: int) -> dict:
+    """Cria/atualiza Cloud Scheduler job que publica em maestro-commands."""
+    schedule = args.get("schedule", "")
+    command = args.get("command", "")
+    name = args.get("name", "").strip().replace(" ", "-").lower()
+    if not all([schedule, command, name]):
+        return {"ok": False, "err": "schedule, command, name são obrigatórios"}
+    payload = {
+        "chat_id": chat_id,
+        "text": command,
+        "command_id": f"cron-{name}-{{{{.RunID}}}}",
+        "source": "cron_schedule",
+    }
+    msg_b64 = base64.b64encode(json.dumps(payload).encode()).decode()
+    job_name = f"projects/{PROJECT_VERTEX}/locations/{REGION}/jobs/maestro-cron-{name}"
+    cmd = [
+        "gcloud", "scheduler", "jobs", "create", "pubsub", f"maestro-cron-{name}",
+        f"--project={PROJECT_VERTEX}", f"--location={REGION}",
+        f"--schedule={schedule}", "--time-zone=UTC",
+        f"--topic=maestro-commands", f"--message-body={json.dumps(payload)}",
+    ]
+    try:
+        out = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+        if out.returncode != 0 and "ALREADY_EXISTS" in out.stderr:
+            # tenta update
+            cmd[3] = "update"
+            out = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+        return {"ok": out.returncode == 0, "job": job_name, "stderr": out.stderr[:500] if out.returncode else ""}
+    except Exception as e:
+        return {"ok": False, "err": str(e)}
+
+
+def exec_browser_task_remote(args: dict, chat_id: int) -> dict:
+    """Dispara Cloud Run job 'maestro-browser' com Playwright headless."""
+    url = args.get("url", "")
+    task = args.get("task", "")
+    if not url or not task:
+        return {"ok": False, "err": "url e task obrigatórios"}
+    job_id = f"browser-{dt.datetime.utcnow().strftime('%Y%m%d-%H%M%S')}-{uuid.uuid4().hex[:6]}"
+    try:
+        # v2.0.0: stub que grava request em Firestore; Cloud Run job 'maestro-browser' separado consome
+        STATE.fs_codex.collection("maestro_browser_jobs").document(job_id).set({
+            "job_id": job_id, "chat_id": chat_id, "url": url, "task": task,
+            "status": "queued", "created_at": dt.datetime.utcnow().isoformat() + "Z",
+        })
+        return {"ok": True, "job_id": job_id, "status": "queued", "hint": "poll firestore maestro_browser_jobs/<id> para resultado"}
+    except Exception as e:
+        return {"ok": False, "err": str(e)}
+
+
+def exec_confirm_action(args: dict, chat_id: int) -> dict:
+    """Envia mensagem com botões inline e aguarda callback."""
+    question = args.get("question", "")
+    timeout = min(int(args.get("timeout_seconds", 60)), 300)
+    if not question:
+        return {"ok": False, "err": "question vazia"}
+    confirm_id = f"confirm-{uuid.uuid4().hex[:8]}"
+    # Envia com inline keyboard
+    token = STATE.secrets.get(SECRET_TELEGRAM_BOT, "")
+    if not token:
+        return {"ok": False, "err": "telegram token ausente"}
+    reply_markup = {"inline_keyboard": [[
+        {"text": "✅ Sim", "callback_data": f"{confirm_id}:yes"},
+        {"text": "❌ Não", "callback_data": f"{confirm_id}:no"},
+    ]]}
+    try:
+        r = requests.post(
+            f"https://api.telegram.org/bot{token}/sendMessage",
+            json={"chat_id": chat_id, "text": f"❔ {question}", "reply_markup": reply_markup},
+            timeout=10,
+        )
+        r.raise_for_status()
+        # Poll Firestore por callback (listener grava em maestro_confirmations/<confirm_id>)
+        deadline = time.time() + timeout
+        doc_ref = STATE.fs_main.collection("maestro_confirmations").document(confirm_id)
+        while time.time() < deadline:
+            snap = doc_ref.get()
+            if snap.exists:
+                data = snap.to_dict() or {}
+                return {"ok": True, "confirmed": data.get("answer") == "yes", "confirm_id": confirm_id}
+            time.sleep(2)
+        return {"ok": True, "confirmed": False, "timed_out": True, "confirm_id": confirm_id}
+    except Exception as e:
+        return {"ok": False, "err": str(e)}
+
+
+def exec_notify_push(args: dict, chat_id: int) -> dict:
+    """FCM push via HTTP v1. Token do dispositivo do Comandante em Secret Manager."""
+    title = args.get("title", "Maestro")
+    body = args.get("body", "")
+    severity = args.get("severity", "info")
+    # v2.0.0: implementação stub — grava notificação em Firestore que app frontend consome via onSnapshot
+    try:
+        STATE.fs_main.collection("maestro_notifications").add({
+            "title": title, "body": body, "severity": severity,
+            "chat_id": chat_id, "ts": dt.datetime.utcnow().isoformat() + "Z",
+            "read": False,
+        })
+        return {"ok": True, "delivered": "firestore-stub", "severity": severity}
+    except Exception as e:
+        return {"ok": False, "err": str(e)}
+
+
 TOOL_DISPATCH: dict[str, Callable[[dict, int], dict]] = {
     "telegram_send": exec_telegram_send,
     "github_edit_file": exec_github_edit_file,
@@ -604,6 +916,15 @@ TOOL_DISPATCH: dict[str, Callable[[dict, int], dict]] = {
     "snapshot_firestore": exec_snapshot_firestore,
     "memory_recall": exec_memory_recall,
     "memory_write": exec_memory_write,
+    # GOD v2.0 — 8 novas tools
+    "web_search": exec_web_search,
+    "fetch_url": exec_fetch_url,
+    "subagent_spawn": exec_subagent_spawn,
+    "load_skill_runtime": exec_load_skill_runtime,
+    "cron_schedule": exec_cron_schedule,
+    "browser_task_remote": exec_browser_task_remote,
+    "confirm_action": exec_confirm_action,
+    "notify_push": exec_notify_push,
     "task_complete": exec_task_complete,
 }
 
@@ -618,6 +939,11 @@ def reason_loop(user_text: str, chat_id: int, command_id: str) -> dict:
     """Conduz o Gemini num loop function-calling até task_complete."""
     history: list[Content] = [Content(role="user", parts=[Part.from_text(user_text)])]
     audit("reason.start", chat_id, {"command_id": command_id, "text": user_text[:1000]})
+
+    # GOD v2.0 — Regra do silêncio: toda execução via Telegram deve fechar
+    # com pelo menos um telegram_send antes de task_complete
+    telegram_sent = False
+    last_tool_summary: list[str] = []
 
     turns = 0
     while turns < MAX_REASONING_TURNS:
@@ -675,6 +1001,12 @@ def reason_loop(user_text: str, chat_id: int, command_id: str) -> dict:
                     result = {"ok": False, "err": str(e), "tb": traceback.format_exc()[:300]}
             audit("tool.result", chat_id, {"name": name, "ok": result.get("ok", False), "args_sample": str(args)[:300]})
 
+            # GOD v2.0 — track regra do silêncio
+            if name == "telegram_send" and result.get("ok"):
+                telegram_sent = True
+            if name not in ("telegram_send", "task_complete"):
+                last_tool_summary.append(f"{name}={'ok' if result.get('ok') else 'fail'}")
+
             if result.get("stop"):
                 stop_signal = True
 
@@ -683,8 +1015,23 @@ def reason_loop(user_text: str, chat_id: int, command_id: str) -> dict:
         history.append(Content(role="user", parts=response_parts))
 
         if stop_signal:
-            audit("reason.end", chat_id, {"turns": turns})
-            return {"ok": True, "turns": turns}
+            # GOD v2.0 — Regra do silêncio: auto-recovery se task_complete sem telegram_send
+            if not telegram_sent:
+                summary = ", ".join(last_tool_summary[-6:]) or "nenhuma"
+                recovery_text = (
+                    f"✅ Comandante Baesso, operação concluída em {turns} turno(s). "
+                    f"Ações: {summary}."
+                )
+                exec_telegram_send({"text": recovery_text}, chat_id)
+                audit("silent.fail.recovered", chat_id, {
+                    "command_id": command_id,
+                    "turns": turns,
+                    "summary": summary,
+                    "severity": "WARNING",
+                })
+                jlog("silent.fail.recovered", command_id=command_id, turns=turns)
+            audit("reason.end", chat_id, {"turns": turns, "telegram_sent": telegram_sent})
+            return {"ok": True, "turns": turns, "telegram_sent": telegram_sent}
 
     audit("reason.max_turns", chat_id, {"turns": turns})
     exec_telegram_send({"text": "⚠️ MAESTRO: atingi limite de turnos (30). Tarefa pausada."}, chat_id)

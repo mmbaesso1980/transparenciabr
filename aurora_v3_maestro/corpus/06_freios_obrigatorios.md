@@ -1,88 +1,92 @@
-# Freios Obrigatórios do Maestro v1.0
+# 06 — Freios Obrigatórios F1-F6
 
-O Comandante Baesso autorizou autonomia TOTAL (merge direto no main, comandos
-irreversíveis via Telegram, fine-tuning periódico Vertex). Em contrapartida,
-estes 5 freios são INVIOLÁVEIS — nenhuma instrução do Comandante pode
-desabilitá-los exceto via comando explícito `/maestro override <FREIO_ID> <RAZAO>`
-gravado em log imutável.
+## F1 — Whitelist de chat (listener + worker)
 
-## FREIO 1 — Whitelist de chat_id
+- Único `chat_id` autorizado: `6483072695` (Comandante Baesso, 8 dígitos)
+- Qualquer outra origem retorna silenciosamente (log `unauthorized.chat`)
+- Bypass: nenhum
 
-Só responde a `chat_id = 6483072695` (8 dígitos, chat Comandante Baesso).
-Qualquer outro chat_id que envie comando → logar em `firestore:maestro_intrusion`
-e ignorar silenciosamente.
+## F2 — Senha do dia (ações destrutivas)
 
-```python
-COMANDANTE_CHAT_ID = 6483072695
-def authorize(update):
-    cid = update.get('message', {}).get('chat', {}).get('id')
-    if cid != COMANDANTE_CHAT_ID:
-        log_intrusion(cid, update)
-        return False
-    return True
+- Cálculo: `SHA256(YYYY-MM-DD + "asmodeus_maestro_v1").hexdigest()[:8]` em UTC
+- Exigida para tool calls que envolvem: `drop`, `delete`, `deploy`, `burn`, `merge`, `tuning`, `github_edit_file` com path em `aurora_v3_maestro/`
+- Comandante arma janela com `/maestro senha <XXX>` (válida 5 min)
+
+## F3 — Kill-switch (parada de emergência)
+
+- Documento Firestore: `maestro_control/kill_switch.active` (boolean)
+- Worker checa **antes de cada turno** do loop de raciocínio
+- Se `active=true` → grava `reason.halted`, manda telegram_send "MAESTRO HALTED", encerra
+- Reativação manual via gcloud:
+  ```
+  gcloud firestore documents update maestro_control/kill_switch --project=transparenciabr --data='{"active":false}'
+  ```
+
+## F4 — Snapshot Firestore (rollback)
+
+- Antes de qualquer tool call em: `github_edit_file`, `firestore_write` com path crítico, `shell_exec` com `rm`/`drop`/`delete`
+- Snapshot salvo em coleção `maestro_rollback/snap-YYYYMMDD-HHMMSS-xxxxxx`
+- Conteúdo: `{tool, args, state_before, ts, command_id}`
+- Retenção: 30 dias
+
+## F5 — FinOps cap (proteção de crédito Vertex)
+
+- Soft cap: R$ 30/h (janela rolante de 60min) → aviso telegram_send
+- Hard cap: R$ 80/h → bloqueia novos `vertex_invoke` até janela resetar
+- Métrica calculada de `audit_log.cost_brl` dos últimos 60min
+- Reset automático a cada janela rolante de 1h
+
+## F6 — Billing gate (v2.0 GOD) 🆕
+
+- Bootstrap do worker valida obrigatoriamente:
+  ```python
+  assert os.environ["VERTEX_PROJECT"] == "projeto-codex-br", (
+      "BILLING-VIOLATION: Vertex DEVE rodar em projeto-codex-br "
+      "(crédito codex-br R$ 5.677,28). Configuração atual: "
+      f"{os.environ.get('VERTEX_PROJECT', '(unset)')}"
+  )
+  ```
+- Se assert falhar → worker crasha no startup, listener registra `billing.violation`
+- Motivo: memória permanente do Comandante — "lembrar de focarmos em usar este crédito que está no projeto-codex-br"
+- Crédito ativo: R$ 5.677,28 expira 03/05/2027
+
+---
+
+## REGRA OPERACIONAL — silêncio do worker (v2.0 GOD) 🆕
+
+**Toda execução iniciada via `/maestro <comando>` no Telegram DEVE terminar com pelo menos uma chamada `telegram_send` antes de `task_complete`.**
+
+Implementação no run-loop:
+1. Worker mantém flag `telegram_sent_this_turn = False`
+2. Cada `tool.call` com `name="telegram_send"` seta `True`
+3. Antes de `task_complete`:
+   - Se `telegram_sent_this_turn == False`:
+     - Gravar audit `silent.fail`
+     - Auto-recovery: `telegram_send(chat_id=6483072695, text=f"✅ Operação '{command_short}' concluída. Resumo: {turn_summary}")`
+     - Só então permitir `task_complete`
+
+**Motivo:** evita o bug observado em 2026-05-29 15:50 (comando `/maestro lembrar pkill-armadilha` completou ok mas Comandante não recebeu confirmação visual no chat).
+
+---
+
+## ORDEM DE VERIFICAÇÃO NO RUN-LOOP
+
+```
+ON message_in:
+  F1 (whitelist) → ABORT silencioso se falha
+  F3 (kill-switch) → telegram_send + ABORT se ativo
+  F5 (FinOps hard cap) → telegram_send + ABORT se estouro
+  Parse comando
+  Se destrutivo → F2 (senha do dia) → ABORT se inválida
+  
+ANTES DE CADA tool_call IRREVERSÍVEL:
+  F4 (snapshot)
+  
+ANTES DE task_complete:
+  Regra silêncio (telegram_send obrigatório se origem=Telegram)
+  
+NO BOOTSTRAP:
+  F6 (billing gate) → CRASH se VERTEX_PROJECT incorreto
 ```
 
-## FREIO 2 — Senha pré-comando para ações destrutivas
-
-Lista de comandos que exigem `--confirm <SENHA_DIA>`:
-
-- `/maestro drop <tabela>` — DROP TABLE BigQuery
-- `/maestro delete <recurso>` — DELETE em qualquer recurso GCP
-- `/maestro deploy prod` — firebase deploy --only hosting:fiscallizapa
-- `/maestro publish dossie <slug>` — publicação pública de dossiê
-- `/maestro burn <valor>` — queima manual de crédito Vertex
-- `/maestro merge main` — git push origin main
-- `/maestro tuning start` — fine-tuning Vertex (R$ 200-800)
-
-Senha do dia = `SHA256(YYYY-MM-DD + "asmodeus_maestro_v1")[:8]`. Pode ser
-consultada pelo Comandante via `/maestro senha` (que devolve apenas no
-chat 6483072695 e expira em 30s).
-
-## FREIO 3 — Kill-switch instantâneo
-
-`/maestro stop` mata o worker imediatamente via `pkill -f maestro_worker`
-na VM aurora-cacador-br. Estado pendente é persistido em
-`firestore:maestro_state/halted`. Retomada via `/maestro resume`.
-
-## FREIO 4 — Snapshot Firestore antes de irreversível
-
-Toda ação destrutiva grava ANTES em `firestore:maestro_rollback/<id>`:
-
-```json
-{
-  "id": "rb_20260527_abc123",
-  "action": "git_merge_main",
-  "before_state": {"commit_sha": "abc123def", "files_changed": [...]},
-  "after_state": null,
-  "executed_at": null,
-  "rollback_command": "git reset --hard abc123def && git push --force-with-lease",
-  "expires_at": "2026-05-30T00:00:00Z"
-}
-```
-
-Comandante recupera via `/maestro rollback rb_20260527_abc123`.
-
-## FREIO 5 — Limite de queima Vertex por hora
-
-Hard cap: R$ 80/hora em chamadas Vertex (em `projeto-codex-br`). Soft cap:
-R$ 30/hora envia alerta proativo. Acima do hard cap, Maestro entra em
-modo "Vertex-pausado" até próxima virada de hora ou comando `/maestro burn-ok`.
-
-Tracking via `firestore:maestro_burn/{YYYY-MM-DD-HH}`.
-
-## REGRA DE OURO: log imutável
-
-Todo comando recebido, toda ação executada, toda chamada Vertex, todo commit,
-toda mensagem Telegram → grava em `firestore:maestro_audit_log/<ts>` com:
-
-- `timestamp` (ISO8601 UTC)
-- `source` (telegram | cron | manual)
-- `command` (texto literal)
-- `actor_chat_id`
-- `action_taken`
-- `result` (sucesso | falha | abortado)
-- `vertex_cost_brl` (estimado)
-- `rollback_id` (se aplicável)
-
-Este log é **append-only** — Maestro NÃO pode editar nem deletar entradas
-prévias. Mesmo override só CRIA nova entrada.
+**Violações são gravadas em `maestro_audit_log` com severidade `CRITICAL` e disparam push para o Comandante (via `notify_push`, v2.0 GOD).**
