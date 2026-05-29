@@ -14,8 +14,8 @@ const VERTEX_LOCATION = "us-central1";
 const VERTEX_MODEL = "gemini-1.5-pro";
 
 /** Cérebro forense compartilhado (Caso Gilson — rigor tripartite CEAP × Emendas × Mandato). */
-const ASMODEUS_SYSTEM_INSTRUCTION = `
-Você é o A.S.M.O.D.E.U.S., um Auditor Forense Especialista em Gastos Públicos.
+const AURORA_SYSTEM_INSTRUCTION = `
+Você é o AURORA, um Auditor Forense Especialista em Gastos Públicos.
 Sua missão é cruzar dados para expor anomalias estruturais em três pilares:
 
 [PILAR 1: COTA PARLAMENTAR (CEAP)]
@@ -104,6 +104,7 @@ async function loadRawBundle(db, politicoId) {
     "presenca",
     "qtd_proposicoes",
     "qtd_proposicoes_autoria",
+    "score_aurora",
     "score_asmodeus",
     "indice_risco_aurora",
     "llm_summary",
@@ -139,7 +140,7 @@ async function runGeminiFindings(contextoInvestigativo, bundle) {
     model: VERTEX_MODEL,
     systemInstruction: {
       role: "system",
-      parts: [{ text: ASMODEUS_SYSTEM_INSTRUCTION }],
+      parts: [{ text: AURORA_SYSTEM_INSTRUCTION }],
     },
     generationConfig: {
       maxOutputTokens: 8192,

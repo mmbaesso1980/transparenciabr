@@ -3,7 +3,7 @@
 
 23 tasks · 121 story points · 7 sprints (S0-EMERG → S6).
 
-> ⚠️ **Lei do projeto (BLOQUEIO se violada):** tom INFORMATIVO, blocklist (`fraude/desviou/roubou/corrupto/asmodeus/aurora 360/lobo mau/fraudou/bigquery interno`), CPF mascarado `***.XXX.XXX-**`, contraditório 3-partes em finding ≥ MÉDIA, fontes primárias verificáveis, `temperature=0.1` em engines Vertex, sem mock/fake. Carregue `transparenciabr-lei` antes de qualquer arquivo.
+> ⚠️ **Lei do projeto (BLOQUEIO se violada):** tom INFORMATIVO, blocklist (`fraude/desviou/roubou/corrupto/sala-de-guerra/aurora 360/lobo mau/fraudou/bigquery interno`), CPF mascarado `***.XXX.XXX-**`, contraditório 3-partes em finding ≥ MÉDIA, fontes primárias verificáveis, `temperature=0.1` em engines Vertex, sem mock/fake. Carregue `transparenciabr-lei` antes de qualquer arquivo.
 
 ## Sprint S0-EMERG — Contenção do incidente v2.3 (15 pts · 3 dias)
 > **Causa:** auditoria do Comandante no PDF Paulo Octávio v2.3 (27/mai) detectou bugs `None`/`?` literais, PII do solicitante em F-78, e codinomes internos vazados. **Antes de qualquer outra coisa**, esses 3 itens entram.

@@ -19,7 +19,7 @@ set -euo pipefail
 # gcloud artifacts repositories create "${AR_REPO}" \
 #   --repository-format=docker \
 #   --location="${REGION}" \
-#   --description="Imagens dos engines A.S.M.O.D.E.U.S."
+#   --description="Imagens dos engines AURORA"
 
 # --- 2) Build & push da imagem (executar na raiz do repositório) ---
 # docker build -f engines/Dockerfile -t "${IMAGE}" .

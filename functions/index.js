@@ -29,9 +29,9 @@ function getBigQuery() {
   return global.__tbr_bq;
 }
 
-const ASMODEUS_SUPREME_AGENT_ID = "agent_1777236402725";
-const ASMODEUS_GEMINI_MODEL = "gemini-2.5-pro";
-const COMPLIANCE_SLOT_LABEL = `${ASMODEUS_SUPREME_AGENT_ID} (COMPLIANCE)`;
+const AURORA_SUPREME_AGENT_ID = "agent_1777236402725";
+const AURORA_GEMINI_MODEL = "gemini-2.5-pro";
+const COMPLIANCE_SLOT_LABEL = `${AURORA_SUPREME_AGENT_ID} (COMPLIANCE)`;
 
 /** Lista de agentes Aurora (Inferno) — require lazy para não alongar cold-parse do `index.js` no deploy. */
 function getAuroraInfernoAgentsModule() {
@@ -47,7 +47,7 @@ function auroraAgentCount() {
   return getAuroraInfernoAgentsModule().AURORA_INFERNO_AGENT_COUNT;
 }
 function vertexTeamSlots() {
-  return Array.from({ length: auroraAgentCount() }, () => ASMODEUS_SUPREME_AGENT_ID);
+  return Array.from({ length: auroraAgentCount() }, () => AURORA_SUPREME_AGENT_ID);
 }
 /**
  * 16 agentes Aurora (Inferno) — papéis nomeados; runtime Vertex continua no Líder Supremo.
@@ -85,13 +85,13 @@ async function analyzeCeapWithSupremeLeader(row) {
   const heuristic = heuristicCeapRisk(row);
   const key = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
   const payload = {
-    lider_supremo_agent_id: ASMODEUS_SUPREME_AGENT_ID,
-    modelo_obrigatorio: ASMODEUS_GEMINI_MODEL,
-    protocolo: "A.S.M.O.D.E.U.S. CEAP",
+    lider_supremo_agent_id: AURORA_SUPREME_AGENT_ID,
+    modelo_obrigatorio: AURORA_GEMINI_MODEL,
+    protocolo: "AURORA CEAP",
     agentes_aurora_nomes: auroraAgentNames(),
     instrucao_orquestracao:
       `Distribua mentalmente a analise aos ${auroraAgentCount()} agentes Aurora (Inferno) ligados ao Lider Supremo ` +
-      `(Agent ID ${ASMODEUS_SUPREME_AGENT_ID}) antes de consolidar o scoreRisco. ` +
+      `(Agent ID ${AURORA_SUPREME_AGENT_ID}) antes de consolidar o scoreRisco. ` +
       "O papel OSINT pode levantar tendencias e narrativas publicas, " +
       `mas NADA de OSINT pode ser publicado sem validacao explicita pelo slot de Compliance (${COMPLIANCE_SLOT_LABEL}). ` +
       "Nao acuse crimes; classifique risco heuristico, auditavel e extra-judicial.",
@@ -128,16 +128,16 @@ async function analyzeCeapWithSupremeLeader(row) {
       agentesAcionados: vertexTeamSlots(),
       radarOsint: buildDeterministicOsint(row),
       modelo: "heuristic-fallback",
-      liderSupremoAgentId: ASMODEUS_SUPREME_AGENT_ID,
+      liderSupremoAgentId: AURORA_SUPREME_AGENT_ID,
     };
   }
 
   const { GoogleGenerativeAI } = require("@google/generative-ai");
   const genAI = new GoogleGenerativeAI(key);
   const model = genAI.getGenerativeModel({
-    model: ASMODEUS_GEMINI_MODEL,
+    model: AURORA_GEMINI_MODEL,
     systemInstruction:
-      "Voce e o Lider Supremo A.S.M.O.D.E.U.S. (Agent ID agent_1777236402725). " +
+      "Voce e o Lider Supremo AURORA (Agent ID agent_1777236402725). " +
       "Atue como auditor forense de CEAP, direito administrativo e gasto parlamentar brasileiro. " +
       `Consolide a deliberacao dos ${auroraAgentCount()} agentes Aurora nomeados (Inferno) sob o Lider Supremo. Responda apenas JSON valido.`,
     generationConfig: {
@@ -161,8 +161,8 @@ async function analyzeCeapWithSupremeLeader(row) {
       ? parsed.agentesAcionados.map(String)
       : vertexTeamSlots(),
     radarOsint: filterComplianceApprovedOsint(parsed.radarOsint, row),
-    modelo: ASMODEUS_GEMINI_MODEL,
-    liderSupremoAgentId: ASMODEUS_SUPREME_AGENT_ID,
+    modelo: AURORA_GEMINI_MODEL,
+    liderSupremoAgentId: AURORA_SUPREME_AGENT_ID,
   };
 }
 
@@ -172,7 +172,7 @@ function filterComplianceApprovedOsint(items, row) {
     .filter((item) => item && typeof item === "object")
     .filter((item) => item.compliance?.aprovado === true)
     .filter((item) =>
-      String(item.compliance?.agente || "").includes(ASMODEUS_SUPREME_AGENT_ID),
+      String(item.compliance?.agente || "").includes(AURORA_SUPREME_AGENT_ID),
     )
     .map((item) => ({
       titulo: String(item.titulo || "").slice(0, 180),
@@ -570,7 +570,7 @@ async function commitReports(reports) {
       metadados: {
         fonte: "retroactiveScanBigQueryToFirestore",
         modelo: report.analise_asmodeus.modelo,
-        lider_supremo_agent_id: ASMODEUS_SUPREME_AGENT_ID,
+        lider_supremo_agent_id: AURORA_SUPREME_AGENT_ID,
         sincronizado_em: new Date().toISOString(),
       },
       updated_at: FieldValue.serverTimestamp(),
@@ -653,8 +653,8 @@ exports.syncBigQueryToFirestore = functions
       res.json({
         ok: true,
         sensor: "syncBigQueryToFirestore",
-        liderSupremoAgentId: ASMODEUS_SUPREME_AGENT_ID,
-        modelo: ASMODEUS_GEMINI_MODEL,
+        liderSupremoAgentId: AURORA_SUPREME_AGENT_ID,
+        modelo: AURORA_GEMINI_MODEL,
         agentesAtivos: vertexTeamSlots(),
         ...result,
       });
@@ -679,8 +679,8 @@ exports.retroactiveScanBigQueryToFirestore = functions
       res.json({
         ok: true,
         sensor: "retroactiveScanBigQueryToFirestore",
-        liderSupremoAgentId: ASMODEUS_SUPREME_AGENT_ID,
-        modelo: ASMODEUS_GEMINI_MODEL,
+        liderSupremoAgentId: AURORA_SUPREME_AGENT_ID,
+        modelo: AURORA_GEMINI_MODEL,
         agentesAtivos: vertexTeamSlots(),
         ...result,
       });

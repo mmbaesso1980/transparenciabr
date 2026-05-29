@@ -36,7 +36,7 @@ Também carregue quando o Comandante Baesso disser algo como "no nosso projeto",
 | Campo | Valor |
 |---|---|
 | **Nome público** | TransparênciaBR — Auditoria Cidadã Inteligente |
-| **Nome em código/UI** | "Motor Forense TransparênciaBR" (NUNCA expor "Asmodeus" em produção) |
+| **Nome em código/UI** | "Motor Forense TransparênciaBR" (NUNCA expor "Prisma 12" em produção) |
 | **Codinome interno** | AURORA (engine em produção); ASMODEUS = nome legado |
 | **GCP projeto principal** | `transparenciabr` (número `89728155070`) |
 | **GCP projeto Vertex** | `projeto-codex-br` (R$ 5.952 créditos, expira 07/04/2027) |

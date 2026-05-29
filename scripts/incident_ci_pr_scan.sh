@@ -13,6 +13,13 @@ git fetch origin "$BASE" --depth=1 2>/dev/null || true
 mapfile -t FILES < <(git diff --name-only "origin/${BASE}...HEAD" 2>/dev/null || git diff --name-only HEAD~1...HEAD)
 
 # Exclui golden fixtures e qualquer árvore tests/**/fixtures/** (bugs intencionais).
+# Exclui também documentos internos de planejamento e histórico do projeto —
+# eles citam codinomes legados (ASMODEUS, Goetia) e termos de blocklist por
+# necessidade documental, não constituem output publicável ao público.
+#
+# Regra: o detector M11 protege o que VAI PRA FORA (dossiês PDF, frontend
+# renderizado, JSON gerado pelos agentes). Documentos internos de planejamento
+# vivem em paralelo e podem manter vocabulário histórico.
 should_skip_fixture() {
   local f="$1"
   if [[ "$f" =~ ^tests/(.*/)?fixtures/ ]]; then
@@ -21,9 +28,27 @@ should_skip_fixture() {
   return 1
 }
 
+should_skip_internal_doc() {
+  local f="$1"
+  # docs internos de planejamento, memórias do Cursor, prompts internos
+  case "$f" in
+    .cursor/*) return 0 ;;
+    docs/internal/*) return 0 ;;
+    cursor_pacote_v10/*.md) return 0 ;;
+    manus_office/dossie_v1/prompts/*) return 0 ;;
+    scripts/redact_internal_codename.py) return 0 ;;
+    scripts/ASMODEUS_AGENTES_VERTEX.md) return 0 ;;
+    COMPILADO_ASMODEUS.md|PLANO_*.md|ROADMAP_VERTEX.md|ROADMAP_*.md) return 0 ;;
+  esac
+  return 1
+}
+
 should_scan_path() {
   local f="$1"
   if should_skip_fixture "$f"; then
+    return 1
+  fi
+  if should_skip_internal_doc "$f"; then
     return 1
   fi
   case "$f" in

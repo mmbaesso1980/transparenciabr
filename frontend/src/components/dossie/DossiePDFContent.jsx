@@ -40,19 +40,19 @@ const LIGHT_PDF = {
   suspeito: "#1e3a8a",
 };
 
-const ASMODEUS_VERTEX_MATRIX = [
-  { id: "1", agente: "BENFORD / quantidade", goetia: "Bael" },
-  { id: "2", agente: "Fornecedor / HHI", goetia: "Agares" },
-  { id: "3", agente: "Categorias CEAP", goetia: "Vassago" },
-  { id: "4", agente: "Temporalidade", goetia: "Gamigin" },
-  { id: "5", agente: "OCR / documento", goetia: "Marbas" },
-  { id: "6", agente: "PNCP cruzamento", goetia: "Valefor" },
-  { id: "7", agente: "Emendas RP6/7/99", goetia: "Amon" },
-  { id: "8", agente: "Patrimônio TSE", goetia: "Barbatos" },
-  { id: "9", agente: "Gabinete / vínculos", goetia: "Paim" },
-  { id: "10", agente: "Viagens / pedágios", goetia: "Buer" },
-  { id: "11", agente: "OSINT compliance", goetia: "Gusion" },
-  { id: "12", agente: "Consolidador ASMODEUS", goetia: "Asmodeus" },
+const AURORA_VERTEX_MATRIX = [
+  { id: "1", agente: "BENFORD / quantidade", prisma: "Prisma 1" },
+  { id: "2", agente: "Fornecedor / HHI", prisma: "Prisma 2" },
+  { id: "3", agente: "Categorias CEAP", prisma: "Prisma 3" },
+  { id: "4", agente: "Temporalidade", prisma: "Prisma 4" },
+  { id: "5", agente: "OCR / documento", prisma: "Prisma 5" },
+  { id: "6", agente: "PNCP cruzamento", prisma: "Prisma 6" },
+  { id: "7", agente: "Emendas RP6/7/99", prisma: "Prisma 7" },
+  { id: "8", agente: "Patrimônio TSE", prisma: "Prisma 8" },
+  { id: "9", agente: "Gabinete / vínculos", prisma: "Prisma 9" },
+  { id: "10", agente: "Viagens / pedágios", prisma: "Prisma 10" },
+  { id: "11", agente: "OSINT compliance", prisma: "Prisma 11" },
+  { id: "12", agente: "Consolidador ASMODEUS", prisma: "Prisma 12" },
 ];
 
 function fmtBrl(n) {
@@ -99,9 +99,9 @@ function severityBadgeStyle(severidade, pal = C) {
   return { backgroundColor: pal.panel, color: pal.muted, border: `1px solid ${pal.border}` };
 }
 
-function pickAsmodeusScore(politico, ceapKpi) {
+function pickAuroraScore(politico, ceapKpi) {
   const fromDoc = Number(
-    politico?.score_asmodeus ??
+    (politico?.score_aurora ?? politico?.score_asmodeus) ??
       politico?.score_asmodeus_consolidado ??
       politico?.score_forense ??
       politico?.indice_risco_aurora,
@@ -194,7 +194,7 @@ const DossiePDFContentInner = forwardRef(function DossiePDFContentInner(
   const nome = pickNome(politico) || "—";
   const partidoUf = [pickPartidoSiglaPdf(politico), pickUf(politico) || "—"].join(" / ");
   const parlamentarId = pickParlamentarId(politico);
-  const scoreAsm = pickAsmodeusScore(politico, ceapKpi);
+  const scoreAsm = pickAuroraScore(politico, ceapKpi);
   const geradoEm = useMemo(
     () =>
       new Date().toLocaleString("pt-BR", {
@@ -282,7 +282,7 @@ const DossiePDFContentInner = forwardRef(function DossiePDFContentInner(
         <div style={{ display: "flex", justifyContent: "space-between", gap: "12px" }}>
           <div>
             <p style={h1}>TRANSPARÊNCIABR</p>
-            <p style={subH}>ASMODEUS ENGINE — INFERNO EDITION v3 (MODELO ERIKA HILTON)</p>
+            <p style={subH}>AURORA ENGINE — FORENSIC EDITION v3 (MODELO ERIKA HILTON)</p>
             <p style={{ margin: "6px 0 0", fontSize: "12px", color: col.muted }}>
               DOSSIÊ FORENSE CEAP / VERBA GABINETE · PDF OPERACIONAL
             </p>
@@ -336,7 +336,7 @@ const DossiePDFContentInner = forwardRef(function DossiePDFContentInner(
             </tr>
           </thead>
           <tbody>
-            {ASMODEUS_VERTEX_MATRIX.map((row) => (
+            {AURORA_VERTEX_MATRIX.map((row) => (
               <tr key={row.id}>
                 <td style={{ padding: "5px 6px", borderBottom: `1px solid ${col.border}`, fontFamily: "ui-monospace, monospace", color: col.cyan }}>
                   {row.id}

@@ -398,7 +398,7 @@ export default function AuroraInsightsSection({ politicoId, mode = "preview" }) 
           {/* ── ALERTAS CONSOLIDADOS ── */}
           {data.alertas_consolidados && (
             <div className="rounded-xl border border-[#30363D] bg-[#0D1117]/60 p-4">
-              <SectionHeader icon={<Shield className="size-4" />} title="Alertas Consolidados A.S.M.O.D.E.U.S." color="text-[#f85149]" />
+              <SectionHeader icon={<Shield className="size-4" />} title="Alertas Consolidados AURORA" color="text-[#f85149]" />
               <div className="flex flex-wrap gap-3">
                 <MiniStat label="Benford" value={data.alertas_consolidados.benford_desvios} alert />
                 <MiniStat label="Redondas" value={data.alertas_consolidados.notas_redondas} />
