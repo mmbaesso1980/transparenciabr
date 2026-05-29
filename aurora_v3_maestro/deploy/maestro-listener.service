@@ -1,0 +1,32 @@
+[Unit]
+Description=MAESTRO v1.0 — Telegram Listener (long-poll, 24/7)
+Documentation=https://github.com/mmbaesso1980/transparenciabr
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=maestro
+Group=maestro
+WorkingDirectory=/opt/maestro
+ExecStart=/opt/maestro/venv/bin/python /opt/maestro/listener.py
+Environment=MAESTRO_PROJECT_MAIN=transparenciabr
+Environment=MAESTRO_PROJECT_VERTEX=projeto-codex-br
+Environment=MAESTRO_TOPIC=maestro-commands
+Environment=MAESTRO_OFFSET_FILE=/var/lib/maestro/offset
+Environment=GOOGLE_APPLICATION_CREDENTIALS=/opt/maestro/sa-listener.json
+Restart=on-failure
+RestartSec=10s
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=maestro-listener
+
+# Hardening
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ReadWritePaths=/var/lib/maestro /opt/maestro
+ProtectHome=yes
+
+[Install]
+WantedBy=multi-user.target
