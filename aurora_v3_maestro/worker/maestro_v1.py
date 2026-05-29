@@ -533,20 +533,38 @@ def audit(event: str, chat_id: int, payload: dict[str, Any]) -> str:
 # Tool executors (dispatch da function call do Gemini -> ação real)
 # ---------------------------------------------------------------------------
 def exec_telegram_send(args: dict, chat_id: int) -> dict:
+    """v2.1.2 — logging obrigatório + fallback sem parse_mode se Markdown quebrar."""
     token = STATE.secrets.get(SECRET_TELEGRAM_BOT, "")
     if not token:
+        jlog("telegram.send.err", reason="token-missing", chat_id=chat_id)
         return {"ok": False, "err": "telegram-token-missing"}
     url = f"https://api.telegram.org/bot{token}/sendMessage"
-    payload = {
-        "chat_id": chat_id,
-        "text": args.get("text", ""),
-        "parse_mode": args.get("parse_mode", "Markdown"),
-        "disable_web_page_preview": True,
-    }
+    text = args.get("text", "") or "(sem texto)"
+    parse_mode = args.get("parse_mode", "Markdown")
+
+    def _post(pm):
+        payload = {
+            "chat_id": chat_id,
+            "text": text[:4000],
+            "disable_web_page_preview": True,
+        }
+        if pm:
+            payload["parse_mode"] = pm
+        return requests.post(url, json=payload, timeout=15)
+
     try:
-        r = requests.post(url, json=payload, timeout=15)
+        r = _post(parse_mode)
+        if not r.ok and parse_mode:
+            # Telegram rejeitou markdown malformado — reenvia em plain text
+            jlog("telegram.send.retry_plain", chat_id=chat_id, status=r.status_code, body=r.text[:300], text_preview=text[:200])
+            r = _post(None)
+        if not r.ok:
+            jlog("telegram.send.fail", chat_id=chat_id, status=r.status_code, body=r.text[:300], text_preview=text[:200])
+        else:
+            jlog("telegram.send.ok", chat_id=chat_id, status=r.status_code, len=len(text))
         return {"ok": r.ok, "status": r.status_code, "body": r.text[:300]}
     except Exception as e:
+        jlog("telegram.send.exception", chat_id=chat_id, error=str(e))
         return {"ok": False, "err": str(e)}
 
 
