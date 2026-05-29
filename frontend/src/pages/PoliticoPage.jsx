@@ -832,7 +832,7 @@ export default function PoliticoPage() {
   const score =
     (heroKpis.score_aurora > 0 ? heroKpis.score_aurora : null) ??
     Number(
-      politico?.score_asmodeus ??
+      (politico?.score_aurora ?? politico?.score_asmodeus) ??
         politico?.score_risco ??
         politico?.risk_score ??
         politico?.score ??

@@ -131,12 +131,8 @@
         "destination": "/sprint.html"
       },
       {
-        "source": "/asmodeus",
-        "destination": "/asmodeus/index.html"
-      },
-      {
-        "source": "/asmodeus/**",
-        "destination": "/asmodeus/index.html"
+        "source": "/sala-de-guerra/**",
+        "destination": "/sala-de-guerra/index.html"
       },
       {
         "source": "/api/consent",
@@ -166,16 +162,7 @@
     ],
     "headers": [
       {
-        "source": "/asmodeus",
-        "headers": [
-          {
-            "key": "Cache-Control",
-            "value": "no-store, no-cache, must-revalidate, max-age=0"
-          }
-        ]
-      },
-      {
-        "source": "/asmodeus/**",
+        "source": "/sala-de-guerra/**",
         "headers": [
           {
             "key": "Cache-Control",

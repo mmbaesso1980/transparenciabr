@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Protocolo A.S.M.O.D.E.U.S. — Crawler Querido Diário (API real OKBR).
+Protocolo AURORA — Crawler Querido Diário (API real OKBR).
 
 Consulta ``https://api.queridodiario.ok.org.br/gazettes`` por município (território
 IBGE) e palavras-chave críticas; persiste excertos na coleção ``diarios_atos``.

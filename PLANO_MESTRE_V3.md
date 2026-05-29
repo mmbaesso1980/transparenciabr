@@ -1,5 +1,5 @@
 # PLANO MESTRE V3 — TransparênciaBR
-## Protocolo A.S.M.O.D.E.U.S. | Arquitetura Forense | Guia de Execução Completo
+## Protocolo AURORA | Arquitetura Forense | Guia de Execução Completo
 
 > **Gerado em:** 2026-04-27 | **Agente:** Perplexity AI + Vertex AI Agent `agent_1777236402725`  
 > **Status:** Documento de referência operacional para toda a equipe técnica  
@@ -12,7 +12,7 @@
 1. [Visão Geral e Estado Atual](#1-visão-geral-e-estado-atual)
 2. [Arquitetura Técnica Completa](#2-arquitetura-técnica-completa)
 3. [Data Warehouse BigQuery — Modelo Dimensional](#3-data-warehouse-bigquery--modelo-dimensional)
-4. [Protocolo A.S.M.O.D.E.U.S. — Algoritmos Forenses](#4-protocolo-asmodeus--algoritmos-forenses)
+4. [Protocolo AURORA — Algoritmos Forenses](#4-protocolo-asmodeus--algoritmos-forenses)
 5. [Arsenal de APIs — Mapa Completo](#5-arsenal-de-apis--mapa-completo)
 6. [Mega Bloco 2 — Mapa Forense de Emendas](#6-mega-bloco-2--mapa-forense-de-emendas)
 7. [Backend Forense — Plano de Implementação](#7-backend-forense--plano-de-implementação)
@@ -34,7 +34,7 @@ A plataforma TransparênciaBR v2.0 é um sistema de inteligência cívica forens
 | Dimensão | De Olho em Você (concorrente) | TransparênciaBR v2.0 |
 |----------|-------------------------------|----------------------|
 | Emendas cobertas | Apenas PIX (RP99) | **RP6 + RP7 + RP8 + RP9 + RP99** |
-| Motor de detecção | Nenhum | **A.S.M.O.D.E.U.S.** (Lei Benford, ARIMA, K-Means, Gemini 2.5 Pro) |
+| Motor de detecção | Nenhum | **AURORA** (Lei Benford, ARIMA, K-Means, Gemini 2.5 Pro) |
 | Mapa | GeoJSON bruto (lag mobile) | **PMTiles + MapLibre** (vector tiles, 60fps) |
 | ID próprio | Espelho das APIs (sem ofuscação) | **ID proprietário** + camada de transformação |
 | Base eleitoral | Não | **TSE → IBGE DE-PARA** (voto mapeado por cidade) |
@@ -90,7 +90,7 @@ A plataforma TransparênciaBR v2.0 é um sistema de inteligência cívica forens
 └─────────────────────────┬───────────────────────────────────────┘
                           │
 ┌─────────────────────────▼───────────────────────────────────────┐
-│           MOTOR FORENSE — A.S.M.O.D.E.U.S.                      │
+│           MOTOR FORENSE — AURORA                      │
 │  Lei Benford · ARIMA anomalias · K-Means clusters · Gemini 2.5  │
 │  Document AI · CEIS/CNEP/CADIRREG · TSE base eleitoral          │
 │  Módulo ESPECTRO (posicionamento) · Protocolo FLAVIO (rachadinha)│
@@ -364,7 +364,7 @@ SELECT
   p.partido,
   p.uf,
   p.casa,
-  -- Score A.S.M.O.D.E.U.S. ponderado
+  -- Score AURORA ponderado
   ROUND(
     COALESCE(b.score_benford, 0) * 0.25 +
     COALESCE(c.score_contratos, 0) * 0.30 +
@@ -387,7 +387,7 @@ LEFT JOIN `fiscallizapa.ml.score_sancoes` s USING (id_parlamentar);
 
 ---
 
-## 4. PROTOCOLO A.S.M.O.D.E.U.S. — ALGORITMOS FORENSES
+## 4. PROTOCOLO AURORA — ALGORITMOS FORENSES
 
 > **A**utomação de **S**istemas de **M**onitoramento e **D**etecção de **E**squemas no **U**so de **S**ubsídios
 
@@ -952,7 +952,7 @@ JOIN `fiscallizapa.analytics.dim_parlamentar` c
 
 ┌─────────────────────────────────────────────────────┐
 │  [HEADER] Foto · Nome · Partido · UF · Cargo        │
-│  [BADGES] Score A.S.M.O.D.E.U.S. · Nível de Risco  │
+│  [BADGES] Score AURORA · Nível de Risco  │
 │  [QUICK ACTIONS] Dossiê PDF · Compartilhar · Alerta │
 ├─────────────────────────────────────────────────────┤
 │  TAB 1: EMENDAS                                     │
@@ -979,7 +979,7 @@ JOIN `fiscallizapa.analytics.dim_parlamentar` c
 │    - Empresas com sócios ligados ao parlamentar     │
 ├─────────────────────────────────────────────────────┤
 │  TAB 5: DOSSIÊ FORENSE                              │
-│    - Relatório A.S.M.O.D.E.U.S. completo           │
+│    - Relatório AURORA completo           │
 │    - Flags ativas com evidências                   │
 │    - Gerar PDF (consome créditos)                   │
 │    - Seção 4: Correlação emendas × IDH municipal    │
@@ -1000,7 +1000,7 @@ const routes = [
   { path: '/votacoes/:id', element: <VotacaoDetailPage /> },     // Votação individual
   { path: '/dossie/:id', element: <DossiePage /> },              // Dossiê forense
   { path: '/agenda', element: <AgendaPage /> },                  // Agenda do dia
-  { path: '/alertas', element: <AlertasPage /> },                // Alertas A.S.M.O.D.E.U.S.
+  { path: '/alertas', element: <AlertasPage /> },                // Alertas AURORA
   { path: '/login', element: <LoginPage /> },
   { path: '/painel', element: <DashboardLayout /> },             // Admin/operacional
 ];
@@ -1021,7 +1021,7 @@ useEffect(() => {
     setMeta('og:title', `${parlamentar.nomeCompleto} — Dados e Alertas | TransparênciaBR`);
     setMeta('og:description',
       `Veja gastos, emendas, votações e score forense de ${parlamentar.nomeCompleto} ` +
-      `(${parlamentar.siglaPartido}-${parlamentar.uf}). Score A.S.M.O.D.E.U.S.: ${parlamentar.scoreAsmodeus}/100`
+      `(${parlamentar.siglaPartido}-${parlamentar.uf}). Score AURORA: ${parlamentar.scoreAsmodeus}/100`
     );
     setMeta('og:image', parlamentar.fotoUrl);
     
@@ -1113,7 +1113,7 @@ SEMANA 6:    Sprint D — SEO + Monetização + QA
 
 ### 11.2 O Que Só o TransparênciaBR Tem
 - [ ] Emendas RP6 + RP7 + RP8 + RP9 no mapa (Sprint A)
-- [ ] Score A.S.M.O.D.E.U.S. com algoritmos ML
+- [ ] Score AURORA com algoritmos ML
 - [ ] Lei Benford aplicada em CEAP
 - [ ] Detecção de rachadinha (Protocolo FLAVIO)
 - [ ] Análise Gemini de PDFs de contratos
@@ -1130,7 +1130,7 @@ SEMANA 6:    Sprint D — SEO + Monetização + QA
 
 | Termo | Definição |
 |-------|-----------|
-| **A.S.M.O.D.E.U.S.** | Automação de Sistemas de Monitoramento e Detecção de Esquemas no Uso de Subsídios — protocolo forense central |
+| **AURORA** | Automação de Sistemas de Monitoramento e Detecção de Esquemas no Uso de Subsídios — protocolo forense central |
 | **CEAP** | Cota para o Exercício da Atividade Parlamentar — verba de gabinete dos deputados |
 | **CEIS** | Cadastro de Empresas Inidôneas e Suspensas (CGU) |
 | **CNEP** | Cadastro Nacional de Empresas Punidas — Lei Anticorrupção |

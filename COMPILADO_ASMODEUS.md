@@ -1,7 +1,7 @@
 # COMPILADO ASMODEUS — Hotpage & Inferno Edition
 
 > Fonte normativa detalhada: `scripts/ASMODEUS_AGENTES_VERTEX.md`.  
-> Motor Node CEAP / scoring: `functions/index.js` (protocolo `A.S.M.O.D.E.U.S. CEAP`).
+> Motor Node CEAP / scoring: `functions/index.js` (protocolo `AURORA CEAP`).
 
 ## Diretiva UI (Dossiê)
 
