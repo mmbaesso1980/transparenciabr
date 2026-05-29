@@ -39,6 +39,12 @@ should_skip_internal_doc() {
     scripts/redact_internal_codename.py) return 0 ;;
     scripts/ASMODEUS_AGENTES_VERTEX.md) return 0 ;;
     COMPILADO_ASMODEUS.md|PLANO_*.md|ROADMAP_VERTEX.md|ROADMAP_*.md) return 0 ;;
+    # Corpus interno do Maestro: prompts, docs e knowledge base do agente.
+    # Precisam preservar o contexto histórico do codinome (ASMODEUS=AURORA legado)
+    # para que o Maestro entenda a evolução da nomenclatura. Não saem em UI/dossiês.
+    aurora_v3_maestro/corpus/*) return 0 ;;
+    aurora_v3_maestro/prompts/*) return 0 ;;
+    aurora_v3_maestro/docs/*) return 0 ;;
   esac
   return 1
 }
