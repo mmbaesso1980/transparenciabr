@@ -162,10 +162,16 @@ def bootstrap() -> None:
             name = f"projects/{PROJECT_MAIN}/secrets/{key}/versions/latest"
             resp = sm.access_secret_version(request={"name": name})
             STATE.secrets[key] = resp.payload.data.decode("utf-8").strip()
-            jlog("secret.loaded", key=key)
+            jlog("secret.loaded", key=key, size=len(STATE.secrets[key]))
         except Exception as e:
             jlog("secret.miss", key=key, error=str(e))
             STATE.secrets[key] = ""
+
+    # v2.1.3 — Telegram é canal obrigatório de saída. Sem token, continuar
+    # bootando transforma erro de configuração em silent fail pós-LLM.
+    if not STATE.secrets.get(SECRET_TELEGRAM_BOT):
+        jlog("bootstrap.fatal", reason="telegram-token-missing", key=SECRET_TELEGRAM_BOT, severity="CRITICAL")
+        raise RuntimeError(f"Secret obrigatória ausente/inacessível: {SECRET_TELEGRAM_BOT}")
 
     # System prompt
     if PROMPT_PATH.exists():
@@ -987,19 +993,52 @@ def reason_loop(user_text: str, chat_id: int, command_id: str) -> dict:
         candidate = resp.candidates[0]
         parts = candidate.content.parts
         function_calls = [p.function_call for p in parts if hasattr(p, "function_call") and p.function_call and p.function_call.name]
+        # v2.1.3 — audita finish_reason e contagens para diferenciar STOP/SAFETY/MAX_TOKENS/RECITATION
+        finish_reason = getattr(candidate, "finish_reason", None)
+        finish_reason_s = getattr(finish_reason, "name", str(finish_reason))
+        jlog(
+            "vertex.candidate",
+            command_id=command_id,
+            turn=turns,
+            finish_reason=finish_reason_s,
+            parts=len(parts),
+            function_calls=len(function_calls),
+        )
 
         if not function_calls:
             # Texto final livre — encaminha pro Telegram e fecha
             text_out = "".join([p.text for p in parts if hasattr(p, "text") and p.text]) or "(sem texto)"
             # v2.1.1 — anti-duplicação: só envia se ainda não mandamos nada neste comando
             if not telegram_sent:
-                exec_telegram_send({"text": text_out[:4000]}, chat_id)
-                telegram_sent = True
+                # v2.1.3 — valida retorno do Telegram antes de declarar sucesso
+                send_result = exec_telegram_send({"text": text_out[:4000]}, chat_id)
+                telegram_sent = bool(send_result.get("ok"))
+                if not telegram_sent:
+                    jlog(
+                        "telegram.send.unconfirmed",
+                        command_id=command_id,
+                        turn=turns,
+                        phase="text_only_end",
+                        result=send_result,
+                        text_preview=text_out[:200],
+                    )
+                    audit("telegram.send.unconfirmed", chat_id, {
+                        "command_id": command_id,
+                        "phase": "text_only_end",
+                        "result": send_result,
+                        "text": text_out[:800],
+                    })
             else:
                 jlog("telegram.duplicate.suppressed", command_id=command_id, turn=turns, text_preview=text_out[:200])
                 audit("telegram.duplicate.suppressed", chat_id, {"command_id": command_id, "text": text_out[:300]})
-            audit("reason.text_only_end", chat_id, {"text": text_out[:800], "telegram_sent": telegram_sent})
-            return {"ok": True, "text": text_out, "telegram_sent": telegram_sent}
+            audit("reason.text_only_end", chat_id, {
+                "text": text_out[:800],
+                "telegram_sent": telegram_sent,
+                "finish_reason": finish_reason_s,
+            })
+            if not telegram_sent:
+                return {"ok": False, "err": "telegram-send-failed", "text": text_out, "finish_reason": finish_reason_s}
+            return {"ok": True, "text": text_out, "telegram_sent": telegram_sent, "finish_reason": finish_reason_s}
 
         # Acrescenta a resposta do modelo no histórico
         history.append(candidate.content)
@@ -1051,14 +1090,20 @@ def reason_loop(user_text: str, chat_id: int, command_id: str) -> dict:
                     f"✅ Comandante Baesso, operação concluída em {turns} turno(s). "
                     f"Ações: {summary}."
                 )
-                exec_telegram_send({"text": recovery_text}, chat_id)
+                # v2.1.3 — valida retorno do recovery também
+                send_result = exec_telegram_send({"text": recovery_text}, chat_id)
+                telegram_sent = bool(send_result.get("ok"))
                 audit("silent.fail.recovered", chat_id, {
                     "command_id": command_id,
                     "turns": turns,
                     "summary": summary,
+                    "telegram_sent": telegram_sent,
+                    "send_result": send_result,
                     "severity": "WARNING",
                 })
-                jlog("silent.fail.recovered", command_id=command_id, turns=turns)
+                jlog("silent.fail.recovered", command_id=command_id, turns=turns, telegram_sent=telegram_sent)
+                if not telegram_sent:
+                    jlog("telegram.send.unconfirmed", command_id=command_id, turn=turns, phase="task_complete_recovery", result=send_result)
             audit("reason.end", chat_id, {"turns": turns, "telegram_sent": telegram_sent})
             return {"ok": True, "turns": turns, "telegram_sent": telegram_sent}
 
@@ -1109,7 +1154,19 @@ def handle_message(message: pubsub_v1.subscriber.message.Message) -> None:
 
     try:
         result = reason_loop(text, chat_id, command_id)
-        jlog("msg.done", command_id=command_id, result_keys=list(result.keys()))
+        jlog("msg.done", command_id=command_id, result_keys=list(result.keys()), ok=result.get("ok", False))
+        # v2.1.3 — se o reason_loop retornou !ok sem exception, notifica o Comandante
+        if not result.get("ok", False) and not result.get("stopped", False):
+            jlog("msg.result_not_ok", command_id=command_id, result=result)
+            err_msg = str(result.get("err", "erro desconhecido"))[:300]
+            send_result = exec_telegram_send({"text": f"❌ MAESTRO falhou: `{err_msg}`"}, chat_id)
+            if not send_result.get("ok"):
+                audit("telegram.send.unconfirmed", chat_id, {
+                    "command_id": command_id,
+                    "phase": "handle_message_result_not_ok",
+                    "result": send_result,
+                    "loop_result": result,
+                })
     except Exception as e:
         jlog("msg.err", command_id=command_id, error=str(e), tb=traceback.format_exc()[:500])
         audit("loop.err", chat_id, {"err": str(e)})
