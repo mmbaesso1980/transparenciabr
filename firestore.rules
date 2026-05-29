@@ -67,6 +67,11 @@ service cloud.firestore {
       return userTier() == 'god_mode';
     }
 
+    function isComandanteEmail() {
+      return request.auth != null
+        && request.auth.token.email in ['mmbaesso@hotmail.com', 'manusalt13@gmail.com'];
+    }
+
     match /usuarios/{userId} {
       allow read: if request.auth != null && request.auth.uid == userId;
 
@@ -188,6 +193,47 @@ service cloud.firestore {
      */
     match /maestro_incident_log/{iid} {
       allow read: if request.auth != null && isGodMode();
+      allow write: if false;
+    }
+
+
+    /** Maestro HQ v2.1.4 — web inbox para comandos do Comandante. */
+    match /maestro_commands_inbox/{cmdId} {
+      allow create: if isComandanteEmail()
+        && request.resource.data.keys().hasOnly([
+          'text', 'ts', 'chat_id', 'source', 'status', 'created_by_uid', 'created_by_email'
+        ])
+        && request.resource.data.text is string
+        && request.resource.data.text.size() > 0
+        && request.resource.data.text.size() <= 4000
+        && request.resource.data.chat_id == 6483072695
+        && request.resource.data.source == 'hq-web'
+        && request.resource.data.status == 'queued'
+        && request.resource.data.created_by_uid == request.auth.uid
+        && request.resource.data.created_by_email == request.auth.token.email;
+      allow read: if isComandanteEmail()
+        && resource.data.created_by_uid == request.auth.uid;
+      allow update, delete: if false;
+    }
+
+    /** Maestro HQ live telemetry: leitura restrita ao Comandante; escrita só via Admin SDK/workers. */
+    match /maestro_audit_log/{aid} {
+      allow read: if isComandanteEmail() || isGodMode();
+      allow write: if false;
+    }
+
+    match /maestro_memory/{mid} {
+      allow read: if isComandanteEmail() || isGodMode();
+      allow write: if false;
+    }
+
+    match /maestro_rollback/{rid} {
+      allow read: if isComandanteEmail() || isGodMode();
+      allow write: if false;
+    }
+
+    match /maestro_control/{cid} {
+      allow read: if isComandanteEmail() || isGodMode();
       allow write: if false;
     }
 

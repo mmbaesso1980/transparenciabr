@@ -32,6 +32,7 @@ import logging
 import os
 import subprocess
 import sys
+import threading
 import time
 import traceback
 import uuid
@@ -65,6 +66,7 @@ except ImportError as e:
 PROJECT_VERTEX = os.getenv("MAESTRO_PROJECT_VERTEX", "projeto-codex-br")
 PROJECT_MAIN = os.getenv("MAESTRO_PROJECT_MAIN", "transparenciabr")
 REGION = os.getenv("MAESTRO_REGION", "us-east1")
+VERSION = "v2.1.4"
 MODEL_ID = os.getenv("MAESTRO_MODEL", "gemini-2.5-pro")
 TEMPERATURE = float(os.getenv("MAESTRO_TEMP", "0.1"))
 MAX_OUTPUT_TOKENS = int(os.getenv("MAESTRO_MAX_TOKENS", "32768"))
@@ -527,11 +529,11 @@ def audit(event: str, chat_id: int, payload: dict[str, Any]) -> str:
             "ts": dt.datetime.utcnow(),
             "payload": payload,
             "model": MODEL_ID,
-            "version": "1.0.0",
+            "version": VERSION,
         })
         jlog("audit.write", audit_id=audit_id, audit_event=event)
     except Exception as e:
-        jlog("audit.err", error=str(e), audit_event=event)
+        jlog("audit.err", error=str(e), audit_event=event, audit_id=audit_id, severity="ERROR", tb=traceback.format_exc()[:500])
     return audit_id
 
 
@@ -1130,6 +1132,12 @@ def handle_message(message: pubsub_v1.subscriber.message.Message) -> None:
     command_id = payload.get("command_id", f"cmd-{uuid.uuid4().hex[:8]}")
 
     jlog("msg.in", command_id=command_id, chat_id=chat_id, len=len(text))
+    audit("message.received", chat_id, {
+        "command_id": command_id,
+        "text": text[:1000],
+        "source": payload.get("source", "telegram"),
+        "raw_keys": sorted(list(payload.keys())),
+    })
 
     # F1
     if not freio_1_whitelist(chat_id):
@@ -1175,6 +1183,89 @@ def handle_message(message: pubsub_v1.subscriber.message.Message) -> None:
         message.ack()
 
 
+
+# ---------------------------------------------------------------------------
+# Firestore inbox listener (/maestro-hq -> maestro_commands_inbox)
+# ---------------------------------------------------------------------------
+class _SyntheticPubSubMessage:
+    """Minimal Pub/Sub-compatible message used by Firestore inbox commands."""
+    def __init__(self, payload: dict[str, Any]):
+        self.data = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+        self._acked = False
+
+    def ack(self) -> None:
+        self._acked = True
+        jlog("inbox.synthetic.ack", command_id=json.loads(self.data.decode("utf-8")).get("command_id"))
+
+
+def _process_inbox_doc(doc_ref, data: dict[str, Any]) -> None:
+    command_id = data.get("command_id") or f"hq-{doc_ref.id}"
+    chat_id = int(data.get("chat_id") or 6483072695)
+    text = (data.get("text") or "").strip()
+    if not text:
+        doc_ref.set({"status": "error", "error": "empty-text", "updated_at": dt.datetime.utcnow()}, merge=True)
+        return
+
+    try:
+        doc_ref.set({
+            "status": "processing",
+            "command_id": command_id,
+            "processing_started_at": dt.datetime.utcnow(),
+            "worker_version": VERSION,
+        }, merge=True)
+        jlog("inbox.processing", doc_id=doc_ref.id, command_id=command_id, chat_id=chat_id)
+        synthetic = _SyntheticPubSubMessage({
+            "chat_id": chat_id,
+            "text": text,
+            "command_id": command_id,
+            "source": data.get("source", "hq-web"),
+        })
+        handle_message(synthetic)
+        doc_ref.set({
+            "status": "done",
+            "done_at": dt.datetime.utcnow(),
+            "acked": getattr(synthetic, "_acked", False),
+        }, merge=True)
+        jlog("inbox.done", doc_id=doc_ref.id, command_id=command_id)
+    except Exception as e:
+        jlog("inbox.err", doc_id=doc_ref.id, command_id=command_id, error=str(e), tb=traceback.format_exc()[:500])
+        doc_ref.set({
+            "status": "error",
+            "error": str(e)[:500],
+            "error_at": dt.datetime.utcnow(),
+        }, merge=True)
+
+
+def _start_inbox_listener() -> None:
+    """Starts a daemon listener for HQ web commands queued in Firestore."""
+    def _run() -> None:
+        try:
+            query_ref = STATE.fs_main.collection("maestro_commands_inbox").where("status", "==", "queued")
+
+            def _on_snapshot(col_snapshot, changes, read_time):
+                for change in changes:
+                    try:
+                        change_type = getattr(change.type, "name", str(change.type))
+                        if change_type not in ("ADDED", "MODIFIED"):
+                            continue
+                        snap = change.document
+                        data = snap.to_dict() or {}
+                        if data.get("status") != "queued":
+                            continue
+                        _process_inbox_doc(snap.reference, data)
+                    except Exception as e:
+                        jlog("inbox.change.err", error=str(e), tb=traceback.format_exc()[:500])
+
+            watch = query_ref.on_snapshot(_on_snapshot)
+            jlog("inbox.listener.started", collection="maestro_commands_inbox")
+            while True:
+                time.sleep(3600)
+        except Exception as e:
+            jlog("inbox.listener.crash", error=str(e), tb=traceback.format_exc()[:500], severity="CRITICAL")
+
+    t = threading.Thread(target=_run, daemon=True, name="firestore-inbox-listener")
+    t.start()
+
 def _start_health_server() -> None:
     """Cloud Run exige listener HTTP em $PORT — usamos um endpoint /health stdlib.
     Worker Pub/Sub continua em background; este servidor existe SÓ para o probe."""
@@ -1186,7 +1277,7 @@ def _start_health_server() -> None:
             self.send_response(200)
             self.send_header("Content-Type", "text/plain")
             self.end_headers()
-            self.wfile.write(b"maestro-worker v1.0 ok\n")
+            self.wfile.write(f"maestro-worker {VERSION} ok\n".encode("utf-8"))
 
         def log_message(self, format, *args):  # silencia stdout do http.server
             return
@@ -1201,6 +1292,7 @@ def _start_health_server() -> None:
 def main() -> None:
     bootstrap()
     _start_health_server()
+    _start_inbox_listener()
     subscriber = pubsub_v1.SubscriberClient()
     sub_path = subscriber.subscription_path(PROJECT_VERTEX, SUBSCRIPTION)
     flow = pubsub_v1.types.FlowControl(max_messages=1)  # 1 comando por vez
