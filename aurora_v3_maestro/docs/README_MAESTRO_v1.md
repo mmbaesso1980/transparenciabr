@@ -1,6 +1,6 @@
 # MAESTRO v1.0 — Manual operacional
 
-**Comandante:** COMANDANTE  OPERADOR
+**Comandante:** Maurílio Mesquita Baesso
 **Versão:** 1.0.0 · **Data:** 27 mai 2026
 
 Agente autônomo TransparênciaBR rodando Vertex Gemini 2.5 Pro com (a) autonomia
@@ -222,7 +222,7 @@ mas o `audit_log` registra o SHA do commit pra fazer `git revert` manual.
 
 ## Contrato de comportamento
 
-- Sempre `Comandante OPERADOR`, português formal
+- Sempre `Comandante Baesso`, português formal
 - Tom INFORMATIVO. Blocklist tom em `transparenciabr-lei`
 - CPF mascarado, contraditório 3-partes em finding ≥ MÉDIA
 - Sem mock, sem fake, sem inventar
