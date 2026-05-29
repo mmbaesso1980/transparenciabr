@@ -1,9 +1,9 @@
 ---
 name: transparenciabr-lei
-description: "Lei do projeto TransparênciaBR (mmbaesso1980/transparenciabr). Carregue SEMPRE antes de qualquer ação no projeto: dossiês forenses, pipelines AURORA, deploys Firebase/Functions, queries BigQuery, ingestão de dados, frontend, leads INSS, radar_legal, motores Vertex AI, comunicações Telegram, ou contato com o Comandante OPERADOR. Define identidade, tom obrigatório, identificadores GCP, schemas, LGPD, paleta visual, workflows operacionais e regras invioláveis com nível de severidade BLOQUEIO AUTOMÁTICO."
+description: "Lei do projeto TransparênciaBR (mmbaesso1980/transparenciabr). Carregue SEMPRE antes de qualquer ação no projeto: dossiês forenses, pipelines AURORA, deploys Firebase/Functions, queries BigQuery, ingestão de dados, frontend, leads INSS, radar_legal, motores Vertex AI, comunicações Telegram, ou contato com o Comandante Baesso. Define identidade, tom obrigatório, identificadores GCP, schemas, LGPD, paleta visual, workflows operacionais e regras invioláveis com nível de severidade BLOQUEIO AUTOMÁTICO."
 license: proprietary
 metadata:
-  author: Comandante OPERADOR
+  author: Comandante Baesso
   version: '1.0'
   scope: projeto-transparenciabr
   source_commit: main
@@ -23,11 +23,11 @@ Carregue **sempre** que a tarefa envolver, em qualquer grau, o projeto Transpar�
 - Ingestão de dados governamentais (CEAP, emendas PIX, PNCP, DJEN, INSS, DOU, dados.gov.br, dados.pe.gov.br)
 - Frontend React (`frontend/src/pages/*` — Radar*, Politico*, Dossie*, Anomalies*, etc.)
 - Motores Vertex AI / Gemini / Asmodeus (codinome interno) — execução, configuração ou troubleshooting
-- Comunicações no Telegram para o Comandante OPERADOR (chat `6483072695`)
+- Comunicações no Telegram para o Comandante Baesso (chat `6483072695`)
 - VMs do projeto: `aurora-cacador-br` (sa-east1-a) e `tbr-mainframe-us-east1-d`
 - Qualquer ação no GitHub `mmbaesso1980/transparenciabr` (PRs, commits, branches, issues)
 
-Também carregue quando o Comandante OPERADOR disser algo como "no nosso projeto", "no transparenciabr", "no site", "no radar", "no painel", "na VM", "no AURORA", ou referenciar identificadores conhecidos (#229, #230, leads_REAL, CEAP, emendas PIX, etc).
+Também carregue quando o Comandante Baesso disser algo como "no nosso projeto", "no transparenciabr", "no site", "no radar", "no painel", "na VM", "no AURORA", ou referenciar identificadores conhecidos (#229, #230, leads_REAL, CEAP, emendas PIX, etc).
 
 ## Núcleo inegociável (sempre em contexto)
 
@@ -42,13 +42,13 @@ Também carregue quando o Comandante OPERADOR disser algo como "no nosso projeto
 | **GCP projeto Vertex** | `projeto-codex-br` (R$ 5.952 créditos, expira 07/04/2027) |
 | **Repo Git** | `mmbaesso1980/transparenciabr` (default branch `main`, público) |
 | **Hosting target** | `fiscallizapa` (com dois L — é apenas alvo de deploy, não nome do produto) |
-| **Comandante** | COMANDANTE  OPERADOR, `operador@transparenciabr.app`, Belém-PA |
+| **Comandante** | Maurílio Mesquita Baesso, `mmbaesso@hotmail.com`, Belém-PA |
 | **Chat Telegram** | `6483072695` (8 dígitos — `643072695` é ERRADO) |
 | **Bot Telegram** | `t.me/Asmodeuswebforgebot` |
 
 ### Tom obrigatório
 
-- Linguagem: **português formal**, sempre tratando o usuário por **"Comandante OPERADOR"**.
+- Linguagem: **português formal**, sempre tratando o usuário por **"Comandante Baesso"**.
 - INFORMATIVO, nunca acusatório. **"Não denunciamos. Mostramos."**
 - **PROIBIDO** em qualquer publicação: "fraude", "roubou", "corrupto", "ladrão", "prova de crime".
 - **USAR**: "padrão estatisticamente anômalo compatível com <tipologia>", "indício", "anomalia", "risco elevado", "há indícios de irregularidade", "evidência administrativa/estatística".
@@ -158,7 +158,7 @@ Use `read(file_path="/home/user/workspace/transparenciabr-lei/references/lei_com
 2. **Internalize o núcleo inegociável** acima — ele é regra hard, não orientação.
 3. **Identifique qual seção do `lei_completa.md`** cobre a tarefa específica. Leia só ela.
 4. **Antes de qualquer output ao Comandante**, valide contra:
-   - Tom (informativo, formal, "Comandante OPERADOR", sem palavras proibidas)
+   - Tom (informativo, formal, "Comandante Baesso", sem palavras proibidas)
    - Regras invioláveis 1-10
    - Bloqueios EXEC-011
    - Classificação LGPD do dado que está sendo manipulado

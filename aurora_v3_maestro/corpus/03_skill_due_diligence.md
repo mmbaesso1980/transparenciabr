@@ -1,11 +1,11 @@
 ---
 name: due-diligence-pro
-description: Compila relatórios de due diligence empresarial/PEP para alvos NÃO-parlamentares (empresários, executivos, ex-governadores, sócios de licitantes). Use quando o Comandante OPERADOR pedir due diligence, KYC reforçado, análise de PEP, dossiê empresarial ou avaliação de risco de contraparte sobre alvo fora do escopo parlamentar ativo. NÃO usar para parlamentares ativos (essa é a `dossie-forense-parlamentar`).
+description: Compila relatórios de due diligence empresarial/PEP para alvos NÃO-parlamentares (empresários, executivos, ex-governadores, sócios de licitantes). Use quando o Comandante Baesso pedir due diligence, KYC reforçado, análise de PEP, dossiê empresarial ou avaliação de risco de contraparte sobre alvo fora do escopo parlamentar ativo. NÃO usar para parlamentares ativos (essa é a `dossie-forense-parlamentar`).
 license: MIT
 ---
 
 # due-diligence-pro v1.1
-**Plataforma:** TransparênciaBR · Comandante OPERADOR  
+**Plataforma:** TransparênciaBR · Comandante Baesso  
 **Escopo:** Due diligence empresarial/PEP — alvos NÃO-parlamentares  
 **Versão pioneer (v1.0):** Dossiê Paulo Octávio Alves Pereira (mai/2026) · 30p · 45 findings  
 **Versão EVISCERADOR (v1.1):** Dossiê Paulo Octávio v2.0 EVISCERADOR (mai/2026) · 46p · 81 findings · pivot Direct Data via sandbox  
@@ -42,7 +42,7 @@ Carregar `due-diligence-pro` quando o Comandante solicitar qualquer um dos segui
 
 ## 2. PRINCÍPIOS INEGOCIÁVEIS (herdados da `transparenciabr-lei`)
 
-1. **Tom INFORMATIVO** — sempre "Comandante OPERADOR", português formal. Nunca alarmista.
+1. **Tom INFORMATIVO** — sempre "Comandante Baesso", português formal. Nunca alarmista.
 2. **"Não denunciamos. Mostramos."** — apresentar fatos, não acusações.
 3. **Sem mock, sem fake** — toda informação obriga URL primária verificável. Zero dado inventado.
 4. **CPF mascarado** — formato `***.XXX.XXX-**` em todo o documento publicável.

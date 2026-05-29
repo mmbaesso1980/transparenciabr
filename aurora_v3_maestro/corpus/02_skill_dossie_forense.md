@@ -1,7 +1,7 @@
 ---
 name: dossie-forense-parlamentar
 description: >-
-  Compila dossiês forenses profissionais sobre parlamentares brasileiros (deputados estaduais, federais, senadores, vereadores) no padrão TransparênciaBR 1.0. Use quando o Comandante OPERADOR pedir dossiê, dossiê matador, relatório forense, análise parlamentar, ou compilação sobre político brasileiro. Versão 1.0 (release stable) consolida aprendizados da auditoria externa do caso Erika Hilton — contraditório judicial 3-partes, fontes primárias (NUNCA expor BigQuery interno), reclassificação de falsos positivos pós-investigação, e 4 novos tipos de finding (locação veículo, TF nominal, BO ameaças, decisão liminar). Mantém Eixo 5 (empresas exclusivas + cruzamento sócios), Direct Data (QSA, BF, CadastroPF Plus, Processos), catálogo BQ interno, 16-20 agentes. Gera PDF tom INFORMATIVO, com 40-55 findings classificados por severidade. Visual teal #01696F + DM Sans/Inter, ReportLab.
+  Compila dossiês forenses profissionais sobre parlamentares brasileiros (deputados estaduais, federais, senadores, vereadores) no padrão TransparênciaBR 1.0. Use quando o Comandante Baesso pedir dossiê, dossiê matador, relatório forense, análise parlamentar, ou compilação sobre político brasileiro. Versão 1.0 (release stable) consolida aprendizados da auditoria externa do caso Erika Hilton — contraditório judicial 3-partes, fontes primárias (NUNCA expor BigQuery interno), reclassificação de falsos positivos pós-investigação, e 4 novos tipos de finding (locação veículo, TF nominal, BO ameaças, decisão liminar). Mantém Eixo 5 (empresas exclusivas + cruzamento sócios), Direct Data (QSA, BF, CadastroPF Plus, Processos), catálogo BQ interno, 16-20 agentes. Gera PDF tom INFORMATIVO, com 40-55 findings classificados por severidade. Visual teal #01696F + DM Sans/Inter, ReportLab.
 ---
 
 # Dossiê Forense Parlamentar — Padrão TransparênciaBR 1.0
@@ -10,7 +10,7 @@ description: >-
 
 ## Quando Usar
 
-Use quando o Comandante OPERADOR pedir:
+Use quando o Comandante Baesso pedir:
 - "Dossiê matador" / "dossiê forense" / "relatório forense" sobre um parlamentar brasileiro
 - "Compile fatos sobre [político]"
 - "Análise parlamentar de [nome]"

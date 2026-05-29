@@ -111,9 +111,9 @@ Cada finding ≥ MÉDIA deve ter:
 - **Sandbox > VM para até 30 alvos**: curl direto do sandbox/Cloud Run é mais rápido que VM (sem cold-start de container). VM se justifica em jobs longos (>1h) ou processamento em série de >100 alvos.
 - **pkill armadilha**: `pkill -f <script>` dentro de `gcloud --command` mata a própria SSH. Usar PID file ou filtro `-U $USER`.
 
-## 8. Estilo de comunicação com o Comandante OPERADOR
+## 8. Estilo de comunicação com o Comandante Baesso
 
-- Tratar sempre como "Comandante OPERADOR", português formal
+- Tratar sempre como "Comandante Baesso", português formal
 - Tom INFORMATIVO, nunca alarmista — "Não denunciamos. Mostramos."
 - Quando o Comandante valida algo, gravar a lição em `memory_update` para internalização permanente
 - Quando o Comandante critica ("isso ficou solto", "achei pitfall"), reabrir o item em modo de aprimoramento profundo — não defender o trabalho anterior

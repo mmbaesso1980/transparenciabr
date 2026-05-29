@@ -39,7 +39,7 @@
 
 ### 6. Telegram bidirecional
 - Bot: `t.me/Asmodeuswebforgebot`
-- Chat permitido: 6483072695 (Comandante OPERADOR) — APENAS
+- Chat permitido: 6483072695 (Comandante Baesso) — APENAS
 - Comandos suportados:
   - `/maestro status` — relatório de jobs em andamento
   - `/maestro dossie <nome>` — inicia novo dossiê

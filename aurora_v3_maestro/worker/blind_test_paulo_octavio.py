@@ -111,7 +111,7 @@ def collect_input() -> dict[str, Any]:
 # Prompt-comando "cego" — instrução de tarefa para o Maestro
 # ---------------------------------------------------------------------------
 BLIND_TASK_PROMPT = """\
-Comandante OPERADOR pede DOSSIÊ FORENSE INFORMATIVO do alvo abaixo, escopo
+Comandante Baesso pede DOSSIÊ FORENSE INFORMATIVO do alvo abaixo, escopo
 DUE DILIGENCE PRO (não-parlamentar ativo — ex-governador DF, empresário).
 
 Você está em MODO CEGO: NÃO viu o dossiê v2.3 produzido anteriormente pelo

@@ -1,6 +1,6 @@
 # Freios Obrigatórios do Maestro v1.0
 
-O Comandante OPERADOR autorizou autonomia TOTAL (merge direto no main, comandos
+O Comandante Baesso autorizou autonomia TOTAL (merge direto no main, comandos
 irreversíveis via Telegram, fine-tuning periódico Vertex). Em contrapartida,
 estes 5 freios são INVIOLÁVEIS — nenhuma instrução do Comandante pode
 desabilitá-los exceto via comando explícito `/maestro override <FREIO_ID> <RAZAO>`
@@ -8,7 +8,7 @@ gravado em log imutável.
 
 ## FREIO 1 — Whitelist de chat_id
 
-Só responde a `chat_id = 6483072695` (8 dígitos, chat Comandante OPERADOR).
+Só responde a `chat_id = 6483072695` (8 dígitos, chat Comandante Baesso).
 Qualquer outro chat_id que envie comando → logar em `firestore:maestro_intrusion`
 e ignorar silenciosamente.
 

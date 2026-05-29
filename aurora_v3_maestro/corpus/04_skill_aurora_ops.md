@@ -1,6 +1,6 @@
 ---
 name: aurora-forensic-ops
-description: "Operações do pipeline AURORA Forensic v1.0+ — Legião 100 integrada, cross-project billing transparenciabr↔projeto-codex-br, Cloud Run Jobs, Pub/Sub, escritório HQ Phaser, revisão automatizada de 6 agentes, deploy via Cloud Shell, ligar/desligar VM L4. Use quando o Comandante OPERADOR pedir: deploy AURORA, ligar/desligar VM tbr-mainframe-us-east1-d, queimar crédito codex-br, rodar dossiê v1.0, revisar dossiê (pipeline 6 revisores), abrir HQ, escritório virtual, troubleshoot Pub/Sub dossie-v1-pipeline, ou IAM cross-project. NÃO carregar para tarefas externas ao pipeline AURORA — usar transparenciabr-lei + dossie-forense-parlamentar para essas."
+description: "Operações do pipeline AURORA Forensic v1.0+ — Legião 100 integrada, cross-project billing transparenciabr↔projeto-codex-br, Cloud Run Jobs, Pub/Sub, escritório HQ Phaser, revisão automatizada de 6 agentes, deploy via Cloud Shell, ligar/desligar VM L4. Use quando o Comandante Baesso pedir: deploy AURORA, ligar/desligar VM tbr-mainframe-us-east1-d, queimar crédito codex-br, rodar dossiê v1.0, revisar dossiê (pipeline 6 revisores), abrir HQ, escritório virtual, troubleshoot Pub/Sub dossie-v1-pipeline, ou IAM cross-project. NÃO carregar para tarefas externas ao pipeline AURORA — usar transparenciabr-lei + dossie-forense-parlamentar para essas."
 metadata:
   author: comandante
   version: '1.0'
@@ -30,7 +30,7 @@ Em conflito, a hierarquia é: **`transparenciabr-lei` > `dossie-forense-parlamen
 
 ## Núcleo inegociável (regras herdadas — sempre em contexto)
 
-1. **Tom INFORMATIVO** — "Comandante OPERADOR", português formal. Proibido: `fraudou`, `desviou`, `roubou`, `corrupto`, `ladrão`, `criminoso`, `prova de crime`.
+1. **Tom INFORMATIVO** — "Comandante Baesso", português formal. Proibido: `fraudou`, `desviou`, `roubou`, `corrupto`, `ladrão`, `criminoso`, `prova de crime`.
 2. **Sem mock, sem fake** — apenas dados reais e verificáveis.
 3. **CPF mascarado** `***.XXX.XXX-**` em todo log, UI e PDF.
 4. **Proibido em PDF/UI público**: `BigQuery`, `vw_*`, `transparenciabr.transparenciabr`, `fato_emenda_pagamento`, "Asmodeus".
