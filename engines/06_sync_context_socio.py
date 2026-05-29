@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Protocolo A.S.M.O.D.E.U.S. — BigQuery → Firestore (contexto socioeconómico apenas).
+Protocolo AURORA — BigQuery → Firestore (contexto socioeconómico apenas).
 
 Lê `vw_parlamentar_base_eleitoral`, mantém TOP N municípios por volume de emendas
 por parlamentar e faz merge em `politicos/{id}` sem apagar `alertas_anexados` nem perfil.

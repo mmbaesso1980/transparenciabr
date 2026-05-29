@@ -72,7 +72,7 @@ Documento de planeamento tático gerado por varredura do repositório corrente (
 
 ---
 
-## 3. Backend forense — Protocolo A.S.M.O.D.E.U.S. (estado real)
+## 3. Backend forense — Protocolo AURORA (estado real)
 
 | Capacidade | Estado no código |
 |------------|------------------|

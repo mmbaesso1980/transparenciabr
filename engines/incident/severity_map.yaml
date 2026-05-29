@@ -1,0 +1,31 @@
+# Fonte humana — gerar JSON com: python scripts/yaml2json.py engines/incident/severity_map.yaml
+# Runtime: severity_map.json (sem PyYAML em triage).
+
+# Slugs emitidos pelo detector (struct_*, struct_qmark_*, codename_*, blocklist_*).
+# OPERATOR_PII ignora este mapa — triage.py força sempre CRITICAL.
+
+by_slug:
+  struct_none: HIGH
+  struct_null: HIGH
+  struct_undefined: MEDIUM
+  struct_nan: MEDIUM
+  struct_obj: MEDIUM
+  struct_qmark_field: HIGH
+  struct_qmark_inline: MEDIUM
+  struct_qmark_bullet: MEDIUM
+  codename_aurora_360: CRITICAL
+  codename_asmodeus: CRITICAL
+  codename_goetia: CRITICAL
+  codename_lobo_mau: HIGH
+  codename_agentes_tecnicos: HIGH
+  codename_pipeline_automatizado: HIGH
+  blocklist_fraude: HIGH
+  blocklist_desviou: HIGH
+  blocklist_roubou: HIGH
+  blocklist_corrupto: HIGH
+  blocklist_ladrao: HIGH
+  blocklist_fraudou: HIGH
+  blocklist_prova_de_crime: HIGH
+  blocklist_bigquery_interno: CRITICAL
+  blocklist_asmodeus: CRITICAL
+  blocklist_goetia: CRITICAL

@@ -1,0 +1,10 @@
+# Excerto fictício “limpo” — bateria anti-falso-positivo (Kataguiri).
+
+## Resumo
+
+Cruzamento de contratos públicos com fornecedores repetidos, sempre com URL do portal
+de transparência e timestamp de coleta.
+
+## Contraditório
+
+Como a amostra foi escolhida? Aplicamos filtro por valor e por UF, conforme metodologia.

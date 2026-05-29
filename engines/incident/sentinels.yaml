@@ -1,0 +1,23 @@
+# Fonte humana — gerar JSON com: python scripts/yaml2json.py engines/incident/sentinels.yaml
+# Runtime (detector): lê apenas sentinels.json (sem PyYAML).
+
+codenames:
+  - "AURORA 360"
+  - "aurora 360"
+  - "asmodeus"
+  - "goetia"
+  - "lobo mau"
+  - "agentes técnicos"
+  - "pipeline automatizado"
+
+blocklist:
+  - "fraude"
+  - "desviou"
+  - "roubou"
+  - "corrupto"
+  - "ladrão"
+  - "fraudou"
+  - "prova de crime"
+  - "bigquery interno"
+  - "asmodeus"
+  - "goetia"

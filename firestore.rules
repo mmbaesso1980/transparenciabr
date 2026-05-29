@@ -181,6 +181,16 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    /**
+     * M11 — log imutável de incidentes forenses (detector / triagem).
+     * Leitura: god_mode (Comandante / operação privilegiada).
+     * Escrita: apenas Admin SDK / workers (cliente nunca escreve).
+     */
+    match /maestro_incident_log/{iid} {
+      allow read: if request.auth != null && isGodMode();
+      allow write: if false;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

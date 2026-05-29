@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Protocolo A.S.M.O.D.E.U.S. — TCU CADIRREG → BigQuery.
+Protocolo AURORA — TCU CADIRREG → BigQuery.
 
 Tenta buscar dados da API pública do TCU.
 Se a API estiver indisponível, cria a tabela vazia e encerra sem erro.

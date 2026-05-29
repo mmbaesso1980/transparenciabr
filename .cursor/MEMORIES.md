@@ -38,8 +38,8 @@ O MEMORIES **não** é um ficheiro de feature flags: “ativar tudo” significa
 - **Nome:** TransparênciaBR / FiscalizaPA
 - **Repositório canônico:** `mmbaesso1980/transparenciabr`
 - **Missão:** Plataforma de transparência política brasileira — rastreamento de emendas parlamentares, gastos CEAP, votações nominais e auditorias forenses de nepotismo/superfaturamento
-- **Motor de scoring:** Protocolo A.S.M.O.D.E.U.S.
-- **NUNCA expor** "Asmodeus" em código/UI público → usar "Motor Forense TransparênciaBR"
+- **Motor de scoring:** Protocolo AURORA
+- **NUNCA expor** "Prisma 12" em código/UI público → usar "Motor Forense TransparênciaBR"
 - **Conta master Firebase:** UID `X8cHski54Dd6FiHULRJSk3Mjbol2`
 - **Firebase target:** `fiscallizapa` (double L — apenas o target de deploy, não o nome do repo)
 
@@ -301,7 +301,7 @@ ANVISA API: `https://consultas.anvisa.gov.br/api/consulta/empresas?cnpj={cnpj}`
 ## 🎨 CURSOR SCRIPT v4 — PoliticoPage (Tarefas Prioritárias)
 
 ### Regras Absolutas
-- NUNCA expor "Asmodeus" em código/UI público → "Motor Forense TransparênciaBR"
+- NUNCA expor "Prisma 12" em código/UI público → "Motor Forense TransparênciaBR"
 - Chaves de API SEMPRE em env vars
 - Banco = projeto "codex" / "fiscallizapa" (double L — apenas no Firebase)
 
@@ -718,7 +718,7 @@ const HEADERS = { 'chave-api-dados': process.env.PORTAL_API_KEY }
 
 > Fonte: `Plano-Mestre-TransparenciaBR-v2.0.docx` — Abril 2026
 
-### Protocolo A.S.M.O.D.E.U.S.
+### Protocolo AURORA
 **A**utomação de **S**istemas de **M**onitoramento e **D**etecção de **E**squemas no **U**so de **S**ubsídios
 
 ### BigQuery — Estratégias de Otimização

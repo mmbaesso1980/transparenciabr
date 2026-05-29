@@ -13,7 +13,7 @@ Uso CLI:
     python3 dossie_pipeline.py --alvo "Nome" --slug "nome-slug" --firestore-doc dossies_v1/nome-slug
 
 Princípios:
-- Tom INFORMATIVO. Verbos proibidos: fraudou/desviou/roubou/corrupto.
+- Tom INFORMATIVO. Verbos proibidos: subconjunto da blocklist M11 (VERBOS_PROIBIDOS).
 - Fontes primárias citáveis (Princípio 10): blocklist bigquery / vw_ / transparenciabr.transparenciabr.
 - LGPD: CPFs mascarados ***.XXX.XXX-**.
 """
@@ -40,8 +40,12 @@ PIPELINE_DIR = Path(__file__).resolve().parent
 MANUS_DIR = PIPELINE_DIR.parent
 REPO_DIR = MANUS_DIR.parent
 
-# Permite import do agent_registry sem instalar pacote.
+# Permite import do agent_registry e engines/ sem instalar pacote.
+sys.path.insert(0, str(REPO_DIR))
 sys.path.insert(0, str(MANUS_DIR))
+
+from engines.incident.detector import tom_blocklist_words  # noqa: E402
+from engines.sanitization.operator_pii_filter import sanitize_structure  # noqa: E402
 
 from agent_registry import CREW_DOSSIE_FORENSE_V1, MAESTRO  # noqa: E402
 
@@ -69,7 +73,7 @@ except ImportError:
 # Constantes — blocklist e schema
 # =============================================================================
 
-VERBOS_PROIBIDOS = ("fraudou", "desviou", "roubou", "corrupto")
+VERBOS_PROIBIDOS = tom_blocklist_words()
 FONTES_INTERNAS_PROIBIDAS = (
     "bigquery",
     "vw_",
@@ -233,6 +237,7 @@ def _prompt_agente(
             b = (h.get("body") or h.get("snippet") or "")[:200]
             web_context += f"- {t} — {u}\n  {b}\n"
 
+    verbos_txt = ", ".join(VERBOS_PROIBIDOS)
     return f"""Você é o **{agent.nome}** (slot {agent.slot:02d}/10 da crew "Dossiê Forense v1.0").
 
 PAPEL:
@@ -264,7 +269,7 @@ INSTRUÇÕES OBRIGATÓRIAS:
      "contraditorio": "Template 3-partes ou 'Não foi localizada manifestação pública específica sobre este finding até a data de publicação.'",
      "fontes": ["URL1", "URL2", ...]
    }}
-3. PROIBIDO usar palavras: fraudou, desviou, roubou, corrupto.
+3. PROIBIDO usar palavras: {verbos_txt}.
 4. PROIBIDO citar BigQuery, vw_*, transparenciabr.transparenciabr.* no texto.
 5. Cite SEMPRE a fonte primária (Portal Câmara, Portal Transparência, TSE, TRF, STF, BrasilAPI).
 6. Em findings ≥ MÉDIA, preencha o contraditório 3-partes (decisão judicial + manifestação pública + direito de resposta institucional via transparenciabr.org/dossie/{slug}/contestacao).
@@ -658,7 +663,8 @@ def run_pipeline(
     # 3. Maestro consolida.
     doc = _consolidar_maestro(parciais, alvo, slug, noticias)
 
-    # 4. Persiste findings.json.
+    # 4. Persiste findings.json (sanitizer M12 — LGPD classe C antes de gravar).
+    doc = sanitize_structure(doc)
     findings_path.write_text(json.dumps(doc, ensure_ascii=False, indent=2), encoding="utf-8")
     print(f"[pipeline] findings.json salvo em {findings_path}")
     print(
@@ -685,6 +691,7 @@ def run_pipeline(
                     doc["findings"] = corrected
                 else:
                     doc = corrected
+                doc = sanitize_structure(doc)
                 findings_path.write_text(
                     json.dumps(doc, ensure_ascii=False, indent=2), encoding="utf-8"
                 )

@@ -143,7 +143,7 @@ export function extractHeroKPIs(kpis) {
   return {
     // Score 0-100, baseado no índice de risco Aurora (0-1)
     score_aurora: (() => {
-      const rawAsm = kpis.score_asmodeus;
+      const rawAsm = (kpis.score_aurora ?? kpis.score_asmodeus);
       if (typeof rawAsm === "number" && Number.isFinite(rawAsm)) {
         let v = rawAsm;
         if (v > 0 && v <= 1) v *= 100;

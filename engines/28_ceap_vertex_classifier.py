@@ -9,13 +9,13 @@ ARQUITETURA CROSS-PROJECT:
   - IA (Gemini 2.5): Vertex AI → projeto 'projeto-codex-br' (créditos R$ 5.952)
   - Escrita de resultados: Firestore → projeto 'transparenciabr'
     * Coleção 'transparency_reports/{deputado_id}' → campo 'classificacao_ia'
-    * Mesmo documento → 'auditoria_asmodeus_triade' (cérebro CEAP×Emendas×Mandato, JSON estrito)
+    * Mesmo documento → 'auditoria_aurora_triade' (cérebro CEAP×Emendas×Mandato, JSON estrito)
     * Coleção 'alertas_bodes' → alertas individuais por nota
 
 FLUXO:
   1. Consulta BigQuery para obter todas as notas CEAP de um parlamentar (ou batch)
   2. Monta envelope único: resumo CEAP + emendas (BQ) + proposições (API Câmara)
-  3. Passagem Vertex com system instruction A.S.M.O.D.E.U.S. (auditoria tripartite → JSON Firestore)
+  3. Passagem Vertex com system instruction AURORA (auditoria tripartite → JSON Firestore)
   4. Agrupa notas em lotes de 10 (para otimizar tokens e custo)
   5. Envia cada lote ao Gemini 2.5 Flash (via Vertex AI, billing em projeto-codex-br)
   6. Gemini classifica cada nota: risco (baixo/médio/alto/crítico), justificativa, flags
@@ -107,8 +107,8 @@ NOTAS PARA CLASSIFICAR:
 """
 
 # Cérebro tripartite (CEAP × Emendas × Atividade) — alinhado ao callable on-demand (Caso Gilson).
-SYSTEM_INSTRUCTION_ASMODEUS = """
-Você é o braço de inteligência analítica do ecossistema A.S.M.O.D.E.U.S.
+SYSTEM_INSTRUCTION_AURORA = """
+Você é o braço de inteligência analítica do ecossistema AURORA
 Sua tarefa nesta varredura em lote é processar os payloads consolidados dos parlamentares.
 
 Para cada registro, você deve gerar uma classificação tripartite (ILEGAL, IMORAL, SUSPEITO) cobrindo:
@@ -288,7 +288,7 @@ def build_consolidated_payload(
     }
 
 
-def audit_asmodeus_triade(
+def audit_aurora_triade(
     consolidated: Dict[str, Any],
     model_tuple: Tuple[str, Any],
 ) -> Optional[Dict[str, Any]]:
@@ -322,7 +322,7 @@ def audit_asmodeus_triade(
             vertexai.init(project=vertex_project_id(), location=vertex_location())
             tri = GenerativeModel(
                 VERTEX_MODEL,
-                system_instruction=SYSTEM_INSTRUCTION_ASMODEUS,
+                system_instruction=SYSTEM_INSTRUCTION_AURORA,
                 generation_config=GenerationConfig(
                     temperature=0.15,
                     max_output_tokens=8192,
@@ -332,7 +332,7 @@ def audit_asmodeus_triade(
             response = tri.generate_content(user_prompt)
             return _parse_model_json(response.text or "{}")
 
-        combined = SYSTEM_INSTRUCTION_ASMODEUS + "\n\n" + user_prompt
+        combined = SYSTEM_INSTRUCTION_AURORA + "\n\n" + user_prompt
         response = model.models.generate_content(
             model=VERTEX_MODEL,
             contents=combined,
@@ -352,7 +352,7 @@ def audit_asmodeus_triade(
             max_sec=45.0,
         )
     except Exception as exc:
-        logger.warning("audit_asmodeus_triade falhou: %s", exc)
+        logger.warning("audit_aurora_triade falhou: %s", exc)
         return None
 
 
@@ -515,7 +515,7 @@ def write_classifications_firestore(
         },
     }
     if triade_report and isinstance(triade_report, dict):
-        report_data["auditoria_asmodeus_triade"] = {
+        report_data["auditoria_aurora_triade"] = {
             "modelo": VERTEX_MODEL,
             "gerado_em": datetime.now(timezone.utc).isoformat(),
             "registro": triade_report.get("registro"),
@@ -625,9 +625,9 @@ def process_parlamentar(
                     "score_medio": round(sum(scores_ia) / len(scores_ia), 2) if scores_ia else 0,
                     "notas_score_ge_70": sum(1 for s in scores_ia if s >= 70),
                 }
-            triade_report = audit_asmodeus_triade(consolidated, model_tuple)
+            triade_report = audit_aurora_triade(consolidated, model_tuple)
         except Exception as exc:
-            logger.warning("Auditoria tripartite A.S.M.O.D.E.U.S. ignorada: %s", exc)
+            logger.warning("Auditoria tripartite AURORA ignorada: %s", exc)
 
     # 3. Gravar resultados
     if dry_run:

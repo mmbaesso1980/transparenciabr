@@ -28,7 +28,7 @@ async function main() {
 
   const payload = {
     status: "Data Lake Operacional",
-    motor: "A.S.M.O.D.E.U.S.",
+    motor: "AURORA",
     timestamp_utc: new Date().toISOString(),
     regiao: "us-central1",
     particao: `ano=${IGNICAO_ANO}`,

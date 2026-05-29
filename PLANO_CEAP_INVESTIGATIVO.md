@@ -2,7 +2,7 @@
 ## Sprint 2.5 — Dossiê Pulitzer | Rigor 100% | A+B+C híbrido
 
 > **Gerado em:** 2026-04-28 · **Comandante:** Marco Baesso · **Status:** Plano operacional
-> **Antecedentes:** Plano Mestre V3 (A.S.M.O.D.E.U.S., F.L.A.V.I.O., DRACULA, ESPECTRO) · Sprint 1 motor universal · Sprint 2 orquestrador Vertex (12 agentes)
+> **Antecedentes:** Plano Mestre V3 (AURORA, F.L.A.V.I.O., DRACULA, ESPECTRO) · Sprint 1 motor universal · Sprint 2 orquestrador Vertex (12 agentes)
 > **Diretiva suprema:** "1 absurdo por nota — toda nota é suspeita até prova contrária. R$ 100 de gasolina é tão criminoso quanto R$ 3.000 se não couber no mandato."
 
 ---
@@ -794,7 +794,7 @@ ORDER BY score_flavio DESC;
 ### 7.3 Output do dossiê (Pulitzer-grade)
 
 **Capítulo 1 — Sumário executivo**
-- Score A.S.M.O.D.E.U.S. consolidado / Score F.L.A.V.I.O.
+- Score AURORA consolidado / Score F.L.A.V.I.O.
 - Top 10 notas mais discrepantes
 - Mapa de calor das discrepâncias por categoria
 

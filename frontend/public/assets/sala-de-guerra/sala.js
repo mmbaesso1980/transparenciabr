@@ -9,7 +9,7 @@
     var v = (document.getElementById("adapter").value || "").trim().replace(/\/+$/, "");
     if (v) return v;
     try {
-      return (localStorage.getItem("asmodeus_adapter_base") || "").trim().replace(/\/+$/, "");
+      return (localStorage.getItem("aurora_adapter_base") || "").trim().replace(/\/+$/, "");
     } catch (e) {
       return "";
     }
@@ -54,17 +54,17 @@
       try {
         var u = decodeURIComponent(param).trim().replace(/\/+$/, "");
         new URL(u);
-        localStorage.setItem("asmodeus_adapter_base", u);
+        localStorage.setItem("aurora_adapter_base", u);
       } catch (e) {
         logLine("Query ?adapter= inválida, ignorada.");
       }
     }
-    document.getElementById("adapter").value = localStorage.getItem("asmodeus_adapter_base") || "";
+    document.getElementById("adapter").value = localStorage.getItem("aurora_adapter_base") || "";
 
     document.getElementById("btn-save-adapter").onclick = function () {
       var b = (document.getElementById("adapter").value || "").trim().replace(/\/+$/, "");
       if (!b) {
-        localStorage.removeItem("asmodeus_adapter_base");
+        localStorage.removeItem("aurora_adapter_base");
         logLine("Adapter URL limpa.");
         return;
       }
@@ -74,7 +74,7 @@
         logLine("URL inválida.");
         return;
       }
-      localStorage.setItem("asmodeus_adapter_base", b);
+      localStorage.setItem("aurora_adapter_base", b);
       logLine("Adapter guardado: " + b);
     };
 

@@ -1,0 +1,12 @@
+# Excerto fictício “limpo” — sem sentinelas M11 (bateria anti-falso-positivo).
+# Dados hipotéticos; tom informativo; sem codinomes internos nem blocklist.
+
+## Resumo executivo
+
+O relatório consolida indicadores públicos de despesas com fornecedores recorrentes,
+com metodologia reprodutível e links para fontes primárias.
+
+## Contraditório
+
+Por que o valor aparece maior no segundo trimestre? A série histórica mostra sazonalidade.
+Qual o critério de classificação? Utilizamos regras documentadas no apêndice A.
