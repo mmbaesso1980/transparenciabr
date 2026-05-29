@@ -79,6 +79,11 @@ AUTO_SHUTDOWN=0 bash "$HOME/transparenciabr/scripts/run_overnight.sh" || \
 # ─────────────────────────────────────────────────────────────
 echo ""
 echo "🤖 FASE 6 — Vertex classify_ceap (anos 2024-2026)"
+# Billing-target Vertex: projeto-codex-br (crédito codex vigente).
+# Data project (BQ/GCS) permanece $PROJECT (transparenciabr).
+export VERTEX_PROJECT="${VERTEX_PROJECT:-projeto-codex-br}"
+export VERTEX_LOCATION="${VERTEX_LOCATION:-us-central1}"
+echo "   Vertex billing target: $VERTEX_PROJECT ($VERTEX_LOCATION)"
 for YEAR in 2026 2025 2024; do
   echo "→ Vertex classify CEAP $YEAR (max 10k notas, batch 50)"
   MAX=10000 bash "$HOME/transparenciabr/scripts/run_vertex.sh" "$YEAR" || \
