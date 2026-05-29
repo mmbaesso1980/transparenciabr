@@ -5,14 +5,20 @@
 #   bash scripts/cursor_l4_dispatch_remote.sh --validate-after   # inclui espera 5 min + nvidia-smi remoto
 #
 # Variáveis opcionais:
-#   REPO_DIR   — raiz do clone (default: diretório pai deste script/..)
-#   GCP_PROJECT — default: transparenciabr
-#   GCP_ZONE   — default: us-central1-a
-#   VM_NAME    — default: tbr-mainframe
+#   REPO_DIR       — raiz do clone (default: diretório pai deste script/..)
+#   GCP_PROJECT    — projeto data (BQ/GCS/Firebase). default: transparenciabr
+#   VERTEX_PROJECT — projeto billing Vertex/AI. default: projeto-codex-br
+#   GCP_ZONE       — default: us-central1-a
+#   VM_NAME        — default: tbr-mainframe
+#
+# REGRA DE BILLING (memoria permanente do Comandante Baesso):
+#   * Vertex/Gemini/AI    -> projeto-codex-br (credito codex, expira 03/05/2027)
+#   * BigQuery/GCS/Firebase/Functions -> transparenciabr
 
 set -euo pipefail
 
 GCP_PROJECT="${GCP_PROJECT:-transparenciabr}"
+VERTEX_PROJECT="${VERTEX_PROJECT:-projeto-codex-br}"
 GCP_ZONE="${GCP_ZONE:-us-central1-a}"
 VM_NAME="${VM_NAME:-tbr-mainframe}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -24,7 +30,7 @@ if [[ -f "/opt/google-cloud-sdk/path.bash.inc" ]]; then
 fi
 
 echo "══════════════════════════════════════════════════════════════"
-echo "L4 dispatch — projeto=${GCP_PROJECT} zone=${GCP_ZONE} vm=${VM_NAME}"
+echo "L4 dispatch — data=${GCP_PROJECT}  vertex=${VERTEX_PROJECT}  zone=${GCP_ZONE}  vm=${VM_NAME}"
 echo "Repo: ${REPO_DIR}"
 echo "══════════════════════════════════════════════════════════════"
 
@@ -79,7 +85,9 @@ print('OK roster')
 echo ""
 echo "── Passo 4: SSH na VM e disparar run_l4_massive.sh (ENABLE_AUTO_SHUTDOWN=true) ──"
 # stdin → bash -s na VM (evita problemas de quoting com --command=...)
-gcloud compute ssh "${VM_NAME}" --zone="${GCP_ZONE}" --project="${GCP_PROJECT}" -- bash -s <<'REMOTE'
+# Repassa VERTEX_PROJECT (billing Vertex) para a VM via env var injetada no heredoc.
+gcloud compute ssh "${VM_NAME}" --zone="${GCP_ZONE}" --project="${GCP_PROJECT}" -- \
+  VERTEX_PROJECT="${VERTEX_PROJECT}" bash -s <<'REMOTE'
 set -e
 echo "════════════════════════════════════════════"
 echo "L4 DISPATCH — $(date)"
@@ -101,6 +109,10 @@ pip install --quiet "paddleocr>=2.7.0" "python-doctr[torch]"
 python3 -c "import paddle; assert paddle.is_compiled_with_cuda(); print('Paddle CUDA OK', paddle.device.cuda.device_count())"
 export SEC_EDGAR_USER_AGENT="TransparenciaBR mmbaesso@hotmail.com"
 export ENABLE_AUTO_SHUTDOWN=true
+# Billing-target Vertex (herdado do dispatch host via -- VAR=...).
+export VERTEX_PROJECT="${VERTEX_PROJECT:-projeto-codex-br}"
+export VERTEX_LOCATION="${VERTEX_LOCATION:-us-central1}"
+echo "   Vertex billing target: ${VERTEX_PROJECT} (${VERTEX_LOCATION})"
 pkill -f run_l4_massive.sh 2>/dev/null || true
 sleep 2
 nohup bash ~/transparenciabr/scripts/run_l4_massive.sh > "$HOME/l4_dispatch_$(date +%Y%m%d_%H%M%S).log" 2>&1 &

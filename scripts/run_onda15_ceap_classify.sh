@@ -6,8 +6,8 @@
 #
 # Pré-requisitos (Cloud Shell autenticado como Comandante):
 #   - gcloud auth application-default login (ADC válida)
-#   - Acesso de leitura/escrita ao bucket gs://datalake-tbr-clean
-#   - Vertex AI API habilitada no projeto transparenciabr
+#   - Acesso de leitura/escrita ao bucket gs://datalake-tbr-clean (transparenciabr)
+#   - Vertex AI API habilitada no projeto projeto-codex-br (billing)
 #
 # Custo estimado (gemini-2.5-flash batch):
 #   ~5.787 notas × ~250 tokens entrada × ~80 tokens saída ≈ R$ 1–2 por ano
@@ -33,14 +33,18 @@ ENGINE="$PROJ_DIR/engines/vertex/classify_ceap.js"
 # Modelo: gemini-2.5-flash (10x mais barato que pro, suficiente p/ taxonomia fixa)
 export VERTEX_MODEL="${VERTEX_MODEL:-gemini-2.5-flash}"
 export CEAP_VERTEX_CLASSIFY_MODEL="$VERTEX_MODEL"
+# Billing-target Vertex: projeto-codex-br (crédito Vertex vigente, expira 03/05/2027).
+# Data project (BigQuery/GCS) permanece transparenciabr.
+export VERTEX_PROJECT="${VERTEX_PROJECT:-projeto-codex-br}"
 export GCP_PROJECT_ID="${GCP_PROJECT_ID:-transparenciabr}"
 export VERTEX_LOCATION="${VERTEX_LOCATION:-us-central1}"
 
 echo "════════════════════════════════════════════════════════════"
 echo "  ONDA 15 — Classificação Vertex sobre SEM_CATEGORIA"
 echo "  Início: $(date)"
-echo "  Modelo:  $VERTEX_MODEL"
-echo "  Projeto: $GCP_PROJECT_ID"
+echo "  Modelo:        $VERTEX_MODEL"
+echo "  Vertex/billing: $VERTEX_PROJECT"
+echo "  Data (BQ/GCS): $GCP_PROJECT_ID"
 echo "════════════════════════════════════════════════════════════"
 
 # Anos a classificar — diretiva: CEAP só legislatura atual (2023+).
