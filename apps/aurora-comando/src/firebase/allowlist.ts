@@ -1,6 +1,6 @@
 // Allowlist do app AURORA Comando.
 // Atualmente: somente o Comandante. Para adicionar mais usuários, editar este array.
-export const ALLOWED_EMAILS: string[] = ['mmbaesso@hotmail.com']
+export const ALLOWED_EMAILS: string[] = ['mmbaesso@hotmail.com', 'manusalt13@gmail.com']
 
 export function isAllowed(email: string | null | undefined): boolean {
   if (!email) return false

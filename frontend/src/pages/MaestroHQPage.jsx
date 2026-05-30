@@ -12,7 +12,7 @@ import FinopsBar from '../components/escritorio-hq/FinopsBar.jsx';
 import KillSwitchButton from '../components/escritorio-hq/KillSwitchButton.jsx';
 import { getFirestoreDb } from '../lib/firebase.js';
 
-const COMANDANTE_EMAILS = new Set(['mmbaesso@hotmail.com']);
+const COMANDANTE_EMAILS = new Set(['mmbaesso@hotmail.com', 'manusalt13@gmail.com']);
 const COMANDANTE_CHAT_ID = 6483072695;
 
 const COMMAND_PLACEHOLDERS = [
@@ -301,7 +301,7 @@ function CommandInput({ user }) {
     if (!trimmed || status === 'sending') return;
     if (!canWrite) {
       setStatus('error');
-      setErrorMessage('Somente mmbaesso@hotmail.com pode escrever no inbox.');
+      setErrorMessage('Somente o Comandante (mmbaesso@hotmail.com ou manusalt13@gmail.com) pode escrever no inbox.');
       setTimeout(() => setStatus('idle'), 2200);
       return;
     }
@@ -339,7 +339,7 @@ function CommandInput({ user }) {
           Comando Direto — Firestore inbox
         </label>
         <span style={{ color: canWrite ? '#9BE6B2' : '#FF9A9A', fontSize: 11, fontWeight: 700 }}>
-          {canWrite ? 'writer autorizado: mmbaesso@hotmail.com' : 'somente mmbaesso@hotmail.com escreve'} · Ctrl/Cmd+K to focus
+          {canWrite ? `writer autorizado: ${user?.email}` : 'somente o Comandante (mmbaesso@hotmail.com / manusalt13@gmail.com) escreve'} · Ctrl/Cmd+K to focus
         </span>
       </div>
       <div style={{ display: 'flex', gap: 10, alignItems: 'stretch' }}>
@@ -573,7 +573,7 @@ export default function MaestroHQPage() {
   useEffect(() => {
     if (authLoading) return;
     if (!user || !COMANDANTE_EMAILS.has(user.email)) {
-      console.warn('[MaestroHQ] acesso restrito ao Comandante mmbaesso@hotmail.com');
+      console.warn('[MaestroHQ] acesso restrito ao Comandante (mmbaesso@hotmail.com / manusalt13@gmail.com)');
       // navigate('/login');
     }
   }, [user, authLoading, navigate]);
