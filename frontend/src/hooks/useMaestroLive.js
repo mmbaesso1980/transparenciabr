@@ -1,19 +1,8 @@
 /**
- * useMaestroLive.js — Hook live do Maestro v1.0+ para /maestro-hq
- *
- * Listeners Firestore (projeto transparenciabr):
- *  - maestro_audit_log/* (últimos 50 eventos, desc por timestamp)
- *  - maestro_memory/* (contador de lições + última gravada)
- *  - maestro_rollback/* (últimos 10 snapshots)
- *  - maestro_control/kill_switch (estado on/off + razão)
- *  - maestro_control/finops_window (queima Vertex janela 1h)
- *
- * Fallback: se Firestore falhar, retorna mock data para DX local.
- *
- * Issue: #252 v1.1 Maestro HQ wire-up
+ * useMaestroLive.js — Hook live do Maestro v1.2 para /maestro-hq e /escritorio-hq
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   collection,
   onSnapshot,
@@ -26,12 +15,36 @@ import { getFirestoreDb } from '../lib/firebase.js';
 
 const SOFT_CAP_BRL = 30.0;
 const HARD_CAP_BRL = 80.0;
+const DAY_MS = 24 * 60 * 60 * 1000;
+const HOUR_MS = 60 * 60 * 1000;
+const TEN_MIN_MS = 10 * 60 * 1000;
+
+function toMillis(v) {
+  if (!v) return 0;
+  if (typeof v?.toMillis === 'function') return v.toMillis();
+  if (typeof v?.seconds === 'number') return v.seconds * 1000;
+  const n = new Date(v).getTime();
+  return Number.isFinite(n) ? n : 0;
+}
+
+function normalizeEvent(d) {
+  const data = d.data();
+  const ms = toMillis(data.ts || data.timestamp || data.created_at);
+  return {
+    id: d.id,
+    ...data,
+    event: data.event || data.tool || 'unknown',
+    tool: data.tool || data.event || 'unknown',
+    timestamp: ms ? new Date(ms).toISOString() : null,
+    _ms: ms,
+  };
+}
 
 const MOCK_FALLBACK = {
   events: [
-    { id: 'mock-1', tool: 'telegram_send', timestamp: new Date().toISOString(), latency_ms: 240, cost_brl: 0.0 },
-    { id: 'mock-2', tool: 'vertex_invoke', timestamp: new Date(Date.now() - 60000).toISOString(), latency_ms: 8200, cost_brl: 0.15 },
-    { id: 'mock-3', tool: 'firestore_write', timestamp: new Date(Date.now() - 120000).toISOString(), latency_ms: 50, cost_brl: 0.0 },
+    { id: 'mock-1', event: 'message.received', tool: 'message.received', timestamp: new Date().toISOString(), _ms: Date.now(), payload: { command_id: 'mock-cartman' } },
+    { id: 'mock-2', event: 'reason.start', tool: 'reason.start', timestamp: new Date(Date.now() - 60000).toISOString(), _ms: Date.now() - 60000, payload: { command_id: 'mock-cartman' } },
+    { id: 'mock-3', event: 'task.complete', tool: 'task.complete', timestamp: new Date(Date.now() - 120000).toISOString(), _ms: Date.now() - 120000, payload: { command_id: 'mock-cartman' } },
   ],
   memory: { count: 8, latest_topic: 'pkill-armadilha' },
   snapshots: [
@@ -60,87 +73,52 @@ export function useMaestroLive() {
         const db = getFirestoreDb();
         if (!db) throw new Error('Firestore não inicializado');
 
-        // 1. Audit log (últimos 50)
         const auditQ = query(
           collection(db, 'maestro_audit_log'),
-          orderBy('timestamp', 'desc'),
-          limit(50)
+          orderBy('ts', 'desc'),
+          limit(200)
         );
-        const u1 = onSnapshot(
-          auditQ,
-          (snap) => {
-            if (!mounted) return;
-            setEvents(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
-            setIsLive(true);
-          },
-          (err) => {
-            console.warn('[useMaestroLive] audit_log error', err);
-            if (mounted) {
-              setError(err.message);
-              setEvents(MOCK_FALLBACK.events);
-            }
+        const u1 = onSnapshot(auditQ, (snap) => {
+          if (!mounted) return;
+          setEvents(snap.docs.map(normalizeEvent));
+          setIsLive(true);
+          setError(null);
+        }, (err) => {
+          console.warn('[useMaestroLive] audit_log error', err);
+          if (mounted) {
+            setError(err.message);
+            setEvents(MOCK_FALLBACK.events);
           }
-        );
+        });
         unsubscribers.push(u1);
 
-        // 2. Memory count (lê coleção e conta)
-        const memQ = query(collection(db, 'maestro_memory'));
-        const u2 = onSnapshot(
-          memQ,
-          (snap) => {
-            if (!mounted) return;
-            const docs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-            const latest = docs.sort(
-              (a, b) => new Date(b.updated_at || 0) - new Date(a.updated_at || 0)
-            )[0];
-            setMemory({ count: docs.length, latest_topic: latest?.id || null });
-          },
-          (err) => console.warn('[useMaestroLive] memory error', err)
-        );
+        const u2 = onSnapshot(query(collection(db, 'maestro_memory')), (snap) => {
+          if (!mounted) return;
+          const docs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+          const latest = docs.sort((a, b) => toMillis(b.updated_at) - toMillis(a.updated_at))[0];
+          setMemory({ count: docs.length, latest_topic: latest?.id || null });
+        }, (err) => console.warn('[useMaestroLive] memory error', err));
         unsubscribers.push(u2);
 
-        // 3. Rollback snapshots (últimos 10)
-        const snapQ = query(
-          collection(db, 'maestro_rollback'),
-          orderBy('created_at', 'desc'),
-          limit(10)
-        );
-        const u3 = onSnapshot(
-          snapQ,
-          (snap) => {
-            if (!mounted) return;
-            setSnapshots(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
-          },
-          (err) => console.warn('[useMaestroLive] rollback error', err)
-        );
+        const snapQ = query(collection(db, 'maestro_rollback'), orderBy('created_at', 'desc'), limit(10));
+        const u3 = onSnapshot(snapQ, (snap) => {
+          if (!mounted) return;
+          setSnapshots(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+        }, (err) => console.warn('[useMaestroLive] rollback error', err));
         unsubscribers.push(u3);
 
-        // 4. Kill switch
-        const ksDoc = doc(db, 'maestro_control', 'kill_switch');
-        const u4 = onSnapshot(
-          ksDoc,
-          (d) => {
-            if (!mounted) return;
-            setKillSwitch(d.exists() ? d.data() : { active: false });
-          },
-          (err) => console.warn('[useMaestroLive] killswitch error', err)
-        );
+        const u4 = onSnapshot(doc(db, 'maestro_control', 'kill_switch'), (d) => {
+          if (!mounted) return;
+          setKillSwitch(d.exists() ? d.data() : { active: false });
+        }, (err) => console.warn('[useMaestroLive] killswitch error', err));
         unsubscribers.push(u4);
 
-        // 5. FinOps window
-        const finopsDoc = doc(db, 'maestro_control', 'finops_window');
-        const u5 = onSnapshot(
-          finopsDoc,
-          (d) => {
-            if (!mounted) return;
-            setFinops(
-              d.exists()
-                ? { soft_cap: SOFT_CAP_BRL, hard_cap: HARD_CAP_BRL, ...d.data() }
-                : { burn_brl: 0, soft_cap: SOFT_CAP_BRL, hard_cap: HARD_CAP_BRL }
-            );
-          },
-          (err) => console.warn('[useMaestroLive] finops error', err)
-        );
+        const u5 = onSnapshot(doc(db, 'maestro_control', 'finops_window'), (d) => {
+          if (!mounted) return;
+          setFinops(d.exists()
+            ? { soft_cap: SOFT_CAP_BRL, hard_cap: HARD_CAP_BRL, ...d.data() }
+            : { burn_brl: 0, soft_cap: SOFT_CAP_BRL, hard_cap: HARD_CAP_BRL });
+        }, (err) => console.warn('[useMaestroLive] finops error', err));
         unsubscribers.push(u5);
       } catch (err) {
         console.error('[useMaestroLive] setup failed, usando mock', err);
@@ -157,14 +135,30 @@ export function useMaestroLive() {
     }
 
     setupListeners();
-
     return () => {
       mounted = false;
-      unsubscribers.forEach((u) => {
-        try { u(); } catch (e) { /* noop */ }
-      });
+      unsubscribers.forEach((u) => { try { u(); } catch (e) { /* noop */ } });
     };
   }, []);
 
-  return { events, memory, snapshots, killSwitch, finops, isLive, error };
+  const hqMetrics = useMemo(() => {
+    const now = Date.now();
+    const last24h = events.filter((ev) => ev._ms && now - ev._ms <= DAY_MS);
+    const last1h = events.filter((ev) => ev._ms && now - ev._ms <= HOUR_MS);
+    const recentReason = events.find((ev) => ev.event === 'reason.start' && ev._ms && now - ev._ms <= TEN_MIN_MS);
+    const findingEvents = last24h.filter((ev) => /^finding\./.test(ev.event || '') || ev.event === 'task.complete');
+    const commandIds = new Set(last1h.map((ev) => ev.payload?.command_id).filter(Boolean));
+    return {
+      findingsCount: findingEvents.length,
+      findingsTotal: Math.max(55, findingEvents.length || 55),
+      phase: recentReason?.payload?.command_id || 'idle',
+      activeAgents: commandIds.size,
+      totalAgents: 23,
+      eta: '—',
+      etaSeconds: null,
+      status: commandIds.size > 0 ? 'running' : 'queued',
+    };
+  }, [events]);
+
+  return { events, memory, snapshots, killSwitch, finops, isLive, error, hqMetrics };
 }
