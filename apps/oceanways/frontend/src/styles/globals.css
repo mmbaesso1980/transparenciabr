@@ -1,0 +1,52 @@
+/*
+ * Ocean Ways — Global Styles
+ * Paleta Deep Ocean (ver ARCHITECTURE.md seção Visual)
+ *
+ * TODO (Maestro):
+ *   [ ] Configurar tailwind.config.js com as cores custom ocean-* e gold-*
+ *   [ ] Adicionar @layer base para reset e tipografia base
+ *   [ ] Adicionar animações customizadas (wave, fade-in) via @keyframes
+ */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Tipografia base */
+@layer base {
+  html {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+
+  code, .mono {
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  }
+
+  /* Scrollbar custom (modo escuro) */
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #020B18; /* ocean-950 */
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #0A3A6B; /* ocean-700 */
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #1565C0; /* ocean-500 */
+  }
+}
+
+/*
+ * TODO (Maestro): adicionar animações:
+ *
+ * @keyframes wave {
+ *   0%, 100% { transform: translateY(0); }
+ *   50% { transform: translateY(-8px); }
+ * }
+ *
+ * .animate-wave {
+ *   animation: wave 3s ease-in-out infinite;
+ * }
+ */
