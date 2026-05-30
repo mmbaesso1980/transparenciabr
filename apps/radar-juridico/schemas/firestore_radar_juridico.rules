@@ -1,0 +1,173 @@
+// =============================================================================
+// Firestore Security Rules — Radar Jurídico INSS
+// Delta: regras adicionais que somam às do arquivo raiz firestore.rules
+//
+// IMPORTANTE: Este arquivo NÃO substitui o firestore.rules raiz.
+// Copiar as regras deste arquivo para as seções correspondentes do
+// firestore.rules antes do match {document=**} { allow read, write: if false; }
+//
+// Maestro: integrar ao deploy via:
+//   firebase deploy --only firestore:rules
+//   (após copiar as regras para firestore.rules raiz)
+// =============================================================================
+
+// Exemplo de como ficará o bloco relevante em firestore.rules:
+//
+// match /databases/{database}/documents {
+//   // ... regras existentes ...
+//
+//   // === RADAR JURÍDICO INSS (delta) ===
+//   // Cole aqui as regras abaixo
+//   // === FIM RADAR JURÍDICO ===
+//
+//   match /{document=**} {
+//     allow read, write: if false;  // catch-all
+//   }
+// }
+
+// =============================================================================
+// Regras — cole dentro do service cloud.firestore { match /databases/... {
+// =============================================================================
+
+/*
+
+    // =========================================================================
+    // RADAR JURÍDICO — Coleções de usuário
+    // =========================================================================
+
+    /**
+     * Watchlist de alertas por usuário.
+     * Leitura: apenas o próprio usuário.
+     * Escrita: apenas via backend (Admin SDK) — cliente nunca escreve diretamente.
+     *
+     * radar_juridico_alertas/{uid}/watches/{alertaId}
+     */
+    match /radar_juridico_alertas/{uid}/watches/{alertaId} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false;  // Admin SDK only
+    }
+
+    /**
+     * Histórico de disparos de alertas (leitura only para o usuário).
+     * radar_juridico_alertas/{uid}/historico/{logId}
+     */
+    match /radar_juridico_alertas/{uid}/historico/{logId} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false;  // Admin SDK only
+    }
+
+    /**
+     * Configurações do Radar Jurídico por usuário.
+     * Leitura/escrita pelo próprio usuário (campos não-sensíveis).
+     * Campos sensíveis (pje_token_status, creditos_radar) só pelo Admin SDK.
+     *
+     * Campos permitidos ao cliente:
+     *   - notificacao_fcm_enabled (bool)
+     *   - notificacao_telegram_enabled (bool)
+     *   - uf_favorita (string)
+     *   - especies_favoritas (array)
+     *   - updated_at (timestamp)
+     *
+     * Campos proibidos ao cliente (apenas Admin SDK):
+     *   - pje_token_status
+     *   - creditos_radar (créditos específicos do módulo)
+     *   - tier_radar
+     */
+    match /radar_juridico_config/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+
+      allow create: if request.auth != null
+        && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly([
+          'notificacao_fcm_enabled',
+          'notificacao_telegram_enabled',
+          'uf_favorita',
+          'especies_favoritas',
+          'updated_at'
+        ])
+        && request.resource.data.notificacao_fcm_enabled is bool
+        && request.resource.data.notificacao_telegram_enabled is bool;
+
+      allow update: if request.auth != null
+        && request.auth.uid == uid
+        && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly([
+              'notificacao_fcm_enabled',
+              'notificacao_telegram_enabled',
+              'uf_favorita',
+              'especies_favoritas',
+              'updated_at'
+            ])
+        // Anti-escalonamento: campos sensíveis não podem mudar pelo cliente
+        && !request.resource.data.diff(resource.data).affectedKeys()
+            .hasAny(['pje_token_status', 'creditos_radar', 'tier_radar']);
+
+      allow delete: if false;
+    }
+
+    // =========================================================================
+    // RADAR JURÍDICO — Coleções de leitura pública (metadados do produto)
+    // =========================================================================
+
+    /**
+     * Estatísticas públicas do Radar (sem PII).
+     * Exibidas na landing page / painel sem autenticação.
+     * Ex: total_indeferimentos_mes, top_especies, top_ufs
+     */
+    match /radar_juridico_stats/{statId} {
+      allow read: if true;  // público
+      allow write: if false;  // apenas backend
+    }
+
+    // =========================================================================
+    // RADAR JURÍDICO — Coleções admin-only
+    // =========================================================================
+
+    /**
+     * Audit log LGPD específico do Radar (espelho do BQ lgpd_audit_radar).
+     * Apenas god_mode pode ler; escrita apenas via Admin SDK.
+     */
+    match /radar_juridico_lgpd_audit/{auditId} {
+      allow read: if request.auth != null && isGodMode();
+      allow write: if false;
+    }
+
+    /**
+     * Cache de status PJe (TTL 48h).
+     * Gerenciado inteiramente pelo backend — sem acesso do cliente.
+     */
+    match /radar_juridico_pje_cache/{cacheKey} {
+      allow read: if false;  // apenas backend
+      allow write: if false;
+    }
+
+    /**
+     * Configurações do pipeline "publicou-pegamos" (admin ops).
+     * Apenas god_mode pode consultar; escrita apenas via Admin SDK.
+     */
+    match /radar_juridico_pipeline_config/{configId} {
+      allow read: if request.auth != null && isGodMode();
+      allow write: if false;
+    }
+
+*/
+
+// =============================================================================
+// Notas para o Maestro:
+//
+// 1. O isGodMode() já está definido no firestore.rules raiz (tier == 'god_mode').
+//    Não redefinir aqui.
+//
+// 2. O TTL de 48h do pje_cache é implementado no Firestore via
+//    "TTL Policy" configurada pelo Maestro:
+//      gcloud firestore fields ttls update --collection-group=radar_juridico_pje_cache \
+//        --field-path=expira_em --enable-ttl
+//
+// 3. Toda escrita em coleções radar_juridico_* deve passar pelo backend
+//    (Admin SDK), jamais pelo SDK web. Isso garante que os débitos de créditos
+//    e os logs LGPD sejam atômicos com a operação de negócio.
+//
+// 4. Para testes locais com Firebase Emulator:
+//      firebase emulators:start --only firestore
+//    E usar as regras do firestore.rules raiz + este delta.
+// =============================================================================

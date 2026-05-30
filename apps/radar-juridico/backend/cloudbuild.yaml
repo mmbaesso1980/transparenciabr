@@ -1,0 +1,86 @@
+# cloudbuild.yaml — Deploy Cloud Run radar-juridico-api
+#
+# Padrão do repo: ver cloudrun/dossieV1Pipeline/cloudbuild.yaml
+#
+# Trigger sugerido:
+#   gcloud builds triggers create github \
+#     --name=radar-juridico-api-deploy \
+#     --repo-name=transparenciabr --repo-owner=mmbaesso1980 \
+#     --branch-pattern='^main$' \
+#     --included-files='apps/radar-juridico/backend/**' \
+#     --build-config=apps/radar-juridico/backend/cloudbuild.yaml
+
+substitutions:
+  _REGION: southamerica-east1
+  _SERVICE: radar-juridico-api
+  _MEMORY: 512Mi
+  _CPU: '1'
+  _TIMEOUT: 120s
+  _MAX_INSTANCES: '10'
+  _TAG: ${SHORT_SHA:-manual}
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+
+steps:
+  - id: build
+    name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -f
+      - apps/radar-juridico/backend/Dockerfile
+      - -t
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/transparenciabr/${_SERVICE}:${_TAG}
+      - -t
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/transparenciabr/${_SERVICE}:latest
+      - .
+
+  - id: push-sha
+    name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/transparenciabr/${_SERVICE}:${_TAG}
+
+  - id: push-latest
+    name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/transparenciabr/${_SERVICE}:latest
+
+  - id: deploy
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        gcloud run deploy ${_SERVICE} \
+          --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/transparenciabr/${_SERVICE}:${_TAG} \
+          --region=${_REGION} \
+          --platform=managed \
+          --no-allow-unauthenticated \
+          --memory=${_MEMORY} \
+          --cpu=${_CPU} \
+          --timeout=${_TIMEOUT} \
+          --cpu-boost \
+          --concurrency=80 \
+          --max-instances=${_MAX_INSTANCES} \
+          --service-account=radar-juridico-api@$PROJECT_ID.iam.gserviceaccount.com \
+          --set-env-vars=GOOGLE_CLOUD_PROJECT=$PROJECT_ID,BQ_LOCATION=southamerica-east1,FIRESTORE_PROJECT=$PROJECT_ID,DATAPREV_ENABLED=false,BUDGET_DIARIO_BRL=500 \
+          --set-secrets=AURORA_ADMIN_TOKEN=AURORA_ADMIN_TOKEN:latest,TELEGRAM_BOT_TOKEN=TELEGRAM_BOT_TOKEN:latest
+
+images:
+  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/transparenciabr/${_SERVICE}:${_TAG}
+  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/transparenciabr/${_SERVICE}:latest
+
+# TODO(maestro): antes do primeiro deploy, criar:
+#   gcloud iam service-accounts create radar-juridico-api \
+#     --display-name="Radar Juridico API Service Account"
+#   gcloud projects add-iam-policy-binding $PROJECT_ID \
+#     --member=serviceAccount:radar-juridico-api@$PROJECT_ID.iam.gserviceaccount.com \
+#     --role=roles/bigquery.dataViewer
+#   gcloud projects add-iam-policy-binding $PROJECT_ID \
+#     --member=serviceAccount:radar-juridico-api@$PROJECT_ID.iam.gserviceaccount.com \
+#     --role=roles/datastore.user
+#   gcloud projects add-iam-policy-binding $PROJECT_ID \
+#     --member=serviceAccount:radar-juridico-api@$PROJECT_ID.iam.gserviceaccount.com \
+#     --role=roles/secretmanager.secretAccessor
