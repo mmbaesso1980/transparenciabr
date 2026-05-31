@@ -65,8 +65,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-          cache: "npm"
-          cache-dependency-path: apps/oceanways/frontend/package-lock.json
+          # cache desativado até que package-lock.json seja gerado (scaffold)
 
       - name: Install deps
         working-directory: apps/oceanways/frontend
