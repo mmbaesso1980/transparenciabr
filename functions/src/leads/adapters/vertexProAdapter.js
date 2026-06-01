@@ -16,11 +16,15 @@
 const { getFirestore } = require('firebase-admin/firestore');
 const { logger } = require('firebase-functions');
 
-/** Projeto GCP */
-const GCP_PROJECT = process.env.GCLOUD_PROJECT || 'transparenciabr';
+/**
+ * Projeto GCP onde a chamada Vertex AI é cobrada.
+ * [FIX VERTEX 01-jun-2026] Default trocado de "transparenciabr" para "projeto-codex-br"
+ * para queimar o crédito do Trial GenAI App Builder.
+ */
+const GCP_PROJECT = process.env.VERTEX_PROJECT || 'projeto-codex-br';
 
 /** Região Vertex AI */
-const VERTEX_LOCATION = process.env.VERTEX_LOCATION || 'us-central1';
+const VERTEX_LOCATION = process.env.VERTEX_LOCATION || 'us-east1';
 
 /**
  * Modelo Gemini 2.5 Pro.
@@ -144,7 +148,9 @@ async function generateLegalThesis(leadData) {
   const prompt = _buildPrompt(leadData);
 
   // ── Chamada Vertex AI ────────────────────────────────────────────────────
-  const { VertexAI } = require('@google-cloud/aiplatform');
+  // [FIX VERTEX 01-jun-2026] Usar @google-cloud/vertexai (SDK GenAI) em vez de
+  // @google-cloud/aiplatform (que não expõe VertexAI helper).
+  const { VertexAI } = require('@google-cloud/vertexai');
   const vertexAI = new VertexAI({ project: GCP_PROJECT, location: VERTEX_LOCATION });
   const model = vertexAI.getGenerativeModel({
     model: GEMINI_MODEL,

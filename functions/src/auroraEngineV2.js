@@ -24,14 +24,21 @@
  */
 
 import { BigQuery } from '@google-cloud/bigquery';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { VertexAI } from '@google-cloud/vertexai';
 import { onCall } from 'firebase-functions/v2/https';
 import { getFirestore } from 'firebase-admin/firestore';
 import { PDFDocument, PDFPage } from 'pdf-lib';
 
 const bq = new BigQuery({ projectId: 'transparenciabr' });
 const db = getFirestore();
-const genai = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+// [FIX VERTEX 01-jun-2026] Migrado de @google/generative-ai (AI Studio) para @google-cloud/vertexai
+// para queimar o crédito do projeto-codex-br.
+const VERTEX_PROJECT = process.env.VERTEX_PROJECT || 'projeto-codex-br';
+const VERTEX_LOCATION = process.env.VERTEX_LOCATION || 'us-east1';
+const vertexAI = new VertexAI({ project: VERTEX_PROJECT, location: VERTEX_LOCATION });
+const genai = {
+  getGenerativeModel: (opts) => vertexAI.getGenerativeModel(opts),
+};
 
 /**
  * Agente 1: AURORA-CEAP
@@ -252,8 +259,13 @@ RESPONDA EM JSON ESTRUTURADO:
 }
 `;
 
-  const result = await model.generateContent(prompt);
-  const responseText = result.response.text();
+  // [FIX VERTEX 01-jun-2026] Vertex SDK exige formato estruturado {contents:[{role,parts}]}
+  // e a resposta vem em response.candidates[0].content.parts[0].text (não .text()).
+  const result = await model.generateContent({
+    contents: [{ role: 'user', parts: [{ text: prompt }] }],
+  });
+  const responseText =
+    result?.response?.candidates?.[0]?.content?.parts?.[0]?.text || '';
 
   // Parse JSON
   let compilacao = {};

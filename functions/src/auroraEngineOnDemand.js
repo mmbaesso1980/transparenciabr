@@ -8,13 +8,20 @@
 
 const functions = require("firebase-functions/v1");
 const admin = require("firebase-admin");
-const { GoogleGenerativeAI } = require("@google/generative-ai");
+const { VertexAI } = require("@google-cloud/vertexai");
 const { BigQuery } = require("@google-cloud/bigquery");
 const axios = require("axios");
 
 const db = admin.firestore();
 const bq = new BigQuery();
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+// [FIX VERTEX 01-jun-2026] Migrado de @google/generative-ai (AI Studio) para @google-cloud/vertexai
+// para queimar o crédito do projeto-codex-br.
+const VERTEX_PROJECT = process.env.VERTEX_PROJECT || "projeto-codex-br";
+const VERTEX_LOCATION = process.env.VERTEX_LOCATION || "us-east1";
+const vertexAI = new VertexAI({ project: VERTEX_PROJECT, location: VERTEX_LOCATION });
+const genAI = {
+  getGenerativeModel: (opts) => vertexAI.getGenerativeModel(opts),
+};
 
 const DOSSIER_COST = 800;
 const NEWS_API_KEY = process.env.NEWS_API_KEY || "demo";
@@ -316,7 +323,9 @@ Não invente. Se não tiver dados, retorne null no campo.
         },
       });
 
-      const responseText = result.response.text();
+      // [FIX VERTEX 01-jun-2026] Vertex SDK: response.candidates[0].content.parts[0].text
+      const responseText =
+        result?.response?.candidates?.[0]?.content?.parts?.[0]?.text || "";
       const jsonMatch = responseText.match(/\{[\s\S]*\}/);
       const dossierData = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
 

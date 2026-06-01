@@ -5,14 +5,20 @@
 
 const functions = require("firebase-functions/v1");
 const admin = require("firebase-admin");
-const { GoogleGenerativeAI } = require("@google/generative-ai");
+const { VertexAI } = require("@google-cloud/vertexai");
 const { BigQuery } = require("@google-cloud/bigquery");
 
 const db = admin.firestore();
 const bq = new BigQuery();
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+// [FIX VERTEX 01-jun-2026] Migrado de @google/generative-ai (AI Studio) para @google-cloud/vertexai
+// para queimar o crédito do projeto-codex-br.
+const VERTEX_PROJECT = process.env.VERTEX_PROJECT || "projeto-codex-br";
+const VERTEX_LOCATION = process.env.VERTEX_LOCATION || "us-east1";
+const vertexAI = new VertexAI({ project: VERTEX_PROJECT, location: VERTEX_LOCATION });
+const genAI = {
+  getGenerativeModel: (opts) => vertexAI.getGenerativeModel(opts),
+};
 
 const COST_PER_DOSSIER = 800;
 
@@ -141,7 +147,9 @@ Sempre inclua o disclaimer. Seja técnico e objetivo. Não faça acusações.`;
         },
       });
 
-      const responseText = result.response.text();
+      // [FIX VERTEX 01-jun-2026] Vertex SDK: response.candidates[0].content.parts[0].text
+      const responseText =
+        result?.response?.candidates?.[0]?.content?.parts?.[0]?.text || "";
 
       // Extrair JSON da resposta
       const jsonMatch = responseText.match(/\{[\s\S]*\}/);

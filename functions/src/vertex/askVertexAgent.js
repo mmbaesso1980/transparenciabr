@@ -4,7 +4,9 @@
  */
 
 function mountAskVertexAgent(functions, parentExports) {
-  const DEFAULT_PROJECT = "transparenciabr";
+  // [FIX VERTEX 01-jun-2026] Default trocado de "transparenciabr" para "projeto-codex-br"
+  // para que o agente Dialogflow CX queime o crédito do projeto certo.
+  const DEFAULT_PROJECT = process.env.VERTEX_PROJECT || "projeto-codex-br";
   const DEFAULT_LOCATION = process.env.DIALOGFLOW_LOCATION || "global";
   const DEFAULT_AGENT_ID = process.env.DIALOGFLOW_AGENT_ID || "1777236402725";
   const DEFAULT_LANG = process.env.DIALOGFLOW_LANGUAGE_CODE || "pt-br";
@@ -123,7 +125,8 @@ function mountAskVertexAgent(functions, parentExports) {
 
       const { SessionsClient } = require("@google-cloud/dialogflow-cx");
 
-      const projectId = process.env.GCLOUD_PROJECT || DEFAULT_PROJECT;
+      // [FIX VERTEX 01-jun-2026] Prioriza VERTEX_PROJECT (projeto-codex-br) sobre GCLOUD_PROJECT.
+      const projectId = process.env.VERTEX_PROJECT || DEFAULT_PROJECT;
       const location = String(process.env.DIALOGFLOW_LOCATION || DEFAULT_LOCATION).trim();
       const agentId = String(process.env.DIALOGFLOW_AGENT_ID || DEFAULT_AGENT_ID).trim();
 

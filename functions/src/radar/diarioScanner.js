@@ -5,7 +5,12 @@
 
 const crypto = require("crypto");
 
-const { GoogleGenerativeAI } = require("@google/generative-ai");
+const { VertexAI } = require("@google-cloud/vertexai");
+
+// [FIX VERTEX 01-jun-2026] Migrado de @google/generative-ai (AI Studio) para @google-cloud/vertexai
+// para queimar o crédito do projeto-codex-br.
+const VERTEX_PROJECT = process.env.VERTEX_PROJECT || "projeto-codex-br";
+const VERTEX_LOCATION = process.env.VERTEX_LOCATION || "us-east1";
 
 /**
  * Motor único de IA — Líder Supremo (Agent Builder agent_1777236402725)
@@ -126,12 +131,8 @@ function parseGeminiJson(raw) {
  * @returns {Promise<Record<string, unknown>>}
  */
 async function analyzeWithGemini(trecho) {
-  const key = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
-  if (!key) {
-    throw new Error("GEMINI_API_KEY ausente");
-  }
-  const genAI = new GoogleGenerativeAI(key);
-  const model = genAI.getGenerativeModel({
+  const vertexAI = new VertexAI({ project: VERTEX_PROJECT, location: VERTEX_LOCATION });
+  const model = vertexAI.getGenerativeModel({
     model: SUPREME_GEMINI_MODEL,
     systemInstruction:
       `Você é o agente ${SUPREME_AGENT_ID} (Líder Supremo / Gemini 2.5 Pro). ` +
@@ -144,12 +145,17 @@ async function analyzeWithGemini(trecho) {
     },
   });
 
-  const result = await model.generateContent([
-    { text: LEGAL_PROMPT },
-    { text: `\n---\nTexto do diário:\n${trecho.slice(0, 48000)}` },
-  ]);
+  const result = await model.generateContent({
+    contents: [{
+      role: "user",
+      parts: [
+        { text: LEGAL_PROMPT },
+        { text: `\n---\nTexto do diário:\n${trecho.slice(0, 48000)}` },
+      ],
+    }],
+  });
   const response = result.response;
-  const txt = response.text();
+  const txt = response?.candidates?.[0]?.content?.parts?.[0]?.text || "";
   return parseGeminiJson(txt);
 }
 
