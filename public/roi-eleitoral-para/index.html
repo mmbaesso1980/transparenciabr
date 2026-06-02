@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ROI de Pesquisa Eleitoral Online — Pará</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300..700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="brand">
+        <svg class="logo" viewBox="0 0 36 36" fill="none" aria-label="Logo" width="36" height="36">
+          <rect width="36" height="36" rx="8" fill="var(--color-primary)"/>
+          <circle cx="18" cy="13" r="4" fill="white" opacity="0.9"/>
+          <path d="M8 28 Q18 20 28 28" stroke="white" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+          <circle cx="10" cy="26" r="2" fill="white" opacity="0.5"/>
+          <circle cx="26" cy="26" r="2" fill="white" opacity="0.5"/>
+        </svg>
+        <span class="brand-name">ROI Eleitoral <span class="brand-tag">Online · Pará</span></span>
+      </div>
+      <button data-theme-toggle aria-label="Alternar tema" class="theme-btn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="container">
+      <p class="hero-eyebrow">Calculadora Estratégica · Uso Interno</p>
+      <h1 class="hero-title">Pesquisa eleitoral 100% digital no Pará</h1>
+      <p class="hero-sub">Método online exclusivo — painel digital por recrutamento aleatório, sem campo presencial. Configure a pesquisa e veja custo real, preço de venda e ROI frente ao mercado.</p>
+      <div class="hero-badges">
+        <span class="badge badge-ok">✓ Sem registro TSE obrigatório (uso interno)</span>
+        <span class="badge badge-ok">✓ Apenas CNPJ + CNAE 7320-3/00</span>
+        <span class="badge badge-ok">✓ Sem CONRE para uso exclusivo</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- CALCULADORA -->
+  <main class="container main-grid">
+
+    <!-- PAINEL DE CONFIGURAÇÃO -->
+    <section class="config-panel card">
+      <h2 class="panel-title">Configurar Pesquisa</h2>
+
+      <!-- Amostra -->
+      <div class="control-group">
+        <div class="control-header">
+          <label for="amostra">Amostra de entrevistas</label>
+          <span class="control-value" id="amostra-val">2.000</span>
+        </div>
+        <input type="range" id="amostra" min="500" max="5000" step="100" value="2000" class="slider" />
+        <div class="slider-labels"><span>500</span><span>5.000</span></div>
+        <p class="control-hint">Margem de erro estimada: <strong id="margem-erro">±2,2%</strong> (IC 95%)</p>
+      </div>
+
+      <!-- Tier do painel digital -->
+      <div class="control-group">
+        <label class="group-label">Tier do painel digital</label>
+        <div class="tier-grid">
+          <label class="tier-card" data-tier="basico">
+            <input type="radio" name="tier" value="basico" hidden />
+            <span class="tier-name">Básico</span>
+            <span class="tier-desc">Redes sociais + formulário. Sem validação de IP/token.</span>
+            <span class="tier-cost">R$ 3–6/resp.</span>
+          </label>
+          <label class="tier-card active" data-tier="intermediario">
+            <input type="radio" name="tier" value="intermediario" checked hidden />
+            <span class="tier-name">Intermediário</span>
+            <span class="tier-desc">Painel programático + token único + dedup por IP.</span>
+            <span class="tier-cost">R$ 7–12/resp.</span>
+          </label>
+          <label class="tier-card" data-tier="avancado">
+            <input type="radio" name="tier" value="avancado" hidden />
+            <span class="tier-name">Avançado</span>
+            <span class="tier-desc">RDR banner + pós-estratificação + auditoria de dados.</span>
+            <span class="tier-cost">R$ 14–22/resp.</span>
+          </label>
+        </div>
+        <p class="control-hint" id="tier-hint">Painel programático com token único e deduplicação por IP — método equivalente ao usado pela Atlas Intel.</p>
+      </div>
+
+      <!-- Custos fixos -->
+      <div class="control-group">
+        <div class="control-header">
+          <label for="fixos">Custos fixos do instituto (R$)</label>
+          <span class="control-value" id="fixos-val">R$ 5.000</span>
+        </div>
+        <input type="range" id="fixos" min="1500" max="15000" step="500" value="5000" class="slider" />
+        <div class="slider-labels"><span>R$ 1,5k</span><span>R$ 15k</span></div>
+        <p class="control-hint">Plataforma de survey, análise de dados, relatório PDF, overhead</p>
+      </div>
+
+      <!-- Margem de lucro -->
+      <div class="control-group">
+        <div class="control-header">
+          <label for="margem">Margem de lucro desejada</label>
+          <span class="control-value" id="margem-val">40%</span>
+        </div>
+        <input type="range" id="margem" min="10" max="80" step="5" value="40" class="slider" />
+        <div class="slider-labels"><span>10%</span><span>80%</span></div>
+      </div>
+
+      <!-- Tipo de eleição -->
+      <div class="control-group">
+        <label class="group-label">Tipo de eleição / escopo</label>
+        <div class="scope-grid">
+          <label class="scope-btn active" data-scope="municipal">
+            <input type="radio" name="escopo" value="municipal" checked hidden />
+            Municipal (Belém / interior)
+          </label>
+          <label class="scope-btn" data-scope="estadual">
+            <input type="radio" name="escopo" value="estadual" hidden />
+            Estadual (Gov. / Senado)
+          </label>
+          <label class="scope-btn" data-scope="federal">
+            <input type="radio" name="escopo" value="federal" hidden />
+            Federal (Dep. Federal)
+          </label>
+        </div>
+      </div>
+    </section>
+
+    <!-- RESULTADOS -->
+    <section class="result-panel">
+
+      <div class="numbers-grid">
+        <div class="number-card card cost-card">
+          <p class="number-label">Custo de Produção</p>
+          <p class="number-value" id="custo-producao">R$ 0</p>
+          <p class="number-sub">Painel + fixos + overhead</p>
+        </div>
+        <div class="number-card card price-card">
+          <p class="number-label">Preço de Venda</p>
+          <p class="number-value" id="preco-venda">R$ 0</p>
+          <p class="number-sub">Com margem aplicada</p>
+        </div>
+        <div class="number-card card roi-card">
+          <p class="number-label">ROI Potencial</p>
+          <p class="number-value" id="roi-valor">0×</p>
+          <p class="number-sub">Valor de mercado ÷ custo</p>
+        </div>
+        <div class="number-card card market-card">
+          <p class="number-label">Valor de Mercado</p>
+          <p class="number-value" id="valor-mercado">R$ 0</p>
+          <p class="number-sub" id="vm-sub">Benchmark exclusividade</p>
+        </div>
+      </div>
+
+      <!-- Barra comparativa -->
+      <div class="card comparison-card">
+        <h3 class="comparison-title">Custo de Produção vs. Valor de Mercado</h3>
+        <div class="bar-track">
+          <div class="bar-segment bar-custo" id="bar-custo"><span class="bar-label">Custo</span></div>
+          <div class="bar-segment bar-mercado" id="bar-mercado"><span class="bar-label">Mercado</span></div>
+        </div>
+        <div class="bar-legend">
+          <span class="legend-dot dot-custo"></span><span>Custo de produção</span>
+          <span class="legend-dot dot-mercado"></span><span>Valor de mercado (exclusividade)</span>
+        </div>
+        <div class="insight-box">
+          <span class="insight-icon">💡</span>
+          <span id="insight-text">Configure os parâmetros para ver o insight estratégico.</span>
+        </div>
+      </div>
+
+      <!-- Detalhamento -->
+      <div class="card breakdown-card">
+        <h3 class="section-sub-title">Detalhamento de Custos</h3>
+        <table class="breakdown-table">
+          <tbody>
+            <tr><td>Custo do painel digital (<span id="br-n">—</span> resp. × <span id="br-cpe">—</span>)</td><td class="td-value" id="br-painel">—</td></tr>
+            <tr><td>Plataforma de survey + hospedagem</td><td class="td-value" id="br-plataforma">—</td></tr>
+            <tr><td>Custos fixos do instituto</td><td class="td-value" id="br-fixos">—</td></tr>
+            <tr><td>Pós-estratificação + análise de dados</td><td class="td-value" id="br-analise">—</td></tr>
+            <tr class="tr-total"><td><strong>Total de custo</strong></td><td class="td-value" id="br-total"><strong>—</strong></td></tr>
+            <tr class="tr-margem"><td>Lucro bruto</td><td class="td-value" id="br-lucro">—</td></tr>
+            <tr class="tr-venda"><td><strong>Preço de venda</strong></td><td class="td-value" id="br-venda"><strong>—</strong></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Propostas -->
+      <div class="card proposta-inline-card">
+        <h3 class="section-sub-title">Propostas prontas para apresentar</h3>
+        <div class="propostas-inline-grid">
+
+          <div class="proposta-inline piloto-inline">
+            <div class="pi-header">
+              <span class="pi-badge">Entrada</span>
+              <span class="pi-titulo">Sondagem Piloto</span>
+            </div>
+            <p class="pi-desc">500 entrevistas online · 1 onda · entrega em 7 dias · exclusividade 30 dias</p>
+            <div class="pi-nums">
+              <div class="pi-num-row">
+                <span class="pi-label">Nosso custo</span>
+                <span class="pi-val cost" id="pp-custo">—</span>
+              </div>
+              <div class="pi-num-row pi-highlight">
+                <span class="pi-label">Preço ao cliente</span>
+                <span class="pi-val price" id="pp-venda">—</span>
+              </div>
+              <div class="pi-num-row">
+                <span class="pi-label">Lucro bruto</span>
+                <span class="pi-val profit" id="pp-lucro">—</span>
+              </div>
+            </div>
+            <div class="pi-roi-box">
+              <span>ROI desta proposta</span>
+              <strong id="pp-roi">—×</strong>
+            </div>
+          </div>
+
+          <div class="proposta-inline completa-inline featured-inline">
+            <div class="pi-header">
+              <span class="pi-badge featured-pi-badge">Máximo valor</span>
+              <span class="pi-titulo">Tracking 3 Ondas</span>
+            </div>
+            <p class="pi-desc">Amostra configurada × 3 ondas · 90 dias · exclusividade de campanha</p>
+            <div class="pi-nums">
+              <div class="pi-num-row">
+                <span class="pi-label">Nosso custo</span>
+                <span class="pi-val cost" id="pc-custo">—</span>
+              </div>
+              <div class="pi-num-row pi-highlight">
+                <span class="pi-label">Preço ao cliente</span>
+                <span class="pi-val price" id="pc-venda">—</span>
+              </div>
+              <div class="pi-num-row">
+                <span class="pi-label">Lucro bruto</span>
+                <span class="pi-val profit" id="pc-lucro">—</span>
+              </div>
+            </div>
+            <div class="pi-roi-box featured-pi-roi">
+              <span>ROI desta proposta</span>
+              <strong id="pc-roi">—×</strong>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </section>
+  </main>
+
+  <!-- SEÇÃO CONCORRENTES -->
+  <section class="concorrentes-section">
+    <div class="container">
+      <div class="section-header-block">
+        <p class="section-eyebrow">Inteligência competitiva · Uso interno</p>
+        <h2 class="section-title">O que os concorrentes cobram</h2>
+        <p class="section-desc">Benchmarks reais de custos de pesquisa eleitoral no Brasil — do nível nacional ao regional. Use para precificar com confiança e comunicar valor ao cliente.</p>
+      </div>
+
+      <!-- TABELA COMPARATIVA -->
+      <div class="concorrentes-table-wrap card">
+        <table class="concorrentes-table">
+          <thead>
+            <tr>
+              <th>Instituto</th>
+              <th>Método</th>
+              <th>Amostra típica</th>
+              <th>Custo estimado/pesquisa</th>
+              <th>Perfil de cliente</th>
+              <th>Observação</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="row-destaque">
+              <td><strong class="inst-name primary-name">Você (online PA)</strong></td>
+              <td><span class="badge-method online-badge">Online RDR</span></td>
+              <td>500–5.000</td>
+              <td class="td-custo" id="td-voce">Calculando…</td>
+              <td>Candidatos PA uso interno</td>
+              <td class="td-obs">Sem CONRE, sem PesqEle, entrega em 7 dias</td>
+            </tr>
+            <tr>
+              <td><strong class="inst-name">Atlas Intel</strong></td>
+              <td><span class="badge-method online-badge">Online RDR</span></td>
+              <td>2.000–5.000+</td>
+              <td class="td-custo">R$ 80k – R$ 250k</td>
+              <td>Nacional / grandes mídias</td>
+              <td class="td-obs">Painel proprietário, token único, pós-estrat. com censo. Cobra premium por brand.</td>
+            </tr>
+            <tr>
+              <td><strong class="inst-name">Quaest</strong></td>
+              <td><span class="badge-method mixed-badge">Tel. + Online</span></td>
+              <td>2.000–3.000</td>
+              <td class="td-custo">R$ 150k – R$ 466k</td>
+              <td>Nacional / bancos / mídia</td>
+              <td class="td-obs">Genial/Quaest última nacional: R$ 466k. Foco presidencial.</td>
+            </tr>
+            <tr>
+              <td><strong class="inst-name">Datafolha</strong></td>
+              <td><span class="badge-method presencial-badge">Presencial</span></td>
+              <td>3.000–6.000</td>
+              <td class="td-custo">R$ 200k – R$ 500k+</td>
+              <td>Nacional / Folha S.Paulo</td>
+              <td class="td-obs">Metodologia presencial clássica. Alto custo de campo. Marca premium.</td>
+            </tr>
+            <tr>
+              <td><strong class="inst-name">Gerp / Vox</strong></td>
+              <td><span class="badge-method mixed-badge">Tel. + Online</span></td>
+              <td>1.500–2.500</td>
+              <td class="td-custo">R$ 60k – R$ 180k</td>
+              <td>Candidatos nacionais</td>
+              <td class="td-obs">Entrantes no mercado 2024–2026. Preços mais competitivos.</td>
+            </tr>
+            <tr>
+              <td><strong class="inst-name">Institutos Regionais PA</strong></td>
+              <td><span class="badge-method presencial-badge">Presencial</span></td>
+              <td>800–1.500</td>
+              <td class="td-custo">R$ 25k – R$ 90k</td>
+              <td>Prefeituras / candidatos locais</td>
+              <td class="td-obs">Alta variação de qualidade. Sem padrão metodológico. Risco de resultado enviesado.</td>
+            </tr>
+            <tr class="row-vantagem">
+              <td colspan="6">
+                <div class="vantagem-box">
+                  <span class="vantagem-icon">⚡</span>
+                  <div>
+                    <strong>Sua vantagem competitiva real:</strong> custo de produção 5–15× menor que Atlas Intel e Quaest para o mesmo escopo estadual/municipal — método online elimina campo presencial. O cliente paga pelo <em>insight</em>, não pelo custo do entrevistador.
+                  </div>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- CARDS DE POSICIONAMENTO -->
+      <div class="posicionamento-grid">
+
+        <div class="pos-card card">
+          <div class="pos-icon">🎯</div>
+          <h4 class="pos-titulo">Nicho defendível</h4>
+          <p class="pos-desc">Atlas Intel e Quaest não atendem candidaturas municipais do interior do Pará por limitação de painel regional e ticket mínimo elevado. Você entra onde eles não chegam.</p>
+        </div>
+
+        <div class="pos-card card">
+          <div class="pos-icon">⏱️</div>
+          <h4 class="pos-titulo">Velocidade como produto</h4>
+          <p class="pos-desc">Pesquisa online entrega resultado em 5–10 dias contra 15–25 dias de campo presencial. Em campanha eleitoral, cada semana tem preço.</p>
+        </div>
+
+        <div class="pos-card card">
+          <div class="pos-icon">🔒</div>
+          <h4 class="pos-titulo">Exclusividade como barreira</h4>
+          <p class="pos-desc">Grandes institutos vendem para quem pagar — o adversário pode contratar a mesma empresa. Você vende exclusividade de campanha. Isso vale mais que o dado.</p>
+        </div>
+
+        <div class="pos-card card">
+          <div class="pos-icon">📊</div>
+          <h4 class="pos-titulo">Margem x concorrente</h4>
+          <p class="pos-desc">Com custo <span id="pos-custo-ref">~R$ 15k</span> e venda <span id="pos-venda-ref">~R$ 23k</span>, sua margem supera qualquer instituto presencial regional que cobra os mesmos <span id="pos-preco-ref">R$ 23k</span> com custo de campo 3× maior.</p>
+        </div>
+
+      </div>
+
+      <!-- FOMO FECHAMENTO -->
+      <div class="fomo-box">
+        <div class="fomo-icon">📡</div>
+        <div class="fomo-content">
+          <h4 class="fomo-title">O candidato não sabe o que o adversário já sabe</h4>
+          <p class="fomo-text">A Quaest/Genial cobrou <strong>R$ 466.000</strong> por uma única pesquisa nacional em 2026. Candidatos competitivos no Pará pagaram entre <strong>R$ 85k e R$ 195k</strong> por tracking exclusivo nos ciclos 2022–2024. Uma pesquisa de <strong>R$ 25k</strong> que redireciona corretamente <strong>R$ 500k</strong> de mídia tem impacto de <strong>20×</strong> no resultado da campanha.</p>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p class="footer-note">Calculadora de uso interno — valores estimados com base em benchmarks de pesquisas eleitorais 2020–2026. Custos reais variam conforme plataforma de painel, complexidade e prazo.</p>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
