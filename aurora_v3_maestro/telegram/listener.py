@@ -4,11 +4,10 @@
 MAESTRO Telegram Listener v1.0
 ==============================
 
-Long-poll do bot t.me/Asmodeuswebforgebot rodando 24/7 como serviço systemd
-na VM aurora-cacador-br (sa-east1-a, IP 34.39.224.224).
+Webhook do bot t.me/Asmodeuswebforgebot rodando como serviço no Google Cloud Run.
 
 Responsabilidades:
-  - Long-poll Telegram getUpdates com offset persistido em /var/lib/maestro/offset
+  - Receber updates via Webhook no endpoint /webhook
   - F1 — whitelist chat_id 6483072695 (drop silencioso de qualquer outro)
   - Parsing de comandos `/maestro <subcmd>` e texto livre
   - Tracking de senha do dia: `/maestro senha <SENHA>` arma a senha por 5 minutos
@@ -38,10 +37,11 @@ import sys
 import time
 import traceback
 import uuid
-from pathlib import Path
 from typing import Any
 
 import requests
+from fastapi import FastAPI, Request, BackgroundTasks
+from fastapi.responses import JSONResponse
 from google.cloud import firestore, pubsub_v1, secretmanager
 
 # ---------------------------------------------------------------------------
@@ -50,8 +50,6 @@ PROJECT_VERTEX = os.getenv("MAESTRO_PROJECT_VERTEX", "projeto-codex-br")
 PUBSUB_TOPIC = os.getenv("MAESTRO_TOPIC", "maestro-commands")
 WHITELIST = {6483072695}
 SECRET_BOT_TOKEN = "maestro-telegram-bot-token"
-OFFSET_FILE = Path(os.getenv("MAESTRO_OFFSET_FILE", "/var/lib/maestro/offset"))
-LONG_POLL_TIMEOUT = 25
 PASSWORD_WINDOW_SECONDS = 300
 
 logging.basicConfig(
@@ -78,30 +76,14 @@ class TelegramListener:
         self.publisher = pubsub_v1.PublisherClient()
         self.topic_path = self.publisher.topic_path(PROJECT_VERTEX, PUBSUB_TOPIC)
         self.bot_token = self._load_secret(SECRET_BOT_TOKEN)
-        self.offset = self._load_offset()
         self.password_armed: dict[int, tuple[str, float]] = {}  # chat_id -> (senha, expires_at_unix)
-        jlog("listener.boot", topic=self.topic_path, offset=self.offset)
+        jlog("listener.boot", topic=self.topic_path)
 
     def _load_secret(self, key: str) -> str:
         sm = secretmanager.SecretManagerServiceClient()
         name = f"projects/{PROJECT_MAIN}/secrets/{key}/versions/latest"
         resp = sm.access_secret_version(request={"name": name})
         return resp.payload.data.decode("utf-8").strip()
-
-    def _load_offset(self) -> int:
-        try:
-            if OFFSET_FILE.exists():
-                return int(OFFSET_FILE.read_text().strip())
-        except Exception:
-            pass
-        return 0
-
-    def _save_offset(self, off: int) -> None:
-        try:
-            OFFSET_FILE.parent.mkdir(parents=True, exist_ok=True)
-            OFFSET_FILE.write_text(str(off))
-        except Exception as e:
-            jlog("offset.save_err", err=str(e))
 
     # -----------------------------------------------------------------------
     # Telegram I/O
@@ -119,18 +101,6 @@ class TelegramListener:
                 jlog("send.err", status=r.status_code, body=r.text[:300])
         except Exception as e:
             jlog("send.exc", err=str(e))
-
-    def poll(self) -> list[dict]:
-        url = f"https://api.telegram.org/bot{self.bot_token}/getUpdates"
-        params = {"timeout": LONG_POLL_TIMEOUT, "offset": self.offset + 1, "allowed_updates": json.dumps(["message"])}
-        try:
-            r = requests.get(url, params=params, timeout=LONG_POLL_TIMEOUT + 10)
-            data = r.json()
-            return data.get("result", []) if data.get("ok") else []
-        except Exception as e:
-            jlog("poll.err", err=str(e))
-            time.sleep(5)
-            return []
 
     # -----------------------------------------------------------------------
     # Comandos locais (resolvidos sem worker)
@@ -267,21 +237,19 @@ class TelegramListener:
             self.send(chat_id, f"❌ Falha ao enfileirar: `{str(e)[:200]}`")
 
     # -----------------------------------------------------------------------
-    def run(self) -> None:
-        jlog("listener.ready")
-        while True:
-            updates = self.poll()
-            for u in updates:
-                self.offset = max(self.offset, int(u.get("update_id", 0)))
-                msg = u.get("message")
-                if not msg:
-                    continue
-                try:
-                    self.handle_message(msg)
-                except Exception as e:
-                    jlog("handle.err", err=str(e), tb=traceback.format_exc()[:500])
-            self._save_offset(self.offset)
 
+listener_instance = TelegramListener()
+app = FastAPI()
 
-if __name__ == "__main__":
-    TelegramListener().run()
+@app.post("/webhook")
+async def telegram_webhook(request: Request, background_tasks: BackgroundTasks):
+    try:
+        update = await request.json()
+        msg = update.get("message")
+        if msg:
+            background_tasks.add_task(listener_instance.handle_message, msg)
+    except Exception as e:
+        jlog("webhook.err", err=str(e), tb=traceback.format_exc()[:500])
+
+    # Retorna 200 imediatamente para o Telegram evitar timeouts
+    return JSONResponse(content={"status": "ok"})
