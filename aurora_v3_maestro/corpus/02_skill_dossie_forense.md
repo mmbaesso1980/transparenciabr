@@ -403,7 +403,7 @@ Compartilhar: `share_file(file_path="...", name="dossie_<nome_alvo>")` para vers
 - Compartilhar com `share_file(name="dossie_<nome_alvo>")` para versionamento
 
 ## Casos de Referência
-- **🥇 Dossiê Erika Hilton v3.5.1 (mai/2026)** — caso gold v1.0-pioneer: 54 findings (12 CRÍTICA · 18 ALTA · 14 MÉDIA · 10 INFORMATIVO), 42 páginas, 16 agentes, Eixo 5 ativado, Direct Data integrada, contraditório judicial 3-partes implementado, fontes primárias 100%, F-13 reclassificado de CRÍTICA → INFORMATIVO (modelo de honestidade editorial). PDF em `/home/user/workspace/Dossie_Erika_Hilton_v3-5.pdf`. **Esta é a referência viva da v1.0.**
+- **🥇 Dossiê Erika Hilton v3.5.1 (mai/2026)** — caso gold v1.0-pioneer: 54 findings (12 CRÍTICA · 18 ALTA · 14 MÉDIA · 10 INFORMATIVO), 42 páginas, 16 agentes, Eixo 5 ativado, Direct Data integrada, contraditório judicial 3-partes implementado, fontes primárias 100%, F-13 reclassificado de CRÍTICA → INFORMATIVO (modelo de honestidade editorial). PDF em `/opt/maestro/skills/Dossie_Erika_Hilton_v3-5.pdf`. **Esta é a referência viva da v1.0.**
 - **Dossiê Erika Hilton v3.5** (mai/2026) — primeira versão com Eixo 5, 50 findings, 38 páginas
 - **Dossiê Erika Hilton v3.4** (gold-standard inicial)
 - **Dossiê Abimael Santos (PL-PE) v3.4** — 13 páginas, 22 findings, replicação completa mai/2026

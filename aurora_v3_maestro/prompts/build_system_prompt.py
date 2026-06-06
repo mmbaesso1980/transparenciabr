@@ -1,6 +1,6 @@
 """
 Compila os 7 módulos do corpus + cabeçalho de identidade em um system prompt
-único pro Maestro. Saída: /home/user/workspace/aurora_v3_maestro/prompts/SYSTEM_PROMPT_v1.0.md
+único pro Maestro. Saída: /opt/maestro/skills/prompts/SYSTEM_PROMPT_v1.0.md
 """
 import os
 from pathlib import Path

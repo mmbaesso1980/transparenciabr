@@ -97,7 +97,7 @@ call_external_tool(
 
 ## 6. Os 150 leads ES qualificados
 
-Arquivo entregue: `/home/user/workspace/leads_es_150_qualificados.csv` (47 KB, 160 linhas com header LGPD).
+Arquivo entregue: `/opt/maestro/skills/leads_es_150_qualificados.csv` (47 KB, 160 linhas com header LGPD).
 
 - Cobre 31 municípios: Serra (19), Cachoeiro (16), Vitória (14+4), Vila Velha (12), Cariacica (9), Guarapari (9), Mimoso do Sul (9) + outros
 - 100% Auxílio Doença, motivo "Não Constatação Incapacidade Laborativa"

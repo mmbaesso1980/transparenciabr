@@ -150,7 +150,7 @@ Sempre que a tarefa exigir profundidade além do núcleo inegociável acima, lei
 | Estado atual, sprints, débitos técnicos | §11 |
 | Glossário (AURORA, ASMODEUS, KATAGUIRI, SENTINEL, GEMMA, etc) | §12 |
 
-Use `read(file_path="/home/user/workspace/transparenciabr-lei/references/lei_completa.md", offset=N, limit=M)` para puxar trechos específicos. Não carregue o arquivo inteiro de uma vez a menos que a tarefa exija auditoria total.
+Use `read(file_path="/opt/maestro/skills/transparenciabr-lei/references/lei_completa.md", offset=N, limit=M)` para puxar trechos específicos. Não carregue o arquivo inteiro de uma vez a menos que a tarefa exija auditoria total.
 
 ## Como aplicar
 
