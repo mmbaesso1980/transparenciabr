@@ -675,8 +675,8 @@ def exec_shell_exec(args: dict, chat_id: int) -> dict:
         return {
             "ok": r.returncode == 0,
             "rc": r.returncode,
-            "stdout": r.stdout[-3000:],
-            "stderr": r.stderr[-1500:],
+            "stdout": (r.stdout or "")[-3000:],
+            "stderr": (r.stderr or "")[-1500:],
         }
     except subprocess.TimeoutExpired:
         return {"ok": False, "err": f"timeout-{timeout}s"}
@@ -1123,6 +1123,8 @@ def handle_message(message: pubsub_v1.subscriber.message.Message) -> None:
         payload = json.loads(raw)
     except json.JSONDecodeError:
         jlog("msg.bad_json", raw=raw[:200])
+        fallback_chat = next(iter(WHITELIST_CHATS)) if getattr(sys.modules[__name__], "WHITELIST_CHATS", None) else 6483072695
+        exec_telegram_send({"text": "❌ Falha silenciosa evitada: Payload JSON inválido no comando recebido."}, fallback_chat)
         message.ack()
         return
 
