@@ -75,7 +75,7 @@ WHITELIST_CHATS = {6483072695}  # F1 — apenas o Comandante Baesso
 SUBSCRIPTION = os.getenv("MAESTRO_SUB", "maestro-commands-sub")
 PROMPT_PATH = Path(os.getenv(
     "MAESTRO_PROMPT_PATH",
-    "/home/user/workspace/aurora_v3_maestro/prompts/SYSTEM_PROMPT_v1.0.md",
+    "/opt/maestro/skills/prompts/SYSTEM_PROMPT_v1.0.md",
 ))
 REPO_FULL = "mmbaesso1980/transparenciabr"
 DEFAULT_BRANCH = "main"

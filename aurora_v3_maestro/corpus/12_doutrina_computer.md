@@ -135,7 +135,7 @@ PROIBIDO: emoji decorativo (🎉 ✨ 🚀 etc) — Comandante não aprecia.
 | `vm-worker-silent-fail` | `try/except: pass` grava 0 bytes — sempre logar `errors/<key>.err` |
 | `tbr-reader-sa-comprometida` | NUNCA expor output bruto de `google_cloud-run-query` Pipedream |
 | `silent-fail-no-telegram` | NUNCA chamar `task_complete` sem antes chamar `telegram_send` |
-| `hardcoded-paths` | Usar env vars ou `Path(__file__).parent`, NUNCA `/home/user/workspace/` |
+| `hardcoded-paths` | Usar env vars ou `Path(__file__).parent`, NUNCA `/opt/maestro/skills/` |
 | `secret-scanning-leak` | Antes de commit, `grep -rn "ghp_\|sk-\|AIza"` no diff |
 
 ## 11. SELF-IMPROVEMENT

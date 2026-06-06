@@ -88,20 +88,20 @@ gcloud firestore documents update \
 
 ou via Firestore:
 ```bash
-python /home/user/workspace/aurora_v3_maestro/memory/firestore_memory.py audit 20
+python /opt/maestro/skills/memory/firestore_memory.py audit 20
 ```
 
 ### Ensinar lição nova manualmente
 
 ```bash
-python /home/user/workspace/aurora_v3_maestro/memory/firestore_memory.py \
+python /opt/maestro/skills/memory/firestore_memory.py \
   write <topic-slug> "<lição em texto>" --tags tag1 tag2
 ```
 
 ### Rodar teste cego
 
 ```bash
-cd /home/user/workspace/aurora_v3_maestro/worker
+cd /opt/maestro/skills/worker
 python blind_test_paulo_octavio.py --dry-run    # valida bundle
 python blind_test_paulo_octavio.py --run-vertex # queima ~R$ 5-10
 ```
@@ -113,9 +113,9 @@ Saída em `aurora_v3_maestro/blind_test_paulo_octavio/`.
 Editar `corpus/0X_*.md` → rebuild → commit → redeploy:
 
 ```bash
-cd /home/user/workspace/aurora_v3_maestro/prompts
+cd /opt/maestro/skills/prompts
 python build_system_prompt.py
-git -C /home/user/workspace/aurora_v3_maestro add corpus/ prompts/SYSTEM_PROMPT_v1.0.md
+git -C /opt/maestro/skills add corpus/ prompts/SYSTEM_PROMPT_v1.0.md
 git commit -m "feat(maestro): atualiza prompt v1.0.1"
 git push
 # Redeploy
@@ -140,7 +140,7 @@ cd ../deploy && bash deploy_all.sh
 ## Localização do código
 
 ```
-/home/user/workspace/aurora_v3_maestro/
+/opt/maestro/skills/
 ├── corpus/        ← 7 módulos do system prompt
 ├── prompts/       ← build_system_prompt.py + SYSTEM_PROMPT_v1.0.md
 ├── worker/        ← maestro_v1.py + Dockerfile + blind_test

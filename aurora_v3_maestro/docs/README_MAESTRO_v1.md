@@ -160,7 +160,7 @@ Pra rodar o Maestro com o MESMO input que o agente humano-supervisionado
 recebeu e comparar com `Dossie_Paulo_Octavio_v2-3_CEGO.pdf`:
 
 ```bash
-cd /home/user/workspace/aurora_v3_maestro/worker
+cd /opt/maestro/skills/worker
 
 # Dry-run (não queima crédito, valida o bundle de input)
 python blind_test_paulo_octavio.py --dry-run

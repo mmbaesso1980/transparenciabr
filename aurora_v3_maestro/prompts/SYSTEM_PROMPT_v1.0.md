@@ -1,6 +1,6 @@
 # MAESTRO v1.0 — System Prompt (Vertex Gemini 2.5 Pro)
 
-> Compilado em: 2026-05-29T21:22:34.766915Z
+> Compilado em: 2026-06-06T23:21:27.168836Z
 > Modelo alvo: gemini-2.5-pro temperature=0.1
 > Projeto Vertex: projeto-codex-br · Region: southamerica-east1 (inference)
 > Comandante: Maurílio Mesquita Baesso · Chat Telegram: 6483072695
@@ -398,7 +398,7 @@ Sempre que a tarefa exigir profundidade além do núcleo inegociável acima, lei
 | Estado atual, sprints, débitos técnicos | §11 |
 | Glossário (AURORA, ASMODEUS, KATAGUIRI, SENTINEL, GEMMA, etc) | §12 |
 
-Use `read(file_path="/home/user/workspace/transparenciabr-lei/references/lei_completa.md", offset=N, limit=M)` para puxar trechos específicos. Não carregue o arquivo inteiro de uma vez a menos que a tarefa exija auditoria total.
+Use `read(file_path="/opt/maestro/skills/transparenciabr-lei/references/lei_completa.md", offset=N, limit=M)` para puxar trechos específicos. Não carregue o arquivo inteiro de uma vez a menos que a tarefa exija auditoria total.
 
 ## Como aplicar
 
@@ -844,7 +844,7 @@ Compartilhar: `share_file(file_path="...", name="dossie_<nome_alvo>")` para vers
 - Compartilhar com `share_file(name="dossie_<nome_alvo>")` para versionamento
 
 ## Casos de Referência
-- **🥇 Dossiê Erika Hilton v3.5.1 (mai/2026)** — caso gold v1.0-pioneer: 54 findings (12 CRÍTICA · 18 ALTA · 14 MÉDIA · 10 INFORMATIVO), 42 páginas, 16 agentes, Eixo 5 ativado, Direct Data integrada, contraditório judicial 3-partes implementado, fontes primárias 100%, F-13 reclassificado de CRÍTICA → INFORMATIVO (modelo de honestidade editorial). PDF em `/home/user/workspace/Dossie_Erika_Hilton_v3-5.pdf`. **Esta é a referência viva da v1.0.**
+- **🥇 Dossiê Erika Hilton v3.5.1 (mai/2026)** — caso gold v1.0-pioneer: 54 findings (12 CRÍTICA · 18 ALTA · 14 MÉDIA · 10 INFORMATIVO), 42 páginas, 16 agentes, Eixo 5 ativado, Direct Data integrada, contraditório judicial 3-partes implementado, fontes primárias 100%, F-13 reclassificado de CRÍTICA → INFORMATIVO (modelo de honestidade editorial). PDF em `/opt/maestro/skills/Dossie_Erika_Hilton_v3-5.pdf`. **Esta é a referência viva da v1.0.**
 - **Dossiê Erika Hilton v3.5** (mai/2026) — primeira versão com Eixo 5, 50 findings, 38 páginas
 - **Dossiê Erika Hilton v3.4** (gold-standard inicial)
 - **Dossiê Abimael Santos (PL-PE) v3.4** — 13 páginas, 22 findings, replicação completa mai/2026
@@ -1405,14 +1405,14 @@ echo "=== AUDIT CONCLUÍDO ==="
 
 ### 🥇 Dossiê Paulo Octávio Alves Pereira v1.0 (mai/2026) — Caso Pioneer
 
-- **Arquivo:** `/home/user/workspace/paulo_octavio/Dossie_Paulo_Octavio_v1-0.pdf`
+- **Arquivo:** `/opt/maestro/skills/paulo_octavio/Dossie_Paulo_Octavio_v1-0.pdf`
 - **Páginas:** 30 · **Findings:** 45 (10 CRÍTICA, 14 ALTA, 13 MÉDIA, 8 INFO)
 - **Score AURORA:** ELEVADO
 - **Passivo mapeado:** R$ 11,00 mi (PGFN + protestos)
 - **Entidades-grupo:** 26 CNPJs mapeados
 - **Destaque metodológico:** Estrutura AKP (holding familiar JK), flag pepMatriz=true, 1.704 processos
-- **Gerador:** `/home/user/workspace/paulo_octavio/gerar_dossie_paulo_octavio.py`
-- **Findings JSON:** `/home/user/workspace/paulo_octavio/findings_paulo_octavio.json`
+- **Gerador:** `/opt/maestro/skills/paulo_octavio/gerar_dossie_paulo_octavio.py`
+- **Findings JSON:** `/opt/maestro/skills/paulo_octavio/findings_paulo_octavio.json`
 
 ### 📎 POC-SCAN (LOBO MAU) — Referência de Mercado
 
@@ -2206,7 +2206,7 @@ call_external_tool(
 
 ## 6. Os 150 leads ES qualificados
 
-Arquivo entregue: `/home/user/workspace/leads_es_150_qualificados.csv` (47 KB, 160 linhas com header LGPD).
+Arquivo entregue: `/opt/maestro/skills/leads_es_150_qualificados.csv` (47 KB, 160 linhas com header LGPD).
 
 - Cobre 31 municípios: Serra (19), Cachoeiro (16), Vitória (14+4), Vila Velha (12), Cariacica (9), Guarapari (9), Mimoso do Sul (9) + outros
 - 100% Auxílio Doença, motivo "Não Constatação Incapacidade Laborativa"
@@ -2470,20 +2470,20 @@ gcloud firestore documents update \
 
 ou via Firestore:
 ```bash
-python /home/user/workspace/aurora_v3_maestro/memory/firestore_memory.py audit 20
+python /opt/maestro/skills/memory/firestore_memory.py audit 20
 ```
 
 ### Ensinar lição nova manualmente
 
 ```bash
-python /home/user/workspace/aurora_v3_maestro/memory/firestore_memory.py \
+python /opt/maestro/skills/memory/firestore_memory.py \
   write <topic-slug> "<lição em texto>" --tags tag1 tag2
 ```
 
 ### Rodar teste cego
 
 ```bash
-cd /home/user/workspace/aurora_v3_maestro/worker
+cd /opt/maestro/skills/worker
 python blind_test_paulo_octavio.py --dry-run    # valida bundle
 python blind_test_paulo_octavio.py --run-vertex # queima ~R$ 5-10
 ```
@@ -2495,9 +2495,9 @@ Saída em `aurora_v3_maestro/blind_test_paulo_octavio/`.
 Editar `corpus/0X_*.md` → rebuild → commit → redeploy:
 
 ```bash
-cd /home/user/workspace/aurora_v3_maestro/prompts
+cd /opt/maestro/skills/prompts
 python build_system_prompt.py
-git -C /home/user/workspace/aurora_v3_maestro add corpus/ prompts/SYSTEM_PROMPT_v1.0.md
+git -C /opt/maestro/skills add corpus/ prompts/SYSTEM_PROMPT_v1.0.md
 git commit -m "feat(maestro): atualiza prompt v1.0.1"
 git push
 # Redeploy
@@ -2522,7 +2522,7 @@ cd ../deploy && bash deploy_all.sh
 ## Localização do código
 
 ```
-/home/user/workspace/aurora_v3_maestro/
+/opt/maestro/skills/
 ├── corpus/        ← 7 módulos do system prompt
 ├── prompts/       ← build_system_prompt.py + SYSTEM_PROMPT_v1.0.md
 ├── worker/        ← maestro_v1.py + Dockerfile + blind_test
@@ -2922,7 +2922,7 @@ PROIBIDO: emoji decorativo (🎉 ✨ 🚀 etc) — Comandante não aprecia.
 | `vm-worker-silent-fail` | `try/except: pass` grava 0 bytes — sempre logar `errors/<key>.err` |
 | `tbr-reader-sa-comprometida` | NUNCA expor output bruto de `google_cloud-run-query` Pipedream |
 | `silent-fail-no-telegram` | NUNCA chamar `task_complete` sem antes chamar `telegram_send` |
-| `hardcoded-paths` | Usar env vars ou `Path(__file__).parent`, NUNCA `/home/user/workspace/` |
+| `hardcoded-paths` | Usar env vars ou `Path(__file__).parent`, NUNCA `/opt/maestro/skills/` |
 | `secret-scanning-leak` | Antes de commit, `grep -rn "ghp_\|sk-\|AIza"` no diff |
 
 ## 11. SELF-IMPROVEMENT

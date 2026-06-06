@@ -485,14 +485,14 @@ echo "=== AUDIT CONCLUÍDO ==="
 
 ### 🥇 Dossiê Paulo Octávio Alves Pereira v1.0 (mai/2026) — Caso Pioneer
 
-- **Arquivo:** `/home/user/workspace/paulo_octavio/Dossie_Paulo_Octavio_v1-0.pdf`
+- **Arquivo:** `/opt/maestro/skills/paulo_octavio/Dossie_Paulo_Octavio_v1-0.pdf`
 - **Páginas:** 30 · **Findings:** 45 (10 CRÍTICA, 14 ALTA, 13 MÉDIA, 8 INFO)
 - **Score AURORA:** ELEVADO
 - **Passivo mapeado:** R$ 11,00 mi (PGFN + protestos)
 - **Entidades-grupo:** 26 CNPJs mapeados
 - **Destaque metodológico:** Estrutura AKP (holding familiar JK), flag pepMatriz=true, 1.704 processos
-- **Gerador:** `/home/user/workspace/paulo_octavio/gerar_dossie_paulo_octavio.py`
-- **Findings JSON:** `/home/user/workspace/paulo_octavio/findings_paulo_octavio.json`
+- **Gerador:** `/opt/maestro/skills/paulo_octavio/gerar_dossie_paulo_octavio.py`
+- **Findings JSON:** `/opt/maestro/skills/paulo_octavio/findings_paulo_octavio.json`
 
 ### 📎 POC-SCAN (LOBO MAU) — Referência de Mercado
 

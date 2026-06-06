@@ -18,7 +18,7 @@ contagem de findings, severidades e fontes citadas. A decisão fica com o
 Comandante.
 
 Uso:
-  $ cd /home/user/workspace/aurora_v3_maestro/worker
+  $ cd /opt/maestro/skills/worker
   $ python blind_test_paulo_octavio.py --dry-run      # sem chamar Vertex
   $ python blind_test_paulo_octavio.py --run-vertex   # queima crédito de verdade
 """
@@ -40,8 +40,8 @@ sys.path.insert(0, str(ROOT / "worker"))
 sys.path.insert(0, str(ROOT / "memory"))
 
 PROMPT_PATH = ROOT / "prompts" / "SYSTEM_PROMPT_v1.0.md"
-PAULO_DIR = Path("/home/user/workspace/paulo_octavio")
-OUT_DIR = Path("/home/user/workspace/aurora_v3_maestro/blind_test_paulo_octavio")
+PAULO_DIR = Path("/opt/maestro/skills/paulo_octavio")
+OUT_DIR = Path("/opt/maestro/skills/blind_test_paulo_octavio")
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 
 
