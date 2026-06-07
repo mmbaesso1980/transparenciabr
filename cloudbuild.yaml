@@ -27,6 +27,9 @@ steps:
       - '--region'
       - 'us-central1'
       - '--allow-unauthenticated'
+      - '--memory'
+      - '1024Mi'
+      - '--no-cpu-throttling'
 
 images:
   - 'us-central1-docker.pkg.dev/$PROJECT_ID/transparenciabr/transparenciabr:$COMMIT_SHA'
