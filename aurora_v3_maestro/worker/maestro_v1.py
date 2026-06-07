@@ -10,7 +10,6 @@ Cloud Run Job (ou processo standalone na VM) que:
   3. Invoca Vertex Gemini 2.5 Pro (temperature=0.1) com function-calling
   4. Aplica os 5 FREIOS antes de qualquer ação:
        F1 whitelist chat_id 6483072695
-       F2 senha pré-comando para ações destrutivas (drop/delete/deploy/burn/merge/tuning)
        F3 kill-switch (/maestro stop grava flag em Firestore -> worker aborta)
        F4 snapshot Firestore antes de ação irreversível em maestro_rollback/<id>
        F5 hard cap R$ 80/h, soft cap R$ 30/h em queima Vertex
@@ -88,12 +87,6 @@ SECRET_DIRECT_DATA = "maestro-directdata-token"
 # Limites FinOps (F5)
 COST_SOFT_CAP_HOUR_BRL = 30.0
 COST_HARD_CAP_HOUR_BRL = 80.0
-
-# Palavras-gatilho para senha (F2)
-DESTRUCTIVE_KEYWORDS = (
-    "drop", "delete", "deploy", "burn", "merge", "tuning",
-    "rm -rf", "force-push", "force push", "publicar",
-)
 
 # ---------------------------------------------------------------------------
 # Logging estruturado JSON (Cloud Logging entende automaticamente)
@@ -455,22 +448,6 @@ def freio_1_whitelist(chat_id: int) -> bool:
     if not ok:
         jlog("freio.1.block", chat_id=chat_id)
     return ok
-
-
-def senha_do_dia() -> str:
-    today = dt.datetime.utcnow().strftime("%Y-%m-%d")
-    return hashlib.sha256(f"{today}asmodeus_maestro_v1".encode()).hexdigest()[:8]
-
-
-def freio_2_senha(command_text: str, supplied_password: str | None) -> tuple[bool, str]:
-    lower = command_text.lower()
-    needs = any(kw in lower for kw in DESTRUCTIVE_KEYWORDS)
-    if not needs:
-        return True, "no-password-required"
-    expected = senha_do_dia()
-    if supplied_password and supplied_password.strip().lower() == expected:
-        return True, "password-ok"
-    return False, f"PASSWORD-REQUIRED expected_prefix=`{expected[:2]}***` — envie `/maestro senha <SENHA>` antes do comando."
 
 
 def freio_3_kill_switch() -> bool:
@@ -1130,7 +1107,6 @@ def handle_message(message: pubsub_v1.subscriber.message.Message) -> None:
 
     chat_id = int(payload.get("chat_id", 0))
     text = payload.get("text", "")
-    password = payload.get("password")
     command_id = payload.get("command_id", f"cmd-{uuid.uuid4().hex[:8]}")
 
     jlog("msg.in", command_id=command_id, chat_id=chat_id, len=len(text))
@@ -1151,14 +1127,6 @@ def handle_message(message: pubsub_v1.subscriber.message.Message) -> None:
     if freio_3_kill_switch():
         exec_telegram_send({"text": "🛑 MAESTRO em kill-switch. Use `/maestro resume`."}, chat_id)
         audit("freio.3.skip", chat_id, {"text": text[:200]})
-        message.ack()
-        return
-
-    # F2
-    allowed, senha_msg = freio_2_senha(text, password)
-    if not allowed:
-        exec_telegram_send({"text": f"🔐 {senha_msg}"}, chat_id)
-        audit("freio.2.block", chat_id, {"text": text[:200], "reason": senha_msg})
         message.ack()
         return
 

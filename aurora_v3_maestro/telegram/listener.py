@@ -10,8 +10,6 @@ Responsabilidades:
   - Receber updates via Webhook no endpoint /webhook
   - F1 — whitelist chat_id 6483072695 (drop silencioso de qualquer outro)
   - Parsing de comandos `/maestro <subcmd>` e texto livre
-  - Tracking de senha do dia: `/maestro senha <SENHA>` arma a senha por 5 minutos
-    para o próximo comando destrutivo (drop/delete/deploy/burn/merge/tuning)
   - Comandos locais resolvidos sem chamar o worker:
       /maestro status   -> lê estado do Firestore
       /maestro stop     -> ativa kill-switch
@@ -50,7 +48,6 @@ PROJECT_VERTEX = os.getenv("MAESTRO_PROJECT_VERTEX", "projeto-codex-br")
 PUBSUB_TOPIC = os.getenv("MAESTRO_TOPIC", "maestro-commands")
 WHITELIST = {6483072695}
 SECRET_BOT_TOKEN = "maestro-telegram-bot-token"
-PASSWORD_WINDOW_SECONDS = 300
 
 logging.basicConfig(
     level=logging.INFO,
@@ -64,11 +61,6 @@ def jlog(event: str, **kw: Any) -> None:
     log.info(json.dumps({"event": event, "ts": dt.datetime.utcnow().isoformat() + "Z", **kw}, default=str, ensure_ascii=False))
 
 
-def senha_do_dia() -> str:
-    today = dt.datetime.utcnow().strftime("%Y-%m-%d")
-    return hashlib.sha256(f"{today}asmodeus_maestro_v1".encode()).hexdigest()[:8]
-
-
 # ---------------------------------------------------------------------------
 class TelegramListener:
     def __init__(self) -> None:
@@ -76,7 +68,6 @@ class TelegramListener:
         self.publisher = pubsub_v1.PublisherClient()
         self.topic_path = self.publisher.topic_path(PROJECT_VERTEX, PUBSUB_TOPIC)
         self.bot_token = self._load_secret(SECRET_BOT_TOKEN)
-        self.password_armed: dict[int, tuple[str, float]] = {}  # chat_id -> (senha, expires_at_unix)
         jlog("listener.boot", topic=self.topic_path)
 
     def _load_secret(self, key: str) -> str:
@@ -114,7 +105,6 @@ class TelegramListener:
         msg = (
             f"*MAESTRO v1.0 — status*\n"
             f"Kill-switch: {'🛑 ATIVO' if kill else '✅ off'}\n"
-            f"Senha do dia (prefixo): `{senha_do_dia()[:2]}***`\n"
             f"Último evento: `{last_event.get('event','—')}` em "
             f"`{last_event.get('ts','—')}`"
         )
@@ -142,21 +132,13 @@ class TelegramListener:
             lines.append(f"`{x.get('ts','?')}` — `{x.get('event','?')}`")
         self.send(chat_id, "\n".join(lines))
 
-    def cmd_senha(self, chat_id: int, supplied: str) -> None:
-        expected = senha_do_dia()
-        if supplied.strip().lower() == expected:
-            self.password_armed[chat_id] = (expected, time.time() + PASSWORD_WINDOW_SECONDS)
-            self.send(chat_id, f"🔓 Senha aceita. Janela aberta por {PASSWORD_WINDOW_SECONDS // 60} min para ações destrutivas.")
-        else:
-            self.send(chat_id, f"❌ Senha inválida. Prefixo esperado: `{expected[:2]}***`")
-
     def cmd_rollback(self, chat_id: int, snap_id: str) -> None:
         snap = self.fs.collection("maestro_rollback").document(snap_id).get()
         if not snap.exists:
             self.send(chat_id, f"❌ Snapshot `{snap_id}` não encontrado.")
             return
         # Rollback real é publicado pro worker (pode demorar)
-        self._publish(chat_id, f"rollback {snap_id}", supplied_password=None)
+        self._publish(chat_id, f"rollback {snap_id}")
         self.send(chat_id, f"⏳ Restauração de `{snap_id}` enfileirada para o worker.")
 
     # -----------------------------------------------------------------------
@@ -181,8 +163,6 @@ class TelegramListener:
             return self.cmd_stop(chat_id)
         if low == "/maestro resume":
             return self.cmd_resume(chat_id)
-        if low.startswith("/maestro senha "):
-            return self.cmd_senha(chat_id, text[len("/maestro senha "):])
         if low.startswith("/maestro audit"):
             parts = text.split()
             n = int(parts[2]) if len(parts) > 2 and parts[2].isdigit() else 5
@@ -197,34 +177,19 @@ class TelegramListener:
                 "`/maestro stop` | `/maestro resume`\n"
                 "`/maestro audit <N>`\n"
                 "`/maestro rollback <snap_id>`\n"
-                "`/maestro senha <SENHA>` (antes de drop/deploy/burn/merge)\n"
                 "`/maestro <texto livre>` — delega ao worker\n"
             ))
 
         # Texto livre ou /maestro <texto livre> -> Pub/Sub
         payload_text = text[len("/maestro "):] if low.startswith("/maestro ") else text
-        senha = self._consume_password(chat_id)
-        self._publish(chat_id, payload_text, supplied_password=senha)
+        self._publish(chat_id, payload_text)
         self.send(chat_id, "📨 Comando enviado ao worker. Acompanho por aqui.")
 
-    def _consume_password(self, chat_id: int) -> str | None:
-        armed = self.password_armed.get(chat_id)
-        if not armed:
-            return None
-        senha, expires = armed
-        if time.time() > expires:
-            self.password_armed.pop(chat_id, None)
-            return None
-        # one-shot
-        self.password_armed.pop(chat_id, None)
-        return senha
-
-    def _publish(self, chat_id: int, text: str, supplied_password: str | None) -> None:
+    def _publish(self, chat_id: int, text: str) -> None:
         payload = {
             "command_id": f"cmd-{dt.datetime.utcnow().strftime('%Y%m%d-%H%M%S')}-{uuid.uuid4().hex[:6]}",
             "chat_id": chat_id,
             "text": text,
-            "password": supplied_password,
             "ts": dt.datetime.utcnow().isoformat() + "Z",
         }
         data = json.dumps(payload, ensure_ascii=False).encode("utf-8")
