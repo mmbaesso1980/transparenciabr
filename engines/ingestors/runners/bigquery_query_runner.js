@@ -14,15 +14,13 @@
 import { BigQuery } from "@google-cloud/bigquery";
 import { writeNDJSONGzipParts } from "../core/gcs_writer.js";
 import { logStructured, recordMetric } from "../core/observability.js";
+import { projectId } from "../../lib/project_config_js.js";
 
 let bqClient = null;
 function getBQ() {
   if (!bqClient) {
-    const projectId =
-      process.env.GOOGLE_CLOUD_PROJECT ||
-      process.env.GCLOUD_PROJECT ||
-      process.env.GCP_PROJECT_ID;
-    bqClient = new BigQuery(projectId ? { projectId } : {});
+    const pid = projectId();
+    bqClient = new BigQuery(pid ? { projectId: pid } : {});
   }
   return bqClient;
 }

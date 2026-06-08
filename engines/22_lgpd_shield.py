@@ -8,13 +8,13 @@ from __future__ import annotations
 
 import argparse
 import hashlib
-import logging
 import re
 import sys
 from pathlib import Path
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s")
-logger = logging.getLogger(__name__)
+from lib.setup_logging import setup_logging
+
+logger = setup_logging(__name__)
 
 CPF_RE = re.compile(r"\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b")
 EMAIL_RE = re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b")

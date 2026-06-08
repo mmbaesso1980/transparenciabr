@@ -1,9 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, AlertTriangle, Loader, Users, DollarSign, FileText, Link2 } from "lucide-react";
-
-const fmt = (v) => v != null ? Number(v).toLocaleString("pt-BR") : "—";
-const fmtBRL = (v) => v != null ? `R$ ${(Number(v) / 1e6).toFixed(1)}M` : "—";
+import { fmt, fmtBRLM as fmtBRL } from "../utils/formatBRL.js";
 
 export default function NepotismoPage() {
   const [data, setData] = useState(null);

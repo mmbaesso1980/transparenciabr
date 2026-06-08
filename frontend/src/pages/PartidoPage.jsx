@@ -64,13 +64,7 @@ function partyAccentColor(siglaKey) {
   return "#22d3ee";
 }
 
-function fmtBRL(v) {
-  if (!Number.isFinite(Number(v)) || Number(v) <= 0) return "—";
-  const n = Number(v);
-  if (n >= 1_000_000) return `R$ ${(n / 1_000_000).toFixed(1)} mi`;
-  if (n >= 1_000) return `R$ ${(n / 1_000).toFixed(0)} k`;
-  return `R$ ${Math.round(n)}`;
-}
+import { fmtBRLcompact as fmtBRL } from "../utils/formatBRL.js";
 
 function normPartidoQuery(raw) {
   return String(raw || "")

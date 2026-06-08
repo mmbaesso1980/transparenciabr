@@ -18,6 +18,7 @@ import {
 import { useAuth } from "../../context/AuthContext.jsx";
 import { CREDIT_PRICE_UNLOCK_CEAP_LISTA } from "../../data/creditPricing.js";
 import { fetchPoliticoUnlockSnapshot, unlockPoliticoDataCallable } from "../../lib/politicoUnlocks.js";
+import { fmtNum } from "../../utils/formatBRL.js";
 
 const PREVIEW_COUNT = 10;
 const UNLOCK_COST = CREDIT_PRICE_UNLOCK_CEAP_LISTA;
@@ -32,9 +33,6 @@ const fmtBrl = (v) => {
     maximumFractionDigits: 2,
   });
 };
-
-const fmtNum = (v) =>
-  Number.isFinite(Number(v)) ? Number(v).toLocaleString("pt-BR") : "—";
 
 /** Badge de alerta */
 function AlertBadge({ alertas }) {

@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import logging
 import os
 import re
 import sys
@@ -27,9 +26,9 @@ if str(_ENG) not in sys.path:
     sys.path.insert(0, str(_ENG))
 
 from lib.project_config import bq_dataset_id, gcp_project_id
+from lib.setup_logging import setup_logging
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s")
-logger = logging.getLogger(__name__)
+logger = setup_logging(__name__)
 
 TABLE_ID = "tcu_cadirreg"
 _TCU_URL_CANDIDATES = [

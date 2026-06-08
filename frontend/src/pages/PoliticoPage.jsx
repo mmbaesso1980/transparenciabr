@@ -64,18 +64,7 @@ import { useUserCredits } from "../hooks/useUserCredits.js";
 import { enrichPoliticoRecord, pickNome } from "../utils/dataParsers.js";
 import { dossiePdfFilename } from "../utils/dossieWatchlist.js";
 import { normalizeEmendasList } from "../utils/emendasNormalize.js";
-
-const fmtBRL = (v) =>
-  Number.isFinite(Number(v))
-    ? Number(v).toLocaleString("pt-BR", {
-        style: "currency",
-        currency: "BRL",
-        maximumFractionDigits: 0,
-      })
-    : "—";
-
-const fmtNum = (v) =>
-  Number.isFinite(Number(v)) ? Number(v).toLocaleString("pt-BR") : "—";
+import { fmtBRL, fmtNum } from "../utils/formatBRL.js";
 
 /**
  * 6 categorias canônicas — Plano Mestre. Cada uma tem ícone, status e teaser.

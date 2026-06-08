@@ -13,18 +13,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, ArrowRight, Info } from "lucide-react";
 import { Link } from "react-router-dom";
 import EnriquecimentoCNPJ from "./EnriquecimentoCNPJ.jsx";
-
-const fmtBRL = (v) =>
-  Number.isFinite(Number(v))
-    ? Number(v).toLocaleString("pt-BR", {
-        style: "currency",
-        currency: "BRL",
-        maximumFractionDigits: 0,
-      })
-    : "—";
-
-const fmtNum = (v) =>
-  Number.isFinite(Number(v)) ? Number(v).toLocaleString("pt-BR") : "—";
+import { fmtBRL, fmtNum } from "../utils/formatBRL.js";
 
 const fmtPct = (v) =>
   Number.isFinite(Number(v)) ? `${Math.round(Number(v))}%` : "—";

@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import argparse
 import hashlib
-import logging
 import os
 import sys
 import uuid
@@ -22,9 +21,9 @@ from google.cloud import bigquery
 from google.cloud.bigquery import SchemaField, Table
 
 from lib.project_config import bq_dataset_id, gcp_project_id
+from lib.setup_logging import setup_logging
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s")
-logger = logging.getLogger(__name__)
+logger = setup_logging(__name__)
 
 _REPO = Path(__file__).resolve().parents[1]
 TABLE_DEST = "orcamento_federal"

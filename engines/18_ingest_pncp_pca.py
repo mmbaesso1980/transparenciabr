@@ -17,7 +17,6 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import logging
 import os
 import re
 import sys
@@ -41,9 +40,9 @@ if str(_ENG) not in sys.path:
 
 from lib.firebase_app import init_firestore
 from lib.project_config import bq_dataset_id, gcp_project_id
+from lib.setup_logging import setup_logging
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s")
-logger = logging.getLogger(__name__)
+logger = setup_logging(__name__)
 
 
 def _create_session() -> requests.Session:

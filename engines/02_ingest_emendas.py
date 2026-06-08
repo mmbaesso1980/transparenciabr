@@ -8,7 +8,6 @@ A API CGU retorna array vazio quando não há mais páginas.
 
 from __future__ import annotations
 
-import logging
 import os
 import re
 import sys
@@ -27,14 +26,10 @@ if str(_ENG) not in sys.path:
 
 from lib.project_config import gcp_project_id, bq_dataset_id
 from lib.bigquery_helpers import get_client, new_batch_id
+from lib.setup_logging import setup_logging
 from google.cloud import bigquery
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-)
-logger = logging.getLogger(__name__)
+logger = setup_logging(__name__)
 
 
 def _env_int(name: str, default: int) -> int:
