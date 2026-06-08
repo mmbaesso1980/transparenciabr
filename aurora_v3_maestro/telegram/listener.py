@@ -48,6 +48,9 @@ PROJECT_VERTEX = os.getenv("MAESTRO_PROJECT_VERTEX", "projeto-codex-br")
 PUBSUB_TOPIC = os.getenv("MAESTRO_TOPIC", "maestro-commands")
 WHITELIST = {6483072695}
 SECRET_BOT_TOKEN = "maestro-telegram-bot-token"
+# Nome do secret do Secret Manager que guarda o token do header
+# X-Telegram-Bot-Api-Secret-Token configurado no setWebhook do Telegram.
+SECRET_WEBHOOK_TOKEN = os.getenv("MAESTRO_WEBHOOK_SECRET_NAME", "maestro-telegram-webhook-secret")
 
 logging.basicConfig(
     level=logging.INFO,
@@ -68,6 +71,12 @@ class TelegramListener:
         self.publisher = pubsub_v1.PublisherClient()
         self.topic_path = self.publisher.topic_path(PROJECT_VERTEX, PUBSUB_TOPIC)
         self.bot_token = self._load_secret(SECRET_BOT_TOKEN)
+        # Token esperado no header X-Telegram-Bot-Api-Secret-Token.
+        # Se ausente (secret não criado), webhook_secret fica None e o endpoint
+        # rejeita TODAS as requisições com 401 — fail-closed, nunca fail-open.
+        self.webhook_secret = self._load_secret_optional(SECRET_WEBHOOK_TOKEN)
+        if not self.webhook_secret:
+            jlog("listener.boot.warn", warn="webhook_secret ausente — endpoint /webhook rejeitará tudo com 401 até o secret ser criado")
         jlog("listener.boot", topic=self.topic_path)
 
     def _load_secret(self, key: str) -> str:
@@ -75,6 +84,22 @@ class TelegramListener:
         name = f"projects/{PROJECT_MAIN}/secrets/{key}/versions/latest"
         resp = sm.access_secret_version(request={"name": name})
         return resp.payload.data.decode("utf-8").strip()
+
+    def _load_secret_optional(self, key: str) -> str | None:
+        """Igual a _load_secret, mas retorna None se o secret não existir."""
+        try:
+            return self._load_secret(key)
+        except Exception as e:
+            jlog("secret.optional.miss", key=key, err=str(e)[:200])
+            return None
+
+    def verify_webhook_token(self, header_value: str | None) -> bool:
+        """Compara o header X-Telegram-Bot-Api-Secret-Token em tempo constante.
+        Fail-closed: se não há secret carregado, nega tudo."""
+        import hmac
+        if not self.webhook_secret:
+            return False
+        return hmac.compare_digest(str(header_value or ""), self.webhook_secret)
 
     # -----------------------------------------------------------------------
     # Telegram I/O
@@ -208,6 +233,14 @@ app = FastAPI()
 
 @app.post("/webhook")
 async def telegram_webhook(request: Request, background_tasks: BackgroundTasks):
+    # FREIO 0 — valida o header secreto ANTES de qualquer processamento.
+    # Requisições sem o token correto são descartadas com 401 imediato,
+    # preservando compute e impedindo injeção de comandos por terceiros.
+    token = request.headers.get("X-Telegram-Bot-Api-Secret-Token")
+    if not listener_instance.verify_webhook_token(token):
+        jlog("webhook.401", has_header=bool(token), ip=request.client.host if request.client else None)
+        return JSONResponse(content={"status": "unauthorized"}, status_code=401)
+
     try:
         update = await request.json()
         msg = update.get("message")
@@ -218,3 +251,9 @@ async def telegram_webhook(request: Request, background_tasks: BackgroundTasks):
 
     # Retorna 200 imediatamente para o Telegram evitar timeouts
     return JSONResponse(content={"status": "ok"})
+
+
+@app.get("/healthz")
+async def healthz():
+    """Liveness/readiness para o Cloud Run (não exige token)."""
+    return JSONResponse(content={"status": "ok", "webhook_secret_loaded": bool(listener_instance.webhook_secret)})
