@@ -2335,8 +2335,8 @@ Se smoke retornar linhas > 0, rodar carga real:
 export GCP_PROJECT=transparenciabr BQ_LOCATION=southamerica-east1
 START=2024-01 END=2026-04 TRUNCATE=1 ./scripts/carga_indef_real.sh 2>&1 | tee /tmp/carga_indef.log
 OUT_DIR=./out ./scripts/export_leads_cidades.sh
-TELEGRAM_BOT_TOKEN='8671845549:AAHJpkjvDFSYvCYC4VGu1Ja7kzjE3kuviL8' \
-  TELEGRAM_CHAT_ID='6483072695' \
+TELEGRAM_BOT_TOKEN="$TELEGRAM_BOT_TOKEN" \
+  TELEGRAM_CHAT_ID="$TELEGRAM_CHAT_ID" \
   OUT_DIR=./out ./scripts/telegram_aurora_resumo_carga.sh
 ```
 

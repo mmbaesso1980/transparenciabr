@@ -640,12 +640,55 @@ def exec_directdata_call(args: dict, chat_id: int) -> dict:
         return {"ok": False, "err": str(e)}
 
 
+SHELL_EXEC_ALLOWED_PREFIXES = (
+    "gcloud ",
+    "bq ",
+    "gsutil ",
+    "python ",
+    "python3 ",
+    "cat ",
+    "ls ",
+    "head ",
+    "tail ",
+    "wc ",
+    "grep ",
+    "date",
+    "df ",
+    "du ",
+    "echo ",
+)
+
+SHELL_EXEC_BLOCKED_PATTERNS = (
+    "rm -rf /",
+    "mkfs",
+    "dd if=",
+    "> /dev/",
+    "curl ",
+    "wget ",
+    "nc ",
+    "ncat ",
+    "bash -i",
+    "sh -i",
+    "/bin/sh",
+    "chmod 777",
+    "eval ",
+    "sudo ",
+)
+
+
 def exec_shell_exec(args: dict, chat_id: int) -> dict:
     cmd = args["cmd"]
     timeout = int(args.get("timeout_s", 120))
-    # Armadilha conhecida (corpus 05): pkill -f dentro de gcloud --command mata SSH
-    if "pkill -f" in cmd and "gcloud" in cmd and "--command" in cmd:
-        return {"ok": False, "err": "ANTIPATTERN-BLOCK: pkill -f dentro de gcloud --command — use PID file"}
+    cmd_stripped = cmd.strip()
+
+    if not any(cmd_stripped.startswith(p) for p in SHELL_EXEC_ALLOWED_PREFIXES):
+        audit("shell.exec.blocked", chat_id, {"cmd": cmd[:500], "reason": "not_in_allowlist"})
+        return {"ok": False, "err": "BLOCKED: command not in allowlist. Allowed prefixes: gcloud, bq, gsutil, python, cat, ls, head, tail, wc, grep, date, df, du, echo."}
+
+    if any(pat in cmd for pat in SHELL_EXEC_BLOCKED_PATTERNS):
+        audit("shell.exec.blocked", chat_id, {"cmd": cmd[:500], "reason": "blocked_pattern"})
+        return {"ok": False, "err": "BLOCKED: command contains a dangerous pattern."}
+
     audit("shell.exec.intent", chat_id, {"cmd": cmd[:500]})
     try:
         r = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=timeout)

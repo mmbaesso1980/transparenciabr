@@ -20,6 +20,30 @@ admin.initializeApp();
 const db = admin.firestore();
 const FieldValue = admin.firestore.FieldValue;
 
+/**
+ * Verify Firebase ID token from Authorization header (admin-only onRequest endpoints).
+ * Returns the decoded token or null if invalid/missing.
+ */
+async function verifyAdminRequest(req) {
+  const authHeader = req.headers.authorization || "";
+  if (!authHeader.startsWith("Bearer ")) return null;
+  try {
+    const token = authHeader.split("Bearer ")[1];
+    const decoded = await admin.auth().verifyIdToken(token);
+    if (!decoded.admin) return null;
+    return decoded;
+  } catch {
+    return null;
+  }
+}
+
+function safeErrorDetail(err) {
+  const msg = String(err && err.message ? err.message : err || "");
+  if (/ENOENT|ECONNREFUSED|timeout|DEADLINE_EXCEEDED/i.test(msg)) return "upstream_unavailable";
+  if (/permission|PERMISSION_DENIED/i.test(msg)) return "permission_error";
+  return "internal_error";
+}
+
 /** BigQuery só sob demanda — reduz tempo de carga no `firebase deploy` (evita timeout 10s). */
 function getBigQuery() {
   if (!global.__tbr_bq) {
@@ -643,6 +667,11 @@ exports.syncBigQueryToFirestore = functions
   .region("us-central1")
   .runWith({ memory: "1GB", timeoutSeconds: 300 })
   .https.onRequest(async (req, res) => {
+    const caller = await verifyAdminRequest(req);
+    if (!caller) {
+      res.status(401).json({ ok: false, error: "unauthenticated — admin Bearer token required" });
+      return;
+    }
     try {
       const year = new Date().getUTCFullYear();
       const payload = typeof req.body === "object" && req.body ? req.body : {};
@@ -660,7 +689,7 @@ exports.syncBigQueryToFirestore = functions
       });
     } catch (err) {
       console.error("syncBigQueryToFirestore failed:", err);
-      res.status(500).json({ ok: false, error: err.message || String(err) });
+      res.status(500).json({ ok: false, error: safeErrorDetail(err) });
     }
   });
 
@@ -668,6 +697,11 @@ exports.retroactiveScanBigQueryToFirestore = functions
   .region("us-central1")
   .runWith({ memory: "2GB", timeoutSeconds: 540 })
   .https.onRequest(async (req, res) => {
+    const caller = await verifyAdminRequest(req);
+    if (!caller) {
+      res.status(401).json({ ok: false, error: "unauthenticated — admin Bearer token required" });
+      return;
+    }
     try {
       const payload = typeof req.body === "object" && req.body ? req.body : {};
       const startYear = Math.max(2009, Number(payload.startYear || 2023));
@@ -686,7 +720,7 @@ exports.retroactiveScanBigQueryToFirestore = functions
       });
     } catch (err) {
       console.error("retroactiveScanBigQueryToFirestore failed:", err);
-      res.status(500).json({ ok: false, error: err.message || String(err) });
+      res.status(500).json({ ok: false, error: safeErrorDetail(err) });
     }
   });
 
@@ -1005,7 +1039,7 @@ exports.getSprintStatus = functions
       res.status(200).send(buf.toString("utf-8"));
     } catch (err) {
       console.error("getSprintStatus error:", err);
-      res.status(500).json({ error: "failed_to_read_status", detail: String(err.message || err) });
+      res.status(500).json({ error: "failed_to_read_status", detail: safeErrorDetail(err) });
     }
   });
 
@@ -1018,6 +1052,11 @@ exports.seedUniverseRoster = functions
   .region("us-central1")
   .runWith({ memory: "512MB", timeoutSeconds: 180 })
   .https.onRequest(async (req, res) => {
+    const caller = await verifyAdminRequest(req);
+    if (!caller) {
+      res.status(401).json({ ok: false, error: "unauthenticated — admin Bearer token required" });
+      return;
+    }
     res.set("Access-Control-Allow-Origin", "*");
     try {
       // Câmara: API oficial dadosabertos.camara.leg.br/api/v2/deputados (paginada).
@@ -1102,7 +1141,7 @@ exports.seedUniverseRoster = functions
       });
     } catch (err) {
       console.error("seedUniverseRoster error:", err);
-      res.status(500).json({ ok: false, error: String(err.message || err) });
+      res.status(500).json({ ok: false, error: safeErrorDetail(err) });
     }
   });
 
@@ -1136,7 +1175,7 @@ exports.getUniverseRoster = functions
       res.status(200).send(buf.toString("utf-8"));
     } catch (err) {
       console.error("getUniverseRoster error:", err);
-      res.status(500).json({ error: "failed_to_read_roster", detail: String(err.message || err) });
+      res.status(500).json({ error: "failed_to_read_roster", detail: safeErrorDetail(err) });
     }
   });
 
@@ -1182,7 +1221,7 @@ exports.getDashboardKPIs = functions
       console.error("getDashboardKPIs error:", err);
       res.status(503).json({
         error: "datalake unavailable",
-        detail: String(err.message || err),
+        detail: safeErrorDetail(err),
       });
     }
   });
@@ -1232,7 +1271,7 @@ exports.getAlvos = functions
       console.error("getAlvos error:", err);
       res.status(503).json({
         error: "datalake unavailable",
-        detail: String(err.message || err),
+        detail: safeErrorDetail(err),
       });
     }
   });
@@ -1279,7 +1318,7 @@ exports.getDossieCeapKPIs = functions
       console.error("getDossieCeapKPIs error:", err);
       res.status(503).json({
         error: "datalake unavailable",
-        detail: String(err.message || err),
+        detail: safeErrorDetail(err),
       });
     }
   });
@@ -1586,7 +1625,7 @@ exports.getEmendasKPIs = functions
       res.status(200).json(data);
     } catch (err) {
       console.error("getEmendasKPIs error:", err);
-      res.status(503).json({ error: "datalake unavailable", detail: String(err.message || err) });
+      res.status(503).json({ error: "datalake unavailable", detail: safeErrorDetail(err) });
     }
   });
 
@@ -1607,7 +1646,7 @@ exports.getPatrimonioKPIs = functions
       res.status(200).json(data);
     } catch (err) {
       console.error("getPatrimonioKPIs error:", err);
-      res.status(503).json({ error: "datalake unavailable", detail: String(err.message || err) });
+      res.status(503).json({ error: "datalake unavailable", detail: safeErrorDetail(err) });
     }
   });
 
@@ -1628,7 +1667,7 @@ exports.getViagensKPIs = functions
       res.status(200).json(data);
     } catch (err) {
       console.error("getViagensKPIs error:", err);
-      res.status(503).json({ error: "datalake unavailable", detail: String(err.message || err) });
+      res.status(503).json({ error: "datalake unavailable", detail: safeErrorDetail(err) });
     }
   });
 
@@ -1649,7 +1688,7 @@ exports.getNepotismoKPIs = functions
       res.status(200).json(data);
     } catch (err) {
       console.error("getNepotismoKPIs error:", err);
-      res.status(503).json({ error: "datalake unavailable", detail: String(err.message || err) });
+      res.status(503).json({ error: "datalake unavailable", detail: safeErrorDetail(err) });
     }
   });
 
@@ -1670,7 +1709,7 @@ exports.getNepotismoCruzadoKPIs = functions
       res.status(200).json(data);
     } catch (err) {
       console.error("getNepotismoCruzadoKPIs error:", err);
-      res.status(503).json({ error: "datalake unavailable", detail: String(err.message || err) });
+      res.status(503).json({ error: "datalake unavailable", detail: safeErrorDetail(err) });
     }
   });
 
@@ -1691,7 +1730,7 @@ exports.getEmpresasPrefeiturasKPIs = functions
       res.status(200).json(data);
     } catch (err) {
       console.error("getEmpresasPrefeiturasKPIs error:", err);
-      res.status(503).json({ error: "datalake unavailable", detail: String(err.message || err) });
+      res.status(503).json({ error: "datalake unavailable", detail: safeErrorDetail(err) });
     }
   });
 
@@ -1712,7 +1751,7 @@ exports.getAnomaliasKPIs = functions
       res.status(200).json(data);
     } catch (err) {
       console.error("getAnomaliasKPIs error:", err);
-      res.status(503).json({ error: "datalake unavailable", detail: String(err.message || err) });
+      res.status(503).json({ error: "datalake unavailable", detail: safeErrorDetail(err) });
     }
   });
 
@@ -1733,7 +1772,7 @@ exports.getRiscoKPIs = functions
       res.status(200).json(data);
     } catch (err) {
       console.error("getRiscoKPIs error:", err);
-      res.status(503).json({ error: "datalake unavailable", detail: String(err.message || err) });
+      res.status(503).json({ error: "datalake unavailable", detail: safeErrorDetail(err) });
     }
   });
 
@@ -1837,7 +1876,7 @@ exports.getPoliticoDespesas = functions
       });
     } catch (err) {
       console.error("getPoliticoDespesas error:", err);
-      res.status(503).json({ error: "query_failed", detail: String(err.message || err) });
+      res.status(503).json({ error: "query_failed", detail: safeErrorDetail(err) });
     }
   });
 
@@ -2125,7 +2164,7 @@ exports.getDossieAurora = functions
       });
     } catch (err) {
       console.error("getDossieAurora error:", err);
-      res.status(503).json({ error: "query_failed", detail: String(err.message || err) });
+      res.status(503).json({ error: "query_failed", detail: safeErrorDetail(err) });
     }
   });
 
@@ -2155,7 +2194,7 @@ exports.getSacanagens = functions
       }
     } catch (err) {
       console.error("getSacanagens error:", err);
-      res.status(503).json({ error: "datalake unavailable", detail: String(err.message || err) });
+      res.status(503).json({ error: "datalake unavailable", detail: safeErrorDetail(err) });
     }
   });
 

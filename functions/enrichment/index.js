@@ -25,11 +25,27 @@ function clientIp(req) {
   return req.ip || '';
 }
 
+const ENRICHMENT_CORS_ALLOWLIST = [
+  'https://transparenciabr.web.app',
+  'https://transparenciabr.firebaseapp.com',
+];
+
+function enrichmentCorsOrigin(req) {
+  const origin = req.headers.origin || '';
+  if (ENRICHMENT_CORS_ALLOWLIST.includes(origin)) return origin;
+  const extra = String(process.env.ENRICHMENT_CORS_ORIGINS || '')
+    .split(',').map(s => s.trim()).filter(Boolean);
+  if (extra.includes(origin)) return origin;
+  return ENRICHMENT_CORS_ALLOWLIST[0];
+}
+
 /**
  * HTTP Gen2 — `/api/consent` (hosting rewrite) e POST raiz para orquestrador.
  */
 async function enrichmentHttp(req, res) {
-  res.set('Access-Control-Allow-Origin', '*');
+  const corsOrigin = enrichmentCorsOrigin(req);
+  res.set('Access-Control-Allow-Origin', corsOrigin);
+  res.set('Vary', 'Origin');
   res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Agent-User');
 
