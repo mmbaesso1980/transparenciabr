@@ -119,7 +119,10 @@ export const telegramWebhook = onRequest(
       }
 
       if (cmd === '/status') {
-        const hs = await checkHardstop().catch(() => ({ ok: true, gasto: 0, limite: 300 }));
+        const hs = await checkHardstop().catch((e) => {
+          console.warn('checkHardstop falhou (/status):', e.message);
+          return { ok: true, gasto: 0, limite: 300 };
+        });
         await reply(
           `<b>Status do teto diário</b>\n` +
             `Gasto estimado hoje: R$ ${Number(hs.gasto || 0).toFixed(2)}\n` +
@@ -205,7 +208,7 @@ export const telegramWebhook = onRequest(
       await reply('Comando não reconhecido. Envie /help para instruções.');
       res.status(200).send('OK');
     } catch (e) {
-      console.error(e);
+      console.error('telegramWebhook unhandled error:', { message: e.message, stack: e.stack, cmd });
       res.status(500).send('Erro interno.');
     }
   }

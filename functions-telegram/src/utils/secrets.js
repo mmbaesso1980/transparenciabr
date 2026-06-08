@@ -19,7 +19,7 @@ export async function getSecret(name) {
     cache.set(name, val);
     return val;
   } catch (e) {
-    console.error(`Secret ${name} indisponível:`, e.message);
+    console.error(`Secret ${name} indisponível:`, e.message, { code: e.code, details: e.details });
     return null;
   }
 }

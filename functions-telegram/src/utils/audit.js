@@ -19,6 +19,6 @@ export async function logEvent({ jobId, leadId = '', evento, detalhes = '', cust
     const table = bq.dataset('tbr_leads_prev').table('leads_enriquecidos_log');
     await table.insert([row]);
   } catch (e) {
-    console.error('Audit log falhou:', e.message);
+    console.error('Audit log falhou:', { evento, jobId, error: e.message, insertErrors: e.errors });
   }
 }

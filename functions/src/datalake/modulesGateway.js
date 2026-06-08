@@ -34,7 +34,9 @@ async function safeQuery(sql) {
     const [rows] = await getBQ().query({ query: sql, location: "US" });
     return rows || [];
   } catch (err) {
-    console.warn(`BigQuery query failed: ${err.message}`);
+    const isNotFound = err.code === 404 || /not found/i.test(err.message);
+    const level = isNotFound ? 'warn' : 'error';
+    console[level](`BigQuery query failed [${err.code || 'UNKNOWN'}]: ${err.message}`);
     return [];
   }
 }
@@ -48,7 +50,8 @@ async function loadGcsJson(bucket, path) {
     const [buf] = await file.download();
     return JSON.parse(buf.toString("utf-8"));
   } catch (err) {
-    console.warn(`GCS load failed (${bucket}/${path}): ${err.message}`);
+    const isParseError = err instanceof SyntaxError;
+    console.error(`GCS load failed (${bucket}/${path}): ${err.message}${isParseError ? ' [corrupted JSON]' : ''}`);
     return null;
   }
 }

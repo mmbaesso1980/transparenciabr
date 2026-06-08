@@ -11,7 +11,7 @@
  */
 
 import { BigQuery } from '@google-cloud/bigquery';
-import { onCall } from 'firebase-functions/v2/https';
+import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { initializeApp } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 
@@ -25,8 +25,8 @@ export const getCeapNotes = onCall(
     const { parlamentar_id, limit = 100, offset = 0 } = request.data;
     const uid = request.auth?.uid;
 
-    if (!uid) throw new Error('Usuário não autenticado');
-    if (!parlamentar_id) throw new Error('parlamentar_id obrigatório');
+    if (!uid) throw new HttpsError('unauthenticated', 'Usuário não autenticado');
+    if (!parlamentar_id) throw new HttpsError('invalid-argument', 'parlamentar_id obrigatório');
 
     try {
       // Verificar créditos do usuário
@@ -34,7 +34,7 @@ export const getCeapNotes = onCall(
       const credits = userDoc.data()?.credits || 0;
 
       if (credits < 100) {
-        throw new Error(`Créditos insuficientes: ${credits}/100`);
+        throw new HttpsError('failed-precondition', `Créditos insuficientes: ${credits}/100`);
       }
 
       // Query BigQuery para trazer notas CEAP
@@ -125,8 +125,9 @@ export const getCeapNotes = onCall(
         credits_remaining: credits - 100,
       };
     } catch (error) {
-      console.error('❌ getCeapNotes error:', error);
-      throw new Error(`Erro ao buscar notas CEAP: ${error.message}`);
+      console.error('getCeapNotes error:', error.message);
+      if (error instanceof HttpsError) throw error;
+      throw new HttpsError('internal', `Erro ao buscar notas CEAP: ${error.message}`);
     }
   }
 );
@@ -145,7 +146,7 @@ export const getCeapSummary = onCall(
   async (request) => {
     const { parlamentar_id } = request.data;
 
-    if (!parlamentar_id) throw new Error('parlamentar_id obrigatório');
+    if (!parlamentar_id) throw new HttpsError('invalid-argument', 'parlamentar_id obrigatório');
 
     try {
       const query = `
@@ -181,8 +182,9 @@ export const getCeapSummary = onCall(
         data: rows[0] || {},
       };
     } catch (error) {
-      console.error('❌ getCeapSummary error:', error);
-      throw new Error(`Erro ao buscar resumo CEAP: ${error.message}`);
+      console.error('getCeapSummary error:', error.message);
+      if (error instanceof HttpsError) throw error;
+      throw new HttpsError('internal', `Erro ao buscar resumo CEAP: ${error.message}`);
     }
   }
 );

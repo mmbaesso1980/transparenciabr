@@ -56,7 +56,8 @@ async def lookup_cnpj(client: httpx.AsyncClient, cnpj: str, cache: dict) -> dict
         data = r.json()
         cache[cnpj] = data
         return data
-    except Exception:
+    except (httpx.HTTPError, ValueError, KeyError) as e:
+        log.debug(f"CNPJ lookup failed for {cnpj}: {e}")
         return {}
 
 # ---------------------------------------------------------------------------
@@ -86,7 +87,7 @@ async def main():
                 aut = e.get("autor") or e.get("parlamentar") or e.get("nomeAutor")
                 if aut:
                     emendas_by_autor[aut].append(e)
-            except Exception:
+            except (json.JSONDecodeError, ValueError):
                 pass
     log.info(f"  · {sum(len(v) for v in emendas_by_autor.values())} emendas Pix carregadas")
 

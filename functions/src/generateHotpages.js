@@ -13,7 +13,7 @@
 
 import { BigQuery } from '@google-cloud/bigquery';
 import { getFirestore } from 'firebase-admin/firestore';
-import { onCall } from 'firebase-functions/v2/https';
+import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import fetch from 'node-fetch';
 
 const bq = new BigQuery({ projectId: 'transparenciabr' });
@@ -24,7 +24,7 @@ export const generateHotpages = onCall(
   async (request) => {
     // Verificar permissão (apenas admin)
     if (request.auth?.token?.admin !== true) {
-      throw new Error('Apenas admins podem gerar hotpages');
+      throw new HttpsError('permission-denied', 'Apenas admins podem gerar hotpages');
     }
 
     try {
@@ -160,7 +160,7 @@ export const generateHotpages = onCall(
             console.log(`✅ ${processed}/${parlamentares.length} hotpages processados`);
           }
         } catch (error) {
-          console.error(`❌ Erro ao processar ${parl.nome_completo}:`, error);
+          console.error(`Erro ao processar ${parl.nome_completo} (${parl.id_parlamentar}):`, error.message);
         }
       }
 
@@ -197,8 +197,9 @@ export const generateHotpages = onCall(
         total: hotpages.length,
       };
     } catch (error) {
-      console.error('❌ Erro ao gerar hotpages:', error);
-      throw new Error(`Erro ao gerar hotpages: ${error.message}`);
+      console.error('Erro ao gerar hotpages:', error.message);
+      if (error instanceof HttpsError) throw error;
+      throw new HttpsError('internal', `Erro ao gerar hotpages: ${error.message}`);
     }
   }
 );
@@ -214,14 +215,14 @@ export const getHotpage = onCall(
   async (request) => {
     const { parlamentar_id } = request.data;
 
-    if (!parlamentar_id) throw new Error('parlamentar_id obrigatório');
+    if (!parlamentar_id) throw new HttpsError('invalid-argument', 'parlamentar_id obrigatório');
 
     try {
       const docRef = db.collection('parlamentares').doc(parlamentar_id);
       const doc = await docRef.get();
 
       if (!doc.exists) {
-        throw new Error(`Parlamentar ${parlamentar_id} não encontrado`);
+        throw new HttpsError('not-found', `Parlamentar ${parlamentar_id} não encontrado`);
       }
 
       return {
@@ -229,8 +230,9 @@ export const getHotpage = onCall(
         data: doc.data(),
       };
     } catch (error) {
-      console.error('❌ getHotpage error:', error);
-      throw new Error(`Erro ao buscar hotpage: ${error.message}`);
+      console.error('getHotpage error:', error.message);
+      if (error instanceof HttpsError) throw error;
+      throw new HttpsError('internal', `Erro ao buscar hotpage: ${error.message}`);
     }
   }
 );

@@ -37,8 +37,8 @@ async function loadRosterJson() {
     const [buf] = await file.download();
     return JSON.parse(buf.toString("utf-8"));
   } catch (err) {
-    console.error("Erro roster:", err.message);
-    return { roster: [], total: 0 };
+    console.error("Erro roster:", err.message, { code: err.code, stack: err.stack?.split('\n')[1] });
+    return { roster: [], total: 0, _error: err.message };
   }
 }
 
@@ -49,7 +49,7 @@ async function loadPublicRanking() {
     const json = await res.json();
     return Array.isArray(json) ? json : Array.isArray(json?.parlamentares) ? json.parlamentares : [];
   } catch (err) {
-    console.error("Erro ranking:", err.message);
+    console.error("Erro ranking:", err.message, { status: err.status, code: err.code });
     return [];
   }
 }

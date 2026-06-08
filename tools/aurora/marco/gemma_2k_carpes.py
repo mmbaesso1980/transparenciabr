@@ -91,7 +91,8 @@ def load_and_filter():
                 if idade > 70: s += 25
                 elif idade > 55: s += 15
                 elif idade > 45: s += 8
-            except: pass
+            except (ValueError, TypeError):
+                pass
         return s
     
     regiao['_score_det'] = regiao.apply(score_det, axis=1)

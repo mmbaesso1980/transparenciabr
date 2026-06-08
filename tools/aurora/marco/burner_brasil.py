@@ -182,7 +182,7 @@ def calc_idade(dt_nasc) -> int:
             d = datetime.strptime(str(dt_nasc)[:10], '%Y-%m-%d').date()
         today = date(2026, 5, 1)
         return today.year - d.year - ((today.month, today.day) < (d.month, d.day))
-    except Exception:
+    except (ValueError, TypeError):
         return 0
 
 
@@ -232,7 +232,7 @@ def score_lead(lead: dict) -> int:
                 score += 10
             elif dias <= 90:
                 score += 5
-        except Exception:
+        except (ValueError, TypeError):
             pass
 
     return min(score, 100)
@@ -290,7 +290,7 @@ def selecionar_top(in_jsonl: Path, out_jsonl: Path, pct: float, score_field: str
         for line in f:
             try:
                 leads.append(json.loads(line))
-            except Exception:
+            except (json.JSONDecodeError, ValueError):
                 pass
     log.info(f"  carregados {len(leads):,} leads")
     leads.sort(key=lambda x: x.get(score_field, 0), reverse=True)
@@ -383,7 +383,7 @@ async def saturate_gemma(in_jsonl: Path, out_jsonl: Path, workers: int):
         for line in f:
             try:
                 leads.append(json.loads(line))
-            except Exception:
+            except (json.JSONDecodeError, ValueError):
                 pass
     total = len(leads)
     log.info(f"  Total a classificar: {total:,}")
@@ -485,7 +485,7 @@ def bq_flatten_for_load(in_jsonl_gz: Path, out_jsonl_gz: Path, table_kind: str):
         for line in fin:
             try:
                 l = json.loads(line)
-            except Exception:
+            except (json.JSONDecodeError, ValueError):
                 continue
             row = {
                 'mes_arquivo': l.get('mes_arquivo'),
@@ -525,7 +525,7 @@ def bq_flatten_for_load(in_jsonl_gz: Path, out_jsonl_gz: Path, table_kind: str):
                 if v is not None:
                     try:
                         row[k] = int(v)
-                    except Exception:
+                    except (ValueError, TypeError):
                         row[k] = None
             fout.write(json.dumps(row, ensure_ascii=False, default=str) + '\n')
             n += 1
@@ -547,7 +547,7 @@ def stats_brasil(jsonl_gz: Path) -> dict:
         for line in f:
             try:
                 l = json.loads(line)
-            except Exception:
+            except (json.JSONDecodeError, ValueError):
                 continue
             s['total'] += 1
             s['por_uf'][l.get('uf') or 'unknown'] += 1
