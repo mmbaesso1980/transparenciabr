@@ -106,6 +106,11 @@ export default function AuditoriaOnDemandButton({ politicoId, className = "" }) 
               A análise é produzida no backend e consolidada no relatório do parlamentar. Utilize linguagem
               estritamente factual e referências verificáveis. Não solicite acusações sem prova documental.
             </p>
+            <p className="mt-2 rounded-lg border border-amber-500/30 bg-amber-950/30 px-3 py-2 text-[11px] leading-relaxed text-amber-200/90">
+              Esta auditoria forense ao vivo <strong>consome créditos</strong> da sua conta. Notas, emendas e
+              alertas já publicados continuam gratuitos. Se o saldo for insuficiente, você poderá comprar
+              créditos em <span className="font-mono">/creditos</span>.
+            </p>
             <label className="mt-4 block text-[11px] font-semibold uppercase tracking-wider text-[#8B949E]">
               Contexto (hipótese de trabalho, notícias, linha de cruzamento)
             </label>

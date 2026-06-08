@@ -13,6 +13,24 @@ const VERTEX_PROJECT = "projeto-codex-br";
 const VERTEX_LOCATION = "us-central1";
 const VERTEX_MODEL = "gemini-1.5-pro";
 
+// Paywall on-demand: a auditoria forense ao vivo (Gemini) é um produto pago.
+// Notas/emendas/alertas pré-computados continuam gratuitos; ESTA chamada cobra.
+// Custo padrão (créditos), sobrescrevível por Firestore `pricing/dossie_on_demand.custo`.
+const DOSSIE_ON_DEMAND_DEFAULT_COST = 300;
+
+async function resolveOnDemandCost(db) {
+  try {
+    const snap = await db.doc("pricing/dossie_on_demand").get();
+    if (snap.exists) {
+      const c = Number(snap.data()?.custo);
+      if (Number.isFinite(c) && c >= 0) return c;
+    }
+  } catch (e) {
+    console.warn("resolveOnDemandCost: usando default —", e?.message || e);
+  }
+  return DOSSIE_ON_DEMAND_DEFAULT_COST;
+}
+
 /** Cérebro forense compartilhado (Caso Gilson — rigor tripartite CEAP × Emendas × Mandato). */
 const AURORA_SYSTEM_INSTRUCTION = `
 Você é o AURORA, um Auditor Forense Especialista em Gastos Públicos.
@@ -204,6 +222,56 @@ function mountGerarDossieOnDemand(functionsApi, adminApp) {
 
       const contextoInvestigativo = sanitizeContext(data?.contextoInvestigativo);
 
+      // ── PAYWALL — cobra créditos ANTES de invocar o Vertex/Gemini ────────────
+      // Bypass apenas para contas com custom claim admin=true.
+      const isAdmin = context.auth.token?.admin === true;
+      const userRef = db.collection("usuarios").doc(context.auth.uid);
+      const custo = isAdmin ? 0 : await resolveOnDemandCost(db);
+      let cobrou = false;
+      if (custo > 0) {
+        await db.runTransaction(async (tx) => {
+          const userSnap = await tx.get(userRef);
+          const saldo = Number((userSnap.exists ? userSnap.data() : {})?.creditos || 0);
+          if (saldo < custo) {
+            throw new functionsApi.https.HttpsError(
+              "failed-precondition",
+              `Saldo insuficiente: ${saldo} / ${custo} créditos. Compre mais em /creditos.`,
+            );
+          }
+          tx.set(
+            userRef,
+            {
+              creditos: FieldValue.increment(-custo),
+              ultima_acao: "gerarDossieOnDemand",
+              ultima_acao_em: FieldValue.serverTimestamp(),
+            },
+            { merge: true },
+          );
+        });
+        cobrou = true;
+      }
+
+      // Reembolsa os créditos cobrados se qualquer etapa subsequente falhar.
+      const refund = async (motivo) => {
+        if (!cobrou) return;
+        try {
+          await userRef.set(
+            { creditos: FieldValue.increment(custo) },
+            { merge: true },
+          );
+          await db.collection("transactions").doc(context.auth.uid).collection("log").add({
+            tipo: "gerarDossieOnDemand_refund",
+            custo,
+            motivo: String(motivo || "").slice(0, 300),
+            politicoId,
+            ts: FieldValue.serverTimestamp(),
+          });
+          cobrou = false;
+        } catch (e) {
+          console.error("gerarDossieOnDemand: FALHA no reembolso", { uid: context.auth.uid, custo, err: e?.message });
+        }
+      };
+
       const bundle0 = await loadRawBundle(db, politicoId);
       let bundle = bundle0;
       try {
@@ -217,12 +285,14 @@ function mountGerarDossieOnDemand(functionsApi, adminApp) {
         findings = await runGeminiFindings(contextoInvestigativo, bundle);
       } catch (err) {
         console.error("gerarDossieOnDemand Vertex/Gemini:", err);
+        await refund("falha Vertex/Gemini");
         throw new functionsApi.https.HttpsError(
           "internal",
           err instanceof Error ? err.message : "Falha ao invocar Gemini (Vertex).",
         );
       }
       if (!findings.length) {
+        await refund("modelo sem findings válidos");
         throw new functionsApi.https.HttpsError(
           "internal",
           "O modelo não retornou findings válidos.",
@@ -239,6 +309,7 @@ function mountGerarDossieOnDemand(functionsApi, adminApp) {
       }));
 
       const reportRef = db.collection("transparency_reports").doc(politicoId);
+      try {
       const repSnap = await reportRef.get();
       const repData = repSnap.exists ? repSnap.data() || {} : {};
       const prev = Array.isArray(repData.alertas_anexados) ? repData.alertas_anexados : [];
@@ -281,11 +352,20 @@ function mountGerarDossieOnDemand(functionsApi, adminApp) {
         });
       }
       await batch.commit();
+      } catch (err) {
+        console.error("gerarDossieOnDemand persistência:", err);
+        await refund("falha ao persistir findings");
+        throw new functionsApi.https.HttpsError(
+          "internal",
+          "Falha ao gravar o resultado da auditoria. Créditos reembolsados.",
+        );
+      }
 
       return {
         ok: true,
         politicoId,
         findingsCount: stamped.length,
+        custoCreditos: custo,
         runId,
       };
     });
