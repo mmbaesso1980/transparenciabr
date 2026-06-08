@@ -32,7 +32,8 @@ async function resolveNomeCompleto(politicoId, bundle) {
   try {
     const row = await resolveNome(id);
     return row?.nome_parlamentar ? String(row.nome_parlamentar).trim() : "";
-  } catch {
+  } catch (err) {
+    console.warn("resolveNomeCompleto: falha ao resolver nome via BQ", { politicoId: id, error: err.message });
     return "";
   }
 }

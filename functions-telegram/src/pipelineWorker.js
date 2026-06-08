@@ -69,19 +69,22 @@ export const pipelineWorker = onMessagePublished(
     const oab = (job.oab && String(job.oab).trim()) || '';
     if (!oab) {
       await logEvent({ jobId, evento: 'ERRO_OAB', detalhes: 'OAB ausente no payload' });
-      await enviarMensagem(chatId, 'Não foi possível processar o job: OAB do solicitante ausente.').catch(() => null);
+      await enviarMensagem(chatId, 'Não foi possível processar o job: OAB do solicitante ausente.').catch((e) => console.warn('enviarMensagem falhou (OAB):', e.message));
       return;
     }
 
     await logEvent({ jobId, evento: 'WORKER_INICIADO', detalhes: JSON.stringify({ comando: job.comando }) });
 
-    const hs0 = await checkHardstop().catch(() => ({ ok: true, gasto: 0, limite: 300 }));
+    const hs0 = await checkHardstop().catch((e) => {
+      console.warn('checkHardstop falhou, assumindo ok:', e.message);
+      return { ok: true, gasto: 0, limite: 300 };
+    });
     if (!hs0.ok) {
       await logEvent({ jobId, evento: 'HARDSTOP_BLOQUEIO', detalhes: JSON.stringify(hs0) });
       await enviarMensagem(
         chatId,
         'Processamento interrompido: o teto diário de custo estimado foi atingido.'
-      ).catch(() => null);
+      ).catch((e) => console.warn('enviarMensagem falhou (hardstop):', e.message));
       return;
     }
 
@@ -102,7 +105,7 @@ export const pipelineWorker = onMessagePublished(
       await enviarMensagem(
         chatId,
         'Não foi possível ler a view de leads no BigQuery. Verifique se o dataset e a tabela base existem.'
-      ).catch(() => null);
+      ).catch((e) => console.warn('enviarMensagem falhou (BQ_VIEW):', e.message));
       return;
     }
 
@@ -110,7 +113,10 @@ export const pipelineWorker = onMessagePublished(
     const finalRows = [];
 
     for (const row of bqRows) {
-      const hs = await checkHardstop().catch(() => ({ ok: true, gasto: 0, limite: 300 }));
+      const hs = await checkHardstop().catch((e) => {
+        console.warn('checkHardstop mid-loop falhou:', e.message);
+        return { ok: true, gasto: 0, limite: 300 };
+      });
       if (!hs.ok) {
         await logEvent({ jobId, evento: 'HARDSTOP_MID', detalhes: JSON.stringify({ parcial: outCsv.length }) });
         break;
@@ -180,7 +186,7 @@ export const pipelineWorker = onMessagePublished(
       await enviarMensagem(
         chatId,
         'Nenhuma linha elegível foi produzida (view vazia, CPF inválido ou dados insuficientes). Nenhum dado foi inventado.'
-      ).catch(() => null);
+      ).catch((e) => console.warn('enviarMensagem falhou (sem_leads):', e.message));
       return;
     }
 
@@ -202,7 +208,7 @@ export const pipelineWorker = onMessagePublished(
     await enviarMensagem(
       chatId,
       `Processamento concluído. Foram emitidas <b>${outCsv.length}</b> linhas no CSV (CPF mascarado). OAB registrada: <code>${oab}</code>.`
-    ).catch(() => null);
+    ).catch((e) => console.warn('enviarMensagem falhou (conclusão):', e.message));
     await enviarDocumentoUrl(chatId, url, `${jobId}.csv`).catch(async (e) => {
       await logEvent({
         jobId,

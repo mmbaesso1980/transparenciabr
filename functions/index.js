@@ -1072,7 +1072,7 @@ exports.seedUniverseRoster = functions
           });
         }
       } catch (e) {
-        console.warn("senadores não carregados:", e.message);
+        console.error("senadores não carregados:", { error: e.message, status: e.status, code: e.code });
       }
 
       const all = [...camaraDeputados, ...senadoresList].filter((r) => r.id && r.nome);

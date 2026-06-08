@@ -65,7 +65,8 @@ function compactForPrompt(obj, maxLen) {
   try {
     const s = JSON.stringify(obj ?? {});
     return s.length > maxLen ? s.slice(0, maxLen) + "…" : s;
-  } catch {
+  } catch (err) {
+    console.warn("compactForPrompt: JSON.stringify failed, falling back to {}", err.message);
     return "{}";
   }
 }

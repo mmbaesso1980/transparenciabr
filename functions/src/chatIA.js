@@ -139,6 +139,7 @@ Análise:`;
       };
     } catch (error) {
       console.error("Erro em chatIAAnalysis:", error);
+      if (error instanceof functions.https.HttpsError) throw error;
       throw new functions.https.HttpsError(
         "internal",
         error.message || "Erro ao processar análise"

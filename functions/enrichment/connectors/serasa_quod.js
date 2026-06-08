@@ -85,7 +85,7 @@ class SerasaQuodConnector extends AuroraEnricherBase {
     const produto = input.produto || 'completo';
 
     const budget = Number(process.env.BUDGET_DIARIO_BRL || BUDGET_DEFAULT);
-    const spent = await getSpendTodayBrl().catch(() => 0);
+    const spent = await getSpendTodayBrl().catch((e) => { console.warn('getSpendTodayBrl failed:', e.message); return 0; });
     if (spent >= budget) {
       await notifyCircuitBreaker(
         `Circuito do bureau aberto: gasto diário R$ ${spent.toFixed(2)} atingiu o teto R$ ${budget.toFixed(2)}.`
@@ -95,7 +95,7 @@ class SerasaQuodConnector extends AuroraEnricherBase {
       throw e;
     }
 
-    const cached = await getCache({ cpf_hash, produto }).catch(() => null);
+    const cached = await getCache({ cpf_hash, produto }).catch((e) => { console.warn('getCache failed:', e.message); return null; });
     if (cached) return { ...cached, source: cached.source || 'CACHE' };
 
     const provider = (process.env.BUREAU_PROVIDER || 'serasa').toLowerCase();
@@ -126,14 +126,14 @@ class SerasaQuodConnector extends AuroraEnricherBase {
     );
 
     const custo = Number(data?.custo_brl ?? data?.custo ?? 0);
-    await recordCost({ cpf_hash, produto, custo_brl: custo }).catch(() => null);
+    await recordCost({ cpf_hash, produto, custo_brl: custo }).catch((e) => console.warn('recordCost failed:', e.message));
 
     const out = {
       telefones: data.telefones || [],
       emails: data.emails || [],
       source: provider === 'quod' ? 'QUOD' : 'SERASA',
     };
-    await putCache({ cpf_hash, produto, response: out }).catch(() => null);
+    await putCache({ cpf_hash, produto, response: out }).catch((e) => console.warn('putCache failed:', e.message));
     return out;
   }
 }

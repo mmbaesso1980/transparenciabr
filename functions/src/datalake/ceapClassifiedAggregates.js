@@ -526,6 +526,7 @@ async function scanCeapClassified(storage) {
         await processOne(t.file, t.parsedPath);
       } catch (e) {
         meta.parse_errors += 1;
+        console.warn(`processOne failed for ${t.parsedPath?.deputadoId || 'unknown'}:`, e.message);
       }
     }
   }
@@ -554,7 +555,8 @@ async function loadRosterMap(storage) {
   let data;
   try {
     data = JSON.parse(buf.toString("utf-8"));
-  } catch (_) {
+  } catch (parseErr) {
+    console.error("loadRosterMap: corrupted roster.json", parseErr.message);
     return new Map();
   }
   const roster = Array.isArray(data?.roster) ? data.roster : [];
