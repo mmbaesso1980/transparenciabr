@@ -5,6 +5,7 @@ const FALLBACK_URL = '/sprint_status.json'; // caso o Hosting tenha cópia local
 const $ = (id) => document.getElementById(id);
 const fmtNum = (n) => (n ?? 0).toLocaleString('pt-BR');
 const fmtBRL = (n) => 'R$ ' + (n ?? 0).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2});
+function escapeHtml(s){ const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
 let lastFetch = null;
 
 function ageStr(then){
@@ -115,7 +116,7 @@ async function load(force){
   } catch(e){
     if(force) alert('Erro: ' + e.message);
     if(!lastFetch){
-      $('root').innerHTML = `<div class="card"><div class="err-msg">⚠️ ${e.message}<br><br>O sprint pode ainda não ter publicado o primeiro status.<br>Aguarde alguns minutos e atualize.</div></div>`;
+      $('root').innerHTML = `<div class="card"><div class="err-msg">⚠️ ${escapeHtml(e.message)}<br><br>O sprint pode ainda não ter publicado o primeiro status.<br>Aguarde alguns minutos e atualize.</div></div>`;
     }
   }
 }
