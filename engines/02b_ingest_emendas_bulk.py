@@ -19,7 +19,6 @@ from __future__ import annotations
 import argparse
 import csv
 import io
-import logging
 import os
 import sys
 import tempfile
@@ -37,14 +36,10 @@ if str(_ENG) not in sys.path:
 
 from lib.project_config import gcp_project_id, bq_dataset_id
 from lib.bigquery_helpers import get_client, new_batch_id
+from lib.setup_logging import setup_logging
 from google.cloud import bigquery
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-)
-logger = logging.getLogger(__name__)
+logger = setup_logging(__name__)
 
 GCP_PROJECT_ID = gcp_project_id()
 BQ_DATASET = bq_dataset_id()

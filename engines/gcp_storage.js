@@ -6,22 +6,13 @@
 
 import { readFile } from "node:fs/promises";
 import { Storage } from "@google-cloud/storage";
+import { projectId } from "./lib/project_config_js.js";
 
 /** Alvo canónico; override: `DATALAKE_BUCKET_RAW` (ex.: bucket de staging). */
 export const BUCKET_RAW =
   process.env.DATALAKE_BUCKET_RAW || "transparenciabr-datalake-raw";
 
 let storageSingleton = null;
-
-function projectId() {
-  return (
-    process.env.GOOGLE_CLOUD_PROJECT ||
-    process.env.GCLOUD_PROJECT ||
-    process.env.GCP_PROJECT_ID ||
-    process.env.GCLOUD_PROJECT_ID ||
-    ""
-  );
-}
 
 export function getStorage() {
   if (storageSingleton) return storageSingleton;

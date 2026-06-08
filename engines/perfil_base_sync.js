@@ -9,20 +9,11 @@
 
 import axios from "axios";
 import admin from "firebase-admin";
+import { projectId } from "./lib/project_config_js.js";
 
 const DEP_ID = (process.env.CEAP_DEPUTADO_ID || "220645").trim();
 const USER_AGENT =
   "TransparenciaBR-perfil_base_sync/1.0 (+https://github.com/mmbaesso1980/transparenciabr)";
-
-function projectId() {
-  return (
-    process.env.GOOGLE_CLOUD_PROJECT ||
-    process.env.GCLOUD_PROJECT ||
-    process.env.GCP_PROJECT_ID ||
-    process.env.GCLOUD_PROJECT_ID ||
-    ""
-  );
-}
 
 /** HTTPS obrigatório para fotos (mixed content no Hosting). */
 export function ensureHttpsCamaraUrl(url) {

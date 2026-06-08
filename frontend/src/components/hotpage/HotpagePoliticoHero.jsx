@@ -10,6 +10,7 @@ import {
   Leaf,
   Activity,
 } from "lucide-react";
+import { fmtBRL, fmtBRLcompact } from "../../utils/formatBRL.js";
 
 /**
  * HotpagePoliticoHero — Hero premium pra colar no TOPO da DossiePage existente.
@@ -22,20 +23,6 @@ import {
  *  - inWatchlist: boolean
  *  - onToggleWatchlist: () => void
  */
-
-const fmtBRL = (v) =>
-  (v ?? 0).toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-    maximumFractionDigits: 0,
-  });
-
-const fmtBRLcompact = (v) => {
-  if (!v && v !== 0) return "—";
-  if (v >= 1_000_000) return `R$ ${(v / 1_000_000).toFixed(1)} mi`;
-  if (v >= 1_000) return `R$ ${(v / 1_000).toFixed(0)} k`;
-  return fmtBRL(v);
-};
 
 const partyColorMap = {
   PT: "#dc2626", PL: "#16a34a", MDB: "#1e40af", PSD: "#0ea5e9",

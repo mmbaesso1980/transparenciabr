@@ -18,13 +18,7 @@ function PainelAwaitingData({ titulo = 'Sincronização', subtitulo = 'A aguarda
   );
 }
 
-const fmtBRL = (v) => v?.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
-const fmtBRLcompact = (v) => {
-  if (v >= 1_000_000_000) return `R$ ${(v / 1_000_000_000).toFixed(1)} bi`;
-  if (v >= 1_000_000) return `R$ ${(v / 1_000_000).toFixed(1)} mi`;
-  if (v >= 1_000) return `R$ ${(v / 1_000).toFixed(0)} k`;
-  return fmtBRL(v);
-};
+import { fmtBRL, fmtBRLcompact } from "../../../utils/formatBRL.js";
 
 // =============================================================================
 // B01 PontuacaoBrasil — gauge + sparkline

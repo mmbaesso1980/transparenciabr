@@ -14,7 +14,6 @@ from __future__ import annotations
 
 import argparse
 import hashlib
-import logging
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -31,9 +30,9 @@ if str(_ENG) not in sys.path:
 
 from lib.firebase_app import init_firestore
 from lib.project_config import bq_dataset_id, gcp_project_id
+from lib.setup_logging import setup_logging
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s")
-logger = logging.getLogger(__name__)
+logger = setup_logging(__name__)
 
 COLLECTION_MALHA = "malha_saude"
 COLLECTION_POLITICOS = "politicos"

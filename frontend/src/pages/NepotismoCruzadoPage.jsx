@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, AlertTriangle, Loader, Users, Link2 } from "lucide-react";
-
-const fmt = (v) => v != null ? Number(v).toLocaleString("pt-BR") : "—";
+import { fmt } from "../utils/formatBRL.js";
 
 export default function NepotismoCruzadoPage() {
   const [data, setData] = useState(null);

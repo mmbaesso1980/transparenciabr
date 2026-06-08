@@ -1,5 +1,6 @@
 import { Storage } from "@google-cloud/storage";
 import { gzipSync } from "node:zlib";
+import { projectId } from "../../lib/project_config_js.js";
 
 const PART_MAX_BYTES = 256 * 1024 * 1024;
 const PART_MAX_LINES = 500_000;
@@ -20,8 +21,8 @@ export function buildRawLakePrefix(source, dataset, ingestionDateIso, runId) {
  * @param {{ bucket: string, prefix: string, manifestExtra?: Record<string, unknown> }} opts
  */
 export async function writeNDJSONGzipParts(recordIterable, opts) {
-  const projectId = process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT || process.env.GCP_PROJECT_ID;
-  const storage = new Storage(projectId ? { projectId } : {});
+  const pid = projectId();
+  const storage = new Storage(pid ? { projectId: pid } : {});
   const bucket = storage.bucket(opts.bucket);
   const basePrefix = opts.prefix.replace(/\/+$/, "");
 

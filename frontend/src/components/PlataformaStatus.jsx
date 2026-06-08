@@ -12,23 +12,12 @@
 
 import { useEffect, useState } from "react";
 import { Database, Activity, FileCheck2, Layers } from "lucide-react";
+import { fmtBRL, fmtNum } from "../utils/formatBRL.js";
 
 const SPRINT_URL =
   "https://southamerica-east1-transparenciabr.cloudfunctions.net/getSprintStatus";
 const DASH_URL =
   "https://southamerica-east1-transparenciabr.cloudfunctions.net/getDashboardKPIs";
-
-const fmtBRL = (v) =>
-  Number.isFinite(Number(v))
-    ? Number(v).toLocaleString("pt-BR", {
-        style: "currency",
-        currency: "BRL",
-        maximumFractionDigits: 0,
-      })
-    : "—";
-
-const fmtNum = (v) =>
-  Number.isFinite(Number(v)) ? Number(v).toLocaleString("pt-BR") : "—";
 
 const fmtMB = (bytes) =>
   Number.isFinite(Number(bytes))

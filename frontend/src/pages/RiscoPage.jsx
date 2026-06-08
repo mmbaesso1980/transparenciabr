@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, AlertTriangle, TrendingUp, Loader, Shield } from "lucide-react";
+import { fmt } from "../utils/formatBRL.js";
 
-const fmt = (v) => v != null ? Number(v).toLocaleString("pt-BR") : "---";
 const fmtBRL = (v) => v != null ? `R$ ${Number(v).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "---";
 
 export default function RiscoPage() {

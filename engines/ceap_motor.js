@@ -49,15 +49,7 @@ const BENFORD_EXPECTED = Array.from({ length: 9 }, (_, i) =>
   Math.log10(1 + 1 / (i + 1)),
 );
 
-function projectId() {
-  return (
-    process.env.GOOGLE_CLOUD_PROJECT ||
-    process.env.GCLOUD_PROJECT ||
-    process.env.GCP_PROJECT_ID ||
-    process.env.GCLOUD_PROJECT_ID ||
-    ""
-  );
-}
+import { projectId } from "./lib/project_config_js.js";
 
 function firstSignificantDigit(value) {
   let v = Math.abs(Number(value));
