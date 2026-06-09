@@ -1,7 +1,7 @@
-# 00 — INVENTÁRIO CANÔNICO GOD Maestro v2.0
+# 00 — INVENTÁRIO CANÔNICO GOD Maestro v2.2
 
 > Single source of truth para tools, skills, capabilities e regras invioláveis do Maestro.
-> Última atualização: 2026-05-29.
+> Última atualização: 2026-06-04 (deploy v2.2 — cross-project secrets + listener systemd).
 > NUNCA modificar este arquivo sem atualizar `prompts/SYSTEM_PROMPT_v2.0.md` em paralelo.
 
 ---
@@ -10,15 +10,18 @@
 
 | Campo | Valor |
 |---|---|
-| Versão | v2.0 GOD |
+| Versão | v2.2 GOD |
 | Codinome interno | AURORA Maestro |
 | Modelo | `gemini-2.5-pro` em `projeto-codex-br/us-east1` |
 | Temperatura | `0.1` (determinístico forense) |
 | Max output tokens | 32.768 |
 | Worker Cloud Run | `maestro-worker` em `projeto-codex-br/us-east1` |
-| Worker SA | `maestro-worker@projeto-codex-br.iam.gserviceaccount.com` |
-| Listener VM | `aurora-cacador-br` (sa-east1-a) systemd `maestro-listener.service` |
+| Worker URL | `https://maestro-worker-evkxdmnelq-ue.a.run.app` |
+| Worker SA | descobrir via `gcloud run services describe maestro-worker --region=us-east1 --project=projeto-codex-br --format="value(spec.template.spec.serviceAccountName)"` |
+| **Listener (AUTORITATIVO)** | **Webhook FastAPI** em Cloud Run — `https://transparenciabr-glwbe3qhjq-uc.a.run.app/webhook` (PR #263, mergeado 2026-06-06). Telegram entrega via PUSH. |
+| Listener VM (DEPRECATED) | `aurora-cacador-br` (sa-east1-a) systemd `maestro-listener.service` — **zumbi pós PR #263** (o `listener.py` atual é FastAPI, não faz long-poll). Pode/deve ser `stop`+`disable`. |
 | Listener SA | `maestro-listener@transparenciabr.iam.gserviceaccount.com` |
+| Cloud Scheduler | `maestro-heartbeat` em `projeto-codex-br/us-east1` — cron `*/30 * * * *` |
 | Pub/Sub topic | `projects/projeto-codex-br/topics/maestro-commands` |
 | Subscription | `maestro-commands-sub` (ackDeadline 600s) |
 | Bot Telegram | `t.me/Asmodeuswebforgebot` |
@@ -42,7 +45,7 @@
 | `vertex_invoke` | Chama Gemini 2.5 Pro/Flash em projeto-codex-br | variável |
 | `directdata_call` | Direct Data API (QSA, BeneficiárioFinal, CadastroPF, Processos) | API quota |
 | `shell_exec` | Bash em sandbox isolado (timeout 300s) | zero |
-| `github_edit_file` | Edita arquivo + abre PR (requer F2 + PAT) | zero |
+| `github_edit_file` | Edita arquivo + abre PR (PAT; F2 removido no PR #268) | zero |
 | `task_complete` | Finaliza turno + grava `reason.end` | zero |
 
 ### 2.2 GOD-tier v2.0 (novas)
@@ -63,6 +66,42 @@
 ### 2.3 Regra de invocação obrigatória
 
 **Toda execução iniciada por `/maestro <comando>` DEVE terminar com `telegram_send` antes de `task_complete`.** Ausência de `telegram_send` é **violação operacional** (gravada em audit_log como `silent.fail`).
+
+### 2.4 — Cross-project secrets (sintaxe v2.2) 🆕
+
+O worker roda em `projeto-codex-br` (billing/crédito), mas os segredos vivem no Secret Manager de `transparenciabr`. Por isso a referência de cada secret no deploy do Cloud Run **DEVE usar o project NUMBER, não o project name**.
+
+- **Projeto dono dos secrets:** `transparenciabr` → número **`89728155070`**
+- **Sintaxe canônica (montagem cross-project):**
+  ```
+  projects/89728155070/secrets/<nome-do-secret>:latest
+  ```
+- **Exemplo real:**
+  ```
+  TELEGRAM_BOT_TOKEN=projects/89728155070/secrets/telegram-bot-token:latest
+  ```
+- **ERRADO (causa "secret not found" no startup):** usar o nome `projects/transparenciabr/secrets/...`. O Cloud Run cross-project resolve apenas pelo NUMBER.
+
+**8 secrets reais em Secret Manager (`transparenciabr`):**
+
+| Secret | Variável de ambiente |
+|---|---|
+| `telegram-bot-token` | `TELEGRAM_BOT_TOKEN` |
+| `github-pat` | `GITHUB_PAT` |
+| `directdata-token` | `DIRECTDATA_TOKEN` |
+| `datajud-token` | `DATAJUD_TOKEN` |
+| `serpapi-key` | `SERPAPI_KEY` |
+| `brave-search-key` | `BRAVE_SEARCH_KEY` |
+| `google-cse-key` | `GOOGLE_CSE_KEY` |
+| `google-cse-cx` | `GOOGLE_CSE_CX` |
+
+**IAM obrigatório:** a SA do worker precisa de `roles/secretmanager.secretAccessor` no projeto `transparenciabr`. Descobrir a SA com:
+```
+gcloud run services describe maestro-worker \
+  --region=us-east1 --project=projeto-codex-br \
+  --format="value(spec.template.spec.serviceAccountName)"
+```
+Detalhes operacionais e histórico de erro em `15_licoes_deploy_v22.md`.
 
 ---
 
@@ -174,20 +213,22 @@ Top usados:
 ## 9. ROADMAP
 
 - **v1.0** ✅ Worker + Listener + Memory + Deploy + blind test harness
-- **v2.0 GOD** 🚀 (este release) — 8 tools novas, 3 skills extras, F6 billing gate, regra silêncio, runbook ambiente único
-- **v2.1** ⏳ HQ wire-up (issue #252, 7 PRs)
-- **v2.2** ⏳ Self-edit do próprio prompt + tuning Vertex dataset
-- **v2.3** ⏳ Multi-Maestro voto Condorcet
+- **v2.0 GOD** ✅ 8 tools novas, 3 skills extras, F6 billing gate, regra silêncio, runbook ambiente único
+- **v2.1** ✅ HQ wire-up (issue #252, 7 PRs)
+- **v2.2 GOD** 🚀 (este release) — deploy produtivo 2026-06-04: worker Cloud Run com URL pública, cross-project secrets via project NUMBER `89728155070`, **webhook FastAPI ativo** (PR #263 venceu o polling; listener systemd da VM DEPRECATED), Cloud Scheduler `maestro-heartbeat` (30 min), F2 removido (PR #268), venv PEP 668 (legacy)
+- **v2.3** ⏳ Self-edit do próprio prompt + tuning Vertex dataset
+- **v2.4** ⏳ Multi-Maestro voto Condorcet
 
 ---
 
 ## 10. CONTRATO DE TURNO (run-loop)
 
 ```
-ON message_in:
+ON message_in (via webhook POST /webhook):
+  0. Validar header X-Telegram-Bot-Api-Secret-Token (fail-closed → 401 se ausente/ inválido)
   1. Validar F1 (chat_id)
   2. Parse comando
-  3. Se ação destrutiva: validar F2 (senha do dia)
+  3. (F2 senha do dia REMOVIDO no PR #268 — ver 06_freios_obrigatorios.md)
   4. Verificar F3 (kill-switch) → se ativo, telegram_send "MAESTRO HALTED" + abort
   5. Verificar F5 (FinOps cap) → se hard cap, telegram_send "FINOPS HARD CAP" + abort
   6. reason.start → audit_log
@@ -199,6 +240,29 @@ ON message_in:
   9. reason.end → audit_log
   10. msg.done → ack Pub/Sub
 ```
+
+---
+
+## 11. DECISÃO WEBHOOK — PR #263 VENCEU O POLLING 🆕
+
+**Decisão final (auditada em 2026-06-09, AUDITORIA C):** o mecanismo de ingestão de mensagens do Telegram em produção é o **webhook FastAPI** do PR #263. O **listener long-poll systemd da VM `aurora-cacador-br` está DEPRECATED** (zumbi).
+
+| Mecanismo | Origem | Onde roda | Status |
+|---|---|---|---|
+| **Webhook FastAPI** | PR #263 (`refactor-maestro-telegram-webhook`, mergeado 2026-06-06) | Cloud Run — `https://transparenciabr-glwbe3qhjq-uc.a.run.app/webhook` | **AUTORITATIVO — ATIVO** |
+| Long-poll (polling) | `/opt/maestro/listener.py` na VM via `maestro-listener.service` | systemd na VM `aurora-cacador-br` | **DEPRECATED / zumbi** |
+
+**Evidência (AUDITORIA C):**
+- `getWebhookInfo` confirma `url = https://transparenciabr-glwbe3qhjq-uc.a.run.app/webhook`, `pending_update_count = 0` → Telegram entrega via PUSH ao Cloud Run e não há fila acumulada.
+- O `listener.py` atual (pós PR #263) é FastAPI (`@app.post("/webhook")`) e **não tem loop `getUpdates`**. O `maestro-listener.service` chama `python listener.py` — que como FastAPI não sobe servidor por si, ficando em loop de falha/restart silencioso na VM. Logo a VM **não consome mensagens úteis**.
+
+**Regra operacional canônica:**
+1. **O webhook Cloud Run é o único ponto de entrada.** Telegram permite UM método por bot — com o webhook registrado, `getUpdates` (polling) fica indisponível por design.
+2. **Desativar o polling na VM:** `sudo systemctl stop maestro-listener && sudo systemctl disable maestro-listener`. A VM `aurora-cacador-br` não é mais necessária para o listener (ver `15_licoes_deploy_v22.md` §7).
+3. **Autenticação do webhook:** header `X-Telegram-Bot-Api-Secret-Token` validado pelo listener em modo **fail-closed** (sem secret carregado → `401` em tudo). Depende do secret `maestro-telegram-webhook-secret` no Secret Manager de `transparenciabr` (rodar `setup_webhook_secret.sh`). Ver `06_freios_obrigatorios.md` (F2 removido).
+4. **Risco residual a monitorar:** se `maestro-telegram-webhook-secret` não existir, o endpoint descarta TODAS as mensagens com `401`. Validar com `curl -s .../healthz` → esperar `"webhook_secret_loaded": true`.
+
+Histórico, runbook e racional completo em `15_licoes_deploy_v22.md`.
 
 ---
 
