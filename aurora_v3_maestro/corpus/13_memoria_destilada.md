@@ -192,10 +192,10 @@ Header obrigatório em todo CSV de leads:
 
 - **v1.0** (mai/2026) — Worker + Listener + Memory + Deploy + Teste cego harness
 - **v2.0 GOD** (29-mai-2026) — 19 tools, 6 freios, regra silêncio, anti-OPERADOR
-- **v2.1** (em curso) — Personalidade Computer transferida + HQ wire-up + Equipe formalizada
-- **v1.2** ⏳ Fine-tuning Vertex trimestral
-- **v1.3** ⏳ Auto-edição do system prompt
-- **v1.4** ⏳ Multi-Maestro com voto Condorcet
+- **v2.1** (jun/2026) — Personalidade Computer transferida + HQ wire-up + Equipe formalizada
+- **v2.2 GOD** (04-jun-2026) — **deploy produtivo.** Worker Cloud Run `maestro-worker` em `projeto-codex-br/us-east1` com URL pública (`https://maestro-worker-evkxdmnelq-ue.a.run.app`). **Cross-project secrets** via project NUMBER `89728155070` (8 secrets reais no Secret Manager de `transparenciabr`; usar NUMBER, nunca o name). **Webhook FastAPI ATIVO** em `https://transparenciabr-glwbe3qhjq-uc.a.run.app/webhook` (PR #263 venceu o polling — AUDITORIA C 2026-06-09); o listener systemd da VM `aurora-cacador-br` ficou **DEPRECATED/zumbi** e a VM pode ficar `stopped` exceto para batch. **Cloud Scheduler `maestro-heartbeat`** cron `*/30 * * * *` (30 min) bate no worker. F2 (senha do dia) **removido** pelo PR #268 → auth passa a F1 + header `X-Telegram-Bot-Api-Secret-Token` (fail-closed). Debian 12 PEP 668 → venv `~/maestro-venv` (legacy). Detalhe completo em `15_licoes_deploy_v22.md`.
+- **v2.3** ⏳ Fine-tuning Vertex trimestral + auto-edição do system prompt
+- **v2.4** ⏳ Multi-Maestro com voto Condorcet
 
 ## 19. LIÇÕES JÁ GRAVADAS EM `maestro_memory`
 
@@ -209,6 +209,11 @@ Header obrigatório em todo CSV de leads:
 | `hardcoded-paths` | Sempre env vars ou `Path(__file__).parent` |
 | `secret-scanning-leak` | Grep PAT/sk-/AIza antes de commit |
 | `reflection-20260529-0` | Reflexão diária 29-mai (auto-gerada) |
+| `cross-project-secret-number` | Secret cross-project usa project NUMBER `89728155070`, nunca o name `transparenciabr` |
+| `listener-filehandler-silent-fail` | Listener com `FileHandler` em path sem permissão falha em silêncio — usar `StreamHandler`/journald |
+| `pep668-venv-debian12` | Debian 12 bloqueia pip global (PEP 668) — usar venv `~/maestro-venv` (caminho VM legacy) |
+| `webhook-venceu-polling` | PR #263: webhook FastAPI Cloud Run é autoritativo; polling systemd da VM é zumbi — `disable` e VM pode ficar stopped |
+| `webhook-secret-fail-closed` | Sem `maestro-telegram-webhook-secret` o webhook retorna 401 e descarta tudo — checar `/healthz` |
 
 ## 20. PRINCÍPIOS-PILAR (INEGOCIÁVEIS)
 
