@@ -1,9 +1,9 @@
 '''
 # TransparênciaBR - AURORA Enrichment Pipeline (Maestro Autônomo)
 # Mission: Campinas-50 PII Enrichment
-# Runner: cascade_runner.py v1.0 (Dry Run)
+# Runner: cascade_runner.py v1.1 (No-Pandas)
 '''
-import pandas as pd
+import csv
 import requests
 import base64
 import os
@@ -34,18 +34,16 @@ def get_cpf_from_datajud(cnj: str) -> str | None:
     }
     try:
         response = requests.post(DATAJUD_ENDPOINT, headers=headers, json=query, timeout=20)
-        response.raise_for_status() # Lança exceção para 4xx/5xx
+        response.raise_for_status()
 
         data = response.json()
         if not data.get("hits", {}).get("hits"):
             return None
 
-        # Extrai CPF do primeiro resultado, polo ativo
         partes = data["hits"]["hits"][0]["_source"].get("partes", [])
         for parte in partes:
             if parte.get("tipo") == "polo_ativo":
                 documento = parte.get("documento")
-                # Validação simples de formato
                 if documento and len(str(documento)) == 11 and str(documento).isdigit():
                     return str(documento)
         return None
@@ -56,22 +54,31 @@ def get_cpf_from_datajud(cnj: str) -> str | None:
 
 def main():
     '''Executa o pipeline de enriquecimento.'''
-    print("--- INICIANDO ENRIQUECIMENTO CAMPINAS-50 ---")
+    print("--- INICIANDO ENRIQUECIMENTO CAMPINAS-50 (v1.1 No-Pandas) ---")
     print(f"Modo DRY_RUN: {DRY_RUN}")
 
     try:
-        df = pd.read_csv(LEADS_CSV_PATH)
-        print(f"Arquivo {LEADS_CSV_PATH} lido com sucesso. Total de leads: {len(df)}")
+        with open(LEADS_CSV_PATH, mode='r', encoding='utf-8') as infile:
+            reader = csv.DictReader(infile)
+            leads = list(reader)
+        total_leads = len(leads)
+        print(f"Arquivo {LEADS_CSV_PATH} lido com sucesso. Total de leads: {total_leads}")
     except FileNotFoundError:
         print(f"[ERRO CRÍTICO] Arquivo de leads não encontrado em: {LEADS_CSV_PATH}")
         return
+    except Exception as e:
+        print(f"[ERRO CRÍTICO] Erro ao ler o arquivo CSV: {e}")
+        return
 
     hits_pje = 0
-    total_leads = len(df)
+    
+    for i, row in enumerate(leads):
+        cnj = row.get("numero_cnj")
+        if not cnj:
+            print(f"  -> AVISO: Lead {i+1} não possui a coluna 'numero_cnj'. Pulando.")
+            continue
 
-    for index, row in df.iterrows():
-        cnj = row["numero_cnj"]
-        print(f"Processando lead {index + 1}/{total_leads} (CNJ: {cnj})...")
+        print(f"Processando lead {i + 1}/{total_leads} (CNJ: {cnj})...")
         
         cpf = get_cpf_from_datajud(cnj)
         
@@ -81,7 +88,6 @@ def main():
         else:
             print(f"  -> MISS no Datajud para o CNJ {cnj}.")
         
-        # Pausa para não sobrecarregar a API
         time.sleep(1)
 
     print("\n--- RESULTADO DO DRY RUN ---")
