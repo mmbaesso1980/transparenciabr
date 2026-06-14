@@ -1,184 +1,21 @@
-@import url("https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Inter:ital,opsz,wght@0,14..32,300..700;1,14..32,400..700&display=swap");
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@700&family=Inter:wght@400;600&display=swap');
 
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-@theme {
-  --color-soc-void: #050a12;
-  --color-soc-deep: #0b1220;
-  --color-soc-elevated: #0f172a;
-  --color-soc-border: rgba(148, 163, 184, 0.14);
-  --color-soc-text: #f8fafc;
-  --color-soc-muted: #94a3b8;
-  --color-soc-accent: #38bdf8;
-}
-
-/*
- * Nota: html2canvas (html2pdf) não suporta oklch. O bloco DossiePDFContent usa
- * apenas estilos inline hex/rgb. Se o build do Tailwind v4 emitir oklch nas
- * utilities, manter componentes de captura PDF livres de classes Tailwind.
- */
-
-/* ═══ Design System — TransparênciaBR · tema escuro operacional ═══ */
-
-:root {
-  color-scheme: dark;
-
-  /* SOC / dark-native (cockpit) */
-  --bg-void: #050a12;
-  --bg-deep: #0b1220;
-  --bg-elevated: #0f172a;
-  --bg-surface: #111c2e;
-  --bg-muted: #1e293b;
-
-  /* Texto */
-  --text-primary: #f8fafc;
-  --text-secondary: #94a3b8;
-  --text-muted: #64748b;
-  --text-inverse: #050a12;
-
-  /* Bordas & sombras */
-  --border-subtle: rgba(148, 163, 184, 0.14);
-  --border-strong: rgba(148, 163, 184, 0.22);
-  --shadow-elevated: 0 24px 48px rgba(0, 0, 0, 0.5);
-
-  /* Destaques — ciano/azul (navegação / UI); vermelho/laranja só risco */
-  --accent-primary: #38bdf8;
-  --accent-primary-soft: rgba(56, 189, 248, 0.18);
-  --accent-secondary: #60a5fa;
-  --accent-warning: #fbbf24;
-  --accent-danger: #f97316;
-  --accent-critical: #ef4444;
-
-  /* Estados operacionais (secundário ao ciano) */
-  --afrodite-clean: #22d3ee;
-  --afrodite-clean-glow: rgba(34, 211, 238, 0.22);
-  --afrodite-clean-bg: rgba(34, 211, 238, 0.08);
-  --afrodite-clean-border: rgba(34, 211, 238, 0.28);
-
-  /* Anomalias / alertas críticos (reservado a risco) */
-  --dracula-red: #ef4444;
-  --dracula-red-glow: rgba(239, 68, 68, 0.35);
-  --dracula-red-bg: rgba(239, 68, 68, 0.1);
-  --dracula-red-border: rgba(239, 68, 68, 0.38);
-
-  /* Tipografia */
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "Fira Code", ui-monospace, monospace;
-}
-
-/* Acessibilidade: atalho de teclado para saltar navegação repetida */
-.skip-to-main {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
-}
-
-.skip-to-main:focus {
-  position: fixed;
-  left: 1rem;
-  top: 1rem;
-  z-index: 99999;
-  width: auto;
-  height: auto;
-  margin: 0;
-  clip: auto;
-  padding: 0.65rem 1rem;
-  overflow: visible;
-  white-space: normal;
-  border-radius: 0.5rem;
-  background: #0d1117;
-  border: 1px solid rgba(125, 211, 252, 0.45);
-  color: #f0f4fc;
-  font-size: 0.875rem;
-  font-weight: 600;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.55);
-}
-
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-}
-
-html {
-  font-family: var(--font-sans);
-  font-optical-sizing: auto;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  overflow-x: hidden;
-}
-
-body {
-  margin: 0;
-  min-height: 100dvh;
-  overflow-x: hidden;
-  background-color: var(--bg-void);
-  color: var(--text-primary);
-}
-
-code,
-kbd,
-samp,
-pre {
-  font-family: var(--font-mono);
-}
-
-/* Bentobox Cyber-Pristine — cartões principais */
-.glass-card {
-  min-width: 0;
-  max-width: 100%;
-  background: rgb(11 18 32 / 0.72);
-  backdrop-filter: blur(16px) saturate(160%);
-  -webkit-backdrop-filter: blur(16px) saturate(160%);
-  border: 1px solid var(--border-subtle);
-  border-radius: 1rem;
-  box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.5);
-}
-
-.font-data {
-  font-family: var(--font-mono);
-  color: var(--text-secondary);
-}
-
-/* Vidro fosco — painéis flutuantes */
-.glass {
-  backdrop-filter: blur(25px) saturate(180%);
-  background: rgba(255, 255, 255, 0.04);
-}
-
-.glass-alert {
-  backdrop-filter: blur(18px) saturate(140%);
-}
-
-/* Painéis densidade alta — cockpit / SOC */
-.dashboard-panel.glass {
-  background: var(--bg-deep);
-  border: 1px solid var(--border-subtle);
-  border-radius: 12px;
-}
-
-/* Listas densas (Monitor CEAP expandido) */
-.custom-scrollbar {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(88, 166, 255, 0.35) rgba(22, 27, 34, 0.8);
-}
-.custom-scrollbar::-webkit-scrollbar {
-  width: 8px;
-}
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: rgba(22, 27, 34, 0.85);
-  border-radius: 999px;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(88, 166, 255, 0.35);
-  border-radius: 999px;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(88, 166, 255, 0.5);
+@layer base {
+  body {
+    @apply bg-brand-bg text-ink font-sans;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display;
+  }
+  /* Adding custom classes for explicit font usage, as used in the page components */
+  .inter {
+    @apply font-sans;
+  }
+  .dm-sans {
+    @apply font-display;
+  }
 }
