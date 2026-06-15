@@ -1,0 +1,124 @@
+name: AURORA · Enrichment Campinas
+on:
+  workflow_dispatch:
+    inputs:
+      dd_token:
+        description: 'DirectData token'
+        required: true
+      gcs_output_uri:
+        description: 'gs://bucket/path para resultado enriquecido'
+        required: true
+        default: 'gs://tbr-leads-staging/campinas/leads_campinas_enriched_v4.json'
+
+jobs:
+  enrich:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_JSON }}
+      - uses: google-github-actions/setup-gcloud@v2
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install requests
+      - name: Run enrichment
+        env:
+          DD_TOKEN: ${{ github.event.inputs.dd_token }}
+        run: |
+          python3 - <<'PY'
+          import json, os, time, requests
+          from urllib.parse import quote
+          from collections import Counter
+
+          TOK = os.environ['DD_TOKEN']
+          BASE = 'https://api.directd.com.br'
+
+          with open('ops/enrich/leads_campinas_REAL_v3.json') as f:
+              leads = json.load(f)
+          print(f'Leads input: {len(leads)}')
+
+          # Endpoints prováveis no contrato DirectData CadastroPF Plus
+          # Documentação privada — testar variações conhecidas
+          ENDPOINTS = [
+              ('/V3/BuscaPorNome',     {'NOME':'<NOME>','UF':'SP','CIDADE':'Campinas'}),
+              ('/V3/ConsultaPorNome',  {'NOME':'<NOME>','UF':'SP','CIDADE':'Campinas'}),
+              ('/V3/CadastroPessoaFisicaPorNome', {'NOME':'<NOME>','UF':'SP','CIDADE':'Campinas'}),
+              ('/V3/PessoasPorNome',   {'NOME':'<NOME>','UF':'SP','CIDADE':'Campinas'}),
+              ('/V2/BuscaPorNome',     {'NOME':'<NOME>','UF':'SP','CIDADE':'Campinas'}),
+              ('/V3/LocalizaPF',       {'NOME':'<NOME>','UF':'SP','CIDADE':'Campinas'}),
+          ]
+
+          # Probe inicial: descobrir QUAL endpoint funciona
+          print('=== PROBE ENDPOINTS ===')
+          probe_nome = leads[0]['nome_completo']
+          working_endpoint = None
+          for ep, params in ENDPOINTS:
+              q = {'TOKEN': TOK, **{k:v.replace('<NOME>', probe_nome) for k,v in params.items()}}
+              url = f'{BASE}{ep}?' + '&'.join(f'{k}={quote(str(v))}' for k,v in q.items())
+              try:
+                  r = requests.get(url, timeout=20)
+                  body_sample = r.text[:300].replace('\n',' ')
+                  print(f'{ep:<45} HTTP={r.status_code} len={len(r.text)} body={body_sample}')
+                  if r.status_code == 200 and len(r.text) > 50 and 'não encontrado' not in r.text.lower()[:200]:
+                      try:
+                          r.json(); working_endpoint = (ep, params); break
+                      except: pass
+              except Exception as e:
+                  print(f'{ep:<45} ERR {type(e).__name__}: {str(e)[:120]}')
+
+          if not working_endpoint:
+              print('!!! Nenhum endpoint de nome retornou JSON válido. Tentando endpoints alternativos com CPF dummy para validar token...')
+              for cpf_probe in ['00000000000','11111111111']:
+                  url = f'{BASE}/V3/CadastroPessoaFisica?TOKEN={TOK}&CPF={cpf_probe}'
+                  try:
+                      r = requests.get(url, timeout=20)
+                      print(f'  CadastroPF CPF={cpf_probe} HTTP={r.status_code} body={r.text[:200]}')
+                  except Exception as e:
+                      print(f'  CadastroPF ERR {e}')
+              with open('/tmp/leads_enriched.json','w') as f:
+                  json.dump({'erro':'nenhum_endpoint_funcionou','probed':[ep for ep,_ in ENDPOINTS]}, f, indent=2)
+              raise SystemExit(0)
+
+          ep, params = working_endpoint
+          print(f'=== USANDO ENDPOINT: {ep} ===')
+
+          out = []
+          stats = Counter()
+          for i, lead in enumerate(leads):
+              nome = lead.get('nome_completo','').strip()
+              if len(nome.split()) < 2:
+                  out.append({**lead, 'enrich_status':'nome_invalido'}); stats['nome_invalido']+=1; continue
+              q = {'TOKEN': TOK, **{k:v.replace('<NOME>', nome) for k,v in params.items()}}
+              url = f'{BASE}{ep}?' + '&'.join(f'{k}={quote(str(v))}' for k,v in q.items())
+              try:
+                  r = requests.get(url, timeout=25)
+                  if r.status_code == 200 and len(r.text) > 50:
+                      try:
+                          data = r.json()
+                          out.append({**lead, 'enrich_status':'achado', 'dd_endpoint':ep, 'dd_data':data})
+                          stats['achado'] += 1
+                      except Exception as e:
+                          out.append({**lead, 'enrich_status':'json_invalido', 'raw':r.text[:500]})
+                          stats['json_invalido'] += 1
+                  else:
+                      out.append({**lead, 'enrich_status':f'http_{r.status_code}', 'raw':r.text[:500]})
+                      stats[f'http_{r.status_code}'] += 1
+              except Exception as e:
+                  out.append({**lead, 'enrich_status':'erro', 'err':str(e)[:200]})
+                  stats['erro'] += 1
+              if (i+1) % 5 == 0 or i == 0:
+                  print(f'[{i+1}/{len(leads)}] {nome[:40]} status={out[-1].get("enrich_status")}')
+              time.sleep(0.5)
+
+          print('=== STATS ===')
+          for k,v in stats.most_common(): print(f'  {k}: {v}')
+
+          with open('/tmp/leads_enriched.json','w') as f:
+              json.dump(out, f, ensure_ascii=False, indent=2)
+          PY
+      - run: gcloud storage cp /tmp/leads_enriched.json "${{ github.event.inputs.gcs_output_uri }}"
