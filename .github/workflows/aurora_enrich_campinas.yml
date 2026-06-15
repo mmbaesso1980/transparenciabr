@@ -1,0 +1,91 @@
+name: AURORA · Enrichment Campinas Buscarcompessoa
+on:
+  workflow_dispatch:
+    inputs:
+      dd_token:
+        description: 'DirectData token'
+        required: true
+      gcs_input_uri:
+        description: 'gs://bucket/path para JSON de leads (sem CPF)'
+        required: true
+        default: 'gs://tbr-leads-staging/campinas/leads_campinas_REAL_v3.json'
+      gcs_output_uri:
+        description: 'gs://bucket/path para resultado enriquecido'
+        required: true
+        default: 'gs://tbr-leads-staging/campinas/leads_campinas_enriched_v4.json'
+
+jobs:
+  enrich:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Auth GCP
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_JSON }}
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v2
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install deps
+        run: pip install requests
+      - name: Download input from GCS
+        run: gcloud storage cp "${{ github.event.inputs.gcs_input_uri }}" /tmp/leads_in.json
+      - name: Run enrichment
+        env:
+          DD_TOKEN: ${{ github.event.inputs.dd_token }}
+        run: |
+          python3 <<'PY'
+          import json, os, time, requests, sys
+          from urllib.parse import quote
+          TOK = os.environ['DD_TOKEN']
+          with open('/tmp/leads_in.json') as f:
+              leads = json.load(f)
+          out = []
+          stats = {'tentados':0, 'achados':0, 'sem_match':0, 'erro':0}
+          for i, lead in enumerate(leads):
+              nome = lead.get('nome_completo','').strip()
+              if len(nome.split()) < 2:
+                  out.append({**lead, 'enrich_status':'nome_invalido'}); continue
+              stats['tentados'] += 1
+              # DirectData BuscaCPF (V3) — busca por nome+nascimento ou nome+cidade
+              # Endpoint correto: BuscaPorNome ou ConsultaPF (varia por contrato)
+              tried = []
+              found = False
+              for endpoint in ['BuscaPorNome', 'ConsultaPessoa', 'PessoaFisica']:
+                  url = f'https://api.directd.com.br/V3/{endpoint}?TOKEN={TOK}&NOME={quote(nome)}&CIDADE=Campinas&UF=SP'
+                  try:
+                      r = requests.get(url, timeout=20)
+                      tried.append({'ep':endpoint,'http':r.status_code,'len':len(r.text)})
+                      if r.status_code == 200 and r.text and 'erro' not in r.text.lower()[:200]:
+                          data = r.json()
+                          out.append({**lead, 'enrich_status':'achado', 'dd_endpoint':endpoint, 'dd_data':data})
+                          stats['achados'] += 1; found = True; break
+                  except Exception as e:
+                      tried.append({'ep':endpoint,'err':str(e)[:100]})
+              if not found:
+                  out.append({**lead, 'enrich_status':'sem_match', 'dd_tries':tried})
+                  stats['sem_match'] += 1
+              if i % 5 == 0:
+                  print(f'[{i+1}/{len(leads)}] {nome[:40]} → {tried[-1] if tried else "?"}')
+              time.sleep(0.4)
+          print('STATS:', json.dumps(stats))
+          with open('/tmp/leads_enriched.json','w') as f:
+              json.dump(out, f, ensure_ascii=False, indent=2)
+          PY
+      - name: Upload output to GCS
+        run: gcloud storage cp /tmp/leads_enriched.json "${{ github.event.inputs.gcs_output_uri }}"
+      - name: Stats summary
+        run: |
+          echo "=== STATS ==="
+          python3 -c "
+          import json
+          d = json.load(open('/tmp/leads_enriched.json'))
+          from collections import Counter
+          c = Counter(x.get('enrich_status') for x in d)
+          for k,v in c.items(): print(f'{k}: {v}')
+          "
