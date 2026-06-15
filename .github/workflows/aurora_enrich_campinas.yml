@@ -1,4 +1,4 @@
-name: AURORA · Enrichment Campinas
+name: AURORA · Enrichment Campinas via VM
 on:
   workflow_dispatch:
     inputs:
@@ -22,15 +22,26 @@ jobs:
         with:
           credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_JSON }}
       - uses: google-github-actions/setup-gcloud@v2
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-      - run: pip install requests
-      - name: Run enrichment
-        env:
-          DD_TOKEN: ${{ github.event.inputs.dd_token }}
+
+      - name: Set vars
         run: |
-          python3 - <<'PY'
+          echo "VM_NAME=aurora-cacador-br" >> $GITHUB_ENV
+          echo "VM_ZONE=southamerica-east1-a" >> $GITHUB_ENV
+          echo "VM_PROJ=transparenciabr" >> $GITHUB_ENV
+
+      - name: Wake VM
+        run: |
+          STATUS=$(gcloud compute instances describe $VM_NAME --zone=$VM_ZONE --project=$VM_PROJ --format='value(status)')
+          echo "Status atual: $STATUS"
+          if [ "$STATUS" != "RUNNING" ]; then
+            gcloud compute instances start $VM_NAME --zone=$VM_ZONE --project=$VM_PROJ
+            sleep 30
+          fi
+          gcloud compute instances describe $VM_NAME --zone=$VM_ZONE --project=$VM_PROJ --format='value(status,networkInterfaces[0].accessConfigs[0].natIP)'
+
+      - name: Build remote script
+        run: |
+          cat > /tmp/remote_enrich.py <<'PY'
           import json, os, time, requests
           from urllib.parse import quote
           from collections import Counter
@@ -38,12 +49,10 @@ jobs:
           TOK = os.environ['DD_TOKEN']
           BASE = 'https://api.directd.com.br'
 
-          with open('ops/enrich/leads_campinas_REAL_v3.json') as f:
+          with open('/tmp/leads_in.json') as f:
               leads = json.load(f)
-          print(f'Leads input: {len(leads)}')
+          print(f'Leads input: {len(leads)}', flush=True)
 
-          # Endpoints prováveis no contrato DirectData CadastroPF Plus
-          # Documentação privada — testar variações conhecidas
           ENDPOINTS = [
               ('/V3/BuscaPorNome',     {'NOME':'<NOME>','UF':'SP','CIDADE':'Campinas'}),
               ('/V3/ConsultaPorNome',  {'NOME':'<NOME>','UF':'SP','CIDADE':'Campinas'}),
@@ -51,42 +60,46 @@ jobs:
               ('/V3/PessoasPorNome',   {'NOME':'<NOME>','UF':'SP','CIDADE':'Campinas'}),
               ('/V2/BuscaPorNome',     {'NOME':'<NOME>','UF':'SP','CIDADE':'Campinas'}),
               ('/V3/LocalizaPF',       {'NOME':'<NOME>','UF':'SP','CIDADE':'Campinas'}),
+              ('/V3/PessoaFisicaPorNome', {'NOME':'<NOME>','UF':'SP','CIDADE':'Campinas'}),
+              ('/V3/BuscaPF', {'NOME':'<NOME>','UF':'SP','CIDADE':'Campinas'}),
+              ('/V3/CadastroPessoaFisicaPlus', {'NOME':'<NOME>','UF':'SP','CIDADE':'Campinas'}),
           ]
 
-          # Probe inicial: descobrir QUAL endpoint funciona
-          print('=== PROBE ENDPOINTS ===')
-          probe_nome = leads[0]['nome_completo']
-          working_endpoint = None
+          print('=== PROBE ENDPOINTS ===', flush=True)
+          probe = leads[0]['nome_completo']
+          working = None
           for ep, params in ENDPOINTS:
-              q = {'TOKEN': TOK, **{k:v.replace('<NOME>', probe_nome) for k,v in params.items()}}
+              q = {'TOKEN': TOK, **{k:v.replace('<NOME>', probe) for k,v in params.items()}}
               url = f'{BASE}{ep}?' + '&'.join(f'{k}={quote(str(v))}' for k,v in q.items())
               try:
                   r = requests.get(url, timeout=20)
-                  body_sample = r.text[:300].replace('\n',' ')
-                  print(f'{ep:<45} HTTP={r.status_code} len={len(r.text)} body={body_sample}')
-                  if r.status_code == 200 and len(r.text) > 50 and 'não encontrado' not in r.text.lower()[:200]:
+                  body = r.text[:250].replace('\n',' ')
+                  print(f'{ep:<45} HTTP={r.status_code} len={len(r.text)} body={body}', flush=True)
+                  if r.status_code == 200 and len(r.text) > 50:
                       try:
-                          r.json(); working_endpoint = (ep, params); break
+                          d = r.json()
+                          # Validar que parece resposta de pessoa, não erro
+                          txt = json.dumps(d)[:300].lower()
+                          if 'erro' not in txt[:80] and 'invalid' not in txt[:80] and 'unauthor' not in txt[:80]:
+                              working = (ep, params); break
                       except: pass
               except Exception as e:
-                  print(f'{ep:<45} ERR {type(e).__name__}: {str(e)[:120]}')
+                  print(f'{ep:<45} ERR {type(e).__name__}: {str(e)[:120]}', flush=True)
 
-          if not working_endpoint:
-              print('!!! Nenhum endpoint de nome retornou JSON válido. Tentando endpoints alternativos com CPF dummy para validar token...')
-              for cpf_probe in ['00000000000','11111111111']:
-                  url = f'{BASE}/V3/CadastroPessoaFisica?TOKEN={TOK}&CPF={cpf_probe}'
+          if not working:
+              print('!!! Nenhum endpoint nominal funcionou. Validando token com CadastroPF (CPF dummy)...', flush=True)
+              for cpf in ['11144477735','01234567890']:
                   try:
-                      r = requests.get(url, timeout=20)
-                      print(f'  CadastroPF CPF={cpf_probe} HTTP={r.status_code} body={r.text[:200]}')
+                      r = requests.get(f'{BASE}/V3/CadastroPessoaFisica?TOKEN={TOK}&CPF={cpf}', timeout=20)
+                      print(f'  CadastroPF CPF={cpf} HTTP={r.status_code} body={r.text[:300]}', flush=True)
                   except Exception as e:
-                      print(f'  CadastroPF ERR {e}')
+                      print(f'  CadastroPF CPF={cpf} ERR {e}', flush=True)
               with open('/tmp/leads_enriched.json','w') as f:
-                  json.dump({'erro':'nenhum_endpoint_funcionou','probed':[ep for ep,_ in ENDPOINTS]}, f, indent=2)
+                  json.dump({'erro':'nenhum_endpoint','total':len(leads)}, f, indent=2)
               raise SystemExit(0)
 
-          ep, params = working_endpoint
-          print(f'=== USANDO ENDPOINT: {ep} ===')
-
+          ep, params = working
+          print(f'=== USANDO: {ep} ===', flush=True)
           out = []
           stats = Counter()
           for i, lead in enumerate(leads):
@@ -96,29 +109,55 @@ jobs:
               q = {'TOKEN': TOK, **{k:v.replace('<NOME>', nome) for k,v in params.items()}}
               url = f'{BASE}{ep}?' + '&'.join(f'{k}={quote(str(v))}' for k,v in q.items())
               try:
-                  r = requests.get(url, timeout=25)
+                  r = requests.get(url, timeout=30)
                   if r.status_code == 200 and len(r.text) > 50:
                       try:
-                          data = r.json()
-                          out.append({**lead, 'enrich_status':'achado', 'dd_endpoint':ep, 'dd_data':data})
+                          d = r.json()
+                          out.append({**lead, 'enrich_status':'achado', 'dd_endpoint':ep, 'dd_data':d})
                           stats['achado'] += 1
-                      except Exception as e:
-                          out.append({**lead, 'enrich_status':'json_invalido', 'raw':r.text[:500]})
-                          stats['json_invalido'] += 1
+                      except:
+                          out.append({**lead, 'enrich_status':'json_inv', 'raw':r.text[:500]}); stats['json_inv']+=1
                   else:
-                      out.append({**lead, 'enrich_status':f'http_{r.status_code}', 'raw':r.text[:500]})
-                      stats[f'http_{r.status_code}'] += 1
+                      out.append({**lead, 'enrich_status':f'http_{r.status_code}', 'raw':r.text[:500]}); stats[f'http_{r.status_code}']+=1
               except Exception as e:
-                  out.append({**lead, 'enrich_status':'erro', 'err':str(e)[:200]})
-                  stats['erro'] += 1
+                  out.append({**lead, 'enrich_status':'erro', 'err':str(e)[:200]}); stats['erro']+=1
               if (i+1) % 5 == 0 or i == 0:
-                  print(f'[{i+1}/{len(leads)}] {nome[:40]} status={out[-1].get("enrich_status")}')
+                  print(f'[{i+1}/{len(leads)}] {nome[:40]} → {out[-1].get("enrich_status")}', flush=True)
               time.sleep(0.5)
 
-          print('=== STATS ===')
-          for k,v in stats.most_common(): print(f'  {k}: {v}')
-
+          print('=== STATS ===', flush=True)
+          for k,v in stats.most_common(): print(f'  {k}: {v}', flush=True)
           with open('/tmp/leads_enriched.json','w') as f:
               json.dump(out, f, ensure_ascii=False, indent=2)
+          print(f'OK len={len(out)}', flush=True)
           PY
-      - run: gcloud storage cp /tmp/leads_enriched.json "${{ github.event.inputs.gcs_output_uri }}"
+
+      - name: Copy script + input to VM
+        run: |
+          gcloud compute scp /tmp/remote_enrich.py ops/enrich/leads_campinas_REAL_v3.json \
+            $VM_NAME:/tmp/ --zone=$VM_ZONE --project=$VM_PROJ --tunnel-through-iap=false 2>&1 | tail -20
+          # Garantir nome correto do JSON
+          gcloud compute ssh $VM_NAME --zone=$VM_ZONE --project=$VM_PROJ --command="mv /tmp/leads_campinas_REAL_v3.json /tmp/leads_in.json && ls -la /tmp/leads_in.json /tmp/remote_enrich.py"
+
+      - name: Run enrichment on VM
+        env:
+          DD_TOKEN: ${{ github.event.inputs.dd_token }}
+        run: |
+          gcloud compute ssh $VM_NAME --zone=$VM_ZONE --project=$VM_PROJ \
+            --command="export DD_TOKEN='$DD_TOKEN'; python3 -m pip install --user --quiet requests 2>&1 | tail -3; python3 /tmp/remote_enrich.py 2>&1" | tee /tmp/run.log
+          echo "=== LAST 80 LINES ==="
+          tail -80 /tmp/run.log
+
+      - name: Fetch result from VM
+        run: |
+          gcloud compute scp $VM_NAME:/tmp/leads_enriched.json /tmp/leads_enriched.json \
+            --zone=$VM_ZONE --project=$VM_PROJ
+          ls -la /tmp/leads_enriched.json
+          head -c 1500 /tmp/leads_enriched.json
+
+      - name: Upload result to GCS
+        run: gcloud storage cp /tmp/leads_enriched.json "${{ github.event.inputs.gcs_output_uri }}"
+
+      - name: Stop VM
+        if: always()
+        run: gcloud compute instances stop $VM_NAME --zone=$VM_ZONE --project=$VM_PROJ --async || true
