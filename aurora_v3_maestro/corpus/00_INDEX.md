@@ -12,3 +12,4 @@ no caso Paulo Octávio v2.3 (alta inteligência) e Erika v3.5.1 (auditoria exter
 - `05_padroes_aprendidos.md` — lições do v2.3 alta inteligência + cases pricing
 - `06_freios_obrigatorios.md` — kill-switch, whitelist, snapshot rollback
 - `07_capabilities_e_apis.md` — Direct Data, Vertex, GitHub, Telegram, Firestore
+- `16_skill_dossie_evento_forense.md` — pipeline dossiê de EVENTO/marco/obra (COP30, Olimpíadas, Copa, festival, megaprojeto) com Fase 4 dedicada a emendas parlamentares (origem→empenho→liquidação→pagamento). Caso de referência: COP30 v1.1 (107 findings, R$ 6,97 bi, 76 páginas, Eixo 5 com 12 findings de emendas).
