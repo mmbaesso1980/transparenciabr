@@ -1,17 +1,14 @@
 #!/bin/bash
-
 set -e
 
 SERVICE_NAME="pdf-renderer"
 REGION="southamerica-east1"
-# Deploying on the project with credits and run capabilities
 PROJECT_ID="projeto-codex-br"
 GCS_BUCKET_NAME="transparenciabr-dossies"
 
-echo "Building the Docker image..."
-# The command must be run from the root of the repository
-# The Dockerfile is in a subdirectory, so we specify the path to it.
-gcloud builds submit . --config=services/pdf_renderer/cloudbuild.yaml --project="${PROJECT_ID}"
+echo "Submitting build using the repository root as context..."
+# This command must be run from the root of the repository.
+gcloud builds submit . --tag "gcr.io/${PROJECT_ID}/${SERVICE_NAME}:latest" --project="${PROJECT_ID}" --dockerfile="services/pdf_renderer/Dockerfile"
 
 echo "Deploying to Cloud Run..."
 gcloud run deploy "${SERVICE_NAME}" \
@@ -20,6 +17,7 @@ gcloud run deploy "${SERVICE_NAME}" \
   --region "${REGION}" \
   --project "${PROJECT_ID}" \
   --set-env-vars "GCS_BUCKET=${GCS_BUCKET_NAME}" \
+  --service-account "maestro-worker@projeto-codex-br.iam.gserviceaccount.com" \
   --allow-unauthenticated
 
 echo " "
