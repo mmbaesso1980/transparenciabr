@@ -19,7 +19,8 @@ import pytest
 from wolf_trader import runner as runner_mod
 from wolf_trader.runner import RunnerConfig, Runner
 from wolf_trader.engine import WolfTraderEngine, LimitesRisco
-from wolf_trader.polymarket_client import Mercado
+from wolf_trader.polymarket_client import Mercado, Cotacao
+from devin_bridge.wolf_doctrine import Acao, Decisao
 
 
 # ---------------------------------------------------------------------------
@@ -97,11 +98,17 @@ class TestTokens:
 # Ciclo
 # ---------------------------------------------------------------------------
 class TestCiclo:
-    def _engine_fake(self, mercados, prop=None):
+    def _engine_fake(self, mercados, prop=None, acao=Acao.COMPRAR):
         reader = mock.MagicMock()
         reader.listar_mercados.return_value = mercados
+        # cotacao é chamada pelo runner antes de decidir; devolve book neutro.
+        reader.cotacao.return_value = Cotacao("t1", bid=0.49, ask=0.51, mid=0.50)
         engine = WolfTraderEngine(reader=reader, trader=mock.MagicMock(),
                                   limites=LimitesRisco())
+        # decidir_mercado agora precede avaliar_mercado: controla se vira ordem.
+        decisao = Decisao(acao=acao, conviccao=0.7, override_tecnico=False,
+                          racional="fake", sinais_usados=["T1"])
+        engine.decidir_mercado = mock.MagicMock(return_value=(decisao, None))
         engine.avaliar_mercado = mock.MagicMock(return_value=prop)
         engine.executar = mock.MagicMock(return_value="ok simulado")
         return engine
@@ -112,9 +119,20 @@ class TestCiclo:
         r._um_ciclo()  # não deve levantar
         engine.avaliar_mercado.assert_not_called()
 
-    def test_ciclo_sem_proposta_nao_executa(self):
+    def test_ciclo_hold_nao_executa(self):
+        # Decisão MANTER (HOLD): reage, mas não vira ordem.
         m = Mercado("cid", "p?", True, [{"token_id": "t1"}], [])
-        engine = self._engine_fake([m], prop=None)
+        engine = self._engine_fake([m], prop=None, acao=Acao.MANTER)
+        r = Runner(RunnerConfig(), engine)
+        r._um_ciclo()
+        engine.decidir_mercado.assert_called_once()
+        engine.avaliar_mercado.assert_not_called()
+        engine.executar.assert_not_called()
+
+    def test_ciclo_sem_proposta_nao_executa(self):
+        # Decisão COMPRAR, mas avaliar_mercado devolve None (cortado por freio).
+        m = Mercado("cid", "p?", True, [{"token_id": "t1"}], [])
+        engine = self._engine_fake([m], prop=None, acao=Acao.COMPRAR)
         r = Runner(RunnerConfig(), engine)
         r._um_ciclo()
         engine.avaliar_mercado.assert_called_once()
@@ -122,7 +140,7 @@ class TestCiclo:
 
     def test_ciclo_com_proposta_executa(self):
         m = Mercado("cid", "p?", True, [{"token_id": "t1"}], [])
-        engine = self._engine_fake([m], prop=object())
+        engine = self._engine_fake([m], prop=object(), acao=Acao.COMPRAR)
         r = Runner(RunnerConfig(), engine)
         r._um_ciclo()
         engine.executar.assert_called_once()
