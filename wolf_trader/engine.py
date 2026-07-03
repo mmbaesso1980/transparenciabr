@@ -179,17 +179,38 @@ class WolfTraderEngine:
         restante_dia = self.limites.max_diario_usdc - self._gasto_dia_usdc
         return max(0.0, min(base, restante_dia))
 
+    def decidir_mercado(self, mercado: Mercado, token_id: str,
+                        contexto: Optional[dict] = None) -> tuple[Decisao, Optional[Cotacao]]:
+        """Sempre retorna a decisão explícita da doutrina (COMPRAR/VENDER/
+        MANTER/SEM_CONVICCAO) + a cotação usada — SEM filtrar.
+
+        Este é o ponto onde o robô "reage a 100% das atualizações": todo token
+        avaliado produz uma Decisao, mesmo que seja MANTER (HOLD). O runner loga
+        a decisão de cada token; só COMPRAR/VENDER viram Proposta de ordem.
+
+        `contexto` pode trazer `sinais_prontos` (list[Sinal] já computados pelo
+        gerador técnico), evitando o conversor grosseiro `observacoes_para_sinais`
+        que fixaria convicção 0.8. Se ausente, cai no fluxo antigo por observações.
+        """
+        cot = self.reader.cotacao(token_id)
+        ctx = contexto or {}
+        sinais_prontos = ctx.get("sinais_prontos")
+        if sinais_prontos is not None:
+            sinais = list(sinais_prontos)
+        else:
+            obs = self.mapear_sinais(mercado, cot, contexto)
+            sinais = observacoes_para_sinais(obs)
+        decisao = avaliar(sinais, self.wolf_config)
+        return decisao, cot
+
     def avaliar_mercado(self, mercado: Mercado, token_id: str,
                         contexto: Optional[dict] = None) -> Optional[Proposta]:
-        cot = self.reader.cotacao(token_id)
-        obs = self.mapear_sinais(mercado, cot, contexto)
-        sinais = observacoes_para_sinais(obs)
-        decisao = avaliar(sinais, self.wolf_config)
+        decisao, cot = self.decidir_mercado(mercado, token_id, contexto)
 
         if decisao.acao in (Acao.SEM_CONVICCAO, Acao.MANTER):
             return None
         lado = _LADO.get(decisao.acao)
-        if not lado or cot.mid is None:
+        if not lado or cot is None or cot.mid is None:
             return None
 
         size = self._dimensionar(decisao, mercado.condition_id)
