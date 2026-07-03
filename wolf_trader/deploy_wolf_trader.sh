@@ -62,14 +62,17 @@ create_secret WOLF_DEPOSIT_ADDRESS "Endereco da carteira/deposit (0x...)"
 create_secret TELEGRAM_BOT_TOKEN   "Token do bot Telegram (@Asmodeuswebforgebot)"
 
 echo "== Fase 4: criar a VM (SSH so via IAP; sem porta 22 publica) =="
-gcloud compute instances create "$VM" \
-  --zone="$ZONE" --machine-type=e2-small \
-  --image-family=debian-12 --image-project=debian-cloud \
-  --boot-disk-size=20GB --boot-disk-type=pd-balanced \
-  --service-account="$SA_EMAIL" \
-  --scopes=cloud-platform \
-  --address="$IP" \
-  --no-service-account 2>/dev/null || true
+if gcloud compute instances describe "$VM" --zone="$ZONE" >/dev/null 2>&1; then
+  echo "VM $VM ja existe — pulando criacao."
+else
+  gcloud compute instances create "$VM" \
+    --zone="$ZONE" --machine-type=e2-small \
+    --image-family=debian-12 --image-project=debian-cloud \
+    --boot-disk-size=20GB --boot-disk-type=pd-balanced \
+    --service-account="$SA_EMAIL" \
+    --scopes=cloud-platform \
+    --address="$IP"
+fi
 # regra de firewall IAP (SSH via tunel)
 gcloud compute firewall-rules create allow-iap-ssh \
   --direction=INGRESS --action=ALLOW --rules=tcp:22 \
