@@ -1,0 +1,40 @@
+name: WOLF Trader CI
+
+on:
+  push:
+    paths:
+      - 'wolf_trader/**'
+      - 'bridge/devin_bridge/**'
+  pull_request:
+    paths:
+      - 'wolf_trader/**'
+      - 'bridge/devin_bridge/**'
+
+jobs:
+  compile-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install -r bridge/requirements.txt
+          pip install pytest>=7.4.0
+
+      - name: Compile check
+        env:
+          PYTHONPATH: bridge:.
+        run: |
+          python -m py_compile wolf_trader/__init__.py
+          python -m py_compile wolf_trader/engine.py
+          python -m py_compile wolf_trader/polymarket_client.py
+
+      - name: Run tests
+        env:
+          PYTHONPATH: bridge:.
+        run: python -m pytest wolf_trader/tests/ -q
