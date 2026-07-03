@@ -1,0 +1,27 @@
+[Unit]
+Description=TransparênciaBR Bridge - Session Monitor
+After=network-online.target devin-bridge-listener.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=devin-bridge
+Group=devin-bridge
+WorkingDirectory=/opt/devin-bridge
+ExecStart=/opt/devin-bridge/venv/bin/python -m devin_bridge.monitor
+Restart=always
+RestartSec=15
+
+# Segurança
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+
+EnvironmentFile=/opt/devin-bridge/.env
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=devin-bridge-monitor
+
+[Install]
+WantedBy=multi-user.target
