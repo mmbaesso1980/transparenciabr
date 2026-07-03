@@ -206,22 +206,52 @@ class Signer:
         self.signature_type = signature_type  # 0 EOA, 1 Proxy, 2 Safe, 3 POLY_1271
 
     def _create_client(self):
-        """Cria cliente CLOB efemero (sem cache) para minimizar exposicao da PK."""
+        """Cria cliente CLOB efemero (sem cache) para minimizar exposicao da PK.
+
+        Polymarket migrou para CLOB V2 (hard cutover em 2026-04-28). O pacote
+        legado `py-clob-client` (v1) foi arquivado e suas ordens sao rejeitadas
+        em producao com `order_version_mismatch` / `invalid order version`.
+        A partir daqui usamos `py-clob-client-v2`; mantemos fallback para o v1
+        apenas para ambientes/testes legados.
+        Ref: https://docs.polymarket.com/v2-migration
+        """
+        pk = self._pk_provider()
         try:
-            from py_clob_client.client import ClobClient  # type: ignore
-            from py_clob_client.clob_types import ApiCreds  # noqa: F401
+            # Caminho oficial atual: CLOB V2
+            from py_clob_client_v2 import ClobClient  # type: ignore
+            client = ClobClient(
+                host=CLOB_HOST, chain_id=CHAIN_ID, key=pk,
+                signature_type=self.signature_type, funder=self.funder_address,
+                use_server_time=True,   # evita rejeicao por clock skew (EIP-712)
+                retry_on_error=True,    # re-resolve versao do CLOB e tenta de novo
+            )
+            creds = client.create_or_derive_api_key()
+            client = ClobClient(
+                host=CLOB_HOST, chain_id=CHAIN_ID, key=pk, creds=creds,
+                signature_type=self.signature_type, funder=self.funder_address,
+                use_server_time=True, retry_on_error=True,
+            )
+            del pk
+            self._sdk_version = 2
+            return client
+        except ImportError:
+            pass
+        # Fallback legado (v1) — nao funciona em producao pos-cutover, so testes.
+        try:
+            from py_clob_client.client import ClobClient as ClobClientV1  # type: ignore
         except ImportError as e:  # pragma: no cover
+            del pk
             raise RuntimeError(
-                "py-clob-client nao instalado. Adicione 'py-clob-client' e 'web3' ao "
+                "Nenhum SDK CLOB instalado. Adicione 'py-clob-client-v2' ao "
                 "requirements da VM wolf-trader para habilitar execucao real."
             ) from e
-        pk = self._pk_provider()
-        client = ClobClient(
+        client = ClobClientV1(
             host=CLOB_HOST, chain_id=CHAIN_ID, key=pk,
             signature_type=self.signature_type, funder=self.funder_address,
         )
         client.set_api_creds(client.create_or_derive_api_creds())
         del pk
+        self._sdk_version = 1
         return client
 
 
@@ -262,13 +292,30 @@ class PolymarketTrader:
             return OrdemResultado(True, None, f"DRY_RUN ok (nao enviou): {req.lado} "
                                               f"{req.size}@{req.preco} tok={req.token_id[:10]}...")
         client = self.signer._create_client()
+        sdk = getattr(self.signer, "_sdk_version", 1)
         try:
-            from py_clob_client.clob_types import OrderArgs  # type: ignore
-            args = OrderArgs(token_id=req.token_id, price=req.preco,
-                             size=req.size, side=req.lado)
-            signed = client.create_order(args)
-            resp = client.post_order(signed, req.tipo)
-            oid = str(resp.get("orderID") or resp.get("order_id") or "")
+            if sdk == 2:
+                # CLOB V2: neg_risk e tick_size resolvidos pelo proprio client.
+                from py_clob_client_v2 import (  # type: ignore
+                    OrderArgs, OrderType, PartialCreateOrderOptions, Side,
+                )
+                neg_risk = client.get_neg_risk(req.token_id)
+                tick = client.get_tick_size(req.token_id)
+                lado = Side.BUY if req.lado.upper() == "BUY" else Side.SELL
+                otype = getattr(OrderType, req.tipo, OrderType.GTC)
+                args = OrderArgs(token_id=req.token_id, price=req.preco,
+                                 size=req.size, side=lado)
+                opts = PartialCreateOrderOptions(tick_size=tick, neg_risk=neg_risk)
+                resp = client.create_and_post_order(args, opts, otype)
+            else:
+                # Fallback legado v1 (nao funciona em producao pos-cutover).
+                from py_clob_client.clob_types import OrderArgs  # type: ignore
+                args = OrderArgs(token_id=req.token_id, price=req.preco,
+                                 size=req.size, side=req.lado)
+                signed = client.create_order(args)
+                resp = client.post_order(signed, req.tipo)
+            resp = resp if isinstance(resp, dict) else getattr(resp, "__dict__", {}) or {}
+            oid = str(resp.get("orderID") or resp.get("order_id") or resp.get("id") or "")
             return OrdemResultado(bool(oid), oid or None, f"ordem enviada: {oid or 'sem id'}")
         except Exception as e:  # noqa: BLE001
             logger.exception("Falha ao postar ordem")
