@@ -33,6 +33,7 @@ from wolf_trader.polymarket_client import (
     PolymarketTrader,
     Signer,
     secret_manager_pk_provider,
+    _parse_token_ids,
 )
 from wolf_trader.engine import WolfTraderEngine, LimitesRisco
 
@@ -156,16 +157,14 @@ class Runner:
         self._parar = True
 
     def _tokens_do_mercado(self, mercado) -> list[str]:
-        """Extrai token_ids do mercado (formatos variados da Gamma API)."""
-        tokens: list[str] = []
-        for t in mercado.tokens or []:
-            if isinstance(t, dict):
-                tid = t.get("token_id") or t.get("tokenId") or t.get("id")
-                if tid:
-                    tokens.append(str(tid))
-            elif isinstance(t, str):
-                tokens.append(t)
-        return tokens
+        """Extrai token_ids do mercado (formatos variados da Gamma API).
+
+        Delega ao normalizador canonico `_parse_token_ids`, que trata string
+        JSON, lista de dicts e lista de strings. Defesa em profundidade: mesmo
+        que `mercado.tokens` chegue como string JSON (bug historico), NUNCA
+        itera caractere-a-caractere.
+        """
+        return _parse_token_ids(getattr(mercado, "tokens", None))
 
     def _um_ciclo(self) -> None:
         mercados = self.engine.reader.listar_mercados(

@@ -80,6 +80,18 @@ class TestTokens:
         m = Mercado("cid", "pergunta?", True, [], [])
         assert r._tokens_do_mercado(m) == []
 
+    def test_tokens_string_json_regressao(self):
+        """REGRESSAO do bug de producao: clobTokenIds como STRING JSON.
+
+        Antes o loop iterava caractere-a-caractere sobre a string, gerando
+        token_id='[', '\"', '7', etc. e um enxame de 404 no book. Agora deve
+        decodificar o JSON e devolver os 2 token_ids reais.
+        """
+        r = self._runner()
+        m = Mercado("cid", "pergunta?", True,
+                    '["72123456789", "99876543210"]', [])
+        assert r._tokens_do_mercado(m) == ["72123456789", "99876543210"]
+
 
 # ---------------------------------------------------------------------------
 # Ciclo

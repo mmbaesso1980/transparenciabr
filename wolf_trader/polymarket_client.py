@@ -25,6 +25,7 @@ DEPENDENCIAS DE ASSINATURA:
 """
 from __future__ import annotations
 
+import json
 import logging
 import os
 from dataclasses import dataclass
@@ -48,8 +49,62 @@ class Mercado:
     condition_id: str
     pergunta: str
     ativo: bool
-    tokens: list[dict]          # [{token_id, outcome, price?}]
+    tokens: list[str]           # token_ids ja normalizados (list[str])
     tags: list[str]
+
+
+def _parse_token_ids(raw: Any) -> list[str]:
+    """Normaliza o campo de tokens da Gamma API para uma lista limpa de token_ids.
+
+    A Gamma API e inconsistente entre endpoints/versoes. Este helper cobre os
+    formatos observados em producao, sem NUNCA iterar caractere-a-caractere
+    (bug que gerava 404 em token_id='[', '\"', '7', etc.):
+
+      1. `clobTokenIds` como STRING JSON: '["7212...","9987..."]'  -> json.loads
+      2. `tokens` como lista de DICTS: [{"token_id": "...", "outcome": "Yes"}]
+      3. lista de STRINGS ja parseada: ["7212...", "9987..."]
+      4. valor unico string de token_id (sem colchetes) -> [valor]
+
+    Regra 9 (transparenciabr-lei): dado nao confiavel -> ignora (nao inventa).
+    """
+    if raw is None:
+        return []
+
+    # (1)/(4) String: tentar decodificar JSON; senao tratar como token_id unico.
+    if isinstance(raw, str):
+        s = raw.strip()
+        if not s:
+            return []
+        if s[0] in "[{":
+            try:
+                raw = json.loads(s)
+            except (ValueError, TypeError):
+                return []
+        else:
+            # token_id solto (nao e estrutura JSON) — aceita como unico id.
+            return [s]
+
+    # dict isolado -> extrai o id dele
+    if isinstance(raw, dict):
+        raw = [raw]
+
+    if not isinstance(raw, (list, tuple)):
+        return []
+
+    out: list[str] = []
+    for item in raw:
+        if isinstance(item, dict):
+            tid = item.get("token_id") or item.get("tokenId") or item.get("id")
+            if tid:
+                out.append(str(tid))
+        elif isinstance(item, str):
+            tid = item.strip()
+            # descarta ruido de string mal-parseada (colchetes, aspas, virgulas)
+            if tid and tid not in "[]{}\",":
+                out.append(tid)
+        elif isinstance(item, (int,)):
+            out.append(str(item))
+    return out
 
 
 @dataclass
@@ -92,11 +147,14 @@ class PolymarketReader:
         itens = data if isinstance(data, list) else data.get("data", [])
         out: list[Mercado] = []
         for m in itens:
+            token_ids = _parse_token_ids(m.get("tokens"))
+            if not token_ids:
+                token_ids = _parse_token_ids(m.get("clobTokenIds"))
             out.append(Mercado(
                 condition_id=str(m.get("conditionId") or m.get("condition_id") or ""),
                 pergunta=str(m.get("question") or m.get("title") or ""),
                 ativo=not bool(m.get("closed", False)),
-                tokens=m.get("tokens") or m.get("clobTokenIds") or [],
+                tokens=token_ids,
                 tags=[str(t) for t in (m.get("tags") or [])],
             ))
         return out
