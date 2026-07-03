@@ -19,7 +19,9 @@ from __future__ import annotations
 import logging
 import os
 import uuid
+from collections import defaultdict
 from dataclasses import dataclass, field
+from datetime import date
 from typing import Optional
 
 from devin_bridge.wolf_doctrine import (
@@ -131,6 +133,8 @@ class WolfTraderEngine:
         self.telegram = telegram
         self.gate_register = gate_register
         self._gasto_dia_usdc = 0.0
+        self._gasto_por_mercado: dict[str, float] = defaultdict(float)
+        self._dia_corrente: date = date.today()
 
     # ---- mapeamento de sinais (interface plugável) ----
     def mapear_sinais(self, mercado: Mercado, cot: Cotacao,
@@ -153,11 +157,25 @@ class WolfTraderEngine:
                 obs[lid] = ctx[lid]
         return obs
 
+    # ---- reset diário (para serviço 24/7) ----
+    def _verificar_reset_diario(self) -> None:
+        """Zera contadores se o dia mudou (serviço de longa duração)."""
+        hoje = date.today()
+        if hoje != self._dia_corrente:
+            self._gasto_dia_usdc = 0.0
+            self._gasto_por_mercado.clear()
+            self._dia_corrente = hoje
+
     # ---- dimensionamento com limites ----
-    def _dimensionar(self, decisao: Decisao) -> float:
+    def _dimensionar(self, decisao: Decisao, condition_id: str) -> float:
+        self._verificar_reset_diario()
         base = self.limites.max_por_ordem_usdc * decisao.conviccao
-        base = min(base, self.limites.max_por_ordem_usdc,
-                   self.limites.max_por_mercado_usdc)
+        base = min(base, self.limites.max_por_ordem_usdc)
+        # Limite cumulativo por mercado
+        gasto_mercado = self._gasto_por_mercado[condition_id]
+        restante_mercado = self.limites.max_por_mercado_usdc - gasto_mercado
+        base = min(base, restante_mercado)
+        # Limite diário
         restante_dia = self.limites.max_diario_usdc - self._gasto_dia_usdc
         return max(0.0, min(base, restante_dia))
 
@@ -174,7 +192,7 @@ class WolfTraderEngine:
         if not lado or cot.mid is None:
             return None
 
-        size = self._dimensionar(decisao)
+        size = self._dimensionar(decisao, mercado.condition_id)
         if size <= 0:
             return Proposta(mercado, token_id, decisao, lado, cot.mid, 0.0,
                             precisa_gate=False, motivo_corte="limite diario/risco atingido (R1)")
@@ -209,6 +227,7 @@ class WolfTraderEngine:
         res = self.trader.postar_ordem(req)
         if res.ok:
             self._gasto_dia_usdc += prop.size_usdc
+            self._gasto_por_mercado[prop.mercado.condition_id] += prop.size_usdc
         self._log("wolf.ordem.enviada", prop, extra={"ok": res.ok, "detalhe": res.detalhe})
         return res.detalhe
 
@@ -216,6 +235,7 @@ class WolfTraderEngine:
         res = self.trader.postar_ordem(req)
         if res.ok:
             self._gasto_dia_usdc += prop.size_usdc
+            self._gasto_por_mercado[prop.mercado.condition_id] += prop.size_usdc
         self._log("wolf.ordem.aprovada", prop, extra={"ok": res.ok, "detalhe": res.detalhe})
         return res.detalhe
 

@@ -24,6 +24,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r bridge/requirements.txt
+          pip install -r wolf_trader/requirements.txt
           pip install pytest>=7.4.0
 
       - name: Compile check

@@ -69,11 +69,13 @@ gcloud compute instances create "$VM" \
   --service-account="$SA_EMAIL" \
   --scopes=cloud-platform \
   --address="$IP" \
-  --no-service-account 2>/dev/null || true
-# regra de firewall IAP (SSH via tunel)
-gcloud compute firewall-rules create allow-iap-ssh \
+  --tags=wolf-trader \
+  --metadata=enable-oslogin=TRUE 2>/dev/null || true
+# regra de firewall IAP (SSH via tunel) — restrita à tag wolf-trader
+gcloud compute firewall-rules create allow-iap-ssh-wolf-trader \
   --direction=INGRESS --action=ALLOW --rules=tcp:22 \
-  --source-ranges=35.235.240.0/20 2>/dev/null || echo "regra IAP ja existe"
+  --source-ranges=35.235.240.0/20 \
+  --target-tags=wolf-trader 2>/dev/null || echo "regra IAP ja existe"
 
 echo "== Fase 5: instalar codigo + systemd (via IAP) =="
 cat <<'REMOTE' > /tmp/wolf_bootstrap.sh

@@ -63,7 +63,7 @@ class TestDimensionamento:
             racional="teste",
             sinais_usados=["T1"],
         )
-        size = engine._dimensionar(decisao)
+        size = engine._dimensionar(decisao, "cond_test")
         # 50 * 0.5 = 25.0
         assert size == 25.0
 
@@ -77,7 +77,7 @@ class TestDimensionamento:
             racional="forte",
             sinais_usados=["T1", "T2", "T3"],
         )
-        size = engine._dimensionar(decisao)
+        size = engine._dimensionar(decisao, "cond_test")
         assert size == 50.0  # max_por_ordem_usdc
 
     def test_size_capped_by_daily(self):
@@ -91,7 +91,7 @@ class TestDimensionamento:
             racional="teste",
             sinais_usados=["T1"],
         )
-        size = engine._dimensionar(decisao)
+        size = engine._dimensionar(decisao, "cond_test")
         assert size == 20.0  # restante_dia
 
     def test_size_zero_when_daily_exhausted(self):
@@ -105,11 +105,30 @@ class TestDimensionamento:
             racional="teste",
             sinais_usados=["T1"],
         )
-        size = engine._dimensionar(decisao)
+        size = engine._dimensionar(decisao, "cond_test")
         assert size == 0.0
 
-    def test_size_capped_by_max_market(self):
-        """Limites customizados: max_market < max_order → size capped."""
+    def test_size_capped_by_max_market_cumulative(self):
+        """Limite por mercado é cumulativo: múltiplas ordens no mesmo mercado."""
+        limites = LimitesRisco()
+        limites.max_por_ordem_usdc = 100.0
+        limites.max_por_mercado_usdc = 50.0
+        engine = _make_engine(limites=limites)
+        # Simula gasto prévio de 30 no mesmo mercado
+        engine._gasto_por_mercado["cond_A"] = 30.0
+        decisao = Decisao(
+            acao=Acao.COMPRAR_FORTE,
+            conviccao=1.0,
+            override_tecnico=True,
+            racional="forte",
+            sinais_usados=["T1", "T2", "T3"],
+        )
+        size = engine._dimensionar(decisao, "cond_A")
+        # restante_mercado = 50 - 30 = 20
+        assert size == 20.0
+
+    def test_size_capped_by_max_market_fresh(self):
+        """Sem gasto prévio, max_market limita normalmente."""
         limites = LimitesRisco()
         limites.max_por_ordem_usdc = 100.0
         limites.max_por_mercado_usdc = 30.0
@@ -121,7 +140,7 @@ class TestDimensionamento:
             racional="forte",
             sinais_usados=["T1", "T2", "T3"],
         )
-        size = engine._dimensionar(decisao)
+        size = engine._dimensionar(decisao, "cond_new")
         assert size == 30.0  # max_por_mercado_usdc
 
 
@@ -183,3 +202,29 @@ class TestGateOrdemGrande:
         assert "Aguardando gate" in result
         assert len(msgs) == 1
         assert "Gate de ordem" in msgs[0]
+
+
+class TestResetDiario:
+    """Contador diário reseta quando o dia muda."""
+
+    def test_reset_ao_mudar_dia(self):
+        """_gasto_dia_usdc e _gasto_por_mercado zeram no dia seguinte."""
+        from datetime import date, timedelta
+        engine = _make_engine()
+        engine._gasto_dia_usdc = 150.0
+        engine._gasto_por_mercado["cond1"] = 60.0
+        # Simula que ontem era o dia corrente
+        engine._dia_corrente = date.today() - timedelta(days=1)
+        decisao = Decisao(
+            acao=Acao.COMPRAR,
+            conviccao=0.8,
+            override_tecnico=False,
+            racional="teste",
+            sinais_usados=["T1"],
+        )
+        size = engine._dimensionar(decisao, "cond1")
+        # Após reset: gasto_dia=0, gasto_mercado["cond1"]=0
+        # base = 50 * 0.8 = 40
+        assert size == 40.0
+        assert engine._gasto_dia_usdc == 0.0
+        assert engine._gasto_por_mercado["cond1"] == 0.0
