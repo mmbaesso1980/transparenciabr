@@ -116,17 +116,16 @@ gcloud compute ssh "${VM_NAME}" --zone="${ZONE}" --project="${CODEX_PROJECT}" --
   sudo systemctl daemon-reload
   sudo systemctl enable devin-bridge-listener devin-bridge-monitor
 
-  # Gerar .env a partir do Secret Manager
+  # Gerar .env a partir do Secret Manager (permissões restritas desde o início)
   echo 'Gerando .env com segredos do Secret Manager...'
-  > /opt/devin-bridge/.env
+  install -m 600 -o devin-bridge -g devin-bridge /dev/null /opt/devin-bridge/.env
   for SECRET in DEVIN_API_KEY DEVIN_ORG_ID TELEGRAM_BOT_TOKEN TELEGRAM_COMMANDER_CHAT_ID; do
     VALUE=\$(gcloud secrets versions access latest --secret=\"\${SECRET}\" --project=\"${CODEX_PROJECT}\")
     echo \"\${SECRET}=\${VALUE}\" >> /opt/devin-bridge/.env
   done
   echo \"CODEX_PROJECT=${CODEX_PROJECT}\" >> /opt/devin-bridge/.env
   echo \"TBR_PROJECT=${TBR_PROJECT}\" >> /opt/devin-bridge/.env
-  sudo chown devin-bridge:devin-bridge /opt/devin-bridge/.env
-  sudo chmod 600 /opt/devin-bridge/.env
+  # Permissões já definidas na criação via install(1)
 
   echo 'Iniciando serviços...'
   sudo systemctl start devin-bridge-listener devin-bridge-monitor

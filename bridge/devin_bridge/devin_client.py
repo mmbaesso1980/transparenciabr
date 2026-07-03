@@ -53,9 +53,9 @@ class DevinClient:
 
     def _request(self, method: str, path: str, **kwargs: Any) -> dict[str, Any]:
         url = f"{self._base}{path}"
+        permission = kwargs.pop("_permission", "unknown")
         resp = requests.request(method, url, headers=self._headers, **kwargs)
         if resp.status_code in (401, 403):
-            permission = kwargs.get("_permission", "unknown")
             raise DevinAPIError(
                 resp.status_code,
                 f"Permissão insuficiente. Necessária: {permission}. "
