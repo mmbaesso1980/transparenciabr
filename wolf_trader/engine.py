@@ -232,6 +232,7 @@ class WolfTraderEngine:
         return res.detalhe
 
     def aprovar_gate(self, prop: Proposta, req: OrdemRequest) -> str:
+        self._verificar_reset_diario()
         res = self.trader.postar_ordem(req)
         if res.ok:
             self._gasto_dia_usdc += prop.size_usdc
