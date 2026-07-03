@@ -1,0 +1,47 @@
+name: Bridge CI
+
+on:
+  push:
+    paths:
+      - 'bridge/**'
+  pull_request:
+    paths:
+      - 'bridge/**'
+
+jobs:
+  compile-and-test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: bridge
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r requirements-dev.txt
+
+      - name: Compile check
+        run: |
+          python -m py_compile devin_bridge/__init__.py
+          python -m py_compile devin_bridge/config.py
+          python -m py_compile devin_bridge/devin_client.py
+          python -m py_compile devin_bridge/monitor.py
+          python -m py_compile devin_bridge/telegram_alerts.py
+          python -m py_compile devin_bridge/audit.py
+          python -m py_compile devin_bridge/registry.py
+          python -m py_compile devin_bridge/wolf_doctrine.py
+          python -m py_compile listener/__init__.py
+          python -m py_compile listener/__main__.py
+          python -m py_compile listener/telegram_agent.py
+          python -m py_compile deploy/__init__.py
+          python -m py_compile deploy/deployer.py
+          python -m py_compile mcp_server/__init__.py
+          python -m py_compile mcp_server/server.py
+
+      - name: Run tests
+        run: python -m pytest tests/ -q

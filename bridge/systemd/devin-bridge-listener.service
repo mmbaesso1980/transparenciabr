@@ -1,0 +1,32 @@
+[Unit]
+Description=TransparênciaBR Bridge - Telegram Listener
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=devin-bridge
+Group=devin-bridge
+WorkingDirectory=/opt/devin-bridge
+ExecStart=/opt/devin-bridge/venv/bin/python -m listener.telegram_agent
+Restart=always
+RestartSec=10
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+# Segurança
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/opt/devin-bridge/logs
+
+# Variáveis de ambiente via Secret Manager (carregadas pelo EnvironmentFile)
+EnvironmentFile=/opt/devin-bridge/.env
+
+# Logs
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=devin-bridge-listener
+
+[Install]
+WantedBy=multi-user.target
