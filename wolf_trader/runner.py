@@ -109,10 +109,19 @@ def _resolver_funder(cfg: RunnerConfig) -> str:
 
 
 def _montar_telegram():
-    """Liga o TelegramAlerter se houver token; devolve um callable(text)->None."""
+    """Liga o alerter de Telegram se houver token; devolve callable(text)->None.
+
+    A classe correta em devin_bridge.telegram_alerts e `TelegramAlerts` (o import
+    antigo usava `TelegramAlerter`, nome inexistente, e o runner rodava mudo).
+    Mantemos um fallback ao nome antigo por robustez, caso a VM tenha versao
+    divergente do modulo.
+    """
     try:
-        from devin_bridge.telegram_alerts import TelegramAlerter
-        alerter = TelegramAlerter()
+        try:
+            from devin_bridge.telegram_alerts import TelegramAlerts as _Alerter
+        except ImportError:  # compat com versao antiga do modulo
+            from devin_bridge.telegram_alerts import TelegramAlerter as _Alerter  # type: ignore
+        alerter = _Alerter()
         return lambda texto: alerter.send(texto)
     except Exception as e:  # noqa: BLE001
         logger.warning("Telegram indisponível (%s). Seguindo sem notificações.", e)
