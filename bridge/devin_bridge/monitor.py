@@ -65,3 +65,16 @@ class SessionMonitor:
             if max_iterations and iterations >= max_iterations:
                 break
             time.sleep(self._config.poll_interval_seconds)
+
+
+if __name__ == "__main__":
+    import logging
+    import sys
+
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+        stream=sys.stdout,
+    )
+    monitor = SessionMonitor()
+    monitor.run()
