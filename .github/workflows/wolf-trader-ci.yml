@@ -34,6 +34,7 @@ jobs:
           python -m py_compile wolf_trader/__init__.py
           python -m py_compile wolf_trader/engine.py
           python -m py_compile wolf_trader/polymarket_client.py
+          python -m py_compile wolf_trader/runner.py
 
       - name: Run tests
         env:
