@@ -278,22 +278,41 @@ class TelegramAgent:
             self._send_reply(
                 chat_id,
                 "Uso: /decisao {json com sinais}\n"
-                'Ex: /decisao [{"linha":"T","codigo":"T1","direcao":0.8,"conviccao":0.9}]',
+                'Ex: /decisao [{"linha":"TECNICA","codigo":"T1","direcao":0.8,"conviccao":0.9}]',
             )
             return
 
         try:
             raw_sinais = json.loads(parts[1])
-            sinais = [
-                Sinal(
-                    linha=LinhaDecisao(s["linha"]),
-                    codigo=s["codigo"],
-                    direcao=s["direcao"],
-                    conviccao=s["conviccao"],
-                    peso=s.get("peso", 1.0),
+            sinais = []
+            for s in raw_sinais:
+                direcao = float(s["direcao"])
+                conviccao = float(s["conviccao"])
+                peso = float(s.get("peso", 1.0))
+                if not (-1.0 <= direcao <= 1.0):
+                    self._send_reply(
+                        chat_id, f"Erro: direcao deve estar entre -1.0 e 1.0 (recebido: {direcao})"
+                    )
+                    return
+                if not (0.0 <= conviccao <= 1.0):
+                    self._send_reply(
+                        chat_id, f"Erro: conviccao deve estar entre 0.0 e 1.0 (recebido: {conviccao})"
+                    )
+                    return
+                if peso <= 0:
+                    self._send_reply(
+                        chat_id, f"Erro: peso deve ser positivo (recebido: {peso})"
+                    )
+                    return
+                sinais.append(
+                    Sinal(
+                        linha=LinhaDecisao(s["linha"]),
+                        codigo=s["codigo"],
+                        direcao=direcao,
+                        conviccao=conviccao,
+                        peso=peso,
+                    )
                 )
-                for s in raw_sinais
-            ]
         except (json.JSONDecodeError, KeyError, ValueError) as exc:
             self._send_reply(chat_id, f"Erro ao parsear sinais: {exc}")
             return
@@ -341,6 +360,16 @@ class TelegramAgent:
             if max_iterations and iterations >= max_iterations:
                 break
 
+    # Comandos que exigem autorização do Comandante
+    PRIVILEGED_COMMANDS = {"/aprovar", "/negar", "/deploy", "/decisao", "/wolf"}
+
+    def _is_authorized(self, chat_id: int) -> bool:
+        """Verifica se o remetente é o Comandante autorizado."""
+        commander_id = self._tg_config.commander_chat_id
+        if not commander_id:
+            return True
+        return str(chat_id) == str(commander_id)
+
     def _process_update(self, update: dict[str, Any]) -> None:
         """Processa um update individual."""
         message = update.get("message", {})
@@ -351,9 +380,20 @@ class TelegramAgent:
             return
 
         if text.startswith("/"):
+            cmd = text.split()[0].lower().split("@")[0]
+            if cmd in self.PRIVILEGED_COMMANDS and not self._is_authorized(chat_id):
+                self._send_reply(
+                    chat_id,
+                    "Acesso negado. Este comando requer autorização do Comandante Baesso.",
+                )
+                logger.warning(
+                    "Tentativa de acesso não autorizado: chat_id=%s cmd=%s",
+                    chat_id,
+                    cmd,
+                )
+                return
             self._handle_command(chat_id, text)
         else:
-            # Conversa livre — consumiria Vertex AI
             self._send_reply(
                 chat_id,
                 "Conversa livre requer Vertex AI. "
