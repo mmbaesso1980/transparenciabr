@@ -24,6 +24,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r bridge/requirements.txt
+          pip install -r wolf_trader/requirements.txt
           pip install pytest>=7.4.0
 
       - name: Compile check
@@ -37,4 +38,4 @@ jobs:
       - name: Run tests
         env:
           PYTHONPATH: bridge:.
-        run: python -m pytest wolf_trader/tests/ -q
+        run: python -m pytest wolf_trader/tests/ -q -p no:pytest_ethereum

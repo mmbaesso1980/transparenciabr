@@ -20,7 +20,7 @@ class FakeSigner(Signer):
             funder_address="0x0000000000000000000000000000000000000000",
         )
 
-    def _ensure_client(self):
+    def _create_client(self):
         raise RuntimeError("Cliente CLOB não deve ser instanciado em DRY_RUN")
 
 

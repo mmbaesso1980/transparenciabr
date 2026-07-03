@@ -136,7 +136,9 @@ class Signer:
     (py-clob-client) e a chave privada L1 lida do Secret Manager em memoria.
 
     `private_key_provider` e um callable que devolve a chave privada APENAS
-    quando chamado (lazy), para evitar mante-la em atributo por tempo demais.
+    quando chamado (lazy). O cliente NAO e cacheado para evitar que a chave
+    persista em memoria alem do necessario (ClobClient armazena a PK
+    internamente). Cada chamada cria um novo ClobClient e o descarta apos uso.
     """
 
     def __init__(self, private_key_provider: Callable[[], str],
@@ -144,11 +146,9 @@ class Signer:
         self._pk_provider = private_key_provider
         self.funder_address = funder_address
         self.signature_type = signature_type  # 0 EOA, 1 Proxy, 2 Safe, 3 POLY_1271
-        self._client = None
 
-    def _ensure_client(self):
-        if self._client is not None:
-            return self._client
+    def _create_client(self):
+        """Cria cliente CLOB efemero (sem cache) para minimizar exposicao da PK."""
         try:
             from py_clob_client.client import ClobClient  # type: ignore
             from py_clob_client.clob_types import ApiCreds  # noqa: F401
@@ -157,15 +157,13 @@ class Signer:
                 "py-clob-client nao instalado. Adicione 'py-clob-client' e 'web3' ao "
                 "requirements da VM wolf-trader para habilitar execucao real."
             ) from e
-        pk = self._pk_provider()  # chave so aqui, em memoria
+        pk = self._pk_provider()
         client = ClobClient(
             host=CLOB_HOST, chain_id=CHAIN_ID, key=pk,
             signature_type=self.signature_type, funder=self.funder_address,
         )
-        # Deriva credenciais L2 (api_key/secret/passphrase) em runtime.
         client.set_api_creds(client.create_or_derive_api_creds())
-        del pk  # descarta a referencia local assim que possivel
-        self._client = client
+        del pk
         return client
 
 
@@ -205,7 +203,7 @@ class PolymarketTrader:
             logger.info("[DRY_RUN] Ordem NAO enviada: %s", req)
             return OrdemResultado(True, None, f"DRY_RUN ok (nao enviou): {req.lado} "
                                               f"{req.size}@{req.preco} tok={req.token_id[:10]}...")
-        client = self.signer._ensure_client()
+        client = self.signer._create_client()
         try:
             from py_clob_client.clob_types import OrderArgs  # type: ignore
             args = OrderArgs(token_id=req.token_id, price=req.preco,
