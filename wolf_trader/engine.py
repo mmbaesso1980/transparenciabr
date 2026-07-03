@@ -1,14 +1,18 @@
 """
-Motor WOLF-Trader: liga a leitura do Polymarket a doutrina WOLF e a execucao,
+Motor WOLF-Trader: liga a leitura do Polymarket à doutrina WOLF e à execução,
 com FREIOS (limites de risco + gate de valor no Telegram).
 
 Fluxo:
-  mercados -> mapear sinais (tecnico/macro/politico) -> wolf_doctrine.avaliar()
-  -> dimensionar (respeitando limites) -> gate de valor -> executar/pedir aprovacao
+  mercados -> mapear sinais (técnico/macro/político) -> wolf_doctrine.avaliar()
+  -> dimensionar (respeitando limites) -> gate de valor -> executar/pedir aprovação
   -> auditar + notificar.
 
-LEIS: R2 (sem dado) nao opera; R1 corta se estourar exposicao; execucao acima do
-gate exige aprovacao do Comandante; nada de promessa de retorno; tudo auditado.
+LEIS: R2 (sem dado) não opera; R1 corta se estourar exposição; execução acima do
+gate exige aprovação do Comandante; nada de promessa de retorno; tudo auditado.
+
+INTEGRAÇÃO: consome bridge/devin_bridge/wolf_doctrine.py (já mergeado no main).
+Não duplica a doutrina — apenas converte observações de mercado em Sinal[] e
+chama avaliar().
 """
 from __future__ import annotations
 
@@ -18,7 +22,14 @@ import uuid
 from dataclasses import dataclass, field
 from typing import Optional
 
-from devin_bridge import wolf_doctrine
+from devin_bridge.wolf_doctrine import (
+    Acao,
+    Decisao,
+    LinhaDecisao,
+    Sinal,
+    avaliar,
+)
+from devin_bridge.config import WolfConfig
 from wolf_trader.polymarket_client import (
     PolymarketReader, PolymarketTrader, OrdemRequest, Mercado, Cotacao,
 )
@@ -35,7 +46,7 @@ def _envf(key: str, default: float) -> float:
 
 @dataclass
 class LimitesRisco:
-    """Freios duros do Comandante (a Onca)."""
+    """Freios duros do Comandante (a Onça)."""
     gate_usdc: float = field(default_factory=lambda: _envf("WOLF_ORDER_GATE_USDC", 25.0))
     max_por_ordem_usdc: float = field(default_factory=lambda: _envf("WOLF_MAX_ORDER_USDC", 50.0))
     max_diario_usdc: float = field(default_factory=lambda: _envf("WOLF_MAX_DAILY_USDC", 200.0))
@@ -46,7 +57,7 @@ class LimitesRisco:
 class Proposta:
     mercado: Mercado
     token_id: str
-    veredito: wolf_doctrine.Veredito
+    decisao: Decisao
     lado: str                 # BUY | SELL
     preco: float
     size_usdc: float
@@ -54,56 +65,97 @@ class Proposta:
     motivo_corte: Optional[str] = None
 
 
-# mapa sinal WOLF -> lado de mercado
+# Mapa ação WOLF -> lado de mercado
 _LADO = {
-    wolf_doctrine.Sinal.COMPRAR_FORTE: "BUY",
-    wolf_doctrine.Sinal.COMPRAR: "BUY",
-    wolf_doctrine.Sinal.VENDER: "SELL",
-    wolf_doctrine.Sinal.REDUZIR: "SELL",
+    Acao.COMPRAR_FORTE: "BUY",
+    Acao.COMPRAR: "BUY",
+    Acao.VENDER: "SELL",
+    Acao.REDUZIR: "SELL",
 }
+
+# Mapa código de observação -> (LinhaDecisao, direção default)
+_CODIGO_LINHA: dict[str, LinhaDecisao] = {
+    "T1": LinhaDecisao.T, "T2": LinhaDecisao.T, "T3": LinhaDecisao.T,
+    "T4": LinhaDecisao.T, "T5": LinhaDecisao.T,
+    "F1": LinhaDecisao.F, "F2": LinhaDecisao.F,
+    "M1": LinhaDecisao.M, "M2": LinhaDecisao.M,
+    "P1": LinhaDecisao.P, "P2": LinhaDecisao.P, "P3": LinhaDecisao.P,
+    "J1": LinhaDecisao.J,
+    "R1": LinhaDecisao.R, "R2": LinhaDecisao.R,
+}
+
+
+def observacoes_para_sinais(obs: dict[str, float | bool],
+                            default_conviccao: float = 0.8) -> list[Sinal]:
+    """Converte dict de observações em lista de Sinal para wolf_doctrine.avaliar().
+
+    Cada chave é um código (T1, F1, R2, etc.). O valor pode ser:
+    - bool (True = direção +0.7, False ignorado)
+    - float (interpretado como direção; convicção = default_conviccao)
+    - tuple(direcao, conviccao)
+    """
+    sinais: list[Sinal] = []
+    for codigo, valor in obs.items():
+        linha = _CODIGO_LINHA.get(codigo)
+        if linha is None:
+            continue
+        if isinstance(valor, bool):
+            if not valor:
+                continue
+            direcao = -0.7 if codigo in ("R1", "R2") else 0.7
+            conviccao = default_conviccao
+        elif isinstance(valor, (int, float)):
+            direcao = float(valor)
+            conviccao = default_conviccao
+        else:
+            continue
+        sinais.append(Sinal(
+            linha=linha,
+            codigo=codigo,
+            direcao=direcao,
+            conviccao=conviccao,
+        ))
+    return sinais
 
 
 class WolfTraderEngine:
     def __init__(self, reader: PolymarketReader, trader: PolymarketTrader,
                  limites: Optional[LimitesRisco] = None,
+                 wolf_config: Optional[WolfConfig] = None,
                  audit=None, telegram=None, gate_register=None):
         self.reader = reader
         self.trader = trader
         self.limites = limites or LimitesRisco()
+        self.wolf_config = wolf_config or WolfConfig()
         self.audit = audit
         self.telegram = telegram
-        # callback para registrar gate aprovavel via /aprovar (listener)
         self.gate_register = gate_register
         self._gasto_dia_usdc = 0.0
 
-    # ---- mapeamento de sinais (interface plugavel) ----
+    # ---- mapeamento de sinais (interface plugável) ----
     def mapear_sinais(self, mercado: Mercado, cot: Cotacao,
-                      contexto: Optional[dict] = None) -> dict[str, bool]:
+                      contexto: Optional[dict] = None) -> dict[str, float | bool]:
         """
         Converte dados observados em gatilhos das linhas WOLF (F/M/T/P/J/R).
-        `contexto` pode trazer sinais externos ja computados (momentum, fluxo,
-        noticia, pesquisa). Sem dado confiavel -> R2 (regra 9).
+        `contexto` pode trazer sinais externos já computados (momentum, fluxo,
+        notícia, pesquisa). Sem dado confiável -> R2 (regra 9).
         """
-        obs: dict[str, bool] = {}
+        obs: dict[str, float | bool] = {}
         ctx = contexto or {}
 
         if cot.mid is None:
-            obs["R2"] = True   # sem preco confiavel -> sem convccao
+            obs["R2"] = True
             return obs
 
-        # Tecnico (dominante na doutrina v2) — vem de indicadores externos calculados.
-        for lid in ("T1", "T2", "T3", "T4", "T5"):
-            if ctx.get(lid):
-                obs[lid] = True
-        # Fundamento / macro / politico / juridico / risco — tambem via contexto.
-        for lid in ("F1", "F2", "M1", "M2", "P1", "P2", "P3", "J1", "R1"):
-            if ctx.get(lid):
-                obs[lid] = True
+        for lid in ("T1", "T2", "T3", "T4", "T5",
+                    "F1", "F2", "M1", "M2", "P1", "P2", "P3", "J1", "R1"):
+            if ctx.get(lid) is not None:
+                obs[lid] = ctx[lid]
         return obs
 
     # ---- dimensionamento com limites ----
-    def _dimensionar(self, veredito: wolf_doctrine.Veredito) -> float:
-        base = self.limites.max_por_ordem_usdc * veredito.convccao
+    def _dimensionar(self, decisao: Decisao) -> float:
+        base = self.limites.max_por_ordem_usdc * decisao.conviccao
         base = min(base, self.limites.max_por_ordem_usdc,
                    self.limites.max_por_mercado_usdc)
         restante_dia = self.limites.max_diario_usdc - self._gasto_dia_usdc
@@ -113,29 +165,28 @@ class WolfTraderEngine:
                         contexto: Optional[dict] = None) -> Optional[Proposta]:
         cot = self.reader.cotacao(token_id)
         obs = self.mapear_sinais(mercado, cot, contexto)
-        veredito = wolf_doctrine.avaliar(obs)
+        sinais = observacoes_para_sinais(obs)
+        decisao = avaliar(sinais, self.wolf_config)
 
-        if veredito.sinal in (wolf_doctrine.Sinal.SEM_CONVICCAO,
-                              wolf_doctrine.Sinal.SEGURAR):
+        if decisao.acao in (Acao.SEM_CONVICCAO, Acao.MANTER):
             return None
-        lado = _LADO.get(veredito.sinal)
+        lado = _LADO.get(decisao.acao)
         if not lado or cot.mid is None:
             return None
 
-        size = self._dimensionar(veredito)
+        size = self._dimensionar(decisao)
         if size <= 0:
-            return Proposta(mercado, token_id, veredito, lado, cot.mid, 0.0,
+            return Proposta(mercado, token_id, decisao, lado, cot.mid, 0.0,
                             precisa_gate=False, motivo_corte="limite diario/risco atingido (R1)")
         precisa_gate = size > self.limites.gate_usdc
-        return Proposta(mercado, token_id, veredito, lado, cot.mid, size, precisa_gate)
+        return Proposta(mercado, token_id, decisao, lado, cot.mid, size, precisa_gate)
 
-    # ---- execucao com gate ----
+    # ---- execução com gate ----
     def executar(self, prop: Proposta) -> str:
         if prop.motivo_corte:
             self._log("wolf.ordem.cortada", prop, extra={"motivo": prop.motivo_corte})
             return f"Ordem nao enviada: {prop.motivo_corte}"
 
-        # shares ~ usdc / preco (preco em probabilidade 0..1)
         size_shares = round(prop.size_usdc / prop.preco, 4) if prop.preco else 0.0
         req = OrdemRequest(token_id=prop.token_id, lado=prop.lado,
                            preco=round(prop.preco, 4), size=size_shares)
@@ -149,8 +200,8 @@ class WolfTraderEngine:
                 self.telegram(
                     f"\U0001F43A Gate de ordem <code>{gate_id}</code>\n"
                     f"{prop.lado} US$ {prop.size_usdc:.2f} em: {prop.mercado.pergunta[:80]}\n"
-                    f"Sinal {prop.veredito.sinal.value} ({prop.veredito.convccao:.0%})"
-                    f"{' [OVERRIDE TECNICO]' if prop.veredito.override_tecnico else ''}\n"
+                    f"Ação {prop.decisao.acao.value} ({prop.decisao.conviccao:.0%})"
+                    f"{' [OVERRIDE TÉCNICO]' if prop.decisao.override_tecnico else ''}\n"
                     f"Aprovar: /aprovar {gate_id}  |  Negar: /negar {gate_id}"
                 )
             return f"Aguardando gate {gate_id} (ordem acima de US$ {self.limites.gate_usdc:.0f})."
@@ -176,9 +227,9 @@ class WolfTraderEngine:
                            payload={
                                "mercado": prop.mercado.pergunta[:120],
                                "condition_id": prop.mercado.condition_id,
-                               "sinal": prop.veredito.sinal.value,
-                               "conviccao": round(prop.veredito.convccao, 3),
-                               "override_tecnico": prop.veredito.override_tecnico,
+                               "acao": prop.decisao.acao.value,
+                               "conviccao": round(prop.decisao.conviccao, 3),
+                               "override_tecnico": prop.decisao.override_tecnico,
                                "size_usdc": round(prop.size_usdc, 2),
                                **(extra or {}),
                            })
