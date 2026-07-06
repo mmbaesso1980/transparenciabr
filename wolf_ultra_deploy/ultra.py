@@ -30,10 +30,27 @@ RENAN_TOKEN = "93998891488819623915454849994768171534113749478841216025646247933
 FUNDER      = os.environ.get("WOLF_FUNDER", "0xe1B54Ad855E9A7222F119162A9697AC8c35be064")
 FEE_BUFFER  = 0.25
 MAX_ORDER   = 1000.0
-TRIGGER_PCT = 0.0008
-FLATTEN_MIN = 85
-POLL_S      = 1.0
 UA          = "TransparenciaBR-engines/1.0"
+
+# ---- Blindagens aprendidas com 05/07 (Bra-Nor / Mex-Eng) ----
+# 1) momentum menos sensivel -> menos churning (era 0.0008)
+TRIGGER_PCT  = float(os.environ.get("WOLF_TRIGGER_PCT", "0.02"))   # 2%
+# 2) recolhimento no min 80 (era 85) -> realiza antes do caos final
+FLATTEN_MIN  = int(os.environ.get("WOLF_FLATTEN_MIN", "80"))
+# 3) cadencia: 1 ordem a cada COOLDOWN_S por token -> mata o giro
+COOLDOWN_S   = float(os.environ.get("WOLF_COOLDOWN_S", "45"))
+# 4) STOP-LOSS de sessao: se P/L cair abaixo disto, recolhe e para o jogo
+STOP_LOSS    = float(os.environ.get("WOLF_STOP_LOSS_USD", "-5.0"))
+# 5) TAKE-PROFIT de pico: se lucro do jogo passar disto, trava e para
+TAKE_PROFIT  = float(os.environ.get("WOLF_TAKE_PROFIT_USD", "6.0"))
+# 6) trailing: se recuar TRAIL_GIVEBACK do pico de lucro, trava e para
+TRAIL_GIVEBACK = float(os.environ.get("WOLF_TRAIL_GIVEBACK_USD", "2.5"))
+# 7) so opera preco 'vivo' (evita empate morto a 0.06 tipo ontem)
+MIN_PRICE    = float(os.environ.get("WOLF_MIN_PRICE", "0.12"))
+MAX_PRICE    = float(os.environ.get("WOLF_MAX_PRICE", "0.90"))
+# 8) teto de exposicao por jogo (alem do MAX_ORDER por ordem)
+MAX_STAKE_GAME = float(os.environ.get("WOLF_MAX_STAKE_GAME_USD", "1000.0"))
+POLL_S      = float(os.environ.get("WOLF_POLL_S", "3.0"))
 
 STATE_DIR = "/tmp/wolf_ctl"
 os.makedirs(STATE_DIR, exist_ok=True)
@@ -130,6 +147,11 @@ class UltraEngine:
         self._cfgs = {}        # slug -> cfg
         self._lock = threading.Lock()
         self._last_mid = {}
+        # blindagens: estado por jogo/token
+        self._pnl = {}         # slug -> fluxo caixa realizado (SELL+ / BUY-)
+        self._peak = {}        # slug -> maior lucro visto no jogo
+        self._stake = {}       # slug -> exposicao BUY acumulada
+        self._last_order = {}  # token_id -> ts ultima ordem (cooldown)
 
     # --- infra de ordem via client real ---
     def _cotacao(self, token_id):
@@ -138,22 +160,34 @@ class UltraEngine:
         except Exception as e:
             log.warning("cotacao %s: %s", token_id[-6:], e); return None
 
-    def _postar(self, token_id, lado, size_shares, preco):
+    def _postar(self, token_id, lado, size_shares, preco, slug=None):
         # importa OrdemRequest do modulo real
         from wolf_trader.polymarket_client import OrdemRequest
-        if self.gate_fn and not self.gate_fn(size_shares * preco):
-            _tg(f"⛔ Ordem {lado} US${size_shares*preco:.2f} barrada pelo gate de risco.")
+        usd = size_shares * preco
+        if self.gate_fn and not self.gate_fn(usd):
+            _tg(f"⛔ Ordem {lado} US${usd:.2f} barrada pelo gate de risco.")
             return False
         try:
             req = OrdemRequest(token_id=token_id, lado=lado, preco=round(preco, 4),
                                size=round(size_shares, 2), tipo="GTC")
             res = self.client.postar_ordem(req)
             ok = getattr(res, "ok", False)
+            if ok:
+                # contabiliza fluxo de caixa realizado e exposicao do jogo
+                self._last_order[token_id] = time.time()
+                if slug is not None:
+                    self._pnl[slug] = self._pnl.get(slug, 0.0) + (usd if lado == "SELL" else -usd)
+                    if lado == "BUY":
+                        self._stake[slug] = self._stake.get(slug, 0.0) + usd
             _tg(f"{'💠' if ok else '⚠️'} <b>{lado}</b> {size_shares:.1f}sh @ {preco:.3f} "
                 f"tok …{token_id[-6:]} → {getattr(res,'detalhe', res)}")
             return ok
         except Exception as e:
             _tg(f"⚠️ Falha {lado} tok …{token_id[-6:]}: {e}"); return False
+
+    def _cooldown_ok(self, token_id):
+        last = self._last_order.get(token_id, 0)
+        return (time.time() - last) >= COOLDOWN_S
 
     def _teto_usd(self):
         tot = 0.0
@@ -165,7 +199,7 @@ class UltraEngine:
         n = max(1, len(self._threads))
         return max(0.0, min(MAX_ORDER, (tot - FEE_BUFFER) / n))
 
-    def flatten_except_renan(self, motivo=""):
+    def flatten_except_renan(self, motivo="", slug=None):
         _tg(f"🧹 <b>Recolhimento</b> ({motivo}) — vendendo tudo exceto Renan-YES.")
         n = 0
         for p in _positions():
@@ -178,7 +212,7 @@ class UltraEngine:
                 continue
             cot = self._cotacao(tok)
             preco = getattr(cot, "bid", None) or getattr(cot, "mid", None) or 0.01
-            if self._postar(tok, "SELL", size, float(preco)):
+            if self._postar(tok, "SELL", size, float(preco), slug=slug):
                 n += 1
             time.sleep(0.5)
         _tg(f"✅ Recolhimento concluído: {n} posição(ões) liquidada(s). Renan-YES intacta.")
@@ -220,40 +254,64 @@ class UltraEngine:
     def _run(self, cfg, stop):
         title = cfg.get("title"); espn = cfg.get("espn_event_id")
         ml = cfg.get("moneyline", []); tta = cfg.get("team_to_advance", [])
+        slug_id = cfg.get("slug")
+        self._pnl[slug_id] = 0.0; self._peak[slug_id] = 0.0; self._stake[slug_id] = 0.0
         _tg(f"🐺 <b>ULTRA em operação</b> — {title}\n"
             f"Resultado: {', '.join(m['outcome'] for m in ml)}\n"
             f"Team to Advance: {', '.join(m['outcome'] for m in tta) or '(n/d)'}\n"
-            f"Recolhimento automático no min {FLATTEN_MIN}. Teto dinâmico, máx US$1000. Renan-YES blindada.")
-        flattened = False; migrated = False
+            f"🛡️ Blindagens: stop-loss US${STOP_LOSS:.0f} | take-profit US${TAKE_PROFIT:.0f} | "
+            f"trailing US${TRAIL_GIVEBACK:.1f} | cooldown {COOLDOWN_S:.0f}s | recolhe min {FLATTEN_MIN}.\n"
+            f"Máx US$1000/ordem, faixa preço {MIN_PRICE}-{MAX_PRICE}. Renan-YES blindada.")
+        flattened = False; migrated = False; parou_por_risco = False
         while not stop.is_set():
             gs = self._game_state(espn)
             if gs:
                 in_extra = gs["period"] >= 5 or "extra" in gs["detail"].lower()
                 if in_extra and tta and not migrated:
                     _tg("⏱️ Prorrogação — migrando para <b>Team to Advance</b>.")
-                    self.flatten_except_renan("prorrogação: migrar p/ TTA"); migrated = True
+                    self.flatten_except_renan("prorrogação: migrar p/ TTA", slug=slug_id); migrated = True
                 if gs["minute"] is not None and gs["minute"] >= FLATTEN_MIN and not in_extra and not flattened:
-                    self.flatten_except_renan(f"min {gs['minute']} (fim de jogo)"); flattened = True
+                    self.flatten_except_renan(f"min {gs['minute']} (fim de jogo)", slug=slug_id); flattened = True
                 if gs["state"] == "post":
                     if not flattened and not migrated:
-                        self.flatten_except_renan("apito final")
+                        self.flatten_except_renan("apito final", slug=slug_id)
                     _tg(f"🏁 Jogo encerrado — {title}. Ultra finalizando."); break
+
+            # ---- BLINDAGENS DE RISCO (P/L do jogo) ----
+            pnl = self._pnl.get(slug_id, 0.0)
+            self._peak[slug_id] = max(self._peak.get(slug_id, 0.0), pnl)
+            peak = self._peak[slug_id]
+            if not flattened and not migrated:
+                if pnl <= STOP_LOSS:
+                    _tg(f"🛑 <b>STOP-LOSS</b> {title}: P/L US${pnl:.2f} ≤ US${STOP_LOSS:.2f}. Recolhendo e parando.")
+                    self.flatten_except_renan("stop-loss", slug=slug_id); parou_por_risco = True; break
+                if pnl >= TAKE_PROFIT:
+                    _tg(f"🎯 <b>TAKE-PROFIT</b> {title}: P/L US${pnl:.2f} ≥ US${TAKE_PROFIT:.2f}. Travando lucro e parando.")
+                    self.flatten_except_renan("take-profit", slug=slug_id); parou_por_risco = True; break
+                if peak >= 1.5 and (peak - pnl) >= TRAIL_GIVEBACK:
+                    _tg(f"📉 <b>TRAILING</b> {title}: recuou US${peak-pnl:.2f} do pico (US${peak:.2f}→US${pnl:.2f}). Travando e parando.")
+                    self.flatten_except_renan("trailing-stop", slug=slug_id); parou_por_risco = True; break
+
             active = tta if migrated else ml
             if not flattened or migrated:
                 teto = self._teto_usd()
-                if teto > 1.0:
+                stake_jogo = self._stake.get(slug_id, 0.0)
+                if teto > 1.0 and stake_jogo < MAX_STAKE_GAME:
                     for mk in active:
                         if stop.is_set(): break
-                        sig, mid = self._momentum(mk["token_id"])
-                        if mid and 0.02 < mid < 0.98:
+                        tok = mk["token_id"]
+                        if not self._cooldown_ok(tok):        # trava anti-churning
+                            continue
+                        sig, mid = self._momentum(tok)
+                        if mid and MIN_PRICE < mid < MAX_PRICE:  # so preco vivo
                             shares = min(teto, MAX_ORDER) / mid
                             if sig == +1:
-                                self._postar(mk["token_id"], "BUY", shares, mid)
+                                self._postar(tok, "BUY", shares, mid, slug=slug_id)
                             elif sig == -1:
-                                self._postar(mk["token_id"], "SELL", shares, mid)
+                                self._postar(tok, "SELL", shares, mid, slug=slug_id)
             stop.wait(POLL_S)
-        if not flattened and not migrated:
-            self.flatten_except_renan("parada manual")
+        if not flattened and not migrated and not parou_por_risco:
+            self.flatten_except_renan("parada manual", slug=slug_id)
         _tg(f"🔻 Ultra encerrado — {title}. Renan-YES blindada.")
         with self._lock:
             self._threads.pop(cfg.get("slug"), None)
