@@ -22,7 +22,7 @@ Renan-YES NUNCA vendida. Telegram em 100% das transacoes.
 Roda numa thread daemon dentro do processo do runner. Estado em /tmp/wolf_ctl/.
 """
 from __future__ import annotations
-import os, sys, json, time, threading, logging, urllib.parse, urllib.request
+import os, json, time, threading, logging, urllib.parse, urllib.request
 
 log = logging.getLogger("wolf_trader.ultra")
 
@@ -457,3 +457,14 @@ def arm_autostart(client, gate_fn=None):
         sch.start()
         log.info("AutoScheduler armado (auto_games=%s)", AUTO_GAMES)
     return _AUTO["engine"]
+
+
+def disarm_autostart():
+    """Para o scheduler autonomo (usado no /stopwolfultra): impede que ele
+    reinicie jogos apos uma parada manual. NAO destroi o engine."""
+    sch = _AUTO.get("sched")
+    if sch is not None:
+        try: sch.stop()
+        except Exception: pass
+        _AUTO["sched"] = None
+        log.info("AutoScheduler desarmado (parada manual).")
