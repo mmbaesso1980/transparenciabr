@@ -102,8 +102,13 @@ def assimilar_jogo(link: str):
         if isinstance(toks, str): toks = json.loads(toks or "[]")
         pairs = list(zip(outs or [], toks or []))
         target = "team_to_advance" if ("advance" in q) else "moneyline"
+        # opera SO o lado afirmativo (Yes) de cada mercado; comprar Yes e No
+        # do mesmo desfecho se anula e desperdica caixa. Rotula pela pergunta.
+        label = m.get("groupItemTitle") or m.get("question") or (outs[0] if outs else "?")
         for o, t in pairs:
-            cfg[target].append({"outcome": o, "token_id": t})
+            if str(o).strip().lower() != "yes":
+                continue
+            cfg[target].append({"outcome": label, "token_id": t})
     if not cfg["moneyline"]:
         return None, "Não encontrei o mercado de resultado (moneyline) deste evento."
     return cfg, None
@@ -118,8 +123,11 @@ class UltraEngine:
         """
         self.client = client
         self.gate_fn = gate_fn
-        self._thread = None
-        self._stop = threading.Event()
+        # multi-jogo: um worker por slug (rodam SIMULTANEOS)
+        self._threads = {}     # slug -> Thread
+        self._stops = {}       # slug -> Event
+        self._cfgs = {}        # slug -> cfg
+        self._lock = threading.Lock()
         self._last_mid = {}
 
     # --- infra de ordem via client real ---
@@ -152,7 +160,9 @@ class UltraEngine:
             if str(p.get("asset")) == RENAN_TOKEN:
                 continue
             tot += float(p.get("currentValue", 0) or 0)
-        return max(0.0, min(MAX_ORDER, tot - FEE_BUFFER))
+        # divide o caixa entre os jogos ativos p/ evitar dupla-alavancagem
+        n = max(1, len(self._threads))
+        return max(0.0, min(MAX_ORDER, (tot - FEE_BUFFER) / n))
 
     def flatten_except_renan(self, motivo=""):
         _tg(f"🧹 <b>Recolhimento</b> ({motivo}) — vendendo tudo exceto Renan-YES.")
@@ -206,7 +216,7 @@ class UltraEngine:
         return 0, mid
 
     # --- loop principal ---
-    def _run(self, cfg):
+    def _run(self, cfg, stop):
         title = cfg.get("title"); espn = cfg.get("espn_event_id")
         ml = cfg.get("moneyline", []); tta = cfg.get("team_to_advance", [])
         _tg(f"🐺 <b>ULTRA em operação</b> — {title}\n"
@@ -214,7 +224,7 @@ class UltraEngine:
             f"Team to Advance: {', '.join(m['outcome'] for m in tta) or '(n/d)'}\n"
             f"Recolhimento automático no min {FLATTEN_MIN}. Teto dinâmico, máx US$1000. Renan-YES blindada.")
         flattened = False; migrated = False
-        while not self._stop.is_set():
+        while not stop.is_set():
             gs = self._game_state(espn)
             if gs:
                 in_extra = gs["period"] >= 5 or "extra" in gs["detail"].lower()
@@ -232,7 +242,7 @@ class UltraEngine:
                 teto = self._teto_usd()
                 if teto > 1.0:
                     for mk in active:
-                        if self._stop.is_set(): break
+                        if stop.is_set(): break
                         sig, mid = self._momentum(mk["token_id"])
                         if mid and 0.02 < mid < 0.98:
                             shares = min(teto, MAX_ORDER) / mid
@@ -240,27 +250,50 @@ class UltraEngine:
                                 self._postar(mk["token_id"], "BUY", shares, mid)
                             elif sig == -1:
                                 self._postar(mk["token_id"], "SELL", shares, mid)
-            self._stop.wait(POLL_S)
+            stop.wait(POLL_S)
         if not flattened and not migrated:
             self.flatten_except_renan("parada manual")
-        _tg("🔻 Ultra encerrado. Robô normal segue na política brasileira. Renan-YES blindada.")
+        _tg(f"🔻 Ultra encerrado — {title}. Renan-YES blindada.")
+        with self._lock:
+            self._threads.pop(cfg.get("slug"), None)
+            self._stops.pop(cfg.get("slug"), None)
+            self._cfgs.pop(cfg.get("slug"), None)
 
     def start(self, cfg):
-        if self._thread and self._thread.is_alive():
-            _tg("⚠️ Ultra já está em operação. Envie /stopwolfultra antes de iniciar outro.")
-            return False
-        self._stop.clear()
-        json.dump(cfg, open(GAME_CFG, "w"))
-        self._thread = threading.Thread(target=self._run, args=(cfg,), daemon=True)
-        self._thread.start()
+        """Inicia um worker por jogo. Multiplos jogos rodam SIMULTANEAMENTE."""
+        slug = cfg.get("slug")
+        with self._lock:
+            t = self._threads.get(slug)
+            if t and t.is_alive():
+                _tg(f"⚠️ Ultra já opera este jogo ({cfg.get('title', slug)}).")
+                return False
+            stop = threading.Event()
+            self._stops[slug] = stop
+            self._cfgs[slug] = cfg
+            th = threading.Thread(target=self._run, args=(cfg, stop), daemon=True)
+            self._threads[slug] = th
+            th.start()
+        # persiste catalogo de jogos ativos
+        try: json.dump(list(self._cfgs.values()), open(GAME_CFG, "w"))
+        except Exception: pass
         return True
 
-    def stop(self):
-        self._stop.set()
-        t = self._thread
-        if t and t.is_alive():
-            t.join(timeout=30)
+    def stop(self, slug=None):
+        """Para um jogo (slug) ou TODOS se slug=None."""
+        with self._lock:
+            slugs = [slug] if slug else list(self._threads.keys())
+            for s in slugs:
+                ev = self._stops.get(s)
+                if ev: ev.set()
+            threads = [(s, self._threads.get(s)) for s in slugs]
+        for s, t in threads:
+            if t and t.is_alive():
+                t.join(timeout=30)
         return True
 
     def is_running(self):
-        return bool(self._thread and self._thread.is_alive())
+        return any(t.is_alive() for t in self._threads.values())
+
+    def ativos(self):
+        return [c.get("title", s) for s, c in self._cfgs.items()
+                if self._threads.get(s) and self._threads[s].is_alive()]
