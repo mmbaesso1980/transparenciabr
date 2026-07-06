@@ -97,21 +97,54 @@ def main():
           f"(best-bid liq US${liq*bid:.0f}). Restarao ~{tinha-cotas:.1f} cotas de Renan.")
 
     # EXECUCAO REAL via engine do robo (detem a chave; nunca exposta).
-    # Reusa montar_engine(RunnerConfig()) -> eng.trader (PolymarketTrader real,
-    # dry_run vem de DRY_RUN=false do ambiente). NAO existe PolymarketClient:
-    # as classes reais sao PolymarketReader (cotacao) e PolymarketTrader (postar_ordem).
-    from wolf_trader.polymarket_client import OrdemRequest
-    from wolf_trader.runner import montar_engine, RunnerConfig
-    eng = montar_engine(RunnerConfig())
-    trader = eng.trader
-    if getattr(trader, "dry_run", True):
-        print("ABORTADO: trader em DRY_RUN. Rode com DRY_RUN=false para venda real.")
+    # Reusa RunnerConfig() para PK/funder/projeto, mas monta um Trader proprio
+    # porque precisamos VARRER o signature_type correto desta carteira.
+    #
+    # RAIZ do 'maker address not allowed': a carteira 0xe1B5...64 e o proprio
+    # deposit/proxy wallet (data-api retorna proxyWallet == funder). Com sig_type=1
+    # (Proxy) o SDK monta um maker que a Polymarket recusa para uma ordem de venda.
+    # O robo normal so COMPRA banca politica; esta e a 1a ordem SELL real desta
+    # assinatura. Solucao: testar sig_type 0 (EOA), 2 (Safe), 1 (Proxy) e usar o
+    # PRIMEIRO que a Polymarket aceitar. Paramos no sucesso (nao vende 2x).
+    from wolf_trader.polymarket_client import (
+        OrdemRequest, Signer, PolymarketTrader, secret_manager_pk_provider,
+    )
+    from wolf_trader.runner import RunnerConfig, _resolver_funder
+
+    cfg = RunnerConfig()
+    if cfg.dry_run:
+        print("ABORTADO: DRY_RUN ativo. Rode com DRY_RUN=false para venda real.")
         sys.exit(8)
+    funder = _resolver_funder(cfg)
+    pk_provider = secret_manager_pk_provider(cfg.secret_pk, cfg.gcp_project)
+
+    # Ordem de tentativa: EOA -> Safe -> Proxy. Preferencia por 0 porque a
+    # carteira e o proprio endereco de deposito (funder == proxyWallet).
+    ordem_tipos = [0, 2, 1]
+    # Coloca o tipo do servico (default 1) por ultimo, ja tentado hoje sem sucesso.
     req = OrdemRequest(token_id=RENAN, lado="SELL", preco=round(bid, 4),
                        size=cotas, tipo="GTC")
-    res = trader.postar_ordem(req)
-    ok = getattr(res, "ok", False)
-    det = getattr(res, "detalhe", res)
+    ok = False
+    det = "nenhuma tentativa"
+    for st in ordem_tipos:
+        rotulo = {0: "0=EOA", 1: "1=Proxy", 2: "2=Safe"}.get(st, str(st))
+        print(f"--> Tentando assinatura signature_type={rotulo} ...")
+        signer = Signer(private_key_provider=pk_provider,
+                        funder_address=funder, signature_type=st)
+        trader = PolymarketTrader(signer=signer, dry_run=False)
+        res = trader.postar_ordem(req)
+        ok = getattr(res, "ok", False)
+        det = getattr(res, "detalhe", res)
+        print(f"    resultado sig_type={rotulo}: ok={ok} | {det}")
+        if ok:
+            det = f"[sig_type={rotulo}] {det}"
+            print(f"\n*** SUCESSO com signature_type={rotulo}. "
+                  f"Defina WOLF_SIGNATURE_TYPE={st} para vendas futuras. ***")
+            break
+        # Se o erro NAO for de maker/deposit, nao adianta trocar o tipo -> aborta.
+        if "maker address not allowed" not in str(det) and "deposit wallet" not in str(det):
+            print("    erro nao relacionado a assinatura; parando a varredura.")
+            break
     print(f"RESULTADO: ok={ok} | {det}")
 
     time.sleep(3)
