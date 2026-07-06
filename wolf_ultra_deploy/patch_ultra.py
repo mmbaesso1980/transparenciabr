@@ -12,7 +12,7 @@ Faz:
 Roda como root na VM: sudo /opt/wolf/repo/.venv/bin/python3 patch_ultra.py
 Backups: <arquivo>.bak_ultra
 """
-import os, sys, py_compile, shutil, re, time
+import os, sys, py_compile, shutil, re
 
 REPO = "/opt/wolf/repo"
 PKG  = os.path.join(REPO, "wolf_trader")
