@@ -96,12 +96,20 @@ def main():
     print(f"Plano: VENDER {cotas} cotas @ {bid:.4f} = ~US${usd_est:.2f} "
           f"(best-bid liq US${liq*bid:.0f}). Restarao ~{tinha-cotas:.1f} cotas de Renan.")
 
-    # cliente REAL do robo (detem a chave; nunca exposta)
-    from wolf_trader.polymarket_client import PolymarketClient, OrdemRequest
-    cli = PolymarketClient()
+    # EXECUCAO REAL via engine do robo (detem a chave; nunca exposta).
+    # Reusa montar_engine(RunnerConfig()) -> eng.trader (PolymarketTrader real,
+    # dry_run vem de DRY_RUN=false do ambiente). NAO existe PolymarketClient:
+    # as classes reais sao PolymarketReader (cotacao) e PolymarketTrader (postar_ordem).
+    from wolf_trader.polymarket_client import OrdemRequest
+    from wolf_trader.runner import montar_engine, RunnerConfig
+    eng = montar_engine(RunnerConfig())
+    trader = eng.trader
+    if getattr(trader, "dry_run", True):
+        print("ABORTADO: trader em DRY_RUN. Rode com DRY_RUN=false para venda real.")
+        sys.exit(8)
     req = OrdemRequest(token_id=RENAN, lado="SELL", preco=round(bid, 4),
                        size=cotas, tipo="GTC")
-    res = cli.postar_ordem(req)
+    res = trader.postar_ordem(req)
     ok = getattr(res, "ok", False)
     det = getattr(res, "detalhe", res)
     print(f"RESULTADO: ok={ok} | {det}")
