@@ -19,6 +19,12 @@ Uso na VM:
 """
 import os, sys, json, time, urllib.request
 
+# Auto-suficiente: garante o PYTHONPATH do repo mesmo quando rodado sem env
+# (evita ModuleNotFoundError: No module named 'wolf_trader').
+for _p in ("/opt/wolf/repo", "/opt/wolf/repo/bridge"):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
+
 RENAN   = "93998891488819623915454849994768171534113749478841216025646247933473925258016"
 FUNDER  = os.environ.get("WOLF_FUNDER", "0xe1B54Ad855E9A7222F119162A9697AC8c35be064")
 UA      = "TransparenciaBR-engines/1.0"
