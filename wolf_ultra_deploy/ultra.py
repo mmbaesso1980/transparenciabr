@@ -80,8 +80,9 @@ def _slug_from_link(link: str):
     return None
 
 
-def assimilar_jogo(link: str):
-    """Consulta a Gamma API e monta a config do jogo. Retorna (cfg, erro)."""
+def assimilar_jogo(link: str, espn_event_id=None):
+    """Consulta a Gamma API e monta a config do jogo. Retorna (cfg, erro).
+    espn_event_id: opcional, ativa o relogio ESPN p/ recolhimento no min 85."""
     slug = _slug_from_link(link)
     if not slug:
         return None, "Link não reconhecido. Envie a URL do evento (…/event/&lt;slug&gt;)."
@@ -93,7 +94,7 @@ def assimilar_jogo(link: str):
         return None, f"Evento não encontrado (slug '{slug}')."
     event = ev[0] if isinstance(ev, list) else ev
     cfg = {"slug": slug, "title": event.get("title", slug), "funder": FUNDER,
-           "moneyline": [], "team_to_advance": [], "espn_event_id": None,
+           "moneyline": [], "team_to_advance": [], "espn_event_id": espn_event_id,
            "assimilated_at": int(time.time())}
     for m in event.get("markets", []):
         q = (m.get("question") or "").lower()
