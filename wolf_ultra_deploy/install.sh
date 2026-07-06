@@ -24,7 +24,8 @@ TOK=""
 for f in $REPO/.wolf_risco.env /opt/wolf/.wolf_risco.env /opt/wolf/.env; do
   [ -f "$f" ] && TOK=$(grep -E '^(WOLF_TG_TOKEN|TELEGRAM_TOKEN|TG_TOKEN)=' "$f" | head -1 | cut -d= -f2-) && [ -n "$TOK" ] && break
 done
-sudo bash -c "printf '[Service]\nEnvironment=WOLF_TG_CHAT=6483072695\n' > $DROPIN/ultra-env.conf"
+# WOLF_MODO=agressivo -> captura mais micro-movimentos; travas de perda seguem intactas.
+sudo bash -c "printf '[Service]\nEnvironment=WOLF_TG_CHAT=6483072695\nEnvironment=WOLF_MODO=${WOLF_MODO:-agressivo}\n' > $DROPIN/ultra-env.conf"
 [ -n "$TOK" ] && sudo bash -c "echo 'Environment=WOLF_TG_TOKEN=$TOK' >> $DROPIN/ultra-env.conf" && echo "token reaproveitado."
 # Blindagens de risco: se existir .wolf_risco.env, propaga as WOLF_* p/ o servico.
 # Sem arquivo, valem os DEFAULTS do codigo (stop -5 / take +6 / trail 2.5 / cooldown 45s ...).

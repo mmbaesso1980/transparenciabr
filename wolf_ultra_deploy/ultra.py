@@ -32,13 +32,22 @@ FEE_BUFFER  = 0.25
 MAX_ORDER   = 1000.0
 UA          = "TransparenciaBR-engines/1.0"
 
+# ---- MODO de operacao: 'seguro' (default) ou 'agressivo' ----
+# Agressivo captura MAIS micro-movimentos (gatilho menor + cooldown menor),
+# MAS mantem TODAS as travas de perda intactas (stop-loss/trailing/Renan sagrados).
+MODO = os.environ.get("WOLF_MODO", "seguro").strip().lower()
+_AGGR = (MODO == "agressivo")
+_def_trigger  = "0.012" if _AGGR else "0.02"    # 1.2% vs 2%
+_def_cooldown = "25"    if _AGGR else "45"      # 25s vs 45s por token
+_def_poll     = "2.0"   if _AGGR else "3.0"
+
 # ---- Blindagens aprendidas com 05/07 (Bra-Nor / Mex-Eng) ----
-# 1) momentum menos sensivel -> menos churning (era 0.0008)
-TRIGGER_PCT  = float(os.environ.get("WOLF_TRIGGER_PCT", "0.02"))   # 2%
+# 1) momentum: agressivo dispara mais cedo, mas ainda longe do churning de ontem (0.0008)
+TRIGGER_PCT  = float(os.environ.get("WOLF_TRIGGER_PCT", _def_trigger))
 # 2) recolhimento no min 80 (era 85) -> realiza antes do caos final
 FLATTEN_MIN  = int(os.environ.get("WOLF_FLATTEN_MIN", "80"))
 # 3) cadencia: 1 ordem a cada COOLDOWN_S por token -> mata o giro
-COOLDOWN_S   = float(os.environ.get("WOLF_COOLDOWN_S", "45"))
+COOLDOWN_S   = float(os.environ.get("WOLF_COOLDOWN_S", _def_cooldown))
 # 4) STOP-LOSS de sessao: se P/L cair abaixo disto, recolhe e para o jogo
 STOP_LOSS    = float(os.environ.get("WOLF_STOP_LOSS_USD", "-5.0"))
 # 5) TAKE-PROFIT de pico: se lucro do jogo passar disto, trava e para
@@ -50,7 +59,7 @@ MIN_PRICE    = float(os.environ.get("WOLF_MIN_PRICE", "0.12"))
 MAX_PRICE    = float(os.environ.get("WOLF_MAX_PRICE", "0.90"))
 # 8) teto de exposicao por jogo (alem do MAX_ORDER por ordem)
 MAX_STAKE_GAME = float(os.environ.get("WOLF_MAX_STAKE_GAME_USD", "1000.0"))
-POLL_S      = float(os.environ.get("WOLF_POLL_S", "3.0"))
+POLL_S      = float(os.environ.get("WOLF_POLL_S", _def_poll))
 
 STATE_DIR = "/tmp/wolf_ctl"
 os.makedirs(STATE_DIR, exist_ok=True)
@@ -356,3 +365,95 @@ class UltraEngine:
     def ativos(self):
         return [c.get("title", s) for s, c in self._cfgs.items()
                 if self._threads.get(s) and self._threads[s].is_alive()]
+
+
+# ---------------- Scheduler AUTONOMO (start/stop sem intervencao) ----------------
+AUTO_GAMES = os.environ.get("WOLF_AUTO_GAMES", "/opt/wolf/repo/wolf_ultra_deploy/auto_games.json")
+PRE_KICKOFF_MIN = float(os.environ.get("WOLF_PRE_KICKOFF_MIN", "3"))   # inicia N min antes do apito
+WATCH_S         = float(os.environ.get("WOLF_WATCH_S", "60"))          # varredura do scheduler
+
+
+def _espn_kickoff(espn_id):
+    """Retorna (epoch_apito, state) do jogo via ESPN. state in pre/in/post."""
+    if not espn_id:
+        return None, None
+    try:
+        d = _http_json(f"https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/summary?event={espn_id}")
+        comp = d.get("header", {}).get("competitions", [{}])[0]
+        st = comp.get("status", {}).get("type", {}).get("state", "")
+        import datetime
+        dt = comp.get("date") or d.get("header", {}).get("competitions", [{}])[0].get("date")
+        ts = None
+        if dt:
+            dt = dt.replace("Z", "+00:00")
+            ts = datetime.datetime.fromisoformat(dt).timestamp()
+        return ts, st
+    except Exception as e:
+        log.warning("espn kickoff %s: %s", espn_id, e); return None, None
+
+
+class AutoScheduler(threading.Thread):
+    """Le auto_games.json e AUTO-INICIA cada jogo no apito. Encerramento e autonomo
+    (relogio ESPN: recolhe no min FLATTEN_MIN, migra p/ TTA na prorrogacao, para no apito final).
+    So dispara jogos que ainda nao terminaram. Idempotente por slug."""
+    def __init__(self, engine):
+        super().__init__(daemon=True)
+        self.engine = engine
+        self._started = set()   # slugs ja iniciados
+        self._stop = threading.Event()
+        self._announced = False
+
+    def stop(self):
+        self._stop.set()
+
+    def _load(self):
+        try:
+            items = json.load(open(AUTO_GAMES))
+            return items if isinstance(items, list) else []
+        except Exception as e:
+            log.warning("auto_games: %s", e); return []
+
+    def run(self):
+        _tg("🛰️ <b>Scheduler AUTÔNOMO ativo</b> — inicio e fim sem intervenção. "
+            f"Cada jogo liga sozinho ~{PRE_KICKOFF_MIN:.0f} min antes do apito e encerra pelo relógio.")
+        while not self._stop.is_set():
+            for it in self._load():
+                if not isinstance(it, dict):
+                    continue
+                link = it.get("link"); eid = it.get("espn_event_id")
+                slug = _slug_from_link(link)
+                if not slug or slug in self._started:
+                    continue
+                ko, state = _espn_kickoff(eid)
+                now = time.time()
+                # ja terminou -> nunca dispara
+                if state == "post":
+                    self._started.add(slug); continue
+                # em andamento OU faltam <= PRE_KICKOFF_MIN p/ o apito -> inicia agora
+                due = (state == "in") or (ko is not None and now >= ko - PRE_KICKOFF_MIN * 60)
+                if not due:
+                    continue
+                cfg, err = assimilar_jogo(link, eid)
+                if err or not cfg:
+                    _tg(f"⚠️ Auto-start falhou p/ {slug}: {err}"); self._started.add(slug); continue
+                if self.engine.start(cfg):
+                    self._started.add(slug)
+                    _tg(f"🐺 <b>AUTO-START</b> — {cfg.get('title', slug)} entrou em operação sozinho. "
+                        "Encerramento automático pelo relógio.")
+            self._stop.wait(WATCH_S)
+
+
+_AUTO = {"engine": None, "sched": None}
+
+
+def arm_autostart(client, gate_fn=None):
+    """Liga o modo TOTALMENTE AUTONOMO: cria o engine e o scheduler. Idempotente.
+    Chamado uma vez no boot do runner. Retorna o engine."""
+    if _AUTO["engine"] is None:
+        _AUTO["engine"] = UltraEngine(client, gate_fn=gate_fn)
+    if _AUTO["sched"] is None or not _AUTO["sched"].is_alive():
+        sch = AutoScheduler(_AUTO["engine"])
+        _AUTO["sched"] = sch
+        sch.start()
+        log.info("AutoScheduler armado (auto_games=%s)", AUTO_GAMES)
+    return _AUTO["engine"]

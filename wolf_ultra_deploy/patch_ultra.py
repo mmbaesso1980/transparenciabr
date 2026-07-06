@@ -124,10 +124,11 @@ def patch_runner():
     imp = (
         f"\n{MARK}\n"
         "try:\n"
-        "    from wolf_trader.ultra import UltraEngine, assimilar_jogo, _tg as _ultra_tg\n"
+        "    from wolf_trader.ultra import UltraEngine, assimilar_jogo, arm_autostart, _tg as _ultra_tg\n"
         "except Exception as _e:\n"
         "    UltraEngine = None\n"
         "    def assimilar_jogo(_l): return None, 'ultra indisponível'\n"
+        "    def arm_autostart(_c, gate_fn=None): return None\n"
         "    def _ultra_tg(_m): pass\n"
         f"{END}\n"
     )
@@ -216,8 +217,33 @@ def patch_runner():
     )
     txt = txt[:insert_at] + method + txt[insert_at:]
 
+    # 3d. AUTONOMIA TOTAL: arma o scheduler no __init__ do runner (start/stop sem intervencao).
+    #     Insere a chamada arm_autostart(self.client) ao final do corpo do __init__.
+    if "arm_autostart(self.client" not in txt:
+        mi = re.search(r"^(\s*)def __init__\(self[^\n]*\n", txt, re.M)
+        if mi:
+            ind = mi.group(1)
+            body = ind + "    "
+            after_init = mi.end()
+            # acha a proxima 'def ' na mesma indentacao do metodo (fim do __init__)
+            nxt2 = re.search(rf"\n{ind}def ", txt[after_init:])
+            init_end = after_init + (nxt2.start() if nxt2 else 0)
+            arm = (
+                f"\n{body}{MARK}\n"
+                f"{body}try:\n"
+                f"{body}    if UltraEngine is not None and getattr(self, 'client', None) is not None:\n"
+                f"{body}        self._ultra_engine = arm_autostart(self.client)\n"
+                f"{body}except Exception as _ae:\n"
+                f"{body}    pass\n"
+                f"{body}{END}\n"
+            )
+            txt = txt[:init_end] + arm + txt[init_end:]
+            print("[3d] arm_autostart injetado no __init__ do runner (autonomia total).")
+        else:
+            print("[3d] AVISO: __init__ do runner nao encontrado; scheduler sera armado no 1o /startwolfultra.")
+
     open(RUN, "w", encoding="utf-8").write(txt)
-    print("[3/4] runner.py patchado (import + hook + _ultra_handle).")
+    print("[3/4] runner.py patchado (import + hook + _ultra_handle + autostart).")
 
 # ---------- 4. validacao ----------
 def validate_or_rollback():
