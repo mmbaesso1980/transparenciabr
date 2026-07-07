@@ -91,6 +91,19 @@ KICKSTART_AFTER = int(os.environ.get("WOLF_KICKSTART_AFTER", "0"))
 #     book (join); =0 posta 1 tick DENTRO (melhora a fila, reduz a captura em 1 tick).
 MAKER        = os.environ.get("WOLF_MAKER", "0").strip() in ("1", "true", "True", "sim", "SIM")
 MAKER_JOIN   = os.environ.get("WOLF_MAKER_JOIN", "1").strip() in ("1", "true", "True", "sim", "SIM")
+# 8g) MODO FRENETICO (WOLF_FRENETIC=1): market-making BILATERAL de alta frequencia.
+#     A CADA ciclo, para CADA token, posta SIMULTANEAMENTE:
+#       - BUY passiva no BID (compra barato) — limitada por caixa/teto
+#       - SELL passiva no ASK (vende caro)   — limitada por quotas em carteira
+#     Captura o spread dos DOIS lados (tecnica classica de formador de mercado)
+#     e sobrepoe SINAL TECNICO (momentum + reversao a media via EWMA) p/ inclinar
+#     o inventario a favor da tendencia intraciclo. Giro maximo que o book permitir.
+#     TODAS as travas continuam: teto US$/jogo, stop-loss, faixa de preco, Renan.
+#     O Comandante ASSUME O RISCO (diretiva explicita) — cooldown ~0, poll rapido.
+FRENETIC     = os.environ.get("WOLF_FRENETIC", "0").strip() in ("1", "true", "True", "sim", "SIM")
+# EWMA p/ reversao a media: alfa do filtro e desvio (em %) que dispara skew de inventario
+EWMA_ALPHA   = float(os.environ.get("WOLF_EWMA_ALPHA", "0.25"))
+REVERT_PCT   = float(os.environ.get("WOLF_REVERT_PCT", "0.015"))
 
 STATE_DIR = "/tmp/wolf_ctl"
 os.makedirs(STATE_DIR, exist_ok=True)
@@ -208,6 +221,7 @@ class UltraEngine:
         self._avgcost = {}     # token_id -> preco medio de compra (p/ P/L realizado)
         self._pos_cache = (0.0, {})  # (ts, {token_id: shares}) cache curto de posicoes
         self._risk_stopped = set()   # slugs que pararam por TRAVA (nao religar)
+        self._ewma = {}              # token_id -> media exponencial do mid (reversao)
 
     # --- infra de ordem via client real ---
     def _cotacao(self, token_id):
@@ -362,6 +376,34 @@ class UltraEngine:
         if d <= -TRIGGER_PCT: return -1, mid, bid, ask
         return 0, mid, bid, ask
 
+    def _tecnico(self, token_id, mid):
+        """SINAL TECNICO composto p/ o modo frenetico (tecnicas de bolsa):
+          - MOMENTUM: variacao do mid vs tick anterior (segue a tendencia).
+          - REVERSAO A MEDIA (EWMA): se o mid desviou > REVERT_PCT da media
+            exponencial, aposta no retorno (compra abaixo da media, vende acima).
+        Retorna 'skew' em [-1..+1]: +1 vies COMPRADOR (inclina a BUY), -1 vies
+        VENDEDOR (inclina a SELL), 0 neutro (market-making simetrico).
+        NAO decide sozinho o valor: apenas inclina o inventario. As travas mandam."""
+        if mid is None:
+            return 0.0
+        ew = self._ewma.get(token_id)
+        ew = mid if ew is None else (EWMA_ALPHA * mid + (1 - EWMA_ALPHA) * ew)
+        self._ewma[token_id] = ew
+        prev = self._last_mid.get(token_id)
+        mom = 0.0
+        if prev:
+            mom = (mid - prev) / prev
+        # desvio da media (reversao): mid ACIMA da media -> vies VENDEDOR (-)
+        dev = (mid - ew) / ew if ew else 0.0
+        skew = 0.0
+        # momentum forte domina (segue tendencia)
+        if mom >= TRIGGER_PCT:   skew += 0.6
+        elif mom <= -TRIGGER_PCT: skew -= 0.6
+        # reversao a media (contrarian) quando desvio grande
+        if dev >= REVERT_PCT:    skew -= 0.4
+        elif dev <= -REVERT_PCT: skew += 0.4
+        return max(-1.0, min(1.0, skew))
+
     # --- loop principal ---
     def _run(self, cfg, stop):
         title = cfg.get("title"); espn = cfg.get("espn_event_id")
@@ -374,8 +416,9 @@ class UltraEngine:
             f"Team to Advance: {', '.join(m['outcome'] for m in tta) or '(n/d)'}\n"
             f"🛡️ Blindagens: stop-loss US${STOP_LOSS:.0f} | take-profit US${TAKE_PROFIT:.0f} | "
             f"trailing US${TRAIL_GIVEBACK:.1f} | cooldown {COOLDOWN_S:.0f}s | recolhe min {FLATTEN_MIN}.\n"
-            f"⚙️ Modo de execução: <b>{'MAKER (captura o spread — taxa ~0)' if MAKER else 'TAKER (cruza o book)'}</b>"
-            f"{' — post no topo (join)' if (MAKER and MAKER_JOIN) else (' — 1 tick dentro' if MAKER else '')}.\n"
+            f"⚙️ Modo de execução: <b>{'⚡ FRENÉTICO — market-making BILATERAL (BUY+SELL a cada tick, captura spread nas 2 pontas)' if FRENETIC else ('MAKER (captura o spread — taxa ~0)' if MAKER else 'TAKER (cruza o book)')}</b>"
+            f"{(' — sinal técnico: momentum + reversão à média (EWMA) inclina o inventário' if FRENETIC else (' — post no topo (join)' if (MAKER and MAKER_JOIN) else (' — 1 tick dentro' if MAKER else '')))}.\n"
+            f"{('🔁 poll ' + format(POLL_S, '.1f') + 's | cooldown ' + format(COOLDOWN_S, '.0f') + 's — giro máximo.' + chr(10)) if FRENETIC else ''}"
             f"Máx US$1000/ordem, faixa preço {MIN_PRICE}-{MAX_PRICE}. Renan-YES blindada.")
         flattened = False; migrated = False; parou_por_risco = False
         # KICKSTART: contador de ciclos sem sinal e lado alternante por token
@@ -448,8 +491,9 @@ class UltraEngine:
                         borda_ok = spread_pct >= (2.0 * FEE_PCT + EDGE_MIN_PCT)
                         if not borda_ok:
                             # sem borda p/ cobrir a taxa: so segue em KICKSTART
-                            # (giro forcado pelo Comandante), senao pula.
-                            if not (KICKSTART and _ks_idle.get(tok, 1) == 0):
+                            # (giro forcado) ou no FRENETICO (giro maximo pedido
+                            # pelo Comandante, que ASSUMIU O RISCO), senao pula.
+                            if not (FRENETIC or (KICKSTART and _ks_idle.get(tok, 1) == 0)):
                                 continue
 
                         # LOTE microtick alvo em QUOTAS: piso de 5 shares (regra dura).
@@ -477,6 +521,45 @@ class UltraEngine:
                                 preco_buy  = min(ask - TICK_PRICE, bid + TICK_PRICE)
                         else:
                             preco_sell, preco_buy = bid, ask
+
+                        # =========== MODO FRENETICO (WOLF_FRENETIC=1) ===========
+                        # Market-making BILATERAL de alta frequencia: a CADA ciclo
+                        # posta OS DOIS lados AO MESMO TEMPO por token — BUY no bid
+                        # (ou 1 tick dentro) E SELL no ask — capturando o spread nas
+                        # DUAS pontas (tecnica classica de formador de mercado). O
+                        # sinal tecnico (_tecnico: momentum + reversao a media via
+                        # EWMA) NAO decide compra/venda sozinho: apenas INCLINA o
+                        # tamanho de cada lado (skew), deixando as TRAVAS mandarem.
+                        # Todas as blindagens continuam: piso 5 shares, teto por
+                        # jogo/ordem, _shares_de (nunca vende mais do que tem em
+                        # carteira), faixa de preco viva, US$1000/ordem, Renan
+                        # blindada (nunca entra na allowlist do jogo).
+                        if FRENETIC:
+                            skew = self._tecnico(tok, mid)          # -1..+1
+                            # ---- lado SELL (limitado pelas quotas em carteira) ----
+                            held = self._shares_de(tok)
+                            if held >= MIN_SHARES:
+                                # vies vendedor (skew<0) aumenta o lote de venda
+                                fator_s = 1.0 + max(0.0, -skew)     # 1.0 .. 2.0
+                                sh_s = min(lote_sh * fator_s, held)
+                                if sh_s >= MIN_SHARES:
+                                    self._postar(tok, "SELL", sh_s, preco_sell, slug=slug_id)
+                            # ---- lado BUY (arranca do TETO; caixa e' bonus) ----
+                            # DIFERENCA p/ o modo unilateral: aqui o BUY NAO exige
+                            # caixa REALIZADO previo (senao no 1o ciclo, sem caixa,
+                            # so venderia). O Comandante ASSUMIU O RISCO e quer as
+                            # DUAS pontas vivas desde o 1o tick. Limite duro continua
+                            # sendo o TETO por jogo + teto por ordem (US$1000).
+                            restante_jogo = max(0.0, MAX_STAKE_GAME - stake_jogo)
+                            # vies comprador (skew>0) aumenta o lote de compra
+                            fator_b = 1.0 + max(0.0, skew)          # 1.0 .. 2.0
+                            alvo_usd = min(lote_usd * fator_b, MAX_ORDER)
+                            budget = min(alvo_usd, restante_jogo, teto)
+                            if budget >= (MIN_SHARES * preco_buy) - 1e-9 and preco_buy > 0:
+                                sh_b = max(MIN_SHARES, budget / preco_buy)
+                                self._postar(tok, "BUY", sh_b, preco_buy, slug=slug_id)
+                            continue   # frenetico ja postou os dois lados; proximo token
+                        # ========================================================
 
                         if sig == -1:
                             # VENDER: nunca mais que as quotas EM CARTEIRA
