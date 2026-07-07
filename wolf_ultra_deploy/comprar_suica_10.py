@@ -55,11 +55,26 @@ def main():
         print("ABORTO: sem ask no book"); sys.exit(5)
     # compra a mercado: paga o ask + folga; nunca acima de 0.90 (faixa viva)
     preco = round(min(0.90, ask + 0.01), 2)
-    size = round(USD_ALVO / preco, 2)
-    usd_est = round(size * preco, 2)
-    if usd_est > MAX_USD:
-        print(f"ABORTO: US${usd_est} estimado > trava {MAX_USD}"); sys.exit(2)
-    print(f"Suíça win | ask={ask} | preco_compra={preco} | size={size} tokens | ~US${usd_est}")
+    # Regra Polymarket market BUY: maker amount (USDC gasto) = size*preco -> MAX 2 casas decimais;
+    # size (taker) -> MAX 4 casas. Fixamos o USDC em 2 casas e derivamos size com 4 casas,
+    # depois AJUSTAMOS o USDC para o produto real (size*preco) casar em 2 casas exatas.
+    # A Polymarket valida o PRODUTO REAL size*preco (maker amount) com ≤ 2 casas e size ≤ 4 casas.
+    # Estratégia exata: partir do USDC alvo e descer em passos de 1 centavo; para cada USDC de 2
+    # casas, size = round(usdc/preco, 4); aceitar o 1º par em que round(size*preco,2) == usdc E o
+    # produto real tenha ≤2 casas (i.e. size*preco == round(size*preco,2)).
+    def _casas(x):
+        s = f"{x:.10f}".rstrip("0"); return len(s.split(".")[1]) if "." in s else 0
+    usd_est = None; size = None
+    cent = round(USD_ALVO, 2)
+    while cent >= 0.50:
+        cand_size = round(cent / preco, 4)
+        prod = round(cand_size * preco, 10)
+        if _casas(prod) <= 2 and _casas(cand_size) <= 4 and prod <= MAX_USD:
+            size = cand_size; usd_est = round(prod, 2); break
+        cent = round(cent - 0.01, 2)
+    if size is None:
+        print("ABORTO: não consegui casar amounts na regra de 2 casas da Polymarket"); sys.exit(9)
+    print(f"Suíça win | ask={ask} | preco={preco} | size={size} tokens | maker=US${usd_est} (produto exato {size*preco})")
 
     # --- MESMA via de chave do robô (Secret Manager). PK nunca exposta. ---
     from wolf_trader.polymarket_client import (
