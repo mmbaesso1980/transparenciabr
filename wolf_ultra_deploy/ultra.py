@@ -64,6 +64,11 @@ POLL_S      = float(os.environ.get("WOLF_POLL_S", _def_poll))
 #     ORDER_USD = valor-alvo por ordem; MIN_ORDER_USD = piso rigido do Polymarket.
 MIN_ORDER_USD = float(os.environ.get("WOLF_MIN_ORDER_USD", "1.0"))
 ORDER_USD     = float(os.environ.get("WOLF_ORDER_USD", "1.0"))
+# 8d) PISO em QUOTAS (nao em dolar): Polymarket rejeita ordem com menos de 5 shares
+#     ('Size (x) lower than the minimum: 5'). E o tick de PRECO dos mercados de
+#     Copa (moneyline / to-advance / spreads / totals) e 0.0025 (0.25 centavos).
+MIN_SHARES  = float(os.environ.get("WOLF_MIN_SHARES", "5"))
+TICK_PRICE  = float(os.environ.get("WOLF_TICK_PRICE", "0.0025"))
 # 8c) KICKSTART (microtick em mercado ESTATICO): quando o momentum nao dispara
 #     porque o mid esta parado (mercado pre-jogo), forcamos lances alternados
 #     BUY/SELL pequenos para GIRAR a posicao ativamente. Respeita TODAS as
@@ -203,28 +208,22 @@ class UltraEngine:
             _tg(f"⛔ Ordem {lado} US${usd:.2f} barrada pelo gate de risco.")
             return False
         try:
-            # PRECISAO Polymarket: preco <= 2 casas (tick 0.01) e produto size*preco <= 2 casas,
-            # E produto >= MIN_ORDER_USD (piso US$1). Sobe o size em passos de 0.01 ate o produto
-            # casar em 2 casas E ficar >= piso. Evita 400 'max accuracy of 2 decimals' e rejeicao
-            # por lance abaixo do minimo.
-            preco_q = round(preco, 2)
+            # PRECISAO Polymarket (World Cup moneyline/advance): tick de PRECO = 0.0025
+            # (0.25 centavos). O minimo NAO e em dolar — e em QUOTAS: size >= MIN_SHARES
+            # (a API rejeita com 'Size (x) lower than the minimum: 5'). BUY informa dolar,
+            # SELL informa quotas; em ambos o size final tem de respeitar o piso de quotas.
+            preco_q = round(round(preco / TICK_PRICE) * TICK_PRICE, 4)
             if preco_q <= 0:
-                preco_q = 0.01
+                preco_q = TICK_PRICE
+            if preco_q >= 1:
+                preco_q = 1 - TICK_PRICE
+            # size em quotas, arredondado a 2 casas e NUNCA abaixo do piso de quotas
             size_q = round(size_shares, 2)
-            teto_prod = usd * 1.5 + 0.5  # nao deixa o ajuste inflar demais o lance
-            ok_prec = False
-            for _ in range(40):
-                prod = round(size_q * preco_q, 10)
-                if abs(prod - round(prod, 2)) < 1e-9 and prod >= MIN_ORDER_USD - 1e-9:
-                    ok_prec = True
-                    break
-                size_q = round(size_q + 0.01, 2)
-                if size_q * preco_q > teto_prod:
-                    break
-            if not ok_prec or size_q <= 0:
-                # nao foi possivel montar lance valido (>= US$1, 2 casas) — pula silenciosamente
+            if size_q < MIN_SHARES:
+                size_q = float(MIN_SHARES)
+            if size_q <= 0:
                 return False
-            usd = round(size_q * preco_q, 2)  # usd real da ordem quantizada
+            usd = round(size_q * preco_q, 4)  # usd real da ordem quantizada
             if self.gate_fn and not self.gate_fn(usd):
                 return False
             req = OrdemRequest(token_id=token_id, lado=lado, preco=preco_q,
@@ -415,35 +414,35 @@ class UltraEngine:
                         elif sig != 0:
                             _ks_idle[tok] = 0
 
-                        # LOTE microtick alvo (US$)
-                        lote_usd = min(ORDER_USD, MAX_ORDER)
-                        if lote_usd < MIN_ORDER_USD:
-                            continue
+                        # LOTE microtick alvo em QUOTAS: nunca abaixo do piso de
+                        # 5 shares (regra dura da Polymarket). Se ORDER_USD/mid der
+                        # menos que 5 quotas, o piso vale (custa um pouco mais que
+                        # ORDER_USD, mas e o minimo aceito pela API).
+                        lote_sh = max(MIN_SHARES, ORDER_USD / mid)
+                        lote_usd = lote_sh * mid
+                        if lote_usd > MAX_ORDER:
+                            continue  # lance minimo ja excede o teto por ordem
 
                         if sig == -1:
                             # VENDER: nunca mais do que as quotas EM CARTEIRA (evita
-                            # 'not enough balance'). Converte posicao em caixa realizado.
+                            # 'not enough balance'), e nunca menos que o piso de 5.
                             held = self._shares_de(tok)
-                            if held < 1e-6:
-                                continue  # nada a vender neste token
-                            shares = min(lote_usd / mid, held)
-                            if shares * mid < MIN_ORDER_USD:
-                                # pouco pra vender >= US$1: vende o restinho todo se der
-                                if held * mid >= MIN_ORDER_USD:
-                                    shares = held
-                                else:
-                                    continue
+                            if held < MIN_SHARES:
+                                continue  # sem quotas suficientes p/ um SELL valido
+                            shares = min(lote_sh, held)
+                            if shares < MIN_SHARES:
+                                continue
                             self._postar(tok, "SELL", shares, mid, slug=slug_id)
                         elif sig == +1:
                             # COMPRAR: SO com caixa REALIZADO das vendas (rotacao) e
                             # respeitando o teto do jogo. Nunca compra do 'nada'
-                            # (era a causa do erro balance:0).
+                            # (era a causa do erro balance:0). Piso de 5 quotas.
                             caixa = self._cash.get(slug_id, 0.0)
                             restante_jogo = max(0.0, MAX_STAKE_GAME - stake_jogo)
                             budget = min(lote_usd, caixa, restante_jogo, teto)
-                            if budget < MIN_ORDER_USD:
-                                continue  # sem caixa realizado suficiente p/ recomprar
-                            shares = budget / mid
+                            if budget < lote_usd - 1e-9:
+                                continue  # sem caixa/teto p/ um lote de 5 quotas
+                            shares = max(MIN_SHARES, budget / mid)
                             self._postar(tok, "BUY", shares, mid, slug=slug_id)
             stop.wait(POLL_S)
         if not flattened and not migrated and not parou_por_risco:
