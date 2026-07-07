@@ -69,6 +69,11 @@ ORDER_USD     = float(os.environ.get("WOLF_ORDER_USD", "1.0"))
 #     Copa (moneyline / to-advance / spreads / totals) e 0.0025 (0.25 centavos).
 MIN_SHARES  = float(os.environ.get("WOLF_MIN_SHARES", "5"))
 TICK_PRICE  = float(os.environ.get("WOLF_TICK_PRICE", "0.0025"))
+# 8e) ECONOMIA DA MICROTROCA: a briga e por centavos RESPEITANDO a taxa.
+#     FEE_PCT = taxa estimada por lado (~ taker). EDGE_MIN_PCT = borda extra
+#     exigida alem de cobrir 2x a taxa (ida e volta). So gira se houver borda.
+FEE_PCT      = float(os.environ.get("WOLF_FEE_PCT", "0.0"))
+EDGE_MIN_PCT = float(os.environ.get("WOLF_EDGE_MIN_PCT", "0.0"))
 # 8c) KICKSTART (microtick em mercado ESTATICO): quando o momentum nao dispara
 #     porque o mid esta parado (mercado pre-jogo), forcamos lances alternados
 #     BUY/SELL pequenos para GIRAR a posicao ativamente. Respeita TODAS as
@@ -328,18 +333,23 @@ class UltraEngine:
             log.warning("espn: %s", e); return None
 
     def _momentum(self, token_id):
+        """Retorna (sinal, mid, bid, ask). O sinal vem da variacao do mid; os
+        precos bid/ask servem p/ precificar SELL no bid e BUY no ask (brigar
+        por centavos no spread real, nunca no mid falso)."""
         cot = self._cotacao(token_id)
         mid = getattr(cot, "mid", None) if cot else None
+        bid = getattr(cot, "bid", None) if cot else None
+        ask = getattr(cot, "ask", None) if cot else None
         if mid is None:
-            return 0, None
+            return 0, None, None, None
         prev = self._last_mid.get(token_id)
         self._last_mid[token_id] = mid
         if not prev:
-            return 0, mid
+            return 0, mid, bid, ask
         d = (mid - prev) / prev
-        if d >= TRIGGER_PCT:  return +1, mid
-        if d <= -TRIGGER_PCT: return -1, mid
-        return 0, mid
+        if d >= TRIGGER_PCT:  return +1, mid, bid, ask
+        if d <= -TRIGGER_PCT: return -1, mid, bid, ask
+        return 0, mid, bid, ask
 
     # --- loop principal ---
     def _run(self, cfg, stop):
@@ -397,9 +407,11 @@ class UltraEngine:
                         tok = mk["token_id"]
                         if not self._cooldown_ok(tok):        # trava anti-churning
                             continue
-                        sig, mid = self._momentum(tok)
+                        sig, mid, bid, ask = self._momentum(tok)
                         if not (mid and MIN_PRICE < mid < MAX_PRICE):
                             continue  # so preco vivo (evita po e mercado resolvido)
+                        if not (bid and ask):
+                            continue  # sem book confiavel dos dois lados
 
                         # KICKSTART: em mercado estatico o momentum fica em 0.
                         # Apos KICKSTART_AFTER ciclos parados, GIRAMOS a posicao:
@@ -414,36 +426,45 @@ class UltraEngine:
                         elif sig != 0:
                             _ks_idle[tok] = 0
 
-                        # LOTE microtick alvo em QUOTAS: nunca abaixo do piso de
-                        # 5 shares (regra dura da Polymarket). Se ORDER_USD/mid der
-                        # menos que 5 quotas, o piso vale (custa um pouco mais que
-                        # ORDER_USD, mas e o minimo aceito pela API).
+                        # PRECO da microtroca: VENDE no BID, COMPRA no ASK (nunca no
+                        # mid). A briga e por centavos no spread REAL. Alem disso, a
+                        # ida-e-volta so vale se o spread capturado superar a taxa:
+                        #   ganho_%_round_trip = (ask-bid)/mid ; custo ~= 2*FEE_PCT
+                        # Se nao houver borda, NAO opera (evita sangria por taxa).
+                        spread_pct = (ask - bid) / mid if mid else 0.0
+                        borda_ok = spread_pct >= (2.0 * FEE_PCT + EDGE_MIN_PCT)
+                        if not borda_ok:
+                            # sem borda p/ cobrir a taxa: so segue em KICKSTART
+                            # (giro forcado pelo Comandante), senao pula.
+                            if not (KICKSTART and _ks_idle.get(tok, 1) == 0):
+                                continue
+
+                        # LOTE microtick alvo em QUOTAS: piso de 5 shares (regra dura).
                         lote_sh = max(MIN_SHARES, ORDER_USD / mid)
                         lote_usd = lote_sh * mid
                         if lote_usd > MAX_ORDER:
                             continue  # lance minimo ja excede o teto por ordem
 
                         if sig == -1:
-                            # VENDER: nunca mais do que as quotas EM CARTEIRA (evita
-                            # 'not enough balance'), e nunca menos que o piso de 5.
+                            # VENDER no BID: nunca mais que as quotas EM CARTEIRA
+                            # (evita 'not enough balance'), nunca menos que o piso.
                             held = self._shares_de(tok)
                             if held < MIN_SHARES:
-                                continue  # sem quotas suficientes p/ um SELL valido
+                                continue
                             shares = min(lote_sh, held)
                             if shares < MIN_SHARES:
                                 continue
-                            self._postar(tok, "SELL", shares, mid, slug=slug_id)
+                            self._postar(tok, "SELL", shares, bid, slug=slug_id)
                         elif sig == +1:
-                            # COMPRAR: SO com caixa REALIZADO das vendas (rotacao) e
-                            # respeitando o teto do jogo. Nunca compra do 'nada'
-                            # (era a causa do erro balance:0). Piso de 5 quotas.
+                            # COMPRAR no ASK: SO com caixa REALIZADO das vendas
+                            # (rotacao) e respeitando o teto. Nunca compra do 'nada'.
                             caixa = self._cash.get(slug_id, 0.0)
                             restante_jogo = max(0.0, MAX_STAKE_GAME - stake_jogo)
                             budget = min(lote_usd, caixa, restante_jogo, teto)
                             if budget < lote_usd - 1e-9:
                                 continue  # sem caixa/teto p/ um lote de 5 quotas
-                            shares = max(MIN_SHARES, budget / mid)
-                            self._postar(tok, "BUY", shares, mid, slug=slug_id)
+                            shares = max(MIN_SHARES, budget / ask)
+                            self._postar(tok, "BUY", shares, ask, slug=slug_id)
             stop.wait(POLL_S)
         if not flattened and not migrated and not parou_por_risco:
             self.flatten_except_renan("parada manual", slug=slug_id)

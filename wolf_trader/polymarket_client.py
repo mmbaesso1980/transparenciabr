@@ -170,17 +170,25 @@ class PolymarketReader:
             logger.warning("Falha no book de %s: %s", token_id, e)
             return Cotacao(token_id, None, None, None)
 
-        def _top(side: str) -> Optional[float]:
+        def _best(side: str) -> Optional[float]:
+            # O book da Polymarket retorna niveis do PIOR para o MELHOR preco:
+            #  - bids em ordem CRESCENTE  -> melhor bid = MAIOR preco
+            #  - asks em ordem DECRESCENTE -> melhor ask = MENOR preco
+            # Pegar arr[0] cravava bid=0.01 e ask=0.99 => mid=0.500 FALSO (bug).
+            # Selecionamos por max/min sobre os precos, robusto a ordenacao.
             arr = book.get(side) or []
-            if not arr:
+            precos = []
+            for lvl in arr:
+                try:
+                    precos.append(float(lvl.get("price")))
+                except (TypeError, ValueError, AttributeError):
+                    continue
+            if not precos:
                 return None
-            try:
-                return float(arr[0].get("price"))
-            except (TypeError, ValueError, IndexError):
-                return None
+            return max(precos) if side == "bids" else min(precos)
 
-        bid = _top("bids")
-        ask = _top("asks")
+        bid = _best("bids")
+        ask = _best("asks")
         mid = (bid + ask) / 2 if (bid is not None and ask is not None) else None
         return Cotacao(token_id, bid, ask, mid)
 
