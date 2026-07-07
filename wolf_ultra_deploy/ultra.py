@@ -59,6 +59,12 @@ MIN_PRICE    = float(os.environ.get("WOLF_MIN_PRICE", "0.12"))
 MAX_PRICE    = float(os.environ.get("WOLF_MAX_PRICE", "0.90"))
 # 8) teto de exposicao por jogo (alem do MAX_ORDER por ordem)
 MAX_STAKE_GAME = float(os.environ.get("WOLF_MAX_STAKE_GAME_USD", "1000.0"))
+# 8a2) FORCA operar o mercado 'Team to Advance' JA, sem depender do relogio ESPN
+#      (o _game_state pode falhar em ler a ESPN). Quando WOLF_FORCE_TTA=1, o worker
+#      ja nasce migrated=True e opera o token de 'advance' desde o 1o tick. NAO
+#      recolhe (flatten) o moneyline: apenas passa a operar o TTA. Uso: jogo em
+#      prorrogacao/penaltis onde so o mercado de 'quem avanca' segue vivo.
+FORCE_TTA    = os.environ.get("WOLF_FORCE_TTA", "0").strip() in ("1", "true", "True", "sim", "SIM")
 POLL_S      = float(os.environ.get("WOLF_POLL_S", _def_poll))
 # 8b) LOTE por clique (microtick): lances pequenos, respeitando o minimo US$1 da Polymarket.
 #     ORDER_USD = valor-alvo por ordem; MIN_ORDER_USD = piso rigido do Polymarket.
@@ -177,20 +183,42 @@ def assimilar_jogo(link: str, espn_event_id=None):
     cfg = {"slug": slug, "title": event.get("title", slug), "funder": FUNDER,
            "moneyline": [], "team_to_advance": [], "espn_event_id": espn_event_id,
            "assimilated_at": int(time.time())}
-    for m in event.get("markets", []):
+    # O mercado 'Team to Advance' costuma viver num EVENTO IRMAO, com o mesmo slug
+    # + sufixo '-team-to-advance' (ex.: fifwc-che-col-2026-07-07-team-to-advance).
+    # Buscamos e mesclamos os markets desse irmao para popular team_to_advance,
+    # senao o FORCE_TTA/migracao nunca acha o token de 'quem avanca'.
+    markets = list(event.get("markets", []))
+    if not any("advance" in (m.get("question") or "").lower() for m in markets):
+        try:
+            sib = _http_json(f"https://gamma-api.polymarket.com/events?slug={urllib.parse.quote(slug + '-team-to-advance')}")
+            sib_ev = (sib[0] if isinstance(sib, list) else sib) if sib else None
+            if sib_ev:
+                markets += list(sib_ev.get("markets", []))
+        except Exception:
+            pass
+    for m in markets:
         q = (m.get("question") or "").lower()
         outs = m.get("outcomes"); toks = m.get("clobTokenIds")
         if isinstance(outs, str): outs = json.loads(outs or "[]")
         if isinstance(toks, str): toks = json.loads(toks or "[]")
         pairs = list(zip(outs or [], toks or []))
-        target = "team_to_advance" if ("advance" in q) else "moneyline"
-        # opera SO o lado afirmativo (Yes) de cada mercado; comprar Yes e No
-        # do mesmo desfecho se anula e desperdica caixa. Rotula pela pergunta.
+        is_adv = "advance" in q
+        # moneyline: opera SO o lado afirmativo (Yes). advance: o mercado tem
+        # dois times como outcomes (ex.: ["Switzerland","Colombia"]) e NAO 'Yes/No',
+        # entao filtramos pelo nome do time vencedor desejado via WOLF_TTA_OUTCOME.
         label = m.get("groupItemTitle") or m.get("question") or (outs[0] if outs else "?")
+        want = os.environ.get("WOLF_TTA_OUTCOME", "").strip().lower()
         for o, t in pairs:
-            if str(o).strip().lower() != "yes":
-                continue
-            cfg[target].append({"outcome": label, "token_id": t})
+            oc = str(o).strip().lower()
+            if is_adv:
+                # se WOLF_TTA_OUTCOME setado, opera so aquele time; senao, todos os lados
+                if want and oc != want:
+                    continue
+                cfg["team_to_advance"].append({"outcome": f"{label}: {o}", "token_id": t})
+            else:
+                if oc != "yes":
+                    continue
+                cfg["moneyline"].append({"outcome": label, "token_id": t})
     if not cfg["moneyline"]:
         return None, "Não encontrei o mercado de resultado (moneyline) deste evento."
     return cfg, None
@@ -421,6 +449,11 @@ class UltraEngine:
             f"{('🔁 poll ' + format(POLL_S, '.1f') + 's | cooldown ' + format(COOLDOWN_S, '.0f') + 's — giro máximo.' + chr(10)) if FRENETIC else ''}"
             f"Máx US$1000/ordem, faixa preço {MIN_PRICE}-{MAX_PRICE}. Renan-YES blindada.")
         flattened = False; migrated = False; parou_por_risco = False
+        # FORCE_TTA: opera o 'Team to Advance' desde o inicio (sem esperar a ESPN).
+        # So ativa se o evento realmente tiver mercado de advance carregado.
+        if FORCE_TTA and cfg.get("team_to_advance"):
+            migrated = True
+            _tg("\u26a1 <b>FORCE_TTA</b> ativo \u2014 operando <b>Team to Advance</b> desde o 1\u00ba tick (sem esperar ESPN). Renan-YES blindada.")
         # KICKSTART: contador de ciclos sem sinal e lado alternante por token
         _ks_idle = {}   # token -> ciclos consecutivos com sig==0
         _ks_side = {}   # token -> proximo lado a forcar (+1 BUY / -1 SELL)
