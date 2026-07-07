@@ -183,6 +183,10 @@ class UltraEngine:
         self._peak = {}        # slug -> maior lucro visto no jogo
         self._stake = {}       # slug -> exposicao BUY acumulada
         self._last_order = {}  # token_id -> ts ultima ordem (cooldown)
+        self._cash = {}        # slug -> caixa REALIZADO disponivel p/ recomprar (rotacao)
+        self._realized = {}    # slug -> lucro/prejuizo REALIZADO (SELL - custo medio)
+        self._avgcost = {}     # token_id -> preco medio de compra (p/ P/L realizado)
+        self._pos_cache = (0.0, {})  # (ts, {token_id: shares}) cache curto de posicoes
 
     # --- infra de ordem via client real ---
     def _cotacao(self, token_id):
@@ -228,12 +232,25 @@ class UltraEngine:
             res = self.client.postar_ordem(req)
             ok = getattr(res, "ok", False)
             if ok:
-                # contabiliza fluxo de caixa realizado e exposicao do jogo
+                # contabiliza caixa/exposicao e P/L REALIZADO (nao fluxo bruto)
                 self._last_order[token_id] = time.time()
                 if slug is not None:
-                    self._pnl[slug] = self._pnl.get(slug, 0.0) + (usd if lado == "SELL" else -usd)
                     if lado == "BUY":
+                        # atualiza preco medio ponderado do token e consome caixa
+                        prev_sh = self._shares_de(token_id)
+                        prev_avg = self._avgcost.get(token_id, preco_q)
+                        new_sh = max(1e-9, prev_sh + size_q)
+                        self._avgcost[token_id] = (prev_avg * prev_sh + preco_q * size_q) / new_sh
                         self._stake[slug] = self._stake.get(slug, 0.0) + usd
+                        self._cash[slug] = self._cash.get(slug, 0.0) - usd   # gasta caixa realizado
+                    else:  # SELL: gera caixa realizado e P/L realizado (venda - custo medio)
+                        avg = self._avgcost.get(token_id, preco_q)
+                        self._realized[slug] = self._realized.get(slug, 0.0) + (preco_q - avg) * size_q
+                        self._cash[slug] = self._cash.get(slug, 0.0) + usd   # credita caixa realizado
+                    # invalida cache de posicoes p/ o proximo tick ler o size real
+                    self._pos_cache = (0.0, {})
+                    # P/L do jogo p/ blindagens = REALIZADO (giro fechado), nao marcacao
+                    self._pnl[slug] = self._realized.get(slug, 0.0)
             _tg(f"{'💠' if ok else '⚠️'} <b>{lado}</b> {size_shares:.1f}sh @ {preco:.3f} "
                 f"tok …{token_id[-6:]} → {getattr(res,'detalhe', res)}")
             return ok
@@ -258,6 +275,21 @@ class UltraEngine:
         # divide o caixa entre os jogos ativos p/ evitar dupla-alavancagem
         n = max(1, len(self._threads))
         return max(0.0, min(MAX_ORDER, (tot - FEE_BUFFER) / n))
+
+    def _shares_de(self, token_id):
+        """Quotas ATUALMENTE em carteira para um token (cache curto de 5s p/
+        nao martelar a data-api a cada tick). Base para NUNCA vender mais do
+        que se tem (evita 'not enough balance')."""
+        ts, cache = self._pos_cache
+        if time.time() - ts > 5.0:
+            cache = {}
+            for p in _positions():
+                try:
+                    cache[str(p.get("asset"))] = float(p.get("size", 0) or 0)
+                except Exception:
+                    pass
+            self._pos_cache = (time.time(), cache)
+        return cache.get(str(token_id), 0.0)
 
     def flatten_except_renan(self, motivo="", slug=None):
         _tg(f"🧹 <b>Recolhimento</b> ({motivo}) — vendendo tudo exceto Renan-YES.")
@@ -316,6 +348,7 @@ class UltraEngine:
         ml = cfg.get("moneyline", []); tta = cfg.get("team_to_advance", [])
         slug_id = cfg.get("slug")
         self._pnl[slug_id] = 0.0; self._peak[slug_id] = 0.0; self._stake[slug_id] = 0.0
+        self._cash[slug_id] = 0.0; self._realized[slug_id] = 0.0
         _tg(f"🐺 <b>ULTRA em operação</b> — {title}\n"
             f"Resultado: {', '.join(m['outcome'] for m in ml)}\n"
             f"Team to Advance: {', '.join(m['outcome'] for m in tta) or '(n/d)'}\n"
@@ -366,34 +399,52 @@ class UltraEngine:
                         if not self._cooldown_ok(tok):        # trava anti-churning
                             continue
                         sig, mid = self._momentum(tok)
-                        if mid and MIN_PRICE < mid < MAX_PRICE:  # so preco vivo
-                            # KICKSTART: mercado estatico -> momentum nao dispara (sig==0).
-                            # Apos KICKSTART_AFTER ciclos parados, forcamos lance alternado
-                            # BUY/SELL para GIRAR a posicao ativamente. Assim que o mercado
-                            # voltar a se mexer (sig!=0), o momentum retoma o comando.
-                            if sig == 0 and KICKSTART:
-                                _ks_idle[tok] = _ks_idle.get(tok, 0) + 1
-                                if _ks_idle[tok] > KICKSTART_AFTER:
-                                    # SELL-first: a carteira nao tem cash ocioso,
-                                    # entao o giro comeca VENDENDO parte da posicao
-                                    # (posicao -> cash) e na sequencia RECOMPRA.
-                                    sig = _ks_side.get(tok, -1)
-                                    _ks_side[tok] = -sig  # alterna p/ o proximo
-                                    _ks_idle[tok] = 0
-                            elif sig != 0:
-                                _ks_idle[tok] = 0  # mercado voltou a andar: reseta
-                            # LOTE microtick: lance pequeno (ORDER_USD), nunca abaixo do
-                            # minimo Polymarket (US$1), nunca acima do teto restante do jogo
-                            # nem da banca liquida disponivel.
+                        if not (mid and MIN_PRICE < mid < MAX_PRICE):
+                            continue  # so preco vivo (evita po e mercado resolvido)
+
+                        # KICKSTART: em mercado estatico o momentum fica em 0.
+                        # Apos KICKSTART_AFTER ciclos parados, GIRAMOS a posicao:
+                        # SELL-first (posicao -> caixa), depois RECOMPRA com o caixa
+                        # realizado. Quando o mercado volta a andar, o momentum manda.
+                        if sig == 0 and KICKSTART:
+                            _ks_idle[tok] = _ks_idle.get(tok, 0) + 1
+                            if _ks_idle[tok] > KICKSTART_AFTER:
+                                sig = _ks_side.get(tok, -1)   # comeca vendendo
+                                _ks_side[tok] = -sig          # alterna p/ o proximo
+                                _ks_idle[tok] = 0
+                        elif sig != 0:
+                            _ks_idle[tok] = 0
+
+                        # LOTE microtick alvo (US$)
+                        lote_usd = min(ORDER_USD, MAX_ORDER)
+                        if lote_usd < MIN_ORDER_USD:
+                            continue
+
+                        if sig == -1:
+                            # VENDER: nunca mais do que as quotas EM CARTEIRA (evita
+                            # 'not enough balance'). Converte posicao em caixa realizado.
+                            held = self._shares_de(tok)
+                            if held < 1e-6:
+                                continue  # nada a vender neste token
+                            shares = min(lote_usd / mid, held)
+                            if shares * mid < MIN_ORDER_USD:
+                                # pouco pra vender >= US$1: vende o restinho todo se der
+                                if held * mid >= MIN_ORDER_USD:
+                                    shares = held
+                                else:
+                                    continue
+                            self._postar(tok, "SELL", shares, mid, slug=slug_id)
+                        elif sig == +1:
+                            # COMPRAR: SO com caixa REALIZADO das vendas (rotacao) e
+                            # respeitando o teto do jogo. Nunca compra do 'nada'
+                            # (era a causa do erro balance:0).
+                            caixa = self._cash.get(slug_id, 0.0)
                             restante_jogo = max(0.0, MAX_STAKE_GAME - stake_jogo)
-                            lote_usd = min(ORDER_USD, restante_jogo, teto, MAX_ORDER)
-                            if lote_usd < MIN_ORDER_USD:
-                                continue  # nao ha espaco p/ um lance valido (>= US$1)
-                            shares = lote_usd / mid
-                            if sig == +1:
-                                self._postar(tok, "BUY", shares, mid, slug=slug_id)
-                            elif sig == -1:
-                                self._postar(tok, "SELL", shares, mid, slug=slug_id)
+                            budget = min(lote_usd, caixa, restante_jogo, teto)
+                            if budget < MIN_ORDER_USD:
+                                continue  # sem caixa realizado suficiente p/ recomprar
+                            shares = budget / mid
+                            self._postar(tok, "BUY", shares, mid, slug=slug_id)
             stop.wait(POLL_S)
         if not flattened and not migrated and not parou_por_risco:
             self.flatten_except_renan("parada manual", slug=slug_id)
