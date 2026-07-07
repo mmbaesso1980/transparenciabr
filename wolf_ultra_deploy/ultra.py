@@ -64,6 +64,13 @@ POLL_S      = float(os.environ.get("WOLF_POLL_S", _def_poll))
 #     ORDER_USD = valor-alvo por ordem; MIN_ORDER_USD = piso rigido do Polymarket.
 MIN_ORDER_USD = float(os.environ.get("WOLF_MIN_ORDER_USD", "1.0"))
 ORDER_USD     = float(os.environ.get("WOLF_ORDER_USD", "1.0"))
+# 8c) KICKSTART (microtick em mercado ESTATICO): quando o momentum nao dispara
+#     porque o mid esta parado (mercado pre-jogo), forcamos lances alternados
+#     BUY/SELL pequenos para GIRAR a posicao ativamente. Respeita TODAS as
+#     travas (teto do jogo, stop-loss, faixa de preco, cooldown, Renan blindada).
+#     KICKSTART=1 liga; KICKSTART_AFTER = ciclos sem sinal antes de forcar (0 = ja no 1o ciclo).
+KICKSTART       = os.environ.get("WOLF_KICKSTART", "0").strip() in ("1", "true", "True", "sim", "SIM")
+KICKSTART_AFTER = int(os.environ.get("WOLF_KICKSTART_AFTER", "0"))
 
 STATE_DIR = "/tmp/wolf_ctl"
 os.makedirs(STATE_DIR, exist_ok=True)
@@ -238,6 +245,11 @@ class UltraEngine:
         return (time.time() - last) >= COOLDOWN_S
 
     def _teto_usd(self):
+        # banca operavel = valor das posicoes NAO-Renan (currentValue).
+        # A carteira do funder nao mantem USDC livre parado (verificado on-chain:
+        # USDC/USDC.e = 0); todo o caixa esta investido nas posicoes. Portanto o
+        # giro (churn) se faz VENDENDO parte da posicao e RECOMPRANDO — nao ha
+        # cash ocioso para alavancar alem do que ja esta em posicao.
         tot = 0.0
         for p in _positions():
             if str(p.get("asset")) == RENAN_TOKEN:
@@ -311,6 +323,9 @@ class UltraEngine:
             f"trailing US${TRAIL_GIVEBACK:.1f} | cooldown {COOLDOWN_S:.0f}s | recolhe min {FLATTEN_MIN}.\n"
             f"Máx US$1000/ordem, faixa preço {MIN_PRICE}-{MAX_PRICE}. Renan-YES blindada.")
         flattened = False; migrated = False; parou_por_risco = False
+        # KICKSTART: contador de ciclos sem sinal e lado alternante por token
+        _ks_idle = {}   # token -> ciclos consecutivos com sig==0
+        _ks_side = {}   # token -> proximo lado a forcar (+1 BUY / -1 SELL)
         while not stop.is_set():
             gs = self._game_state(espn)
             if gs:
@@ -352,6 +367,21 @@ class UltraEngine:
                             continue
                         sig, mid = self._momentum(tok)
                         if mid and MIN_PRICE < mid < MAX_PRICE:  # so preco vivo
+                            # KICKSTART: mercado estatico -> momentum nao dispara (sig==0).
+                            # Apos KICKSTART_AFTER ciclos parados, forcamos lance alternado
+                            # BUY/SELL para GIRAR a posicao ativamente. Assim que o mercado
+                            # voltar a se mexer (sig!=0), o momentum retoma o comando.
+                            if sig == 0 and KICKSTART:
+                                _ks_idle[tok] = _ks_idle.get(tok, 0) + 1
+                                if _ks_idle[tok] > KICKSTART_AFTER:
+                                    # SELL-first: a carteira nao tem cash ocioso,
+                                    # entao o giro comeca VENDENDO parte da posicao
+                                    # (posicao -> cash) e na sequencia RECOMPRA.
+                                    sig = _ks_side.get(tok, -1)
+                                    _ks_side[tok] = -sig  # alterna p/ o proximo
+                                    _ks_idle[tok] = 0
+                            elif sig != 0:
+                                _ks_idle[tok] = 0  # mercado voltou a andar: reseta
                             # LOTE microtick: lance pequeno (ORDER_USD), nunca abaixo do
                             # minimo Polymarket (US$1), nunca acima do teto restante do jogo
                             # nem da banca liquida disponivel.
