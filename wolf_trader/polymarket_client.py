@@ -289,16 +289,27 @@ class PolymarketTrader:
         self.signer = signer
         # dry_run=True por padrao: seguranca. Deploy real seta DRY_RUN=false.
         self.dry_run = dry_run
+        # Cache do signature_type ja confirmado como aceito pela Polymarket
+        # para ESTA carteira. Descoberto autonomamente na 1a ordem SELL (ver
+        # _postar_com_client). Evita repetir a varredura a cada ciclo frenetico.
+        self._sig_ok: Optional[int] = None
 
-    def postar_ordem(self, req: OrdemRequest) -> OrdemResultado:
-        if not (0.0 < req.preco < 1.0):
-            return OrdemResultado(False, None, f"preco fora de faixa: {req.preco}")
-        if req.size <= 0:
-            return OrdemResultado(False, None, f"size invalido: {req.size}")
-        if self.dry_run:
-            logger.info("[DRY_RUN] Ordem NAO enviada: %s", req)
-            return OrdemResultado(True, None, f"DRY_RUN ok (nao enviou): {req.lado} "
-                                              f"{req.size}@{req.preco} tok={req.token_id[:10]}...")
+    # Ordem de varredura de assinatura quando a Polymarket recusa o maker.
+    # RAIZ: a carteira e o proprio deposit/proxy wallet (funder == proxyWallet);
+    # com sig_type=1 (Proxy) o SDK monta um maker recusado em ordens SELL.
+    # Preferencia por 0 (EOA) -> 2 (Safe) -> 1 (Proxy). Mesma logica do
+    # vender_renan_excecao.py, agora embutida p/ o loop frenetico se auto-curar.
+    _SIG_SWEEP = (0, 2, 1)
+
+    @staticmethod
+    def _erro_de_maker(det: object) -> bool:
+        s = str(det)
+        return ("maker address not allowed" in s) or ("deposit wallet" in s)
+
+    def _postar_com_client(self, req: OrdemRequest) -> OrdemResultado:
+        """Cria um client efemero com o signature_type ATUAL do signer e posta a
+        ordem. Nao trata varredura de assinatura — isso e responsabilidade de
+        postar_ordem (que chama este helper para cada tipo candidato)."""
         client = self.signer._create_client()
         sdk = getattr(self.signer, "_sdk_version", 1)
         try:
@@ -326,8 +337,47 @@ class PolymarketTrader:
             oid = str(resp.get("orderID") or resp.get("order_id") or resp.get("id") or "")
             return OrdemResultado(bool(oid), oid or None, f"ordem enviada: {oid or 'sem id'}")
         except Exception as e:  # noqa: BLE001
-            logger.exception("Falha ao postar ordem")
+            logger.warning("Falha ao postar ordem (sig_type=%s): %s",
+                           self.signer.signature_type, e)
             return OrdemResultado(False, None, f"erro ao postar: {e}")
+
+    def postar_ordem(self, req: OrdemRequest) -> OrdemResultado:
+        if not (0.0 < req.preco < 1.0):
+            return OrdemResultado(False, None, f"preco fora de faixa: {req.preco}")
+        if req.size <= 0:
+            return OrdemResultado(False, None, f"size invalido: {req.size}")
+        if self.dry_run:
+            logger.info("[DRY_RUN] Ordem NAO enviada: %s", req)
+            return OrdemResultado(True, None, f"DRY_RUN ok (nao enviou): {req.lado} "
+                                              f"{req.size}@{req.preco} tok={req.token_id[:10]}...")
+        # Se ja descobrimos o tipo aceito, usa direto (custo zero de varredura).
+        if self._sig_ok is not None:
+            self.signer.signature_type = self._sig_ok
+        res = self._postar_com_client(req)
+        if res.ok or not self._erro_de_maker(res.detalhe):
+            # Sucesso, OU erro que NAO e de assinatura (preco/liquidez/saldo):
+            # trocar o tipo nao ajudaria. Devolve o resultado como esta.
+            return res
+        # 'maker address not allowed' -> a carteira exige outro signature_type
+        # para ordens SELL. Varre EOA->Safe->Proxy e fixa o 1o que a Polymarket
+        # aceitar. Auto-cura o loop frenetico sem depender de WOLF_SIGNATURE_TYPE.
+        tipo_original = self.signer.signature_type
+        for st in self._SIG_SWEEP:
+            if st == tipo_original:
+                continue  # ja falhou acima
+            self.signer.signature_type = st
+            logger.info("maker recusado; tentando signature_type=%s ...", st)
+            res = self._postar_com_client(req)
+            if res.ok:
+                self._sig_ok = st  # cacheia o vencedor p/ proximas ordens
+                logger.info("signature_type=%s aceito e fixado para esta conta.", st)
+                return res
+            if not self._erro_de_maker(res.detalhe):
+                # Erro nao relacionado a assinatura -> parar a varredura.
+                self.signer.signature_type = tipo_original
+                return res
+        self.signer.signature_type = tipo_original
+        return res
 
     def cancelar_todas(self) -> int:
         """Cancela TODAS as ordens abertas (resting) da conta. Tecnica de mesa:
@@ -339,6 +389,9 @@ class PolymarketTrader:
         if self.dry_run:
             return 0
         try:
+            # Usa o signature_type ja confirmado (se houver) p/ evitar recusa.
+            if self._sig_ok is not None:
+                self.signer.signature_type = self._sig_ok
             client = self.signer._create_client()
             sdk = getattr(self.signer, "_sdk_version", 1)
             if sdk == 2:
