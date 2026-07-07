@@ -98,9 +98,20 @@ def _positions():
 def _slug_from_link(link: str):
     import re
     link = (link or "").strip()
+    # 1) formatos classicos /event/<slug> e /market/<slug>
     m = re.search(r"/(?:event|market)/([a-z0-9\-]+)", link)
     if m:
         return m.group(1).split("?")[0]
+    # 2) formato de esportes: .../sports/<liga>/<slug> — o slug e o ULTIMO segmento
+    #    ex.: https://polymarket.com/pt/sports/world-cup/fifwc-che-col-2026-07-07
+    if "polymarket.com" in link and "/sports/" in link:
+        tail = link.split("/sports/", 1)[1].split("?")[0].split("#")[0]
+        segs = [s for s in tail.split("/") if s]
+        if segs:
+            cand = segs[-1]
+            if re.fullmatch(r"[a-z0-9\-]+", cand):
+                return cand
+    # 3) o proprio slug puro
     if re.fullmatch(r"[a-z0-9\-]+", link):
         return link
     return None
