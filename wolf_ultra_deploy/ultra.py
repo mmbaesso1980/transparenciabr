@@ -310,6 +310,11 @@ class UltraEngine:
                     self._pos_cache = (0.0, {})
                     # P/L do jogo p/ blindagens = REALIZADO (giro fechado), nao marcacao
                     self._pnl[slug] = self._realized.get(slug, 0.0)
+            try:
+                print(f"[ultra] POST {lado} {size_q:.2f}sh @ {preco_q:.4f} "
+                      f"tok...{token_id[-6:]} ok={ok} -> {getattr(res,'detalhe', res)}", flush=True)
+            except Exception:
+                pass
             _tg(f"{'💠' if ok else '⚠️'} <b>{lado}</b> {size_shares:.1f}sh @ {preco:.3f} "
                 f"tok …{token_id[-6:]} → {getattr(res,'detalhe', res)}")
             return ok
@@ -446,7 +451,7 @@ class UltraEngine:
             f"Team to Advance: {', '.join(m['outcome'] for m in tta) or '(n/d)'}\n"
             f"🛡️ Blindagens: stop-loss US${STOP_LOSS:.0f} | take-profit US${TAKE_PROFIT:.0f} | "
             f"trailing US${TRAIL_GIVEBACK:.1f} | cooldown {COOLDOWN_S:.0f}s | recolhe min {FLATTEN_MIN}.\n"
-            f"⚙️ Modo de execução: <b>{'⚡ FRENÉTICO — market-making BILATERAL (BUY+SELL a cada tick, captura spread nas 2 pontas)' if FRENETIC else ('MAKER (captura o spread — taxa ~0)' if MAKER else 'TAKER (cruza o book)')}</b>"
+            f"⚙️ Modo de execução: <b>{('⚡ FRENÉTICO TAKER — CRUZA o book (BUY no ask, SELL no bid), EXECUTA a cada tick' if FRENETIC_TAKER else '⚡ FRENÉTICO — market-making BILATERAL (BUY+SELL a cada tick, captura spread nas 2 pontas)') if FRENETIC else ('MAKER (captura o spread — taxa ~0)' if MAKER else 'TAKER (cruza o book)')}</b>"
             f"{(' — sinal técnico: momentum + reversão à média (EWMA) inclina o inventário' if FRENETIC else (' — post no topo (join)' if (MAKER and MAKER_JOIN) else (' — 1 tick dentro' if MAKER else '')))}.\n"
             f"{('🔁 poll ' + format(POLL_S, '.1f') + 's | cooldown ' + format(COOLDOWN_S, '.0f') + 's — giro máximo.' + chr(10)) if FRENETIC else ''}"
             f"Máx US$1000/ordem, faixa preço {MIN_PRICE}-{MAX_PRICE}. Renan-YES blindada.")
@@ -459,7 +464,16 @@ class UltraEngine:
         # KICKSTART: contador de ciclos sem sinal e lado alternante por token
         _ks_idle = {}   # token -> ciclos consecutivos com sig==0
         _ks_side = {}   # token -> proximo lado a forcar (+1 BUY / -1 SELL)
+        _cyc = 0
         while not stop.is_set():
+            _cyc += 1
+            if _cyc % 20 == 1:
+                try:
+                    print(f"[ultra] LOOP VIVO ciclo={_cyc} FRENETIC={FRENETIC} "
+                          f"TAKER={FRENETIC_TAKER} migrated={migrated} tokens_ativos="
+                          f"{len(tta if migrated else ml)} poll={POLL_S}s", flush=True)
+                except Exception:
+                    pass
             gs = self._game_state(espn)
             if gs:
                 in_extra = gs["period"] >= 5 or "extra" in gs["detail"].lower()
@@ -590,7 +604,14 @@ class UltraEngine:
                                 # ~0) em vez de CRUZAR o book e pagar spread+taxa
                                 # (taker). Independe da flag MAKER — frenetico e
                                 # sempre formador de mercado.
-                                preco_sell, preco_buy = ask, bid
+                                #
+                                # EXCECAO (WOLF_FRENETIC_TAKER=1): CRUZA o book —
+                                # SELL no BID, BUY no ASK — para EXECUTAR na hora
+                                # (microticks visiveis). Diretiva do Comandante.
+                                if FRENETIC_TAKER:
+                                    preco_sell, preco_buy = bid, ask
+                                else:
+                                    preco_sell, preco_buy = ask, bid
                                 skew = self._tecnico(tok, mid)          # -1..+1
                                 # ---- lado SELL (limitado pelas quotas em carteira) ----
                                 held = self._shares_de(tok)
