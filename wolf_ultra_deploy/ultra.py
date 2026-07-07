@@ -189,11 +189,13 @@ def assimilar_jogo(link: str, espn_event_id=None):
     # senao o FORCE_TTA/migracao nunca acha o token de 'quem avanca'.
     markets = list(event.get("markets", []))
     if not any("advance" in (m.get("question") or "").lower() for m in markets):
+        # O 'Team to Advance' e um MARKET standalone (endpoint /markets, nao /events)
+        # com slug = <slug>-team-to-advance. Buscamos e anexamos a lista de markets.
         try:
-            sib = _http_json(f"https://gamma-api.polymarket.com/events?slug={urllib.parse.quote(slug + '-team-to-advance')}")
-            sib_ev = (sib[0] if isinstance(sib, list) else sib) if sib else None
-            if sib_ev:
-                markets += list(sib_ev.get("markets", []))
+            sib = _http_json(f"https://gamma-api.polymarket.com/markets?slug={urllib.parse.quote(slug + '-team-to-advance')}")
+            for sm in (sib if isinstance(sib, list) else ([sib] if sib else [])):
+                if sm and sm.get("clobTokenIds"):
+                    markets.append(sm)
         except Exception:
             pass
     for m in markets:
