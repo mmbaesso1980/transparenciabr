@@ -139,13 +139,59 @@ def main():
     signal.signal(signal.SIGINT, _sig)
     signal.signal(signal.SIGTERM, _sig)
 
+    # Vigia: mantem o processo vivo enquanto ao menos 1 worker roda. Se TODOS
+    # os workers morrerem MAS o jogo ainda estiver vivo (nao chegou ao 'post'
+    # pela ESPN e nenhuma trava de risco disparou), RELIGA o(s) jogo(s) — o
+    # Comandante e OWNER e a diretiva e operar AGORA, sem espera de apito.
+    # So encerra de fato quando o jogo resolve ou uma trava de risco para tudo.
+    import time as _t
+    ciclos = 0
     try:
         while not stop["v"]:
-            time.sleep(5)
+            _t.sleep(5)
+            ciclos += 1
             alive = [s for s, t in engine._threads.items() if t and t.is_alive()]
             if not alive:
-                _log("Todos os workers encerraram (jogo(s) resolvido(s)/recolhido(s)). Saindo.")
-                break
+                # Reavalia: algum jogo ainda esta vivo? Se sim e nao houve trava,
+                # religa. Se resolvido, encerra de vez.
+                religou = False
+                for it in jogos:
+                    link = it.get("link") if isinstance(it, dict) else it
+                    eid = it.get("espn_event_id") if isinstance(it, dict) else None
+                    try:
+                        from wolf_trader.ultra import _espn_kickoff
+                        _ko, st = _espn_kickoff(eid)
+                    except Exception:
+                        st = None
+                    if st == "post":
+                        continue  # jogo acabou -> nao religa
+                    slug_j = None
+                    try:
+                        from wolf_trader.ultra import _slug_from_link
+                        slug_j = _slug_from_link(link)
+                    except Exception:
+                        slug_j = None
+                    if slug_j and slug_j in getattr(engine, "_risk_stopped", set()):
+                        # parou por TRAVA de risco (stop/take/trailing) -> respeita, NAO religa
+                        continue
+                    cfg2, err2 = assimilar_jogo(link, eid)
+                    if err2 or not cfg2:
+                        continue
+                    if engine.start(cfg2):
+                        religou = True
+                        _log(f"Worker havia parado; RELIGADO (jogo ainda vivo): {cfg2.get('title', link)}")
+                if not religou:
+                    _log("Todos os workers encerraram e nenhum jogo vivo p/ religar. Saindo.")
+                    break
+            # heartbeat a cada ~60s p/ o Comandante ver que o robo esta VIVO
+            if ciclos % 12 == 0:
+                try:
+                    from wolf_trader.ultra import _tg
+                    ativos = engine.ativos()
+                    _tg("💓 <b>WOLF ULTRA vivo</b> — operando: " + (", ".join(ativos) or "(nenhum)")
+                        + ". Renan-YES blindada.")
+                except Exception:
+                    pass
     finally:
         _log("Encerrando start_ultra_agora. Renan-YES permanece intacta (engine nunca a vende).")
 

@@ -81,6 +81,16 @@ EDGE_MIN_PCT = float(os.environ.get("WOLF_EDGE_MIN_PCT", "0.0"))
 #     KICKSTART=1 liga; KICKSTART_AFTER = ciclos sem sinal antes de forcar (0 = ja no 1o ciclo).
 KICKSTART       = os.environ.get("WOLF_KICKSTART", "0").strip() in ("1", "true", "True", "sim", "SIM")
 KICKSTART_AFTER = int(os.environ.get("WOLF_KICKSTART_AFTER", "0"))
+# 8f) MODO MAKER: em vez de PAGAR o spread (taker: vende no bid / compra no ask),
+#     POSTAMOS ordens PASSIVAS que CAPTURAM o spread. Como maker a taxa Polymarket
+#     e ~0 (o taker que cruza paga), entao a briga por centavos vira POSITIVA:
+#       - BUY passiva no melhor BID (ou +1 tick p/ prioridade de fila) -> compra barato
+#       - SELL passiva no melhor ASK (ou -1 tick p/ prioridade) -> vende caro
+#     Captura por giro fechado ~= (ask - bid) - taxa_maker(~0). GTC = ordem que
+#     DESCANSA no book ate ser cruzada. WOLF_MAKER_JOIN=1 posta EXATO no topo do
+#     book (join); =0 posta 1 tick DENTRO (melhora a fila, reduz a captura em 1 tick).
+MAKER        = os.environ.get("WOLF_MAKER", "0").strip() in ("1", "true", "True", "sim", "SIM")
+MAKER_JOIN   = os.environ.get("WOLF_MAKER_JOIN", "1").strip() in ("1", "true", "True", "sim", "SIM")
 
 STATE_DIR = "/tmp/wolf_ctl"
 os.makedirs(STATE_DIR, exist_ok=True)
@@ -197,6 +207,7 @@ class UltraEngine:
         self._realized = {}    # slug -> lucro/prejuizo REALIZADO (SELL - custo medio)
         self._avgcost = {}     # token_id -> preco medio de compra (p/ P/L realizado)
         self._pos_cache = (0.0, {})  # (ts, {token_id: shares}) cache curto de posicoes
+        self._risk_stopped = set()   # slugs que pararam por TRAVA (nao religar)
 
     # --- infra de ordem via client real ---
     def _cotacao(self, token_id):
@@ -363,6 +374,8 @@ class UltraEngine:
             f"Team to Advance: {', '.join(m['outcome'] for m in tta) or '(n/d)'}\n"
             f"🛡️ Blindagens: stop-loss US${STOP_LOSS:.0f} | take-profit US${TAKE_PROFIT:.0f} | "
             f"trailing US${TRAIL_GIVEBACK:.1f} | cooldown {COOLDOWN_S:.0f}s | recolhe min {FLATTEN_MIN}.\n"
+            f"⚙️ Modo de execução: <b>{'MAKER (captura o spread — taxa ~0)' if MAKER else 'TAKER (cruza o book)'}</b>"
+            f"{' — post no topo (join)' if (MAKER and MAKER_JOIN) else (' — 1 tick dentro' if MAKER else '')}.\n"
             f"Máx US$1000/ordem, faixa preço {MIN_PRICE}-{MAX_PRICE}. Renan-YES blindada.")
         flattened = False; migrated = False; parou_por_risco = False
         # KICKSTART: contador de ciclos sem sinal e lado alternante por token
@@ -389,13 +402,13 @@ class UltraEngine:
             if not flattened and not migrated:
                 if pnl <= STOP_LOSS:
                     _tg(f"🛑 <b>STOP-LOSS</b> {title}: P/L US${pnl:.2f} ≤ US${STOP_LOSS:.2f}. Recolhendo e parando.")
-                    self.flatten_except_renan("stop-loss", slug=slug_id); parou_por_risco = True; break
+                    self.flatten_except_renan("stop-loss", slug=slug_id); parou_por_risco = True; self._risk_stopped.add(slug_id); break
                 if pnl >= TAKE_PROFIT:
                     _tg(f"🎯 <b>TAKE-PROFIT</b> {title}: P/L US${pnl:.2f} ≥ US${TAKE_PROFIT:.2f}. Travando lucro e parando.")
-                    self.flatten_except_renan("take-profit", slug=slug_id); parou_por_risco = True; break
+                    self.flatten_except_renan("take-profit", slug=slug_id); parou_por_risco = True; self._risk_stopped.add(slug_id); break
                 if peak >= 1.5 and (peak - pnl) >= TRAIL_GIVEBACK:
                     _tg(f"📉 <b>TRAILING</b> {title}: recuou US${peak-pnl:.2f} do pico (US${peak:.2f}→US${pnl:.2f}). Travando e parando.")
-                    self.flatten_except_renan("trailing-stop", slug=slug_id); parou_por_risco = True; break
+                    self.flatten_except_renan("trailing-stop", slug=slug_id); parou_por_risco = True; self._risk_stopped.add(slug_id); break
 
             active = tta if migrated else ml
             if not flattened or migrated:
@@ -445,8 +458,28 @@ class UltraEngine:
                         if lote_usd > MAX_ORDER:
                             continue  # lance minimo ja excede o teto por ordem
 
+                        # PRECIFICACAO por MODO:
+                        #  - TAKER (default): SELL cruza no BID, BUY cruza no ASK
+                        #    (execucao imediata, mas PAGA spread+taxa).
+                        #  - MAKER (WOLF_MAKER=1): ordens PASSIVAS que CAPTURAM o
+                        #    spread. SELL descansa no ASK, BUY descansa no BID.
+                        #    Com JOIN=0, entra 1 tick DENTRO do topo (melhor fila).
+                        #    O tick real do mercado e resolvido pelo trader (v2);
+                        #    aqui usamos TICK_PRICE so p/ deslocar o preco de post.
+                        if MAKER:
+                            if MAKER_JOIN:
+                                preco_sell, preco_buy = ask, bid
+                            else:
+                                # 1 tick p/ dentro do book (agressivo na fila,
+                                # sem cruzar): SELL um tick abaixo do ask, BUY um
+                                # tick acima do bid. Clampa p/ nao inverter o spread.
+                                preco_sell = max(bid + TICK_PRICE, ask - TICK_PRICE)
+                                preco_buy  = min(ask - TICK_PRICE, bid + TICK_PRICE)
+                        else:
+                            preco_sell, preco_buy = bid, ask
+
                         if sig == -1:
-                            # VENDER no BID: nunca mais que as quotas EM CARTEIRA
+                            # VENDER: nunca mais que as quotas EM CARTEIRA
                             # (evita 'not enough balance'), nunca menos que o piso.
                             held = self._shares_de(tok)
                             if held < MIN_SHARES:
@@ -454,17 +487,17 @@ class UltraEngine:
                             shares = min(lote_sh, held)
                             if shares < MIN_SHARES:
                                 continue
-                            self._postar(tok, "SELL", shares, bid, slug=slug_id)
+                            self._postar(tok, "SELL", shares, preco_sell, slug=slug_id)
                         elif sig == +1:
-                            # COMPRAR no ASK: SO com caixa REALIZADO das vendas
+                            # COMPRAR: SO com caixa REALIZADO das vendas
                             # (rotacao) e respeitando o teto. Nunca compra do 'nada'.
                             caixa = self._cash.get(slug_id, 0.0)
                             restante_jogo = max(0.0, MAX_STAKE_GAME - stake_jogo)
                             budget = min(lote_usd, caixa, restante_jogo, teto)
                             if budget < lote_usd - 1e-9:
                                 continue  # sem caixa/teto p/ um lote de 5 quotas
-                            shares = max(MIN_SHARES, budget / ask)
-                            self._postar(tok, "BUY", shares, ask, slug=slug_id)
+                            shares = max(MIN_SHARES, budget / preco_buy)
+                            self._postar(tok, "BUY", shares, preco_buy, slug=slug_id)
             stop.wait(POLL_S)
         if not flattened and not migrated and not parou_por_risco:
             self.flatten_except_renan("parada manual", slug=slug_id)
