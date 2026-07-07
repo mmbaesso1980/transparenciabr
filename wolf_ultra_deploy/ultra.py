@@ -455,6 +455,19 @@ class UltraEngine:
 
             try:
                 active = tta if migrated else ml
+                # MODO FRENETICO: cancela as ordens abertas ANTES de repostar o
+                # quote deste ciclo. Sem isso, as ordens de COMPRA passivas que
+                # nao cruzaram SE ACUMULAM e travam o saldo ('not enough balance').
+                # Cancelar-e-repostar a cada tick e a tecnica de mesa que mantem
+                # o quote colado no topo e o saldo sempre livre. Renan nunca vira
+                # ordem aqui (blindada). Nao mexe em posicoes ja executadas.
+                if FRENETIC and not flattened:
+                    try:
+                        n_canc = self.client.cancelar_todas()
+                        if n_canc:
+                            self._pos_cache = (0.0, {})   # forca releitura de saldo/posicao
+                    except Exception:
+                        pass
                 if not flattened or migrated:
                     teto = self._teto_usd()
                     stake_jogo = self._stake.get(slug_id, 0.0)

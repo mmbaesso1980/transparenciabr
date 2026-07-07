@@ -329,6 +329,29 @@ class PolymarketTrader:
             logger.exception("Falha ao postar ordem")
             return OrdemResultado(False, None, f"erro ao postar: {e}")
 
+    def cancelar_todas(self) -> int:
+        """Cancela TODAS as ordens abertas (resting) da conta. Tecnica de mesa:
+        no market-making de alta frequencia, cancela-se e reposta-se o quote a
+        cada ciclo p/ (a) LIBERAR o saldo preso em ordens de compra que nao
+        cruzaram (evita 'not enough balance' por acumulo) e (b) manter o quote
+        colado no topo do book. Retorna quantas cancelou (0 se dry_run/erro).
+        NAO afeta posicoes ja EXECUTADAS (Renan-YES nunca vira ordem aqui)."""
+        if self.dry_run:
+            return 0
+        try:
+            client = self.signer._create_client()
+            sdk = getattr(self.signer, "_sdk_version", 1)
+            if sdk == 2:
+                resp = client.cancel_all()
+            else:
+                resp = client.cancel_all()
+            resp = resp if isinstance(resp, dict) else getattr(resp, "__dict__", {}) or {}
+            canc = resp.get("canceled") or resp.get("cancelled") or []
+            return len(canc) if isinstance(canc, (list, tuple)) else 0
+        except Exception as e:  # noqa: BLE001
+            logger.warning("cancelar_todas falhou (nao critico): %s", e)
+            return 0
+
 
 def secret_manager_pk_provider(secret_name: str, project: str) -> Callable[[], str]:
     """
