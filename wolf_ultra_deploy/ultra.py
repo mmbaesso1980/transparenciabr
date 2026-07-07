@@ -60,6 +60,10 @@ MAX_PRICE    = float(os.environ.get("WOLF_MAX_PRICE", "0.90"))
 # 8) teto de exposicao por jogo (alem do MAX_ORDER por ordem)
 MAX_STAKE_GAME = float(os.environ.get("WOLF_MAX_STAKE_GAME_USD", "1000.0"))
 POLL_S      = float(os.environ.get("WOLF_POLL_S", _def_poll))
+# 8b) LOTE por clique (microtick): lances pequenos, respeitando o minimo US$1 da Polymarket.
+#     ORDER_USD = valor-alvo por ordem; MIN_ORDER_USD = piso rigido do Polymarket.
+MIN_ORDER_USD = float(os.environ.get("WOLF_MIN_ORDER_USD", "1.0"))
+ORDER_USD     = float(os.environ.get("WOLF_ORDER_USD", "1.0"))
 
 STATE_DIR = "/tmp/wolf_ctl"
 os.makedirs(STATE_DIR, exist_ok=True)
@@ -188,8 +192,32 @@ class UltraEngine:
             _tg(f"⛔ Ordem {lado} US${usd:.2f} barrada pelo gate de risco.")
             return False
         try:
-            req = OrdemRequest(token_id=token_id, lado=lado, preco=round(preco, 4),
-                               size=round(size_shares, 2), tipo="GTC")
+            # PRECISAO Polymarket: preco <= 2 casas (tick 0.01) e produto size*preco <= 2 casas,
+            # E produto >= MIN_ORDER_USD (piso US$1). Sobe o size em passos de 0.01 ate o produto
+            # casar em 2 casas E ficar >= piso. Evita 400 'max accuracy of 2 decimals' e rejeicao
+            # por lance abaixo do minimo.
+            preco_q = round(preco, 2)
+            if preco_q <= 0:
+                preco_q = 0.01
+            size_q = round(size_shares, 2)
+            teto_prod = usd * 1.5 + 0.5  # nao deixa o ajuste inflar demais o lance
+            ok_prec = False
+            for _ in range(40):
+                prod = round(size_q * preco_q, 10)
+                if abs(prod - round(prod, 2)) < 1e-9 and prod >= MIN_ORDER_USD - 1e-9:
+                    ok_prec = True
+                    break
+                size_q = round(size_q + 0.01, 2)
+                if size_q * preco_q > teto_prod:
+                    break
+            if not ok_prec or size_q <= 0:
+                # nao foi possivel montar lance valido (>= US$1, 2 casas) — pula silenciosamente
+                return False
+            usd = round(size_q * preco_q, 2)  # usd real da ordem quantizada
+            if self.gate_fn and not self.gate_fn(usd):
+                return False
+            req = OrdemRequest(token_id=token_id, lado=lado, preco=preco_q,
+                               size=size_q, tipo="GTC")
             res = self.client.postar_ordem(req)
             ok = getattr(res, "ok", False)
             if ok:
@@ -324,7 +352,14 @@ class UltraEngine:
                             continue
                         sig, mid = self._momentum(tok)
                         if mid and MIN_PRICE < mid < MAX_PRICE:  # so preco vivo
-                            shares = min(teto, MAX_ORDER) / mid
+                            # LOTE microtick: lance pequeno (ORDER_USD), nunca abaixo do
+                            # minimo Polymarket (US$1), nunca acima do teto restante do jogo
+                            # nem da banca liquida disponivel.
+                            restante_jogo = max(0.0, MAX_STAKE_GAME - stake_jogo)
+                            lote_usd = min(ORDER_USD, restante_jogo, teto, MAX_ORDER)
+                            if lote_usd < MIN_ORDER_USD:
+                                continue  # nao ha espaco p/ um lance valido (>= US$1)
+                            shares = lote_usd / mid
                             if sig == +1:
                                 self._postar(tok, "BUY", shares, mid, slug=slug_id)
                             elif sig == -1:
