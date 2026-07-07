@@ -153,8 +153,12 @@ def main():
             alive = [s for s, t in engine._threads.items() if t and t.is_alive()]
             if not alive:
                 # Reavalia: algum jogo ainda esta vivo? Se sim e nao houve trava,
-                # religa. Se resolvido, encerra de vez.
+                # religa. So encerra de vez quando TODOS os jogos estao 'post'
+                # (resolvidos) ou parados por trava de risco. Falha transitoria
+                # (ESPN instavel, assimilar falhou) NAO encerra: continua tentando
+                # no proximo ciclo — o robo tem que ser autonomo e resiliente.
                 religou = False
+                todos_encerrados = True   # so vira False se algum jogo ainda deve operar
                 for it in jogos:
                     link = it.get("link") if isinstance(it, dict) else it
                     eid = it.get("espn_event_id") if isinstance(it, dict) else None
@@ -164,7 +168,7 @@ def main():
                     except Exception:
                         st = None
                     if st == "post":
-                        continue  # jogo acabou -> nao religa
+                        continue  # jogo acabou -> nao religa (fica encerrado)
                     slug_j = None
                     try:
                         from wolf_trader.ultra import _slug_from_link
@@ -172,17 +176,22 @@ def main():
                     except Exception:
                         slug_j = None
                     if slug_j and slug_j in getattr(engine, "_risk_stopped", set()):
-                        # parou por TRAVA de risco (stop/take/trailing) -> respeita, NAO religa
+                        # parou por TRAVA de risco (stop/take/trailing) -> respeita
                         continue
+                    # Este jogo NAO esta resolvido nem travado -> ainda deve operar
+                    todos_encerrados = False
                     cfg2, err2 = assimilar_jogo(link, eid)
                     if err2 or not cfg2:
+                        _log(f"Relight adiado (assimilar falhou, tento no proximo ciclo): {link} {err2 or ''}")
                         continue
                     if engine.start(cfg2):
                         religou = True
                         _log(f"Worker havia parado; RELIGADO (jogo ainda vivo): {cfg2.get('title', link)}")
-                if not religou:
-                    _log("Todos os workers encerraram e nenhum jogo vivo p/ religar. Saindo.")
+                if not religou and todos_encerrados:
+                    _log("Todos os jogos resolvidos/travados e nenhum p/ religar. Saindo.")
                     break
+                if not religou:
+                    _log("Nenhum worker vivo ainda, mas ha jogo pendente — seguindo p/ religar no proximo ciclo.")
             # heartbeat a cada ~60s p/ o Comandante ver que o robo esta VIVO
             if ciclos % 12 == 0:
                 try:

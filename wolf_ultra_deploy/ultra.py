@@ -453,134 +453,149 @@ class UltraEngine:
                     _tg(f"📉 <b>TRAILING</b> {title}: recuou US${peak-pnl:.2f} do pico (US${peak:.2f}→US${pnl:.2f}). Travando e parando.")
                     self.flatten_except_renan("trailing-stop", slug=slug_id); parou_por_risco = True; self._risk_stopped.add(slug_id); break
 
-            active = tta if migrated else ml
-            if not flattened or migrated:
-                teto = self._teto_usd()
-                stake_jogo = self._stake.get(slug_id, 0.0)
-                if teto > 1.0 and stake_jogo < MAX_STAKE_GAME:
-                    for mk in active:
-                        if stop.is_set(): break
-                        tok = mk["token_id"]
-                        if not self._cooldown_ok(tok):        # trava anti-churning
-                            continue
-                        sig, mid, bid, ask = self._momentum(tok)
-                        if not (mid and MIN_PRICE < mid < MAX_PRICE):
-                            continue  # so preco vivo (evita po e mercado resolvido)
-                        if not (bid and ask):
-                            continue  # sem book confiavel dos dois lados
+            try:
+                active = tta if migrated else ml
+                if not flattened or migrated:
+                    teto = self._teto_usd()
+                    stake_jogo = self._stake.get(slug_id, 0.0)
+                    if teto > 1.0 and stake_jogo < MAX_STAKE_GAME:
+                        for mk in active:
+                            if stop.is_set(): break
+                            tok = mk["token_id"]
+                            if not self._cooldown_ok(tok):        # trava anti-churning
+                                continue
+                            sig, mid, bid, ask = self._momentum(tok)
+                            if not (mid and MIN_PRICE < mid < MAX_PRICE):
+                                continue  # so preco vivo (evita po e mercado resolvido)
+                            if not (bid and ask):
+                                continue  # sem book confiavel dos dois lados
 
-                        # KICKSTART: em mercado estatico o momentum fica em 0.
-                        # Apos KICKSTART_AFTER ciclos parados, GIRAMOS a posicao:
-                        # SELL-first (posicao -> caixa), depois RECOMPRA com o caixa
-                        # realizado. Quando o mercado volta a andar, o momentum manda.
-                        if sig == 0 and KICKSTART:
-                            _ks_idle[tok] = _ks_idle.get(tok, 0) + 1
-                            if _ks_idle[tok] > KICKSTART_AFTER:
-                                sig = _ks_side.get(tok, -1)   # comeca vendendo
-                                _ks_side[tok] = -sig          # alterna p/ o proximo
+                            # KICKSTART: em mercado estatico o momentum fica em 0.
+                            # Apos KICKSTART_AFTER ciclos parados, GIRAMOS a posicao:
+                            # SELL-first (posicao -> caixa), depois RECOMPRA com o caixa
+                            # realizado. Quando o mercado volta a andar, o momentum manda.
+                            if sig == 0 and KICKSTART:
+                                _ks_idle[tok] = _ks_idle.get(tok, 0) + 1
+                                if _ks_idle[tok] > KICKSTART_AFTER:
+                                    sig = _ks_side.get(tok, -1)   # comeca vendendo
+                                    _ks_side[tok] = -sig          # alterna p/ o proximo
+                                    _ks_idle[tok] = 0
+                            elif sig != 0:
                                 _ks_idle[tok] = 0
-                        elif sig != 0:
-                            _ks_idle[tok] = 0
 
-                        # PRECO da microtroca: VENDE no BID, COMPRA no ASK (nunca no
-                        # mid). A briga e por centavos no spread REAL. Alem disso, a
-                        # ida-e-volta so vale se o spread capturado superar a taxa:
-                        #   ganho_%_round_trip = (ask-bid)/mid ; custo ~= 2*FEE_PCT
-                        # Se nao houver borda, NAO opera (evita sangria por taxa).
-                        spread_pct = (ask - bid) / mid if mid else 0.0
-                        borda_ok = spread_pct >= (2.0 * FEE_PCT + EDGE_MIN_PCT)
-                        if not borda_ok:
-                            # sem borda p/ cobrir a taxa: so segue em KICKSTART
-                            # (giro forcado) ou no FRENETICO (giro maximo pedido
-                            # pelo Comandante, que ASSUMIU O RISCO), senao pula.
-                            if not (FRENETIC or (KICKSTART and _ks_idle.get(tok, 1) == 0)):
-                                continue
+                            # PRECO da microtroca: VENDE no BID, COMPRA no ASK (nunca no
+                            # mid). A briga e por centavos no spread REAL. Alem disso, a
+                            # ida-e-volta so vale se o spread capturado superar a taxa:
+                            #   ganho_%_round_trip = (ask-bid)/mid ; custo ~= 2*FEE_PCT
+                            # Se nao houver borda, NAO opera (evita sangria por taxa).
+                            spread_pct = (ask - bid) / mid if mid else 0.0
+                            borda_ok = spread_pct >= (2.0 * FEE_PCT + EDGE_MIN_PCT)
+                            if not borda_ok:
+                                # sem borda p/ cobrir a taxa: so segue em KICKSTART
+                                # (giro forcado) ou no FRENETICO (giro maximo pedido
+                                # pelo Comandante, que ASSUMIU O RISCO), senao pula.
+                                if not (FRENETIC or (KICKSTART and _ks_idle.get(tok, 1) == 0)):
+                                    continue
 
-                        # LOTE microtick alvo em QUOTAS: piso de 5 shares (regra dura).
-                        lote_sh = max(MIN_SHARES, ORDER_USD / mid)
-                        lote_usd = lote_sh * mid
-                        if lote_usd > MAX_ORDER:
-                            continue  # lance minimo ja excede o teto por ordem
+                            # LOTE microtick alvo em QUOTAS: piso de 5 shares (regra dura).
+                            lote_sh = max(MIN_SHARES, ORDER_USD / mid)
+                            lote_usd = lote_sh * mid
+                            if lote_usd > MAX_ORDER:
+                                continue  # lance minimo ja excede o teto por ordem
 
-                        # PRECIFICACAO por MODO:
-                        #  - TAKER (default): SELL cruza no BID, BUY cruza no ASK
-                        #    (execucao imediata, mas PAGA spread+taxa).
-                        #  - MAKER (WOLF_MAKER=1): ordens PASSIVAS que CAPTURAM o
-                        #    spread. SELL descansa no ASK, BUY descansa no BID.
-                        #    Com JOIN=0, entra 1 tick DENTRO do topo (melhor fila).
-                        #    O tick real do mercado e resolvido pelo trader (v2);
-                        #    aqui usamos TICK_PRICE so p/ deslocar o preco de post.
-                        if MAKER:
-                            if MAKER_JOIN:
-                                preco_sell, preco_buy = ask, bid
+                            # PRECIFICACAO por MODO:
+                            #  - TAKER (default): SELL cruza no BID, BUY cruza no ASK
+                            #    (execucao imediata, mas PAGA spread+taxa).
+                            #  - MAKER (WOLF_MAKER=1): ordens PASSIVAS que CAPTURAM o
+                            #    spread. SELL descansa no ASK, BUY descansa no BID.
+                            #    Com JOIN=0, entra 1 tick DENTRO do topo (melhor fila).
+                            #    O tick real do mercado e resolvido pelo trader (v2);
+                            #    aqui usamos TICK_PRICE so p/ deslocar o preco de post.
+                            if MAKER:
+                                if MAKER_JOIN:
+                                    preco_sell, preco_buy = ask, bid
+                                else:
+                                    # 1 tick p/ dentro do book (agressivo na fila,
+                                    # sem cruzar): SELL um tick abaixo do ask, BUY um
+                                    # tick acima do bid. Clampa p/ nao inverter o spread.
+                                    preco_sell = max(bid + TICK_PRICE, ask - TICK_PRICE)
+                                    preco_buy  = min(ask - TICK_PRICE, bid + TICK_PRICE)
                             else:
-                                # 1 tick p/ dentro do book (agressivo na fila,
-                                # sem cruzar): SELL um tick abaixo do ask, BUY um
-                                # tick acima do bid. Clampa p/ nao inverter o spread.
-                                preco_sell = max(bid + TICK_PRICE, ask - TICK_PRICE)
-                                preco_buy  = min(ask - TICK_PRICE, bid + TICK_PRICE)
-                        else:
-                            preco_sell, preco_buy = bid, ask
+                                preco_sell, preco_buy = bid, ask
 
-                        # =========== MODO FRENETICO (WOLF_FRENETIC=1) ===========
-                        # Market-making BILATERAL de alta frequencia: a CADA ciclo
-                        # posta OS DOIS lados AO MESMO TEMPO por token — BUY no bid
-                        # (ou 1 tick dentro) E SELL no ask — capturando o spread nas
-                        # DUAS pontas (tecnica classica de formador de mercado). O
-                        # sinal tecnico (_tecnico: momentum + reversao a media via
-                        # EWMA) NAO decide compra/venda sozinho: apenas INCLINA o
-                        # tamanho de cada lado (skew), deixando as TRAVAS mandarem.
-                        # Todas as blindagens continuam: piso 5 shares, teto por
-                        # jogo/ordem, _shares_de (nunca vende mais do que tem em
-                        # carteira), faixa de preco viva, US$1000/ordem, Renan
-                        # blindada (nunca entra na allowlist do jogo).
-                        if FRENETIC:
-                            skew = self._tecnico(tok, mid)          # -1..+1
-                            # ---- lado SELL (limitado pelas quotas em carteira) ----
-                            held = self._shares_de(tok)
-                            if held >= MIN_SHARES:
-                                # vies vendedor (skew<0) aumenta o lote de venda
-                                fator_s = 1.0 + max(0.0, -skew)     # 1.0 .. 2.0
-                                sh_s = min(lote_sh * fator_s, held)
-                                if sh_s >= MIN_SHARES:
-                                    self._postar(tok, "SELL", sh_s, preco_sell, slug=slug_id)
-                            # ---- lado BUY (arranca do TETO; caixa e' bonus) ----
-                            # DIFERENCA p/ o modo unilateral: aqui o BUY NAO exige
-                            # caixa REALIZADO previo (senao no 1o ciclo, sem caixa,
-                            # so venderia). O Comandante ASSUMIU O RISCO e quer as
-                            # DUAS pontas vivas desde o 1o tick. Limite duro continua
-                            # sendo o TETO por jogo + teto por ordem (US$1000).
-                            restante_jogo = max(0.0, MAX_STAKE_GAME - stake_jogo)
-                            # vies comprador (skew>0) aumenta o lote de compra
-                            fator_b = 1.0 + max(0.0, skew)          # 1.0 .. 2.0
-                            alvo_usd = min(lote_usd * fator_b, MAX_ORDER)
-                            budget = min(alvo_usd, restante_jogo, teto)
-                            if budget >= (MIN_SHARES * preco_buy) - 1e-9 and preco_buy > 0:
-                                sh_b = max(MIN_SHARES, budget / preco_buy)
-                                self._postar(tok, "BUY", sh_b, preco_buy, slug=slug_id)
-                            continue   # frenetico ja postou os dois lados; proximo token
-                        # ========================================================
+                            # =========== MODO FRENETICO (WOLF_FRENETIC=1) ===========
+                            # Market-making BILATERAL de alta frequencia: a CADA ciclo
+                            # posta OS DOIS lados AO MESMO TEMPO por token — BUY no bid
+                            # (ou 1 tick dentro) E SELL no ask — capturando o spread nas
+                            # DUAS pontas (tecnica classica de formador de mercado). O
+                            # sinal tecnico (_tecnico: momentum + reversao a media via
+                            # EWMA) NAO decide compra/venda sozinho: apenas INCLINA o
+                            # tamanho de cada lado (skew), deixando as TRAVAS mandarem.
+                            # Todas as blindagens continuam: piso 5 shares, teto por
+                            # jogo/ordem, _shares_de (nunca vende mais do que tem em
+                            # carteira), faixa de preco viva, US$1000/ordem, Renan
+                            # blindada (nunca entra na allowlist do jogo).
+                            if FRENETIC:
+                                # PRECIFICACAO PASSIVA OBRIGATORIA no frenetico:
+                                # SELL descansa no ASK, BUY descansa no BID. Assim
+                                # o robo CAPTURA o spread nas duas pontas (taxa maker
+                                # ~0) em vez de CRUZAR o book e pagar spread+taxa
+                                # (taker). Independe da flag MAKER — frenetico e
+                                # sempre formador de mercado.
+                                preco_sell, preco_buy = ask, bid
+                                skew = self._tecnico(tok, mid)          # -1..+1
+                                # ---- lado SELL (limitado pelas quotas em carteira) ----
+                                held = self._shares_de(tok)
+                                if held >= MIN_SHARES:
+                                    # vies vendedor (skew<0) aumenta o lote de venda
+                                    fator_s = 1.0 + max(0.0, -skew)     # 1.0 .. 2.0
+                                    sh_s = min(lote_sh * fator_s, held)
+                                    if sh_s >= MIN_SHARES:
+                                        self._postar(tok, "SELL", sh_s, preco_sell, slug=slug_id)
+                                # ---- lado BUY (arranca do TETO; caixa e' bonus) ----
+                                # DIFERENCA p/ o modo unilateral: aqui o BUY NAO exige
+                                # caixa REALIZADO previo (senao no 1o ciclo, sem caixa,
+                                # so venderia). O Comandante ASSUMIU O RISCO e quer as
+                                # DUAS pontas vivas desde o 1o tick. Limite duro continua
+                                # sendo o TETO por jogo + teto por ordem (US$1000).
+                                restante_jogo = max(0.0, MAX_STAKE_GAME - stake_jogo)
+                                # vies comprador (skew>0) aumenta o lote de compra
+                                fator_b = 1.0 + max(0.0, skew)          # 1.0 .. 2.0
+                                alvo_usd = min(lote_usd * fator_b, MAX_ORDER)
+                                budget = min(alvo_usd, restante_jogo, teto)
+                                if budget >= (MIN_SHARES * preco_buy) - 1e-9 and preco_buy > 0:
+                                    sh_b = max(MIN_SHARES, budget / preco_buy)
+                                    self._postar(tok, "BUY", sh_b, preco_buy, slug=slug_id)
+                                continue   # frenetico ja postou os dois lados; proximo token
+                            # ========================================================
 
-                        if sig == -1:
-                            # VENDER: nunca mais que as quotas EM CARTEIRA
-                            # (evita 'not enough balance'), nunca menos que o piso.
-                            held = self._shares_de(tok)
-                            if held < MIN_SHARES:
-                                continue
-                            shares = min(lote_sh, held)
-                            if shares < MIN_SHARES:
-                                continue
-                            self._postar(tok, "SELL", shares, preco_sell, slug=slug_id)
-                        elif sig == +1:
-                            # COMPRAR: SO com caixa REALIZADO das vendas
-                            # (rotacao) e respeitando o teto. Nunca compra do 'nada'.
-                            caixa = self._cash.get(slug_id, 0.0)
-                            restante_jogo = max(0.0, MAX_STAKE_GAME - stake_jogo)
-                            budget = min(lote_usd, caixa, restante_jogo, teto)
-                            if budget < lote_usd - 1e-9:
-                                continue  # sem caixa/teto p/ um lote de 5 quotas
-                            shares = max(MIN_SHARES, budget / preco_buy)
-                            self._postar(tok, "BUY", shares, preco_buy, slug=slug_id)
+                            if sig == -1:
+                                # VENDER: nunca mais que as quotas EM CARTEIRA
+                                # (evita 'not enough balance'), nunca menos que o piso.
+                                held = self._shares_de(tok)
+                                if held < MIN_SHARES:
+                                    continue
+                                shares = min(lote_sh, held)
+                                if shares < MIN_SHARES:
+                                    continue
+                                self._postar(tok, "SELL", shares, preco_sell, slug=slug_id)
+                            elif sig == +1:
+                                # COMPRAR: SO com caixa REALIZADO das vendas
+                                # (rotacao) e respeitando o teto. Nunca compra do 'nada'.
+                                caixa = self._cash.get(slug_id, 0.0)
+                                restante_jogo = max(0.0, MAX_STAKE_GAME - stake_jogo)
+                                budget = min(lote_usd, caixa, restante_jogo, teto)
+                                if budget < lote_usd - 1e-9:
+                                    continue  # sem caixa/teto p/ um lote de 5 quotas
+                                shares = max(MIN_SHARES, budget / preco_buy)
+                                self._postar(tok, "BUY", shares, preco_buy, slug=slug_id)
+            except Exception as _e_ciclo:
+                # Exceção transitória (timeout de API, book vazio, etc.) NÃO
+                # pode matar o worker: registra e segue no próximo ciclo. É o
+                # que torna o robô resiliente e autônomo (antes uma exceção
+                # derrubava a thread silenciosamente e o jogo parava).
+                try: print(f'[ultra] ciclo ignorou erro transitório: {_e_ciclo}', flush=True)
+                except Exception: pass
             stop.wait(POLL_S)
         if not flattened and not migrated and not parou_por_risco:
             self.flatten_except_renan("parada manual", slug=slug_id)
