@@ -14,7 +14,7 @@ import traceback
 from google.cloud import firestore
 from playwright.sync_api import sync_playwright
 
-PROJECT = os.environ.get("MAESTRO_BROWSER_FS_PROJECT", "transparenciabr")
+PROJECT = os.environ.get("MAESTRO_BROWSER_FS_PROJECT", "projeto-codex-br")
 POLL_INTERVAL_S = float(os.environ.get("MAESTRO_BROWSER_POLL_S", "5"))
 NAV_TIMEOUT_MS = int(os.environ.get("MAESTRO_BROWSER_TIMEOUT_MS", "30000"))
 MAX_TEXT_CHARS = 8000
@@ -91,6 +91,7 @@ def main_loop() -> None:
         try:
             query = db.collection(COLLECTION).where("status", "==", "queued").limit(1)
             docs = list(query.stream())
+            print(f"[{now_iso()}] polling: found {len(docs)} queued jobs")
             if docs:
                 doc = docs[0]
                 process_job(doc.reference, doc.to_dict())
